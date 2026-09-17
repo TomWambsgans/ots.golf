@@ -34,14 +34,14 @@ PEOPLE = [
 # (only finished rows: the worker would try to verify anything pending)
 ROWS = [
     ("upper", "satoshi-nakamoto", 107, 6 * 24 + 5, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-butterin", 105, 4 * 24 + 11, "verified", True, "ELIZA", []),
+    ("upper", "vitalik-butterin", 105, 4 * 24 + 11, "verified", True, "DistilGPT-2", []),
     ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "Llama 1 7B", []),
-    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "Markov chain", []),
+    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "GPT-Neo 1.3B", []),
     ("upper", "vitalik-butterin", 101, 26, "verified", True, "GPT-2 XL", []),
-    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "Clippy", []),
+    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "GPT-J 6B", []),
     ("lower", "vitalik-butterin", 26, 5 * 24 + 3, "verified", True, "BERT base", []),
     ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "GPT-2", []),
-    ("lower", "vitalik-butterin", 26, 22, "verified", False, "T9 autocomplete", []),
+    ("lower", "vitalik-butterin", 26, 22, "verified", False, "T5 small", []),
 ]
 
 
