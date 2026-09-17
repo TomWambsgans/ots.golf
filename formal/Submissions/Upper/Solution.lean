@@ -10,9 +10,9 @@ separate concatenation node, and the `2 ^ 115` disclosure sets reveal one value 
 the verifier recomputes exactly 96 chain hashes (`Submissions.Upper.Cuts`): reconstruction costs
 107 and the index query 2.
 
-* `Submissions.Upper.Scheme`: `Forest.forestScheme : Scheme paperParams`, every signature
-  verifies in `109` compressions (`forestScheme_verifyCost`);
-* `Submissions.Upper.Main`: `Forest.forestScheme_secure : forestScheme.Secure`, with the bound
+* `Submissions.Upper.Scheme`: `Flat.flatScheme : Scheme paperParams`, every signature
+  verifies in `109` compressions (`flatScheme_verifyCost`);
+* `Submissions.Upper.Main`: `Flat.flatScheme_secure : flatScheme.Secure`, with the bound
   `probTrue ≤ (B - 831) / 2 ^ 127` for every budget `B ≤ 2 ^ 127`.
 
 See `README.md` in this directory for the structure of the proof.
@@ -28,16 +28,16 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS.Challenge.Upper
 
-attribute [local irreducible] Forest.forestScheme
+attribute [local irreducible] Flat.flatScheme
 
 /-- **The scheme.** A graph-based one-time signature scheme with the parameters of the paper. -/
-noncomputable def scheme : Scheme paperParams := Forest.forestScheme
+noncomputable def scheme : Scheme paperParams := Flat.flatScheme
 
 /-- **Security.** The scheme satisfies the security requirement of the paper. -/
-theorem secure : scheme.Secure := Forest.forestScheme_secure
+theorem secure : scheme.Secure := Flat.flatScheme_secure
 
 /-- **Cost.** Every signature of the scheme verifies in at most `109` compressions. -/
 theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ 109 := fun i =>
-  (Forest.forestScheme_verifyCost i).le
+  (Flat.flatScheme_verifyCost i).le
 
 end OptimalOTS.Challenge.Upper

@@ -19,8 +19,8 @@ Exports (`Solution.lean`): `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost`
 | `Cache.lean`, `IUB.lean`, `Master.lean` | the lazy random oracle's cache; the identical-until-bad coupling; the supermartingale master lemma (a potential growing by at most `κ` per compression of query cost bounds a bad event by `κ · budget`) |
 | `Keygen.lean`, `Reconstruct.lean`, `SignIdx.lean`, `EncCharges.lean` | key generation as a uniform record; the verifier's run; the signing loop; charges of encoding queries |
 | `Names.lean`, `Tree.lean` | the 1683-node computation graph; the tree structure, visited sets, costs, cuts |
-| `Count.lean`, `Cuts.lean`, `Scheme.lean` | the disclosure family (`comp 41 96` position vectors, counted by kernel computation) and `forestScheme` |
+| `Count.lean`, `Cuts.lean`, `Scheme.lean` | the disclosure family (`comp 41 96` position vectors, counted by kernel computation) and `flatScheme` |
 | `Values.lean`, `Resample.lean`, `Events.lean` | node values; hidden and exposed keygen points; uniformity of hidden inputs by resampling one record coordinate; an accepted forgery is one of the charged events |
-| `Potentials.lean`, `StageB.lean`, `Assembly.lean`, `Main.lean` | the potentials, the two attacker stages, the bound, `forestScheme_secure` |
+| `Potentials.lean`, `StageB.lean`, `Assembly.lean`, `Main.lean` | the potentials, the two attacker stages, the bound, `flatScheme_secure` |
 
 The architecture is described in `docs/upper-bound-proof.md`.

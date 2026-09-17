@@ -22,7 +22,7 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -339,6 +339,6 @@ theorem cost_of_mem_family {A : Finset Name} (h : A ∈ family) :
   rw [← hA]
   exact cost_cutOf hc
 
-end Forest
+end Flat
 
 end OptimalOTS

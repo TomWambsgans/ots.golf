@@ -14,7 +14,7 @@ computed by kernel reduction.
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 /-- Number of `(c : Fin n → Fin 21)` with `∑ i, (c i).val = s`. -/
 def comp : ℕ → ℕ → ℕ
@@ -104,6 +104,6 @@ theorem count_ge : 2 ^ 115 ≤ comp 41 96 := by
   rw [comp_41_96]
   norm_num
 
-end Forest
+end Flat
 
 end OptimalOTS

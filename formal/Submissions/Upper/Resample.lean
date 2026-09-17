@@ -22,7 +22,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -510,6 +510,6 @@ theorem hits_charge_B {A : Finset Name} (hA : IsCut A) (d : Data) (q : Query) :
       Finset.sum_eq_zero fun ξ _ => if_neg (hz ξ)
     exact hsum.le.trans _root_.zero_le
 
-end Forest
+end Flat
 
 end OptimalOTS

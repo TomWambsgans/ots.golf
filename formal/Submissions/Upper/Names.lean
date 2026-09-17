@@ -31,7 +31,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 /-- Node names. -/
 inductive Name where
@@ -339,6 +339,6 @@ theorem graph_keygenCost : graph.keygenCost = 831 := by
   rw [Name.sum_eq]
   simp [Name.cost]
 
-end Forest
+end Flat
 
 end OptimalOTS

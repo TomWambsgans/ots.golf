@@ -26,7 +26,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -437,6 +437,6 @@ theorem exists_mem_evaluated_of_ne {A A' : Finset Name} (hA : IsCut A) (hA' : Is
 
 end
 
-end Forest
+end Flat
 
 end OptimalOTS

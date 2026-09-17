@@ -1,11 +1,11 @@
 # The upper-bound proof: architecture
 
-The upper-track baseline (`formal/Submissions/Upper/`) proves, for `forestScheme : Scheme paperParams`
+The upper-track baseline (`formal/Submissions/Upper/`) proves, for `flatScheme : Scheme paperParams`
 (41 chains of length 20 hashed directly into the root) with
 
 ```
-theorem forestScheme_secure : forestScheme.Secure
-theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 109
+theorem flatScheme_secure : flatScheme.Secure
+theorem flatScheme_verifyCost (i) : flatScheme.verifyCost i = 109
 ```
 
 (exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`). `Scheme.Secure` demands: for every adversary `A` and every `B` with

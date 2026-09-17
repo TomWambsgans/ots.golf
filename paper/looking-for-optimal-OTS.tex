@@ -787,10 +787,10 @@ Every query costs at least one compression. On every path, key generation costs 
 
 \subsection{Machine-checked proof}\label{sec:formal}
 
-Theorem~\ref{thm:scheme} is formalized in Lean~4 on top of the model of Section~\ref{sec:model} (the same \texttt{Scheme} structure, forgery experiment, and cost bound as the formal statement of Theorem~\ref{thm:main}, in \texttt{formal/OptimalOTS/Statement.lean}, including the 192 overhead bits of the cost). The scheme is \texttt{Forest.forestScheme}, with the $128$-bit values of this section as separate truncation nodes, the input of the root as a separate concatenation node, and the disclosure sets drawn injectively from $D$; the theorems
+Theorem~\ref{thm:scheme} is formalized in Lean~4 on top of the model of Section~\ref{sec:model} (the same \texttt{Scheme} structure, forgery experiment, and cost bound as the formal statement of Theorem~\ref{thm:main}, in \texttt{formal/OptimalOTS/Statement.lean}, including the 192 overhead bits of the cost). The scheme is \texttt{Flat.flatScheme}, with the $128$-bit values of this section as separate truncation nodes, the input of the root as a separate concatenation node, and the disclosure sets drawn injectively from $D$; the theorems
 \begin{center}
-\texttt{forestScheme\_verifyCost : forestScheme.verifyCost i = 109},\qquad
-\texttt{forestScheme\_secure : forestScheme.Secure}
+\texttt{flatScheme\_verifyCost : flatScheme.verifyCost i = 109},\qquad
+\texttt{flatScheme\_secure : flatScheme.Secure}
 \end{center}
 are proved without \texttt{sorry}, \texttt{native\_decide}, or additional axioms, and $|D|$ is computed by the kernel from a dynamic-programming table. The formal argument follows this section with two adjustments that suit a proof assistant. First, instead of bounding each event by an expected number of queries, it uses a potential: a function of the oracle cache whose average increase at every fresh query is at most $2^{-127}$ per compression of cost, so that the pathwise budget $B$ of the model directly bounds the probability of the bad events (the counting terms $|V|/M$ and $L\,|W|/(2^{256}-L)$ of the encoding analysis are part of the potential). Second, the independence of hidden inputs from the attacker's view is obtained by resampling one record coordinate below the revealed values, which leaves the public key, the revealed values and the exposed oracle entries unchanged. The resulting bound is $\Pr[\mathrm{Forge}]\le(B-831)/2^{127}$ for every $B\le2^{127}$, and the requirement~\eqref{eq:security} is trivial for larger $B$. Theorem~\ref{thm:main} is formalized in the same way, with the constants of this paper.
 

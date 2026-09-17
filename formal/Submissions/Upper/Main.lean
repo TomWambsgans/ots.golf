@@ -3,12 +3,12 @@ import Submissions.Upper.Assembly
 /-!
 # Security of the concrete scheme
 
-`forestScheme_secure`: the flat scheme of 41 chains of length 20 satisfies `Scheme.Secure`, the
+`flatScheme_secure`: the flat scheme of 41 chains of length 20 satisfies `Scheme.Secure`, the
 127-bit strong unforgeability requirement of `OptimalOTS.Statement`, and every signature verifies
-in `109` compressions (`forestScheme_verifyCost`).
+in `109` compressions (`flatScheme_verifyCost`).
 
 For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 831) = (B - 831) / 2 ^ 127 < B / 2 ^ 127`
-of `Forest.main_bound` applies; for larger budgets the requirement holds trivially since
+of `Flat.main_bound` applies; for larger budgets the requirement holds trivially since
 probabilities are at most one.
 -/
 
@@ -22,9 +22,9 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
-attribute [local irreducible] experiment forestScheme
+attribute [local irreducible] experiment flatScheme
 
 theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
   unfold κ ε
@@ -47,7 +47,7 @@ theorem one_lt_div {B : ℕ} (h : 2 ^ 127 < B) : (1 : ℝ≥0∞) < (B : ℝ≥0
   exact_mod_cast h
 
 /-- **Security of the concrete scheme.** -/
-theorem forestScheme_secure : forestScheme.Secure := by
+theorem flatScheme_secure : flatScheme.Secure := by
   intro A B hB
   by_cases hle : B ≤ 2 ^ 127
   · have h1 := @main_bound A B hB hle
@@ -55,18 +55,18 @@ theorem forestScheme_secure : forestScheme.Secure := by
     exact h1.trans_lt (kappa_mul_lt h2)
   · exact (probOutput_le_one).trans_lt (one_lt_div (not_le.1 hle))
 
-end Forest
+end Flat
 
 /--
-info: 'OptimalOTS.Forest.forestScheme_secure' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'OptimalOTS.Flat.flatScheme_secure' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms Forest.forestScheme_secure
+#print axioms Flat.flatScheme_secure
 
 /--
-info: 'OptimalOTS.Forest.forestScheme_verifyCost' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'OptimalOTS.Flat.flatScheme_verifyCost' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms Forest.forestScheme_verifyCost
+#print axioms Flat.flatScheme_verifyCost
 
 end OptimalOTS

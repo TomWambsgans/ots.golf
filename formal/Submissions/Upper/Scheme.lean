@@ -3,9 +3,9 @@ import Submissions.Upper.Cuts
 /-!
 # The concrete scheme as a `Scheme paperParams`
 
-`forestScheme` is the flat scheme: the graph of `Forest.Names` (41 chains of length 20 under the
-root), with the `2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.
-Every signature verifies in `109` compressions (`forestScheme_verifyCost`).
+`flatScheme` is the flat scheme: the graph of `Flat.Names` (41 chains of length 20 under the
+root), with the `2 ^ 115` disclosure sets chosen injectively from the family of `Flat.Cuts`.
+Every signature verifies in `109` compressions (`flatScheme_verifyCost`).
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -16,7 +16,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -35,7 +35,7 @@ theorem setsName_injective : Function.Injective setsName := by
 theorem numSets_eq : paperParams.numSets = 2 ^ 115 := rfl
 
 /-- The concrete scheme. -/
-def forestScheme : Scheme paperParams where
+def flatScheme : Scheme paperParams where
   graph := graph
   sets := fun i => fins (setsName i)
   root_not_mem := by
@@ -57,16 +57,16 @@ def forestScheme : Scheme paperParams where
     rw [graph_keygenCost]
     norm_num
 
-theorem forestScheme_graph : forestScheme.graph = graph := rfl
+theorem flatScheme_graph : flatScheme.graph = graph := rfl
 
-theorem forestScheme_sets (i : Fin paperParams.numSets) : forestScheme.sets i = fins (setsName i) :=
+theorem flatScheme_sets (i : Fin paperParams.numSets) : flatScheme.sets i = fins (setsName i) :=
   rfl
 
-theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
+theorem flatScheme_sets_injective : Function.Injective flatScheme.sets := by
   intro i j h
   apply setsName_injective
   have := congrArg names h
-  simpa only [forestScheme_sets, names_fins] using this
+  simpa only [flatScheme_sets, names_fins] using this
 
 theorem isCut_setsName (i : Fin (2 ^ 115)) : IsCut (setsName i) :=
   isCut_of_mem_family (setsName_mem i)
@@ -75,13 +75,13 @@ theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i),
   cost_of_mem_family (setsName_mem i)
 
 /-- Every signature verifies in `109` compressions: two for the index query and `107` for reconstruction. -/
-theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 109 := by
+theorem flatScheme_verifyCost (i : Fin paperParams.numSets) : flatScheme.verifyCost i = 109 := by
   show idxCost paperParams + graph.reconstructCost (fins (setsName i)) = 109
   have hidx : idxCost paperParams = 2 := by decide
   rw [reconstructCost_eq, hidx]
   have h := cost_setsName i
   omega
 
-end Forest
+end Flat
 
 end OptimalOTS

@@ -25,7 +25,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -363,6 +363,6 @@ theorem events_same {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paper
   unfold val at heq
   exact cast_injective _ heq
 
-end Forest
+end Flat
 
 end OptimalOTS

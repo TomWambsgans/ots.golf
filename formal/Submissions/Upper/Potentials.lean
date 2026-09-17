@@ -8,7 +8,7 @@ import Submissions.Upper.Reconstruct
 /-!
 # The experiment in stages, and the potentials
 
-The experiment of `forestScheme` against an adversary `A` is `keygen >>= rest A`, where `rest`
+The experiment of `flatScheme` against an adversary `A` is `keygen >>= rest A`, where `rest`
 runs the attacker's first stage, signing (`sign_eq`: the signing loop `signIdx` followed by
 encoding), the attacker's second stage and verification (`stB`).
 
@@ -29,7 +29,7 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -42,19 +42,19 @@ variable (A : Adversary paperParams)
 def stB (pk : PublicKey paperParams) (m₁ : Message paperParams) (st : A.State) (σ : Option (Signature paperParams)) :
     OracleComp (Spec paperParams) Bool := do
   let (m₂, σ₂) ← A.forge st σ
-  let ok ← forestScheme.verify pk m₂ σ₂
+  let ok ← flatScheme.verify pk m₂ σ₂
   return ok && decide (σ.map (fun s => (m₁, s)) ≠ some (m₂, σ₂))
 
 /-- Signing and the second stage. -/
 def rest₂ (pk : PublicKey paperParams) (sk : graph.Assignment) (y : Message paperParams × A.State) :
     OracleComp (Spec paperParams) Bool :=
-  forestScheme.sign sk y.1 >>= stB A pk y.1 y.2
+  flatScheme.sign sk y.1 >>= stB A pk y.1 y.2
 
 /-- Everything after key generation. -/
 def rest (x : PublicKey paperParams × graph.Assignment) : OracleComp (Spec paperParams) Bool :=
   A.choose x.1 >>= rest₂ A x.1 x.2
 
-theorem experiment_eq : experiment forestScheme A = forestScheme.keygen >>= rest A := by
+theorem experiment_eq : experiment flatScheme A = flatScheme.keygen >>= rest A := by
   unfold experiment rest rest₂ stB
   congr 1
 
@@ -73,14 +73,14 @@ theorem probTrue_eq_E_run (P : Params) (oa : OracleComp (Spec P) Bool) :
   rcases x with ⟨b, c⟩
   cases b <;> simp
 
-theorem probTrue_eq : probTrue paperParams (experiment forestScheme A) = E (run paperParams (experiment forestScheme A) ∅) g := by
-  generalize experiment forestScheme A = oa
+theorem probTrue_eq : probTrue paperParams (experiment flatScheme A) = E (run paperParams (experiment flatScheme A) ∅) g := by
+  generalize experiment flatScheme A = oa
   rw [probTrue_eq_E_run]
   rfl
 
 /-- The signature of the record `ξ` for the outcome `r` of the signing loop. -/
 def sigOf (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Signature paperParams) :=
-  r.map fun r => (r.1, graph.encode (forestScheme.sets r.2) (graph.evalRec ξ))
+  r.map fun r => (r.1, graph.encode (flatScheme.sets r.2) (graph.evalRec ξ))
 
 /-- The disclosure set of the outcome of the signing loop. -/
 def cutOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Finset Name) :=
@@ -92,15 +92,15 @@ def idxOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option 
 theorem trunc_cast_pot {n m : ℕ} (h : n = m) (x : BitVec n) : trunc (x.cast h) = trunc x := by
   subst h; rfl
 
-theorem publicKey_eq_pkOf (ξ : Rec) : forestScheme.publicKey (graph.evalRec ξ) = pkOf ξ := by
+theorem publicKey_eq_pkOf (ξ : Rec) : flatScheme.publicKey (graph.evalRec ξ) = pkOf ξ := by
   show trunc (graph.evalRec ξ rh.fin) = trunc (ξ.2 rh.fin)
   rw [← val_rh]
   unfold val
   exact (trunc_cast_pot _ _).symm
 
 theorem sign_eq (ξ : Rec) (m : Message paperParams) :
-    forestScheme.sign (graph.evalRec ξ) m = sigOf ξ <$> signIdx paperParams m :=
-  sign_eq_map forestScheme (graph.evalRec ξ) m
+    flatScheme.sign (graph.evalRec ξ) m = sigOf ξ <$> signIdx paperParams m :=
+  sign_eq_map flatScheme (graph.evalRec ξ) m
 
 /-! ## Potentials -/
 
@@ -483,6 +483,6 @@ theorem ΦB_charge_none (pk : BitVec 128) {T : Finset Rec} (hT : T ⊆ fiberA pk
     refine le_trans (add_le_add (h1.trans (add_le_add_right h2 _)) h3') (le_of_eq ?_)
     rw [κ_mul_eq]; ring
 
-end Forest
+end Flat
 
 end OptimalOTS

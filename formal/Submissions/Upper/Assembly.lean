@@ -6,7 +6,7 @@ import Submissions.Upper.StageB
 For every adversary `A` whose experiment costs at most `B ≤ 2 ^ 127` on every path,
 
 ```
-probTrue (experiment forestScheme A) ≤ 2 ε (B - 831),  ε = 2 ^ (-128).
+probTrue (experiment flatScheme A) ≤ 2 ε (B - 831),  ε = 2 ^ (-128).
 ```
 
 The proof follows `DESIGN.md`: key generation is a uniform record (`E_run_keygen`); the
@@ -17,9 +17,9 @@ turns an accepted forgery into one of the charged events.
 
 Implementation note: `fiberA`, `graph`, `CostAtMost` and the computations of the experiment are
 made locally irreducible. Otherwise the unifier unfolds `Finset.univ : Finset Rec` (through
-`fiberA`), the structure literal `graph` (through `forestScheme.graph`), or the signing loop
+`fiberA`), the structure literal `graph` (through `flatScheme.graph`), or the signing loop
 (through `CostAtMost (rest₂ …)`) and hits the maximal recursion depth; every use of these
-definitions below goes through their equation lemmas or through `forestScheme`.
+definitions below goes through their equation lemmas or through `flatScheme`.
 -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
@@ -32,7 +32,7 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -224,43 +224,43 @@ theorem sum_sumW_fiberA : ∑ pk : BitVec 128, sumW (fiberA pk) = 1 := by
 /-! ## The bound -/
 
 /-- Key generation as a uniform record, for the concrete scheme. -/
-theorem E_run_keygen_forest
-    (g' : (PublicKey paperParams × forestScheme.graph.Assignment) × Cache paperParams → ℝ≥0∞) :
-    E (run paperParams forestScheme.keygen ∅) g' = ∑ ξ : Rec, w * g' ((pkOf ξ, graph.evalRec ξ), kc ξ) := by
-  rw [E_run_keygen forestScheme g']
+theorem E_run_keygen_flat
+    (g' : (PublicKey paperParams × flatScheme.graph.Assignment) × Cache paperParams → ℝ≥0∞) :
+    E (run paperParams flatScheme.keygen ∅) g' = ∑ ξ : Rec, w * g' ((pkOf ξ, graph.evalRec ξ), kc ξ) := by
+  rw [E_run_keygen flatScheme g']
   show ∑ ξ : Rec, (Fintype.card Rec : ℝ≥0∞)⁻¹ *
-    g' ((forestScheme.publicKey (graph.evalRec ξ), graph.evalRec ξ), graph.keygenCache ξ) = _
+    g' ((flatScheme.publicKey (graph.evalRec ξ), graph.evalRec ξ), graph.keygenCache ξ) = _
   refine Finset.sum_congr rfl fun ξ _ => ?_
   rw [publicKey_eq_pkOf]
   rfl
 
 /-- The experiment as a uniform average over records of the continuation after key generation. -/
 theorem E_run_experiment (g' : Bool × Cache paperParams → ℝ≥0∞) :
-    E (run paperParams (experiment forestScheme A) ∅) g' =
+    E (run paperParams (experiment flatScheme A) ∅) g' =
       ∑ ξ : Rec, w * E (run paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (kc ξ)) g' := by
   rw [experiment_eq]
-  have h1 := run_bind paperParams forestScheme.keygen (rest A) ∅
-  rw [h1, E_bind, E_run_keygen_forest]
+  have h1 := run_bind paperParams flatScheme.keygen (rest A) ∅
+  rw [h1, E_bind, E_run_keygen_flat]
   rfl
 
 /-- The budget after key generation, for the concrete scheme. -/
-theorem costAtMost_rest_forest {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) :
+theorem costAtMost_rest_flat {B : ℕ} (hB : CostAtMost paperParams (experiment flatScheme A) B) :
     831 ≤ B ∧ ∀ ξ : Rec, CostAtMost paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (B - 831) := by
   rw [experiment_eq] at hB
-  obtain ⟨h1, h2⟩ := costAtMost_keygen_bind forestScheme (rest A) hB
+  obtain ⟨h1, h2⟩ := costAtMost_keygen_bind flatScheme (rest A) hB
   refine ⟨?_, fun ξ => ?_⟩
   · have h1' : graph.keygenCost ≤ B := h1
     rwa [graph_keygenCost] at h1'
-  · have h2' : CostAtMost paperParams (rest A (forestScheme.publicKey (graph.evalRec ξ), graph.evalRec ξ))
+  · have h2' : CostAtMost paperParams (rest A (flatScheme.publicKey (graph.evalRec ξ), graph.evalRec ξ))
         (B - graph.keygenCost) := h2 ξ
     rwa [publicKey_eq_pkOf, graph_keygenCost] at h2'
 
-theorem keygen_le {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) : 831 ≤ B :=
-  (costAtMost_rest_forest A hB).1
+theorem keygen_le {B : ℕ} (hB : CostAtMost paperParams (experiment flatScheme A) B) : 831 ≤ B :=
+  (costAtMost_rest_flat A hB).1
 
-theorem main_bound {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) (hB' : B ≤ 2 ^ 127) :
-    probTrue paperParams (experiment forestScheme A) ≤ κ * ((B - 831 : ℕ) : ℝ≥0∞) := by
-  obtain ⟨h831, hrest⟩ := costAtMost_rest_forest A hB
+theorem main_bound {B : ℕ} (hB : CostAtMost paperParams (experiment flatScheme A) B) (hB' : B ≤ 2 ^ 127) :
+    probTrue paperParams (experiment flatScheme A) ≤ κ * ((B - 831 : ℕ) : ℝ≥0∞) := by
+  obtain ⟨h831, hrest⟩ := costAtMost_rest_flat A hB
   rw [probTrue_eq, E_run_experiment]
   calc ∑ ξ : Rec, w * E (run paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (kc ξ)) g
       ≤ ∑ ξ : Rec, w * E (run paperParams (A.choose (pkOf ξ)) ∅) (fun p =>
@@ -290,6 +290,6 @@ theorem main_bound {B : ℕ} (hB : CostAtMost paperParams (experiment forestSche
     _ = κ * ((B - 831 : ℕ) : ℝ≥0∞) := by
         rw [← Finset.sum_mul, ← Finset.mul_sum, sum_sumW_fiberA, mul_one]
 
-end Forest
+end Flat
 
 end OptimalOTS

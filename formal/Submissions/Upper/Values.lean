@@ -21,7 +21,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Forest
+namespace Flat
 
 open Name
 
@@ -659,6 +659,6 @@ theorem card_updSrc_input_le {h p : Name} (hp : hashParent h = some p) (ξ : Rec
       exact absurd hs (by simp)
   · exact absurd hs (by simp)
 
-end Forest
+end Flat
 
 end OptimalOTS
