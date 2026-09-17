@@ -28,7 +28,7 @@ def signature_cut() -> dict:
     """A cut of cost 105 with 41 revealed values, of the most common shape of the formal proof's
     disclosure family: two subtree digests revealed, three group digests revealed under the open
     subtrees, and one value on each of the 36 remaining chains, with chain positions of total
-    cost 86 (cost 2 + 5 + 12 + 86 = 105). The choice is pseudo-random with a fixed seed, so the
+    cost 86 (cost 2 + 5 + 12 + 86 = 105), one of them opened all the way down to its source. The choice is pseudo-random with a fixed seed, so the
     picture is stable but does not look hand-made. Returns the status of every node."""
     import random
     rng = random.Random(0x6f74732e676f6c66)             # "ots.golf"
@@ -39,10 +39,12 @@ def signature_cut() -> dict:
     open_g = set(groups_under_open) - revealed_g
     chains = [k for j in sorted(open_g) for k in range(3 * j, 3 * j + 3)]
     costs = {k: 0 for k in chains}                      # 14 - t_k, each at most 14, total 86
-    budget = 86
-    while budget > 0:
+    deep, deeper = rng.sample(chains, 2)
+    costs[deep], costs[deeper] = LEN, 9                 # one chain opened down to its source
+    budget = 86 - LEN - 9
+    while budget > 0:                                   # the rest stays shallow (at most 6 beads)
         k = rng.choice(chains)
-        if costs[k] < LEN:
+        if k not in (deep, deeper) and costs[k] < 6:
             costs[k] += 1
             budget -= 1
     t_by_chain = {k: LEN - c for k, c in costs.items()}
