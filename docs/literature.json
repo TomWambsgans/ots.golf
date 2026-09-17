@@ -2,7 +2,7 @@
   "_comment": "Reference points drawn on the record chart. Not Lean-verified here; costs are translated into the contract's model (one hash unit per started 512-bit block, one-time part only).",
   "points": [
     {
-      "date": "2026-09-03",
+      "date": "2026-09-15",
       "label": "leanVM XMSS",
       "url": "https://github.com/leanEthereum/leanVM/blob/main/doc/xmss/main.tex",
       "upper": 111,
