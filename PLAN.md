@@ -47,7 +47,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
   record, or "verified, not a record".
 - One entry point: the pull-request webhook. Attribution from the PR (author, `Assisted by:`,
   `Co-authors:` lines). Merge = promotion. No login, no tokens, no upload.
-- API: read-only (interval, tracks, leaderboard, submission, log). Limits: 2 in flight per
+- No API: the repository is the source of truth (merge = promotion). Limits: 2 in flight per
   user, queue cap.
 - Ops: unprivileged worker, secrets only in the API process, nightly DB dump, rebuildable from a
   setup script.
@@ -59,7 +59,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 - Rules page: the model in words, contract version and hash, limits. Literature points with
   caveats (paper's constant-sum Winternitz at 108; other Winternitz variants computed in this
   cost model; Lamport does not fit the signature budget).
-- `/llms.txt`, OpenAPI docs, GitHub login.
+- `/llms.txt`. No login, no API.
 
 ## Milestones
 1. **M1** — lower baseline (25) verifies end to end on the server through comparator.

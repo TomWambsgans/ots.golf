@@ -1,6 +1,7 @@
 # ots.golf service
 
-The hosted verifier, the JSON API and the site, in one FastAPI app plus one worker process.
+The hosted verifier and the site, in one FastAPI app plus one worker process. The repository is
+the source of truth; the site is its human-readable view.
 
 ```sh
 cd service

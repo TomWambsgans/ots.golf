@@ -1,4 +1,4 @@
-"""ots.golf: the read-only site and JSON API, and the pull-request webhook that queues submissions."""
+"""ots.golf: the site, and the pull-request webhook that queues submissions."""
 from __future__ import annotations
 
 import json
@@ -17,8 +17,7 @@ from .config import settings
 from .db import Submission, User, get_session, init_db
 
 APP_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="ots.golf", version="0.1.0", docs_url="/api/v1/docs", openapi_url="/api/v1/openapi.json",
-              redoc_url=None)
+app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 templates.env.filters["dt"] = lambda d: d.strftime("%Y-%m-%d %H:%M UTC") if d else ""
@@ -165,57 +164,10 @@ def llms():
     base = settings.base_url
     text = (settings.repo_root / "llms.txt").read_text(encoding="utf-8")
     return text + f"""
-## Reading the state (base {base}/api/v1, no authentication)
+## Where the state is
 
-GET /interval                      the current interval, progress and contract id
-GET /tracks                        both tracks with their record
-GET /tracks/{{slug}}/leaderboard     records (the frontier) and other verified submissions
-GET /submissions/{{id}}              one submission: status, claim, attribution, failure if any
-GET /submissions/{{id}}/log          the verifier transcript
-Statuses: pending, verifying, verified, rejected, policy_rejected, timeout, failed.
-OpenAPI: {base}/api/v1/openapi.json
+The contract repository is the source of truth: the submission root of each track holds the
+current record, and its claim.txt holds the number. Open pull requests are the submissions in
+flight; the verifier's verdict is on each one as a commit status and a comment linking to
+{base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
 """
-
-
-# --- JSON API (read-only) ---------------------------------------------------------------------
-
-@app.get("/api/v1/interval")
-def api_interval(session: Session = Depends(get_session)):
-    return records.interval(session)
-
-
-@app.get("/api/v1/tracks")
-def api_tracks(session: Session = Depends(get_session)):
-    return [records.track_state(session, t) for t in contract.tracks()]
-
-
-@app.get("/api/v1/tracks/{slug}")
-def api_track(slug: str, session: Session = Depends(get_session)):
-    t = contract.track(slug)
-    if t is None:
-        raise HTTPException(404)
-    return {**t, "state": records.track_state(session, t)}
-
-
-@app.get("/api/v1/tracks/{slug}/leaderboard")
-def api_leaderboard(slug: str, session: Session = Depends(get_session)):
-    if contract.track(slug) is None:
-        raise HTTPException(404)
-    return {"records": [s.public_dict() for s in records.frontier(session, slug)],
-            "verified": [s.public_dict() for s in records.others(session, slug)],
-            "in_flight": [s.public_dict() for s in records.in_flight(session, slug)]}
-
-
-@app.get("/api/v1/submissions/{sub_id}")
-def api_submission(sub_id: str, session: Session = Depends(get_session)):
-    sub = session.get(Submission, sub_id)
-    if sub is None:
-        raise HTTPException(404)
-    d = sub.public_dict()
-    d["queue_position"] = next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None)
-    return d
-
-
-@app.get("/api/v1/submissions/{sub_id}/log", response_class=PlainTextResponse)
-def api_log(sub_id: str, session: Session = Depends(get_session)):
-    return submission_log(sub_id, session)
