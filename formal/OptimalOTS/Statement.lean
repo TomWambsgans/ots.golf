@@ -50,8 +50,7 @@ structure Params where
   hashBits : ℕ
   /-- A query on `k` input bits costs `⌈k / blockBits⌉` compressions (and at least one). Nothing
   else is charged: a per-key public parameter can be absorbed once, in a block of its own, and the
-  chaining state reused by every later query (an observation of Justin Drake), and the labels of
-  the model stand for tweaks, which a scheme is free to spell out in its inputs. -/
+  chaining state reused by every later query (an observation of Justin Drake). -/
   blockBits : ℕ
   /-- Length of the public key: a prefix of the root hash. -/
   pkBits : ℕ
@@ -59,7 +58,7 @@ structure Params where
   msgBits : ℕ
   /-- Length of signing nonces. -/
   nonceBits : ℕ
-  /-- Number of bits of `H(enc, m ‖ η)` read as the disclosure index. -/
+  /-- Number of bits of `H(m ‖ η)` read as the disclosure index. -/
   idxBits : ℕ
   /-- Maximal number of revealed bits in a signature, excluding the nonce. -/
   maxRevealBits : ℕ
@@ -74,14 +73,10 @@ structure Params where
 
 /-! ## 2. The random oracle and the cost of a query -/
 
-/-- Domain separation: `enc` for message encoding, `node τ` for the hash node with label `τ`. -/
-inductive Label where
-  | enc
-  | node (τ : ℕ)
-  deriving DecidableEq
-
-/-- A random-oracle query: a label and a bit string of any length. -/
-abbrev Query := Label × (Σ k : ℕ, BitVec k)
+/-- A random-oracle query: a bit string of any length. There is one oracle and nothing else: no
+labels, no tweaks, no domain separation. A scheme that wants its queries kept apart, from one another
+or from the index query, arranges it in the strings it hashes and pays for their bits. -/
+abbrev Query := Σ k : ℕ, BitVec k
 
 /-- The random oracle: an independent uniform `hashBits`-bit answer for every query. -/
 abbrev hashSpec (P : Params) : OracleSpec Query := Query →ₒ BitVec P.hashBits
@@ -92,22 +87,21 @@ abbrev Spec (P : Params) := unifSpec + hashSpec P
 /-- Cost of hashing `k` bits: the number of started blocks, and at least one. -/
 def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.blockBits - 1) / P.blockBits)
 
-/-- Cost of the index query `H(enc, m ‖ η)`. -/
+/-- Cost of the index query `H(m ‖ η)`. -/
 def idxCost (P : Params) : ℕ := blockCost P (P.msgBits + P.nonceBits)
 
 /-- Cost of a query: uniform sampling is free, hashing `k` bits costs `blockCost P k`. -/
 def queryCost (P : Params) : (Spec P).Domain → ℕ
   | .inl _ => 0
-  | .inr q => blockCost P q.2.1
+  | .inr q => blockCost P q.1
 
 /-- `oa` costs at most `B` on every execution path, whatever the oracle answers. -/
 def CostAtMost (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (B : ℕ) : Prop :=
   oa.IsQueryBound B (fun t b => queryCost P t ≤ b) (fun t b => b - queryCost P t)
 
-/-- Query the random oracle on label `τ` and input `u`. -/
-def hash (P : Params) (τ : Label) {k : ℕ} (u : BitVec k) :
-    OracleComp (Spec P) (BitVec P.hashBits) :=
-  liftM ((Spec P).query (.inr (τ, ⟨k, u⟩)))
+/-- Query the random oracle on input `u`. -/
+def hash (P : Params) {k : ℕ} (u : BitVec k) : OracleComp (Spec P) (BitVec P.hashBits) :=
+  liftM ((Spec P).query (.inr ⟨k, u⟩))
 
 /-- Sample a uniform bit string (free). -/
 def sampleBits (P : Params) (n : ℕ) : OracleComp (Spec P) (BitVec n) :=
@@ -137,8 +131,8 @@ inductive NodeKind (hashBits N : ℕ) (len : Fin N → ℕ) (v : Fin N) : Type w
       (f : ((w : Fin N) → BitVec (len w)) → BitVec (len v))
       (f_local : ∀ x y : (w : Fin N) → BitVec (len w),
         (∀ w ∈ parents, x w = y w) → f x = f y)
-  /-- A hash node: the random oracle on label `node label` and its parent's value. -/
-  | hash (parent : Fin N) (parent_lt : parent < v) (label : ℕ) (len_eq : len v = hashBits)
+  /-- A hash node: the random oracle on its parent's value. -/
+  | hash (parent : Fin N) (parent_lt : parent < v) (len_eq : len v = hashBits)
 
 namespace NodeKind
 
@@ -148,7 +142,7 @@ variable {hashBits N : ℕ} {len : Fin N → ℕ} {v : Fin N}
 def parents : NodeKind hashBits N len v → Finset (Fin N)
   | source => ∅
   | det ps _ _ _ => ps
-  | hash p _ _ _ => {p}
+  | hash p _ _ => {p}
 
 /-- The node is a secret source. -/
 def IsSource : NodeKind hashBits N len v → Prop
@@ -159,11 +153,6 @@ def IsSource : NodeKind hashBits N len v → Prop
 def IsHash : NodeKind hashBits N len v → Prop
   | hash .. => True
   | _ => False
-
-/-- The label of a hash node. -/
-def label? : NodeKind hashBits N len v → Option ℕ
-  | hash _ _ τ _ => some τ
-  | _ => none
 
 end NodeKind
 
@@ -178,8 +167,6 @@ structure Graph (P : Params) where
   /-- The root; a prefix of its value is the public key. -/
   root : Fin size
   root_isHash : (kind root).IsHash
-  /-- Different hash nodes use different labels. -/
-  label_injective : ∀ v w τ, (kind v).label? = some τ → (kind w).label? = some τ → v = w
 
 /-- The bits of `x`, least significant first. -/
 def toBits {n : ℕ} (x : BitVec n) : List Bool := List.ofFn fun i : Fin n => x.getLsbD i
@@ -198,7 +185,7 @@ abbrev Assignment := (v : Fin G.size) → BitVec (G.len v)
 /-- Query cost of evaluating node `v`: the block cost of its input for a hash node, else zero. -/
 def nodeCost (v : Fin G.size) : ℕ :=
   match G.kind v with
-  | .hash p _ _ _ => blockCost P (G.len p)
+  | .hash p _ _ => blockCost P (G.len p)
   | _ => 0
 
 /-- Query cost of key generation, which evaluates every node once. -/
@@ -226,7 +213,7 @@ def evalNode (x : G.Assignment) (v : Fin G.size)
   match G.kind v with
   | .source => onSource
   | .det _ _ f _ => pure (f x)
-  | .hash p _ τ h => (fun y => y.cast h.symm) <$> hash P (.node τ) (x p)
+  | .hash p _ h => (fun y => y.cast h.symm) <$> hash P (x p)
 
 /-- Sample a uniform value for every node (only the sources' values are used). -/
 def sampleAssignment : OracleComp (Spec P) G.Assignment :=
@@ -299,7 +286,7 @@ structure Scheme (P : Params) where
 
 /-- The disclosure index selected by message `m` and nonce `η`. -/
 def index (P : Params) (m : Message P) (η : Nonce P) : OracleComp (Spec P) ℕ :=
-  (fun y => (y.setWidth P.idxBits).toNat) <$> hash P .enc (m ++ η)
+  (fun y => (y.setWidth P.idxBits).toNat) <$> hash P (m ++ η)
 
 namespace Scheme
 
