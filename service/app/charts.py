@@ -61,7 +61,7 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
     for t in _time_ticks(t0, t1):
         x = sx(t)
         out.append(f'<text class="tick" x="{x:.1f}" y="{H - MB + 18}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
-    out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 14}" text-anchor="end">compressions</text>')
+    out.append(f'<text class="tick" x="4" y="{MT - 14}" text-anchor="start">compressions</text>')
 
     points: list[dict] = []
     for slug, (label, cls) in SERIES.items():
