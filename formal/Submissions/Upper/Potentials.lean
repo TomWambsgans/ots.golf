@@ -135,7 +135,7 @@ def ΦB (T : Finset Rec) (A? : Option (Finset Name)) (d' : Cache paperParams) (i
 /-! ### Auxiliary facts -/
 
 theorem one_le_queryCost (q : Query) : 1 ≤ queryCost paperParams (.inr q) := by
-  show 1 ≤ blockCost paperParams q.2.1
+  show 1 ≤ blockCost paperParams q.1
   exact Nat.le_max_left _ _
 
 theorem one_le_queryCost_ennreal (q : Query) : (1 : ℝ≥0∞) ≤ queryCost paperParams (.inr q) := by
@@ -259,15 +259,15 @@ theorem spr_avg_le (T : Finset Rec) (c : Cache paperParams) (q : Query) (hq : c 
   rw [avg_sum_comm]
   exact sum_w_mul_le_add T _ _ fun ξ _ => spr_charge c ξ q hq
 
-theorem spr_avg_eq (T : Finset Rec) (c : Cache paperParams) (k : ℕ) (u₀ : BitVec k) :
+theorem spr_avg_eq (T : Finset Rec) (c : Cache paperParams) (u₀ : EncInput paperParams) :
     ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-        ∑ ξ ∈ T, w * ind (Spr (c.cacheQuery (.enc, ⟨k, u₀⟩) u) ξ) =
+        ∑ ξ ∈ T, w * ind (Spr (c.cacheQuery (encQuery paperParams u₀) u) ξ) =
       ∑ ξ ∈ T, w * ind (Spr c ξ) := by
   rw [← avg_const (∑ ξ ∈ T, w * ind (Spr c ξ))]
   refine Finset.sum_congr rfl fun u _ =>
     congrArg ((Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ·)
       (Finset.sum_congr rfl fun ξ _ => congrArg (w * ·) (ind_congr ?_))
-  exact spr_cacheQuery_enc c ξ k u₀ u
+  exact spr_cacheQuery_enc c ξ u₀ u
 
 theorem idxPost_avg_le (T : Finset Rec) (d' c : Cache paperParams) (u₀ : EncInput paperParams)
     (hq : c (encQuery paperParams u₀) = none) (i : ℕ) :
@@ -385,16 +385,6 @@ theorem ΦB_eq (T : Finset Rec) (A? : Option (Finset Name)) (d' : Cache paperPar
   unfold ΦB
   simp only [mul_add, Finset.sum_add_distrib]
 
-theorem node_ne_encQuery (τ k : ℕ) (u₀ : BitVec k) (u : EncInput paperParams) :
-    ((Label.node τ, ⟨k, u₀⟩) : Query) ≠ encQuery paperParams u := by
-  intro h
-  exact Label.noConfusion (congrArg Prod.fst h)
-
-theorem enc_ne_encQuery {k : ℕ} (hk : k ≠ paperParams.msgBits + paperParams.nonceBits) (u₀ : BitVec k)
-    (u : EncInput paperParams) : ((Label.enc, ⟨k, u₀⟩) : Query) ≠ encQuery paperParams u := by
-  intro h
-  exact hk (congrArg (fun q : Query => q.2.1) h)
-
 theorem ΦA_charge (pk : BitVec 128) : ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → c q = none →
     queryCost paperParams (.inr q) ≤ b →
     ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ΦA pk (c.cacheQuery q u) ≤
@@ -403,29 +393,23 @@ theorem ΦA_charge (pk : BitVec 128) : ∀ (c : Cache paperParams) (b : ℕ) (q 
   refine le_trans ?_ (add_le_add_right
     (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
   simp only [ΦA_eq, mul_add, Finset.sum_add_distrib]
-  obtain ⟨l, k, u₀⟩ := q
-  cases l with
-  | enc =>
-    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ k u₀), spr_avg_eq]
-    by_cases hk : k = paperParams.msgBits + paperParams.nonceBits
-    · subst hk
-      have hE := encTerm_avg_le c (encCount_le_of_inv hI) u₀ hq
-      have hsum : ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-          (sumW (fiberA pk) * encTerm (c.cacheQuery (encQuery paperParams u₀) u)) =
-          sumW (fiberA pk) * ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-            encTerm (c.cacheQuery (encQuery paperParams u₀) u) := by
-        rw [Finset.mul_sum]
-        refine Finset.sum_congr rfl fun u _ => ?_
-        ring
-      refine le_trans (add_le_add_right (hsum.le.trans (mul_le_mul_right hE _)) _) (le_of_eq ?_)
+  by_cases hk : q.1 = paperParams.msgBits + paperParams.nonceBits
+  · obtain ⟨u₀, rfl⟩ := exists_eq_encQuery_of_length_eq paperParams hk
+    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ u₀), spr_avg_eq]
+    have hE := encTerm_avg_le c (encCount_le_of_inv hI) u₀ hq
+    have hsum : ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        (sumW (fiberA pk) * encTerm (c.cacheQuery (encQuery paperParams u₀) u)) =
+        sumW (fiberA pk) * ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+          encTerm (c.cacheQuery (encQuery paperParams u₀) u) := by
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl fun u _ => ?_
       ring
-    · simp only [encTerm_cacheQuery_of_ne_enc c (enc_ne_encQuery hk u₀), avg_const]
-      exact le_self_add
-  | node τ =>
-    simp only [encTerm_cacheQuery_of_ne_enc c (node_ne_encQuery τ k u₀), avg_const]
-    have h1 := hits_avg_le (fiberA pk) kc c (Label.node τ, ⟨k, u₀⟩)
-    have h2 := hits_charge_A' pk (Finset.Subset.refl _) (Label.node τ, ⟨k, u₀⟩)
-    have h3 := spr_avg_le (fiberA pk) c (Label.node τ, ⟨k, u₀⟩) hq
+    refine le_trans (add_le_add_right (hsum.le.trans (mul_le_mul_right hE _)) _) (le_of_eq ?_)
+    ring
+  · simp only [encTerm_cacheQuery_of_ne_enc c (ne_encQuery_of_length_ne paperParams hk), avg_const]
+    have h1 := hits_avg_le (fiberA pk) kc c q
+    have h2 := hits_charge_A' pk (Finset.Subset.refl _) q
+    have h3 := spr_avg_le (fiberA pk) c q hq
     refine le_trans (add_le_add (add_le_add (h1.trans (add_le_add_right h2 _)) h3) le_rfl)
       (le_of_eq ?_)
     rw [κ_mul_eq]; ring
@@ -439,23 +423,17 @@ theorem ΦB_charge_some {Ac : Finset Name} (hAc : IsCut Ac) (dt : Data) {T : Fin
   refine le_trans ?_ (add_le_add_right
     (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
   simp only [ΦB_eq, mul_add, Finset.sum_add_distrib, ind_exists_some]
-  obtain ⟨l, k, u₀⟩ := q
-  cases l with
-  | enc =>
-    rw [hits_avg_eq _ _ _ _ (fun ξ => fHid_enc (some Ac) ξ k u₀), spr_avg_eq]
-    by_cases hk : k = paperParams.msgBits + paperParams.nonceBits
-    · subst hk
-      have h3 := idxPost_avg_le T d' c u₀ hq i
-      refine le_trans (add_le_add_right h3 _) ?_
-      rw [← add_assoc]
-      exact add_le_add_right (mul_le_mul' ε_le_κ (sumW_mono hT)) _
-    · rw [idxPost_avg_eq T d' c (enc_ne_encQuery hk u₀) i]
-      exact le_self_add
-  | node τ =>
-    rw [idxPost_avg_eq T d' c (node_ne_encQuery τ k u₀) i]
-    have h1 := hits_avg_le T (fHid (some Ac)) c (Label.node τ, ⟨k, u₀⟩)
-    have h2 := hits_charge_B' hAc dt hT (Label.node τ, ⟨k, u₀⟩)
-    have h3 := spr_avg_le T c (Label.node τ, ⟨k, u₀⟩) hq
+  by_cases hk : q.1 = paperParams.msgBits + paperParams.nonceBits
+  · obtain ⟨u₀, rfl⟩ := exists_eq_encQuery_of_length_eq paperParams hk
+    rw [hits_avg_eq _ _ _ _ (fun ξ => fHid_enc (some Ac) ξ u₀), spr_avg_eq]
+    have h3 := idxPost_avg_le T d' c u₀ hq i
+    refine le_trans (add_le_add_right h3 _) ?_
+    rw [← add_assoc]
+    exact add_le_add_right (mul_le_mul' ε_le_κ (sumW_mono hT)) _
+  · rw [idxPost_avg_eq T d' c (ne_encQuery_of_length_ne paperParams hk) i]
+    have h1 := hits_avg_le T (fHid (some Ac)) c q
+    have h2 := hits_charge_B' hAc dt hT q
+    have h3 := spr_avg_le T c q hq
     have h3' := h3.trans (add_le_add_right (mul_le_mul_right (sumW_mono hT) ε) _)
     refine le_trans (add_le_add (add_le_add (h1.trans (add_le_add_right h2 _)) h3') le_rfl)
       (le_of_eq ?_)
@@ -470,15 +448,13 @@ theorem ΦB_charge_none (pk : BitVec 128) {T : Finset Rec} (hT : T ⊆ fiberA pk
     (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
   simp only [ΦB_eq, mul_add, Finset.sum_add_distrib, ind_exists_none, mul_zero,
     Finset.sum_const_zero, add_zero, fHid_none]
-  obtain ⟨l, k, u₀⟩ := q
-  cases l with
-  | enc =>
-    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ k u₀), spr_avg_eq]
+  by_cases hk : q.1 = paperParams.msgBits + paperParams.nonceBits
+  · obtain ⟨u₀, rfl⟩ := exists_eq_encQuery_of_length_eq paperParams hk
+    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ u₀), spr_avg_eq]
     exact le_self_add
-  | node τ =>
-    have h1 := hits_avg_le T kc c (Label.node τ, ⟨k, u₀⟩)
-    have h2 := hits_charge_A' pk hT (Label.node τ, ⟨k, u₀⟩)
-    have h3 := spr_avg_le T c (Label.node τ, ⟨k, u₀⟩) hq
+  · have h1 := hits_avg_le T kc c q
+    have h2 := hits_charge_A' pk hT q
+    have h3 := spr_avg_le T c q hq
     have h3' := h3.trans (add_le_add_right (mul_le_mul_right (sumW_mono hT) ε) _)
     refine le_trans (add_le_add (h1.trans (add_le_add_right h2 _)) h3') (le_of_eq ?_)
     rw [κ_mul_eq]; ring

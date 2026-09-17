@@ -93,7 +93,7 @@ theorem E_rest₂_extend_kc (pk : BitVec 128) (ξ : Rec) (x : Message paperParam
     E (run paperParams (rest₂ A pk (graph.evalRec ξ) x) (Cache.extend d (kc ξ))) g =
       E (run paperParams (signIdx paperParams x.1) d) (fun p =>
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) := by
-  rw [rest₂_eq_signIdx, run_bind, run_signIdx_extend paperParams x.1 d (kc ξ) (fun k u => kc_enc ξ k u),
+  rw [rest₂_eq_signIdx, run_bind, run_signIdx_extend paperParams x.1 d (kc ξ) (fun u => kc_enc ξ u),
     bind_map_left, E_bind]
 
 /-- The continuation bound after the first stage. -/
@@ -122,9 +122,9 @@ theorem stageA_cont (pk : BitVec 128) (x : Message paperParams × A.State) (d : 
   -- Step 2: the signing bound on the records of `T`.
   have hne : Nonempty {ξ // ξ ∈ fiberA pk} := (fiberA_nonempty pk).to_subtype
   have hΦ : EncInvariant paperParams (fun c => ∑ ξ ∈ T, w * ind (Spr c ξ)) := by
-    intro c k u w'
+    intro c u w'
     refine Finset.sum_congr rfl fun ξ _ => ?_
-    rw [spr_cacheQuery_enc c ξ k u w']
+    rw [spr_cacheQuery_enc c ξ u w']
   have hB' : ∀ j : {ξ // ξ ∈ fiberA pk},
       CostAtMost paperParams (signIdx paperParams x.1 >>= fun r => stB A pk x.1 x.2 (sigOf j.1 r)) b' := by
     intro j
@@ -227,7 +227,7 @@ theorem sum_sumW_fiberA : ∑ pk : BitVec 128, sumW (fiberA pk) = 1 := by
 theorem E_run_keygen_forest
     (g' : (PublicKey paperParams × forestScheme.graph.Assignment) × Cache paperParams → ℝ≥0∞) :
     E (run paperParams forestScheme.keygen ∅) g' = ∑ ξ : Rec, w * g' ((pkOf ξ, graph.evalRec ξ), kc ξ) := by
-  rw [E_run_keygen forestScheme g']
+  rw [E_run_keygen forestScheme tagging g']
   show ∑ ξ : Rec, (Fintype.card Rec : ℝ≥0∞)⁻¹ *
     g' ((forestScheme.publicKey (graph.evalRec ξ), graph.evalRec ξ), graph.keygenCache ξ) = _
   refine Finset.sum_congr rfl fun ξ _ => ?_

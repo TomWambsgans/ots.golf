@@ -80,7 +80,7 @@ theorem signExt_kc_none {m₁ : Message paperParams} {d d' : Cache paperParams}
   · exfalso
     rcases hdq : d q with _ | u
     · obtain ⟨η, hqe, -⟩ := hd'.2.1 q v hdq hq'
-      rw [hqe, encQuery, kc_enc] at hq
+      rw [hqe, kc_enc] at hq
       simp at hq
     · exact hξ ⟨q, hq, by rw [hdq]; rfl⟩
 
@@ -108,12 +108,12 @@ theorem spr_signExt_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
     {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
     (ξ : Rec) : Spr d' ξ ↔ Spr d ξ := by
   constructor
-  · rintro ⟨h, p, hp, u, hu, w, hw, htr⟩
-    refine ⟨h, p, hp, u, hu, w, ?_, htr⟩
-    rcases hdq : d (.node h.idx, ⟨p.len, u⟩) with _ | v
+  · rintro ⟨h, p, hp, u, hu, htag, w, hw, htr⟩
+    refine ⟨h, p, hp, u, hu, htag, w, ?_, htr⟩
+    rcases hdq : d ⟨p.len, u⟩ with _ | v
     · exfalso
       obtain ⟨η, hqe, -⟩ := hd'.2.1 _ w hdq hw
-      exact absurd (congrArg Prod.fst hqe) (by simp [encQuery])
+      exact mk_ne_encQuery hp u _ hqe
     · rw [hd'.1 _ _ hdq] at hw
       exact hw
   · exact Spr.mono hd'.1
@@ -132,7 +132,7 @@ theorem spr_extend_fExp_iff {m₁ : Message paperParams} {d d' : Cache paperPara
 
 theorem not_idxPost_extend_fExp (d' : Cache paperParams) (ξ : Rec) (A? : Option (Finset Name))
     (i : ℕ) : ¬ IdxPost paperParams d' (Cache.extend d' (fExp A? ξ)) i :=
-  not_idxPost_extend_of_enc_none paperParams d' (fExp A? ξ) (fun u => fExp_enc A? ξ _ u) i
+  not_idxPost_extend_of_enc_none paperParams d' (fExp A? ξ) (fun u => fExp_enc A? ξ u) i
 
 theorem encCount_extend_of_enc_none (d f : Cache paperParams)
     (hf : ∀ u : EncInput paperParams, f (encQuery paperParams u) = none) :
@@ -144,7 +144,7 @@ theorem encCount_extend_of_enc_none (d f : Cache paperParams)
 theorem Inv_extend_fExp (d' : Cache paperParams) (ξ : Rec) (A? : Option (Finset Name)) (b : ℕ) :
     Inv (Cache.extend d' (fExp A? ξ)) b ↔ Inv d' b := by
   unfold Inv
-  rw [encCount_extend_of_enc_none d' (fExp A? ξ) (fun u => fExp_enc A? ξ _ u)]
+  rw [encCount_extend_of_enc_none d' (fExp A? ξ) (fun u => fExp_enc A? ξ u)]
 
 /-! ## Stage B -/
 
@@ -200,7 +200,7 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.
       rw [hA] at hy hlen
       by_cases hu : m₂ ++ σ₂.1 = m₁ ++ η
       · -- same encoding input: same message and nonce, different revealed values
-        obtain ⟨hm, hσ⟩ := append_inj hu
+        obtain ⟨hm, hσ⟩ := bv_append_inj hu
         right; left
         refine events_same (isCut_setsName i) hy hacc hlen ?_
         intro heq
