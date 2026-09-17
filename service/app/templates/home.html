@@ -19,11 +19,6 @@
       <div class="value">{{ interval.lower.record_claim }}<span class="unit"> compressions</span></div>
       <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% endif %}</div>
     </div>
-    <div class="tile hero-tile">
-      <div class="label">Best scheme / lower bound</div>
-      <div class="hero-figure">{{ '%.2f'|format(interval.ratio) }}<span class="times">×</span></div>
-      <div class="sub">{{ interval.upper.record_claim }} / {{ interval.lower.record_claim }}; the optimum is somewhere in between</div>
-    </div>
     <div class="tile">
       <div class="label"><span class="swatch s2"></span>Upper bound <span class="muted">(a scheme, smaller is better)</span></div>
       <div class="value">{{ interval.upper.record_claim }}<span class="unit"> compressions</span></div>

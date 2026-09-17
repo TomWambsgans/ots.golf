@@ -41,7 +41,7 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .visually-hidden { position: absolute; left: -9999px; }
 
 /* stat tiles + hero figure */
-.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0 16px; }
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0 16px; }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
 .tile .label { color: var(--ink-2); font-size: 14px; }
 .tile .value { font-size: 32px; font-weight: 600; line-height: 1.15; margin-top: 4px; }
