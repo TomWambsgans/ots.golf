@@ -698,16 +698,16 @@ Figure~\ref{fig:scheme} shows the shape of the computation and of one signature.
 \paragraph{Disclosure sets.}
 A \emph{cut} is a set $A$ of nodes other than the root that meets every path from a source to the root exactly once. Reconstruction at $A$ evaluates the hash nodes strictly above $A$; write $\mathrm{cost}(A)$ for their total cost. Let
 \[
-D=\{A\ \text{a cut}:\ \mathrm{cost}(A)=105\}.
+D=\{A\ \text{a cut}:\ \mathrm{cost}(A)=105\ \text{and}\ |A|\le41\}.
 \]
-A direct count gives $|D|=43124494150885380367098178978085896>2^{115}$, while the number of cuts of cost 104 is below $2^{115}$. Fix an injection $\pi:\{0,\dots,M-1\}\to D$, and let $A_i=\pi(i)$. The root is not revealed, and every source-to-root path meets $A_i$, so the conditions of Section~\ref{sec:model} hold.
+The bound on $|A|$ keeps signatures within the length budget; without it there are cuts of cost 105 with up to 63 nodes. A direct count gives $|D|=43124494150885380367098178978085896>2^{115}$, while the number of cuts of cost 104 with at most 41 nodes is below $2^{115}$. In fact the three most common shapes already suffice: cuts revealing $a$ subtree digests, $b$ group digests under evaluated subtrees, and one value on each of the remaining $3(21-3a-b)$ chains with chain positions of total cost $s$, for $(a,b,s)\in\{(2,3,86),(1,7,86),(2,4,87)\}$, number $\binom7a\binom{21-3a}b\,c(3(21-3a-b),s)$ each, where $c(n,s)$ counts the $n$-tuples in $\{0,\dots,14\}$ with sum $s$; these three families alone contain $42050461266306169504830769337432316>2^{115}$ cuts, and the machine-checked proof of Section~\ref{sec:formal} uses them. Fix an injection $\pi:\{0,\dots,M-1\}\to D$, and let $A_i=\pi(i)$. The root is not revealed, and every source-to-root path meets $A_i$, so the conditions of Section~\ref{sec:model} hold.
 
 \paragraph{Costs.}
 Key generation evaluates every node: $63\cdot14$ chain hashes, 21 and 7 grouping hashes, and the root, for
 \[
 63\cdot14+21+7+2=912\le1024\ \text{units}.
 \]
-A cut of cost 105 has between 15 and 41 nodes, so a signature reveals between 2176 and 5248 bits and has at most 5504 bits. Every signature verifies in
+A cut in $D$ has between 15 and 41 nodes, so a signature reveals between 2176 and 5248 bits and has at most 5504 bits. Every signature verifies in
 \[
 1+105=106\ \text{units},
 \]
@@ -800,6 +800,15 @@ By the two lemmas,
 \]
 Every query costs at least one unit. On every path, key generation costs 912 units and signing at least one more, so the attacker and the verifier make at most $B-913$ queries. This proves the bound. For $B\le2^{233}$ it gives $\Pr[\mathrm{Forge}]<B/2^{127}$, and for larger $B$ the requirement~\eqref{eq:security} holds because its right-hand side exceeds one.
 \end{proof}
+
+\subsection{Machine-checked proof}\label{sec:formal}
+
+Theorem~\ref{thm:scheme} is formalized in Lean~4 on top of the model of Section~\ref{sec:model} (the same \texttt{Scheme} structure, forgery experiment, and cost bound as the formal statement of Theorem~\ref{thm:main}, in \texttt{lean/OptimalOTS/Statement.lean}). The scheme is \texttt{Forest.forestScheme}, with the $128$-bit values of this section as separate truncation nodes, the inputs of the grouping hashes as separate concatenation nodes, and the disclosure sets drawn injectively from the three shapes listed above; the theorems
+\begin{center}
+\texttt{forestScheme\_verifyCost : forestScheme.verifyCost i = 106},\qquad
+\texttt{forestScheme\_secure : forestScheme.Secure}
+\end{center}
+are proved without \texttt{sorry}, \texttt{native\_decide}, or additional axioms. The formal argument follows this section with two adjustments that suit a proof assistant. First, instead of bounding each event by an expected number of queries, it uses a potential: a function of the oracle cache whose average increase at every fresh query is at most $2^{-127}$ per unit of cost, so that the pathwise budget $B$ of the model directly bounds the probability of the bad events (the counting terms $|V|/M$ and $L\,|W|/(2^{256}-L)$ of the encoding analysis are part of the potential). Second, the independence of hidden inputs from the attacker's view is obtained by resampling one record coordinate below the cut, which leaves the public key, the revealed values and the exposed oracle entries unchanged. The resulting bound is $\Pr[\mathrm{Forge}]\le(B-912)/2^{127}$ for every $B\le2^{127}$, and the requirement~\eqref{eq:security} is trivial for larger $B$.
 
 \appendix
 

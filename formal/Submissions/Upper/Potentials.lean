@@ -1,0 +1,488 @@
+import Submissions.Upper.Scheme
+import Submissions.Upper.Resample
+import Submissions.Upper.Events
+import Submissions.Upper.EncCharges
+import Submissions.Upper.Keygen
+import Submissions.Upper.Reconstruct
+
+/-!
+# The experiment in stages, and the potentials
+
+The experiment of `forestScheme` against an adversary `A` is `keygen >>= rest A`, where `rest`
+runs the attacker's first stage, signing (`sign_eq`: the signing loop `signIdx` followed by
+encoding), the attacker's second stage and verification (`stB`).
+
+The potentials of the security proof (see `DESIGN.md`): `ΦA` for the first stage (hidden keygen
+points, `Spr`, and the encoding counts of the signing analysis), `ΦB` for the second stage; each
+grows on average by at most `κ = 2 ε` per unit of query cost (`ΦA_charge`, `ΦB_charge_some`,
+`ΦB_charge_none`) under the invariant `Inv` (encoding entries plus remaining budget at most
+`2 ^ 127`).
+-/
+
+open OracleSpec OracleComp OracleComp.EvalDist ENNReal
+
+noncomputable section
+
+open scoped Classical
+
+set_option linter.constructorNameAsVariable false
+
+namespace OptimalOTS
+
+namespace Forest
+
+open Name
+
+
+variable (A : Adversary paperParams)
+
+/-! ## The experiment in stages -/
+
+/-- The second stage of the attacker, followed by verification and the final check. -/
+def stB (pk : PublicKey paperParams) (m₁ : Message paperParams) (st : A.State) (σ : Option (Signature paperParams)) :
+    OracleComp (Spec paperParams) Bool := do
+  let (m₂, σ₂) ← A.forge st σ
+  let ok ← forestScheme.verify pk m₂ σ₂
+  return ok && decide (σ.map (fun s => (m₁, s)) ≠ some (m₂, σ₂))
+
+/-- Signing and the second stage. -/
+def rest₂ (pk : PublicKey paperParams) (sk : graph.Assignment) (y : Message paperParams × A.State) :
+    OracleComp (Spec paperParams) Bool :=
+  forestScheme.sign sk y.1 >>= stB A pk y.1 y.2
+
+/-- Everything after key generation. -/
+def rest (x : PublicKey paperParams × graph.Assignment) : OracleComp (Spec paperParams) Bool :=
+  A.choose x.1 >>= rest₂ A x.1 x.2
+
+theorem experiment_eq : experiment forestScheme A = forestScheme.keygen >>= rest A := by
+  unfold experiment rest rest₂ stB
+  congr 1
+
+/-- The indicator of success. -/
+def g (p : Bool × Cache paperParams) : ℝ≥0∞ := if p.1 = true then 1 else 0
+
+theorem g_le_one (p : Bool × Cache paperParams) : g p ≤ 1 := by
+  unfold g; split_ifs <;> simp
+
+/-- `probTrue` as an expectation over the lazy-oracle run from the empty cache. -/
+theorem probTrue_eq_E_run (P : Params) (oa : OracleComp (Spec P) Bool) :
+    probTrue P oa = E (run P oa ∅) (fun p => if p.1 = true then 1 else 0) := by
+  unfold probTrue
+  rw [run'_eq, probOutput_map_eq_tsum_ite, E, expectedValue_def]
+  refine tsum_congr fun x => ?_
+  rcases x with ⟨b, c⟩
+  cases b <;> simp
+
+theorem probTrue_eq : probTrue paperParams (experiment forestScheme A) = E (run paperParams (experiment forestScheme A) ∅) g := by
+  generalize experiment forestScheme A = oa
+  rw [probTrue_eq_E_run]
+  rfl
+
+/-- The signature of the record `ξ` for the outcome `r` of the signing loop. -/
+def sigOf (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Signature paperParams) :=
+  r.map fun r => (r.1, graph.encode (forestScheme.sets r.2) (graph.evalRec ξ))
+
+/-- The disclosure set of the outcome of the signing loop. -/
+def cutOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Finset Name) :=
+  r.map fun r => setsName r.2
+
+/-- The index of the outcome of the signing loop. -/
+def idxOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option ℕ := r.map fun r => r.2.val
+
+theorem trunc_cast_pot {n m : ℕ} (h : n = m) (x : BitVec n) : trunc (x.cast h) = trunc x := by
+  subst h; rfl
+
+theorem publicKey_eq_pkOf (ξ : Rec) : forestScheme.publicKey (graph.evalRec ξ) = pkOf ξ := by
+  show trunc (graph.evalRec ξ rh.fin) = trunc (ξ.2 rh.fin)
+  rw [← val_rh]
+  unfold val
+  exact (trunc_cast_pot _ _).symm
+
+theorem sign_eq (ξ : Rec) (m : Message paperParams) :
+    forestScheme.sign (graph.evalRec ξ) m = sigOf ξ <$> signIdx paperParams m :=
+  sign_eq_map forestScheme (graph.evalRec ξ) m
+
+/-! ## Potentials -/
+
+/-- The charge per unit of query cost. -/
+def κ : ℝ≥0∞ := 2 * ε
+
+/-- The weight of a set of records. -/
+def sumW (T : Finset Rec) : ℝ≥0∞ := ∑ ξ ∈ T, w
+
+/-- An indicator. -/
+def ind (p : Prop) : ℝ≥0∞ := if p then 1 else 0
+
+/-- The invariant: encoding entries plus remaining budget never exceed `2 ^ 127`. -/
+def Inv (c : Cache paperParams) (b : ℕ) : Prop := encCount paperParams c + b ≤ 2 ^ 127
+
+/-- The encoding part of the first-stage potential. -/
+def encTerm (c : Cache paperParams) : ℝ≥0∞ :=
+  (cntV paperParams c : ℝ≥0∞) / paperParams.numSets +
+    (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams c / ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)
+
+/-- The first-stage potential for the public key `pk`. -/
+def ΦA (pk : BitVec 128) (c : Cache paperParams) : ℝ≥0∞ :=
+  ∑ ξ ∈ fiberA pk, w * (ind (Cache.Hits c (kc ξ)) + ind (Spr c ξ)) + sumW (fiberA pk) * encTerm c
+
+/-- The second-stage potential over the records `T`, with hidden points `fHid A?` and the index
+`i?` of the signature. -/
+def ΦB (T : Finset Rec) (A? : Option (Finset Name)) (d' : Cache paperParams) (i? : Option ℕ) (c : Cache paperParams) :
+    ℝ≥0∞ :=
+  ∑ ξ ∈ T, w * (ind (Cache.Hits c (fHid A? ξ)) + ind (Spr c ξ) +
+    ind (∃ i, i? = some i ∧ IdxPost paperParams d' c i))
+
+/-! ### Auxiliary facts -/
+
+theorem one_le_queryCost (q : Query) : 1 ≤ queryCost paperParams (.inr q) := by
+  show 1 ≤ blockCost paperParams q.2.1
+  exact Nat.le_max_left _ _
+
+theorem one_le_queryCost_ennreal (q : Query) : (1 : ℝ≥0∞) ≤ queryCost paperParams (.inr q) := by
+  exact_mod_cast one_le_queryCost q
+
+theorem Inv_fresh : ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → c q = none →
+    queryCost paperParams (.inr q) ≤ b → ∀ u, Inv (c.cacheQuery q u) (b - queryCost paperParams (.inr q)) := by
+  intro c b q hI _ _ u
+  unfold Inv at *
+  have h1 := encCount_cacheQuery_le paperParams c q u
+  have h2 := one_le_queryCost q
+  omega
+
+theorem Inv_cached : ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → (c q).isSome →
+    queryCost paperParams (.inr q) ≤ b → Inv c (b - queryCost paperParams (.inr q)) := by
+  intro c b q hI _ _
+  unfold Inv at *
+  have := Nat.sub_le b (queryCost paperParams (.inr q))
+  omega
+
+theorem encCount_le_of_inv {c : Cache paperParams} {b : ℕ} (h : Inv c b) :
+    encCount paperParams c ≤ 2 ^ 127 :=
+  le_trans (Nat.le_add_right _ _) h
+
+theorem cntV_empty_pot : cntV paperParams ∅ = 0 := by simp [cntV]
+
+theorem pairs_empty_pot : pairs paperParams ∅ = 0 := by simp [pairs]
+
+theorem ΦA_empty (pk : BitVec 128) : ΦA pk ∅ = 0 := by
+  unfold ΦA encTerm
+  simp [cntV_empty_pot, pairs_empty_pot, ind, Cache.not_hits_empty, not_spr_empty]
+
+/-! ### Indicators and averages -/
+
+theorem κ_eq_add : κ = ε + ε := by
+  unfold κ; ring
+
+theorem κ_mul_eq (X : ℝ≥0∞) : κ * X = ε * X + ε * X := by
+  unfold κ; ring
+
+theorem ε_le_κ : ε ≤ κ := by
+  rw [κ_eq_add]; exact le_self_add
+
+theorem sumW_mono {T T' : Finset Rec} (h : T ⊆ T') : sumW T ≤ sumW T' :=
+  Finset.sum_le_sum_of_subset h
+
+theorem ind_congr {p r : Prop} (h : p ↔ r) : ind p = ind r := by
+  unfold ind; simp only [h]
+
+theorem ind_or_le (p r : Prop) : ind (p ∨ r) ≤ ind p + ind r := by
+  unfold ind
+  by_cases hp : p <;> by_cases hr : r <;> simp [hp, hr]
+
+theorem ind_exists_some (i : ℕ) (P : ℕ → Prop) :
+    ind (∃ i', some i = some i' ∧ P i') = ind (P i) := by
+  apply ind_congr; simp
+
+theorem ind_exists_none (P : ℕ → Prop) :
+    ind (∃ i', (none : Option ℕ) = some i' ∧ P i') = 0 := by
+  simp [ind]
+
+theorem w_mul_ind_le (p : Prop) [Decidable p] : w * ind p ≤ if p then w else 0 := by
+  unfold ind; split_ifs <;> simp
+
+/-- Averaging over a fresh answer commutes with a weighted sum over records. -/
+theorem avg_sum_comm (T : Finset Rec) (f : Rec → BitVec paperParams.hashBits → ℝ≥0∞) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ∑ ξ ∈ T, w * f ξ u =
+      ∑ ξ ∈ T, w * ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * f ξ u := by
+  simp only [Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun ξ _ => Finset.sum_congr rfl fun u _ => ?_
+  ring
+
+theorem avg_const (X : ℝ≥0∞) :
+    ∑ _u : BitVec paperParams.hashBits, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * X = X :=
+  sum_inv_card_mul X
+
+/-- Summing a per-record charge of `ε` with the weights `w`. -/
+theorem sum_w_mul_le_add (T : Finset Rec) (a b : Rec → ℝ≥0∞) (h : ∀ ξ ∈ T, a ξ ≤ b ξ + ε) :
+    ∑ ξ ∈ T, w * a ξ ≤ ∑ ξ ∈ T, w * b ξ + ε * sumW T := by
+  unfold sumW
+  rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun ξ hξ => ?_
+  rw [mul_comm ε w, ← mul_add]
+  exact mul_le_mul_right (h ξ hξ) w
+
+/-- A fresh answer can only create a hit at the queried point. -/
+theorem hits_avg_le (T : Finset Rec) (f : Rec → Cache paperParams) (c : Cache paperParams) (q : Query) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ ξ ∈ T, w * ind (Cache.Hits (c.cacheQuery q u) (f ξ)) ≤
+      ∑ ξ ∈ T, w * ind (Cache.Hits c (f ξ)) + ∑ ξ ∈ T, w * ind ((f ξ q).isSome) := by
+  rw [avg_sum_comm, ← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun ξ _ => ?_
+  rw [← mul_add]
+  refine mul_le_mul_right ?_ w
+  calc ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ind (Cache.Hits (c.cacheQuery q u) (f ξ))
+      ≤ ∑ _u : BitVec paperParams.hashBits, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+          (ind (Cache.Hits c (f ξ)) + ind ((f ξ q).isSome)) := by
+        refine Finset.sum_le_sum fun u _ => mul_le_mul_right ?_ _
+        rw [ind_congr (Cache.hits_cacheQuery c (f ξ) q u)]
+        exact ind_or_le _ _
+    _ = _ := sum_inv_card_mul _
+
+/-- No hit at a point absent from every `f ξ`. -/
+theorem hits_avg_eq (T : Finset Rec) (f : Rec → Cache paperParams) (c : Cache paperParams) (q : Query)
+    (hf : ∀ ξ, f ξ q = none) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ ξ ∈ T, w * ind (Cache.Hits (c.cacheQuery q u) (f ξ)) =
+      ∑ ξ ∈ T, w * ind (Cache.Hits c (f ξ)) := by
+  rw [← avg_const (∑ ξ ∈ T, w * ind (Cache.Hits c (f ξ)))]
+  refine Finset.sum_congr rfl fun u _ =>
+    congrArg ((Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ·)
+      (Finset.sum_congr rfl fun ξ _ => congrArg (w * ·) (ind_congr ?_))
+  simp only [Cache.hits_cacheQuery, hf, Option.isSome_none, Bool.false_eq_true, or_false]
+
+theorem spr_avg_le (T : Finset Rec) (c : Cache paperParams) (q : Query) (hq : c q = none) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ ξ ∈ T, w * ind (Spr (c.cacheQuery q u) ξ) ≤
+      ∑ ξ ∈ T, w * ind (Spr c ξ) + ε * sumW T := by
+  rw [avg_sum_comm]
+  exact sum_w_mul_le_add T _ _ fun ξ _ => spr_charge c ξ q hq
+
+theorem spr_avg_eq (T : Finset Rec) (c : Cache paperParams) (k : ℕ) (u₀ : BitVec k) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ ξ ∈ T, w * ind (Spr (c.cacheQuery (.enc, ⟨k, u₀⟩) u) ξ) =
+      ∑ ξ ∈ T, w * ind (Spr c ξ) := by
+  rw [← avg_const (∑ ξ ∈ T, w * ind (Spr c ξ))]
+  refine Finset.sum_congr rfl fun u _ =>
+    congrArg ((Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ·)
+      (Finset.sum_congr rfl fun ξ _ => congrArg (w * ·) (ind_congr ?_))
+  exact spr_cacheQuery_enc c ξ k u₀ u
+
+theorem idxPost_avg_le (T : Finset Rec) (d' c : Cache paperParams) (u₀ : EncInput paperParams)
+    (hq : c (encQuery paperParams u₀) = none) (i : ℕ) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ _ξ ∈ T, w * ind (IdxPost paperParams d' (c.cacheQuery (encQuery paperParams u₀) u) i) ≤
+      ∑ _ξ ∈ T, w * ind (IdxPost paperParams d' c i) + ε * sumW T := by
+  rw [avg_sum_comm]
+  exact sum_w_mul_le_add T _ _ fun _ _ => idxPost_charge paperParams (by decide) d' c u₀ hq i
+
+theorem idxPost_avg_eq (T : Finset Rec) (d' c : Cache paperParams) {q : Query}
+    (hq : ∀ u : EncInput paperParams, q ≠ encQuery paperParams u) (i : ℕ) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ _ξ ∈ T, w * ind (IdxPost paperParams d' (c.cacheQuery q u) i) =
+      ∑ _ξ ∈ T, w * ind (IdxPost paperParams d' c i) := by
+  rw [← avg_const (∑ ξ ∈ T, w * ind (IdxPost paperParams d' c i))]
+  refine Finset.sum_congr rfl fun u _ =>
+    congrArg ((Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ·)
+      (Finset.sum_congr rfl fun ξ _ => congrArg (w * ·) (ind_congr ?_))
+  exact idxPost_cacheQuery_of_ne_enc paperParams d' c hq u i
+
+theorem hits_charge_A' (pk : BitVec 128) {T : Finset Rec} (hT : T ⊆ fiberA pk) (q : Query) :
+    ∑ ξ ∈ T, w * ind ((kc ξ q).isSome) ≤ ε * sumW (fiberA pk) :=
+  calc ∑ ξ ∈ T, w * ind ((kc ξ q).isSome)
+      ≤ ∑ ξ ∈ T, (if (kc ξ q).isSome then w else 0) :=
+        Finset.sum_le_sum fun _ _ => w_mul_ind_le _
+    _ ≤ ∑ ξ ∈ fiberA pk, (if (kc ξ q).isSome then w else 0) := Finset.sum_le_sum_of_subset hT
+    _ ≤ ε * sumW (fiberA pk) := hits_charge_A pk q
+
+theorem hits_charge_B' {Ac : Finset Name} (hAc : IsCut Ac) (dt : Data) {T : Finset Rec}
+    (hT : T ⊆ fiberB Ac dt) (q : Query) :
+    ∑ ξ ∈ T, w * ind ((fHid (some Ac) ξ q).isSome) ≤ ε * sumW (fiberB Ac dt) :=
+  calc ∑ ξ ∈ T, w * ind ((fHid (some Ac) ξ q).isSome)
+      ≤ ∑ ξ ∈ T, (if (fHid (some Ac) ξ q).isSome then w else 0) :=
+        Finset.sum_le_sum fun _ _ => w_mul_ind_le _
+    _ ≤ ∑ ξ ∈ fiberB Ac dt, (if (fHid (some Ac) ξ q).isSome then w else 0) :=
+        Finset.sum_le_sum_of_subset hT
+    _ ≤ ε * sumW (fiberB Ac dt) := hits_charge_B hAc dt q
+
+/-! ### The encoding term -/
+
+theorem numSets_ne_zero_pot : (paperParams.numSets : ℝ≥0∞) ≠ 0 := by
+  rw [numSets_eq]; simp
+
+theorem encTerm_cacheQuery_of_ne_enc (c : Cache paperParams) {q : Query}
+    (hq : ∀ u : EncInput paperParams, q ≠ encQuery paperParams u) (u : BitVec paperParams.hashBits) :
+    encTerm (c.cacheQuery q u) = encTerm c := by
+  unfold encTerm
+  rw [cntV_cacheQuery_of_ne_enc _ _ hq, pairs_cacheQuery_of_ne_enc _ _ hq]
+
+theorem trialLimit_bound (e : ℕ) (he : e ≤ 2 ^ 127) :
+    paperParams.trialLimit * (2 * e) ≤ 2 ^ paperParams.nonceBits - paperParams.trialLimit := by
+  show 2 ^ 21 * (2 * e) ≤ 2 ^ 256 - 2 ^ 21
+  calc 2 ^ 21 * (2 * e) ≤ 2 ^ 21 * (2 * 2 ^ 127) := by gcongr
+    _ ≤ 2 ^ 256 - 2 ^ 21 := by norm_num
+
+/-- A fresh encoding answer raises the encoding term by at most `κ = 2 ε` on average. -/
+theorem encTerm_avg_le (c : Cache paperParams) (hc : encCount paperParams c ≤ 2 ^ 127)
+    (u₀ : EncInput paperParams) (hq : c (encQuery paperParams u₀) = none) :
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        encTerm (c.cacheQuery (encQuery paperParams u₀) u) ≤ encTerm c + κ := by
+  have h1 := cntV_charge paperParams (by decide)
+    (by show 2 ^ 115 ≤ 2 ^ 128; exact Nat.pow_le_pow_right (by norm_num) (by norm_num)) c u₀ hq
+  have h2 := pairs_charge paperParams (by decide) c u₀ hq
+  have hsplit : ∀ d : Cache paperParams,
+      encTerm d = (cntV paperParams d : ℝ≥0∞) * (paperParams.numSets : ℝ≥0∞)⁻¹ +
+        (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams d *
+          ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)⁻¹ := fun d => by
+    unfold encTerm; simp only [div_eq_mul_inv]
+  set M : ℝ≥0∞ := (paperParams.numSets : ℝ≥0∞) with hM
+  set L : ℝ≥0∞ := (paperParams.trialLimit : ℝ≥0∞) with hL
+  set D : ℝ≥0∞ := ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞) with hD
+  set P2 : ℝ≥0∞ := 2 ^ paperParams.idxBits with hP2
+  have hε : ε = P2⁻¹ := rfl
+  simp only [div_eq_mul_inv] at h1 h2
+  have hkey : L * (2 * encCount paperParams c) * D⁻¹ ≤ 1 := by
+    rw [← div_eq_mul_inv]
+    refine ENNReal.div_le_of_le_mul ?_
+    rw [one_mul, hL, hD]
+    exact_mod_cast trialLimit_bound _ hc
+  calc ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+        encTerm (c.cacheQuery (encQuery paperParams u₀) u)
+      = (∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+            (cntV paperParams (c.cacheQuery (encQuery paperParams u₀) u) : ℝ≥0∞)) * M⁻¹ +
+          L * (∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+            (pairs paperParams (c.cacheQuery (encQuery paperParams u₀) u) : ℝ≥0∞)) * D⁻¹ := by
+        rw [Finset.sum_mul, Finset.mul_sum, Finset.sum_mul, ← Finset.sum_add_distrib]
+        refine Finset.sum_congr rfl fun u _ => ?_
+        rw [hsplit]; ring
+    _ ≤ ((cntV paperParams c : ℝ≥0∞) + M * P2⁻¹) * M⁻¹ +
+          L * ((pairs paperParams c : ℝ≥0∞) + 2 * (encCount paperParams c : ℝ≥0∞) * P2⁻¹) * D⁻¹ := by
+        gcongr
+    _ = encTerm c + (M * P2⁻¹ * M⁻¹ + L * (2 * (encCount paperParams c : ℝ≥0∞)) * D⁻¹ * P2⁻¹) := by
+        rw [hsplit]; ring
+    _ ≤ encTerm c + κ := by
+        gcongr
+        rw [κ_eq_add]
+        gcongr
+        · rw [mul_right_comm, ENNReal.mul_inv_cancel numSets_ne_zero_pot (ENNReal.natCast_ne_top _),
+            one_mul, hε]
+        · rw [hε]
+          exact (mul_le_mul_left hkey _).trans (le_of_eq (one_mul _))
+
+/-! ### The charge bounds -/
+
+theorem ΦA_eq (pk : BitVec 128) (c : Cache paperParams) :
+    ΦA pk c = ∑ ξ ∈ fiberA pk, w * ind (Cache.Hits c (kc ξ)) + ∑ ξ ∈ fiberA pk, w * ind (Spr c ξ) +
+      sumW (fiberA pk) * encTerm c := by
+  unfold ΦA
+  simp only [mul_add, Finset.sum_add_distrib]
+
+theorem ΦB_eq (T : Finset Rec) (A? : Option (Finset Name)) (d' : Cache paperParams) (i? : Option ℕ)
+    (c : Cache paperParams) :
+    ΦB T A? d' i? c = ∑ ξ ∈ T, w * ind (Cache.Hits c (fHid A? ξ)) + ∑ ξ ∈ T, w * ind (Spr c ξ) +
+      ∑ _ξ ∈ T, w * ind (∃ i, i? = some i ∧ IdxPost paperParams d' c i) := by
+  unfold ΦB
+  simp only [mul_add, Finset.sum_add_distrib]
+
+theorem node_ne_encQuery (τ k : ℕ) (u₀ : BitVec k) (u : EncInput paperParams) :
+    ((Label.node τ, ⟨k, u₀⟩) : Query) ≠ encQuery paperParams u := by
+  intro h
+  exact Label.noConfusion (congrArg Prod.fst h)
+
+theorem enc_ne_encQuery {k : ℕ} (hk : k ≠ paperParams.msgBits + paperParams.nonceBits) (u₀ : BitVec k)
+    (u : EncInput paperParams) : ((Label.enc, ⟨k, u₀⟩) : Query) ≠ encQuery paperParams u := by
+  intro h
+  exact hk (congrArg (fun q : Query => q.2.1) h)
+
+theorem ΦA_charge (pk : BitVec 128) : ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → c q = none →
+    queryCost paperParams (.inr q) ≤ b →
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ΦA pk (c.cacheQuery q u) ≤
+      ΦA pk c + κ * sumW (fiberA pk) * queryCost paperParams (.inr q) := by
+  intro c b q hI hq _
+  refine le_trans ?_ (add_le_add_right
+    (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
+  simp only [ΦA_eq, mul_add, Finset.sum_add_distrib]
+  obtain ⟨l, k, u₀⟩ := q
+  cases l with
+  | enc =>
+    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ k u₀), spr_avg_eq]
+    by_cases hk : k = paperParams.msgBits + paperParams.nonceBits
+    · subst hk
+      have hE := encTerm_avg_le c (encCount_le_of_inv hI) u₀ hq
+      have hsum : ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+          (sumW (fiberA pk) * encTerm (c.cacheQuery (encQuery paperParams u₀) u)) =
+          sumW (fiberA pk) * ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
+            encTerm (c.cacheQuery (encQuery paperParams u₀) u) := by
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl fun u _ => ?_
+        ring
+      refine le_trans (add_le_add_right (hsum.le.trans (mul_le_mul_right hE _)) _) (le_of_eq ?_)
+      ring
+    · simp only [encTerm_cacheQuery_of_ne_enc c (enc_ne_encQuery hk u₀), avg_const]
+      exact le_self_add
+  | node τ =>
+    simp only [encTerm_cacheQuery_of_ne_enc c (node_ne_encQuery τ k u₀), avg_const]
+    have h1 := hits_avg_le (fiberA pk) kc c (Label.node τ, ⟨k, u₀⟩)
+    have h2 := hits_charge_A' pk (Finset.Subset.refl _) (Label.node τ, ⟨k, u₀⟩)
+    have h3 := spr_avg_le (fiberA pk) c (Label.node τ, ⟨k, u₀⟩) hq
+    refine le_trans (add_le_add (add_le_add (h1.trans (add_le_add_right h2 _)) h3) le_rfl)
+      (le_of_eq ?_)
+    rw [κ_mul_eq]; ring
+
+theorem ΦB_charge_some {Ac : Finset Name} (hAc : IsCut Ac) (dt : Data) {T : Finset Rec}
+    (hT : T ⊆ fiberB Ac dt) (d' : Cache paperParams) (i : ℕ) :
+    ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → c q = none → queryCost paperParams (.inr q) ≤ b →
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ΦB T (some Ac) d' (some i) (c.cacheQuery q u) ≤
+      ΦB T (some Ac) d' (some i) c + κ * sumW (fiberB Ac dt) * queryCost paperParams (.inr q) := by
+  intro c b q _ hq _
+  refine le_trans ?_ (add_le_add_right
+    (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
+  simp only [ΦB_eq, mul_add, Finset.sum_add_distrib, ind_exists_some]
+  obtain ⟨l, k, u₀⟩ := q
+  cases l with
+  | enc =>
+    rw [hits_avg_eq _ _ _ _ (fun ξ => fHid_enc (some Ac) ξ k u₀), spr_avg_eq]
+    by_cases hk : k = paperParams.msgBits + paperParams.nonceBits
+    · subst hk
+      have h3 := idxPost_avg_le T d' c u₀ hq i
+      refine le_trans (add_le_add_right h3 _) ?_
+      rw [← add_assoc]
+      exact add_le_add_right (mul_le_mul' ε_le_κ (sumW_mono hT)) _
+    · rw [idxPost_avg_eq T d' c (enc_ne_encQuery hk u₀) i]
+      exact le_self_add
+  | node τ =>
+    rw [idxPost_avg_eq T d' c (node_ne_encQuery τ k u₀) i]
+    have h1 := hits_avg_le T (fHid (some Ac)) c (Label.node τ, ⟨k, u₀⟩)
+    have h2 := hits_charge_B' hAc dt hT (Label.node τ, ⟨k, u₀⟩)
+    have h3 := spr_avg_le T c (Label.node τ, ⟨k, u₀⟩) hq
+    have h3' := h3.trans (add_le_add_right (mul_le_mul_right (sumW_mono hT) ε) _)
+    refine le_trans (add_le_add (add_le_add (h1.trans (add_le_add_right h2 _)) h3') le_rfl)
+      (le_of_eq ?_)
+    rw [κ_mul_eq]; ring
+
+theorem ΦB_charge_none (pk : BitVec 128) {T : Finset Rec} (hT : T ⊆ fiberA pk) (d' : Cache paperParams) :
+    ∀ (c : Cache paperParams) (b : ℕ) (q : Query), Inv c b → c q = none → queryCost paperParams (.inr q) ≤ b →
+    ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ * ΦB T none d' none (c.cacheQuery q u) ≤
+      ΦB T none d' none c + κ * sumW (fiberA pk) * queryCost paperParams (.inr q) := by
+  intro c b q _ hq _
+  refine le_trans ?_ (add_le_add_right
+    (le_mul_of_one_le_right zero_le (one_le_queryCost_ennreal q)) _)
+  simp only [ΦB_eq, mul_add, Finset.sum_add_distrib, ind_exists_none, mul_zero,
+    Finset.sum_const_zero, add_zero, fHid_none]
+  obtain ⟨l, k, u₀⟩ := q
+  cases l with
+  | enc =>
+    rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ k u₀), spr_avg_eq]
+    exact le_self_add
+  | node τ =>
+    have h1 := hits_avg_le T kc c (Label.node τ, ⟨k, u₀⟩)
+    have h2 := hits_charge_A' pk hT (Label.node τ, ⟨k, u₀⟩)
+    have h3 := spr_avg_le T c (Label.node τ, ⟨k, u₀⟩) hq
+    have h3' := h3.trans (add_le_add_right (mul_le_mul_right (sumW_mono hT) ε) _)
+    refine le_trans (add_le_add (h1.trans (add_le_add_right h2 _)) h3') (le_of_eq ?_)
+    rw [κ_mul_eq]; ring
+
+end Forest
+
+end OptimalOTS

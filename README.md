@@ -17,7 +17,7 @@ security:
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
 | Lower | `VerificationLowerBound paperParams c` | 25 (Lean-verified) | c ≥ record + 1 |
-| Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (paper; Lean proof pending) | c ≤ record − 1 |
+| Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | c ≤ record − 1 |
 
 Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
@@ -29,7 +29,7 @@ the Lean kernel with [leanprover/comparator](https://github.com/leanprover/compa
 - `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
 - `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
   scripts and agents.
-- `paper/` — the paper. `docs/` — the lower-bound proof map and the statement audit.
+- `paper/` — the paper. `docs/` — the proof maps of both baselines and the statement audit.
 
 ## Build and verify locally
 

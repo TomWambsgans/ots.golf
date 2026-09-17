@@ -35,7 +35,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 5. Audit `Statement.lean` against the paper: `CostAtMost` / `IsQueryBound`, the `Secure` bound and
    budget range, index computation, signature length check, trial limit, label injectivity,
    reveal and keygen budgets. Fix, then pin the hash.
-6. When the 106-unit proof is ready: add it as `formal/Submissions/Upper/`, `claim.txt = 106`.
+6. Done: the 106-unit proof is `formal/Submissions/Upper/` (`claim.txt = 106`; architecture in `docs/upper-bound-proof.md`).
 7. `AGENTS.md` and `llms.txt`.
 
 ## Workstream B — Verifier service (server)

@@ -1,0 +1,71 @@
+# The upper-bound proof: architecture
+
+The upper-track baseline (`formal/Submissions/Upper/`) proves, for `forestScheme : Scheme paperParams` (Section 8 of the paper: 63 chains of length 14,
+21 group digests, 7 subtree digests, one root) with
+
+```
+theorem forestScheme_secure : forestScheme.Secure
+theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
+```
+
+(exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`). `Scheme.Secure` demands: for every adversary `A` and every `B` with
+`CostAtMost P (experiment S A) B`, `probTrue P (experiment S A) < B / 2^127`.
+
+## A correction to the paper
+
+The first version of the paper defined `D = {cuts of cost 105}` and claimed every such cut has at most 41 nodes.
+This is false: cutting all 63 chains gives cost-105 cuts with 63 nodes.  The stated count
+43124494150885380367098178978085896 is the number of cost-105 cuts with **at most 41 nodes**.
+The paper now defines `D := {cuts : cost = 105 ∧ |A| ≤ 41}` (so the 5248-bit budget holds), and in fact only
+the three most common shapes (97.5% of `D`, still > 2^115):
+
+| e revealed | g revealed | active chains | chain cost | nodes | count |
+|---|---|---|---|---|---|
+| 2 | 3 | 36 | 86 | 41 | C(7,2)·C(15,3)·comp(36,86) |
+| 1 | 7 | 33 | 86 | 41 | C(7,1)·C(18,7)·comp(33,86) |
+| 2 | 4 | 33 | 87 | 39 | C(7,2)·C(15,4)·comp(33,87) |
+
+where `comp n s` = number of `(c_1..c_n) ∈ [0,14]^n` with sum `s`.
+
+## The proof (paper Section 8.3, reorganized for formalization)
+
+Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^21`, `N = B - 912` (budget after key generation).
+`ξ : G.Rec` ranges uniformly over records (sources + hash outputs); `c₀ ξ` is the cache after
+key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for every hash node).
+
+1. **Key generation** (`Keygen.lean`): running `S.keygen` under the lazy oracle from
+   `∅` outputs `((pk ξ, evalRec ξ), c₀ ξ)` with probability `|Rec|⁻¹` for each `ξ`, and the
+   remaining budget is `N` for every record.
+
+2. **Identical-until-bad** (`IUB.lean`): for a cache `c` disjoint from a cache `f`,
+   `E[φ | run oa from (extend c f)] ≤ E[if Hits d f then 1 else φ (x, extend d f) | run oa from c]`
+   for `φ ≤ 1`.  Applied twice: stage A (`A.choose`, `f = c₀ ξ`) and stage B
+   (`A.forge >>= verify`, `f = fHid i ξ` = points of hash nodes not evaluated at the signed cut).
+
+3. **Supermartingale master lemma** (`Master.lean`): for a potential `Φ` on caches with
+   `E_u Φ(c.cacheQuery q u) ≤ Φ c + κ · cost q` at fresh queries, and any continuation bound,
+   `CostAtMost (oa >>= k) b → E[F | run oa from c] ≤ Φ c + κ b`.
+
+4. **Events** (`Events.lean`): if the verifier accepts a forgery in the stage-B
+   (hidden points removed) run, then the final cache `d` satisfies one of
+   * `Spr d ξ`: some entry `(τ_v, u ↦ w)` with `u ≠ input_v ξ` and `trunc w = trunc (ξ.2 v)`;
+   * `Hits d (fHid i ξ)`: a hidden keygen point was queried;
+   * `IdxPre d_A (u₁, i)`: a pre-signing encoding entry `u ≠ u₁` has index `i`;
+   * `IdxPost d' d i`: a post-signing encoding entry has index `i`.
+
+5. **Charges** (`Potentials.lean`), per unit of query cost:
+   * node-labelled query: `ε` (hidden-point hit, by resampling a hidden coordinate) + `ε` (Spr);
+   * encoding query before signing: `ε` (valid-index count `/M`) + `ε` (collision pairs, scaled
+     by `L/(2^256-L)`);
+   * encoding query after signing: `ε` (index equals `i`).
+   Total `≤ 2ε` per unit, so `Pr[forge] ≤ 2ε N = (B-912)/2^127 < B/2^127`.
+
+6. **Signing** (`SignIdx.lean`): `Pr[u₁ fresh ∧ i ∈ V(d_A)] ≤ |V|/M` and
+   `Pr[some trial lands on a collided entry] ≤ L·pairs/(2^256-L)`.
+
+The case `B > 2^127` is trivial (`probTrue ≤ 1 < B/2^127`), so all counting invariants may
+assume `N ≤ 2^127`.
+
+## Files
+
+See the table in `formal/Submissions/Upper/README.md`; the module names are `Submissions.Upper.<File>`.
