@@ -1,0 +1,7 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.Lower",
+  "solution_module": "Submissions.Lower.Solution",
+  "theorem_names": ["OptimalOTS.Challenge.Lower.candidate"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

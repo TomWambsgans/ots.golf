@@ -1,0 +1,72 @@
+{
+  "name": "ots.golf",
+  "contract": {
+    "version": "ots-v1-draft",
+    "statement": "formal/OptimalOTS/Statement.lean",
+    "pin_file": "verifier/protected.sha256"
+  },
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "protected": [
+    "challenges.json",
+    "verifier/comparator-lower.json",
+    "verifier/comparator-upper.json",
+    "formal/lean-toolchain",
+    "formal/lakefile.lean",
+    "formal/lake-manifest.json",
+    "formal/OptimalOTS.lean",
+    "formal/OptimalOTS/Statement.lean",
+    "formal/OptimalOTS/Challenge/Lower.lean.in",
+    "formal/OptimalOTS/Challenge/Upper.lean.in"
+  ],
+  "limits": {
+    "wall_clock_seconds": 1200,
+    "memory_bytes": 25769803776,
+    "max_files": 200,
+    "max_file_bytes": 8388608,
+    "max_total_bytes": 16777216,
+    "max_claim": 1000000
+  },
+  "tracks": [
+    {
+      "slug": "lower",
+      "title": "Lower bound",
+      "direction": "+",
+      "baseline": 25,
+      "submission_root": "formal/Submissions/Lower",
+      "module_prefix": "Submissions.Lower",
+      "solution_module": "Submissions.Lower.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/Lower.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/Lower.lean",
+      "challenge_module": "OptimalOTS.Challenge.Lower",
+      "comparator_config": "verifier/comparator-lower.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement"
+      ]
+    },
+    {
+      "slug": "upper",
+      "title": "Upper bound",
+      "direction": "-",
+      "baseline": 106,
+      "submission_root": "formal/Submissions/Upper",
+      "module_prefix": "Submissions.Upper",
+      "solution_module": "Submissions.Upper.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/Upper.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/Upper.lean",
+      "challenge_module": "OptimalOTS.Challenge.Upper",
+      "comparator_config": "verifier/comparator-upper.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement"
+      ]
+    }
+  ],
+  "lean_root": "formal"
+}

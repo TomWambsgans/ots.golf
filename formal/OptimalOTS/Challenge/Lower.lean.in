@@ -1,0 +1,19 @@
+import OptimalOTS.Statement
+
+/-!
+# Lower track: the challenge stub
+
+This file is rendered by the verifier from `Lower.lean.in`, with `{{CLAIM}}` replaced by the
+number in `Submissions/Lower/claim.txt`. A lower-track submission must export a theorem with
+exactly this name and exactly this statement. Only the proof differs.
+
+A larger claim is a stronger result. Contract: `OptimalOTS/Statement.lean`.
+-/
+
+namespace OptimalOTS.Challenge.Lower
+
+/-- **Lower-track certificate.** Every secure scheme with the parameters of the paper has a
+signature index whose verification costs at least `{{CLAIM}}` hash units. -/
+theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
+
+end OptimalOTS.Challenge.Lower

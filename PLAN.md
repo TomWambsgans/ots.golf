@@ -13,7 +13,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 ## Fixed decisions
 | Topic | Decision |
 |---|---|
-| Contract | `OptimalOTS/Statement.lean`, audited, then hash-pinned as `ots-v1`. Any change → v2, both tracks re-baseline. |
+| Contract | `formal/OptimalOTS/Statement.lean`, audited, then hash-pinned as `ots-v1`. Any change → v2, both tracks re-baseline. |
 | Model | The paper's DAG model only (sources, deterministic nodes, hash nodes, disclosure sets), enforced by the type `Scheme paperParams`. |
 | Upper certificate | `def scheme : Scheme paperParams`, `theorem secure : scheme.Secure`, `theorem cost : ∀ i, scheme.verifyCost i ≤ <literal>`. |
 | Lower certificate | `theorem candidate : VerificationLowerBound paperParams <literal>`. |
@@ -26,16 +26,16 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 | Profile / prizes | One profile (`paperParams`). No prizes. Apache 2.0. |
 
 ## Workstream A — Lean contract (repo)
-1. Restructure: protected files (toolchain, lakefile, manifest, `Statement.lean`, challenge
-   templates, comparator configs, `challenges.json`) + `Submissions/Lower/` + `Submissions/Upper/`.
-2. Move today's proof into `Submissions/Lower/` (renamed namespace), `claim.txt = 25`.
+1. Restructure: protected files (toolchain, lakefile, manifest, `formal/OptimalOTS/Statement.lean`, challenge
+   templates, comparator configs, `challenges.json`) + `formal/Submissions/Lower/` + `formal/Submissions/Upper/`.
+2. Move today's proof into `formal/Submissions/Lower/` (renamed namespace), `claim.txt = 25`.
 3. Write the two challenge templates, `render-challenge.py` (claim → literal) and
    `check-submission.py` (flat root, import whitelist, size caps, protected hashes).
 4. Write `check-axioms.lean` for the protected path.
 5. Audit `Statement.lean` against the paper: `CostAtMost` / `IsQueryBound`, the `Secure` bound and
    budget range, index computation, signature length check, trial limit, label injectivity,
    reveal and keygen budgets. Fix, then pin the hash.
-6. When the 106-unit proof is ready: add it as `Submissions/Upper/`, `claim.txt = 106`.
+6. When the 106-unit proof is ready: add it as `formal/Submissions/Upper/`, `claim.txt = 106`.
 7. `AGENTS.md` and `llms.txt`.
 
 ## Workstream B — Verifier service (server)

@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Check a submission root against the contract's policy, before anything is compiled.
+
+    check_submission.py TRACK [--root DIR] [--json]
+
+Checks: the root is flat and holds only `.lean` files, `claim.txt` and an optional `README.md`;
+`Solution.lean` exists; the claim is canonical; every import is Mathlib, VCVio, the statement, or
+a sibling file of the same root; the size limits hold. Exit 0 iff the root is admissible.
+These are policy checks; soundness is comparator's job.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from contract import LEAN_FILE_RE, ContractError, load_challenges, read_claim, repo_root, track  # noqa: E402
+
+OTHER_ALLOWED = {"claim.txt", "README.md"}
+
+
+def strip_comments(text: str) -> str:
+    """Remove `--` line comments and (nested) `/- ... -/` block comments."""
+    out, i, depth, n = [], 0, 0, len(text)
+    while i < n:
+        if text.startswith("/-", i):
+            depth += 1
+            i += 2
+        elif depth and text.startswith("-/", i):
+            depth -= 1
+            i += 2
+        elif depth:
+            i += 1
+        elif text.startswith("--", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def header_imports(text: str) -> tuple[list[str], str | None]:
+    """The module header: `import` lines up to the first other command. Returns (imports, error)."""
+    imports = []
+    for line in strip_comments(text).splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if s == "prelude" or s.startswith("prelude "):
+            return imports, "`prelude` is not allowed"
+        m = re.match(r"^import\s+(\S+)\s*$", s)
+        if m:
+            imports.append(m.group(1))
+            continue
+        if s.startswith("import"):
+            return imports, f"malformed import line: {line!r}"
+        break
+    return imports, None
+
+
+def check(root: Path, slug: str) -> dict:
+    cfg = load_challenges(root)
+    t = track(cfg, slug)
+    lim = cfg["limits"]
+    sub = root / t["submission_root"]
+    errors: list[str] = []
+    files: list[str] = []
+    total = 0
+
+    if not sub.is_dir():
+        return {"ok": False, "track": slug, "errors": [f"missing submission root {t['submission_root']}"]}
+
+    entries = sorted(p for p in sub.iterdir() if p.name != ".DS_Store")
+    for p in entries:
+        rel = f"{t['submission_root']}/{p.name}"
+        if p.is_dir():
+            errors.append(f"{rel}: subdirectories are not allowed")
+            continue
+        if not p.is_file() or p.is_symlink():
+            errors.append(f"{rel}: not a regular file")
+            continue
+        if not (LEAN_FILE_RE.match(p.name) or p.name in OTHER_ALLOWED):
+            errors.append(f"{rel}: only `.lean` files (identifier names), claim.txt and README.md are admitted")
+            continue
+        size = p.stat().st_size
+        total += size
+        if size > lim["max_file_bytes"]:
+            errors.append(f"{rel}: {size} bytes exceeds max_file_bytes {lim['max_file_bytes']}")
+        files.append(p.name)
+
+    if len(files) > lim["max_files"]:
+        errors.append(f"{len(files)} files exceeds max_files {lim['max_files']}")
+    if total > lim["max_total_bytes"]:
+        errors.append(f"{total} bytes in total exceeds max_total_bytes {lim['max_total_bytes']}")
+    if "Solution.lean" not in files:
+        errors.append("Solution.lean is required")
+
+    claim = None
+    if "claim.txt" in files:
+        try:
+            claim = read_claim(sub / "claim.txt", lim["max_claim"])
+        except ContractError as exc:
+            errors.append(str(exc))
+    else:
+        errors.append("claim.txt is required")
+
+    siblings = {f[:-5] for f in files if f.endswith(".lean")}
+    prefixes = t["allowed_import_prefixes"]
+    for name in files:
+        if not name.endswith(".lean"):
+            continue
+        text = (sub / name).read_text(encoding="utf-8", errors="replace")
+        imports, err = header_imports(text)
+        if err:
+            errors.append(f"{name}: {err}")
+        for imp in imports:
+            if any(imp == pre or imp.startswith(pre + ".") for pre in prefixes if pre != "OptimalOTS.Statement"):
+                continue
+            if imp == "OptimalOTS.Statement":
+                continue
+            if imp.startswith(t["module_prefix"] + "."):
+                leaf = imp[len(t["module_prefix"]) + 1:]
+                if leaf in siblings and "." not in leaf:
+                    continue
+                errors.append(f"{name}: import {imp} is not a sibling file of {t['submission_root']}")
+                continue
+            errors.append(f"{name}: import {imp} is not allowed (allowed: {prefixes} and siblings)")
+
+    return {"ok": not errors, "track": slug, "claim": claim, "files": files, "total_bytes": total, "errors": errors}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("track")
+    ap.add_argument("--root", type=Path)
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    try:
+        res = check(a.root or repo_root(), a.track)
+    except ContractError as exc:
+        print(f"check_submission: {exc}", file=sys.stderr)
+        return 2
+    if a.json:
+        print(json.dumps(res, indent=2))
+    else:
+        for e in res["errors"]:
+            print(f"error: {e}", file=sys.stderr)
+        if res["ok"]:
+            print(f"ok: {res['track']} submission, claim {res['claim']}, {len(res['files'])} files, {res['total_bytes']} bytes")
+    return 0 if res["ok"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,8 @@
+formal/.lake/
+.build/
+# rendered challenge stubs (generated from the .lean.in templates at verification time)
+formal/OptimalOTS/Challenge/Lower.lean
+formal/OptimalOTS/Challenge/Upper.lean
+# verifier tools and scratch
+verifier/.tools/
+verifier/.work/

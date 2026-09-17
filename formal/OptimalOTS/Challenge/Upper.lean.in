@@ -1,0 +1,25 @@
+import OptimalOTS.Statement
+
+/-!
+# Upper track: the challenge stub
+
+This file is rendered by the verifier from `Upper.lean.in`, with `{{CLAIM}}` replaced by the
+number in `Submissions/Upper/claim.txt`. An upper-track submission must export these three
+declarations with exactly these names and types. `scheme` is a definition hole: any term of type
+`Scheme paperParams` is admissible, and the two theorems pin down what it must satisfy.
+
+A smaller claim is a stronger result. Contract: `OptimalOTS/Statement.lean`.
+-/
+
+namespace OptimalOTS.Challenge.Upper
+
+/-- **The scheme.** A graph-based one-time signature scheme with the parameters of the paper. -/
+noncomputable def scheme : Scheme paperParams := sorry
+
+/-- **Security.** The scheme satisfies the security requirement of the paper. -/
+theorem secure : scheme.Secure := sorry
+
+/-- **Cost.** Every signature of the scheme verifies in at most `{{CLAIM}}` hash units. -/
+theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ {{CLAIM}} := sorry
+
+end OptimalOTS.Challenge.Upper
