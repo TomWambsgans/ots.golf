@@ -175,9 +175,14 @@ def main() -> int:
         cmd = ["lake", "env", env["COMPARATOR_BIN"], str(project / t["comparator_config"])]
         if platform.system() == "Linux" and shutil.which("systemd-run"):
             cmd = ["systemd-run", "--user", "--scope", "--quiet",
-                   f"-p MemoryMax={lim['memory_bytes']}", "-p", "RestrictAddressFamilies=~AF_UNIX"] + cmd
+                   "-p", f"MemoryMax={lim['memory_bytes']}"] + cmd   # network is landrun's job
         cenv = {**os.environ, "PATH": f"{Path.home()}/.elan/bin:{os.environ.get('PATH', '')}",
                 "COMPARATOR_LANDRUN": env["COMPARATOR_LANDRUN"], "COMPARATOR_LEAN4EXPORT": env["COMPARATOR_LEAN4EXPORT"]}
+        if cmd[0] == "systemd-run":
+            # under a system service there is no session environment; the user's manager (kept alive
+            # by `loginctl enable-linger`) listens under /run/user/<uid>
+            runtime = cenv.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+            cenv.setdefault("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")
         with log_path.open("w") as log:
             try:
                 proc = subprocess.run(cmd, cwd=project / lean_root, env=cenv, stdout=log, stderr=subprocess.STDOUT,

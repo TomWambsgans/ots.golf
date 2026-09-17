@@ -36,7 +36,7 @@ GITHUB_TOKEN=
 OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
 ENV
-chmod 600 /etc/ots/env
+chown root:ots /etc/ots/env && chmod 640 /etc/ots/env   # the services and the ots user read it
 
 sudo -u ots -H bash -euo pipefail <<USER
 cd "${OTS_HOME}"

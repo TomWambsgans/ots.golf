@@ -12,8 +12,14 @@ the warm build instant; on ext4 it is an 8 GB copy, which works but takes a minu
    requests in `/etc/ots/env`, then `systemctl restart ots-web ots-worker`.
 3. On GitHub, add a webhook on the contract repository: payload URL `https://<domain>/webhooks/github`,
    content type JSON, the same secret, event "Pull requests".
-4. Queue the baselines once: `sudo -u ots /srv/ots/repo/service/.venv/bin/python -m app.queue lower --baseline`
-   (and `upper` once its proof is in the repository).
+4. Queue the baselines once, with the services' environment (the env file is readable by `ots`):
+   ```sh
+   sudo -u ots -H bash -c 'set -a; . /etc/ots/env; set +a; cd /srv/ots/repo/service &&
+     OTS_REPO_ROOT=/srv/ots/repo .venv/bin/python -m app.queue lower --baseline &&
+     OTS_REPO_ROOT=/srv/ots/repo .venv/bin/python -m app.queue upper --baseline'
+   ```
+   Without the environment the command would write to a database of its own under `service/data`,
+   which the worker never reads.
 
 The sandbox chain is comparator → landrun (Landlock: read-only tree, writable `.lake` only, no
 network) inside a `systemd-run --user --scope` with the contract's memory cap; the worker's
