@@ -43,6 +43,12 @@ def generic_upper_candidate() -> dict:
             "title": "Generic algorithms", "proof": "formal/OptimalOTS/AlgorithmForest.lean"}
 
 
+def generic_lower_certificate() -> dict:
+    """Checked by GenericLower.candidate; the generic submission contract is still pending."""
+    return {"claim": 1, "status": "foundation", "framework": "generic",
+            "proof": "formal/OptimalOTS/AlgorithmLower.lean", "signing_success": "at least 1/2"}
+
+
 def contract_id() -> str:
     cfg = load()
     pin = settings.repo_root / cfg["contract"]["pin_file"]

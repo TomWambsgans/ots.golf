@@ -1,195 +1,26 @@
-{# The DAG models. Each line is a <details>: the summary is the rule, always visible; the
-   body is the explanation with its figure, one click away. Figures come from app/figures.py. #}
-<section class="how-it-works rules-list">
+{# Shared model, independent of scores and of the lower framework chosen. #}
+<section class="prose">
+  <h2 id="hash">One oracle, one cost</h2>
+  <p>The only cryptographic primitive is a random oracle. Each new input bit string gets an
+  independent, uniform 256-bit answer; repeated inputs get the same answer. There are no built-in
+  labels or domain separation.</p>
+  <p id="cost">A query costs one <strong>compression</strong> per started 512-bit input block,
+  with a minimum of one. Any distinguishing bits count as input. Deterministic computation and
+  randomness are free. We measure worst-case verification cost.</p>
 
-<details id="ots">
-<summary><span class="lead">One-time signatures.</span> A key signs a single message. Seeing the public key and
-one signature, nobody should be able to produce another pair that verifies.</summary>
-<div class="more prose">
-<p>A signature scheme is three algorithms. <em>Key generation</em> makes a secret key <code>sk</code> and a
-public key <code>pk</code>. <em>Signing</em> turns <code>sk</code> and a message <code>m</code> into a signature
-<code>σ</code>. <em>Verification</em> accepts or rejects <code>(pk, m, σ)</code>.</p>
-<figure class="fig">{{ figs.flow|safe }}
-<figcaption>One key, one message. The verifier sees only <code>pk</code>, <code>m</code> and
-<code>σ</code>.</figcaption></figure>
-<p>One-time signatures are the building block of hash-based signatures such as XMSS and SPHINCS+: a Merkle
-tree holds many one-time keys, and every verification pays for the one-time part. That cost is what this
-competition minimises.</p>
-<p>A <em>hash-based</em> one-time signature uses nothing but a hash function. Lamport hashes secret
-strings and reveals one per message bit; Winternitz replaces the secrets of a group of message bits by one
-hash chain and reveals the value at the position the message dictates. Both follow one pattern: key
-generation runs a fixed computation on secret random inputs, a signature reveals a few intermediate values,
-and the verifier recomputes the final hash and compares it with the public key.</p>
-<figure class="fig">{{ figs.classics|safe }}
-<figcaption>Lamport and Winternitz as graphs, with one signature lit.
-<span class="k revealed">revealed</span> <span class="k recomputed">recomputed by the verifier</span>
-<span class="k untouched">never touched</span></figcaption></figure>
-</div>
-</details>
+  <h2 id="security">127-bit security</h2>
+  <p>An attacker sees the public key, requests one signature on a chosen message, then attempts a
+  forgery. If the whole experiment costs at most <code>B</code> compressions on every run, success
+  must have probability strictly below <code>B / 2<sup>127</sup></code>. This includes key generation,
+  signing, the attacker's queries and final verification.</p>
+  <p>Upper bounds require <em>strong unforgeability</em>: any new accepted message/signature pair
+  counts. For lower bounds, only forgeries on an unsigned message count; if signing fails,
+  any accepted forgery counts.</p>
 
-<details id="hash">
-<summary><span class="lead">One tool, one price.</span> The only cryptography is a hash function, a random
-oracle. A query costs one <em>compression</em> per started 512-bit block of its input. Everything else is
-free.</summary>
-<div class="more prose">
-<p>Each previously unqueried bit string receives an independent uniform 256-bit answer. Repeating
-the same string receives the same answer, including across node and index queries. Signer, verifier and attacker learn <code>H</code> only by querying it. A
-query on an input <code>u</code> costs</p>
-<p class="formula">c(u) = ⌈ |u| / 512 ⌉ compressions, and at least one.</p>
-<p>The oracle takes only an input string, with its length. It supplies no labels, tweaks or domain
-separation. A scheme can construct a tweak inside an input using deterministic nodes, and those bits count
-towards the input length and cost.</p>
-<p>The upper baseline prepends a 16-bit tweak to every node query. Its chain inputs are 144 bits and its
-three-digest inputs are 400 bits, each costing one compression. Its root input is 912 bits and costs two.
-The message-and-nonce index has 512 bits and costs one. Concatenating, splitting, comparing and drawing
-randomness cost nothing, and the attacker's other computation is unbounded.</p>
-<figure class="fig">{{ figs.cost|safe }}
-<figcaption>Four inputs against 512-bit blocks. The cost is the number of blocks started.</figcaption></figure>
-</div>
-</details>
-
-<details id="graph">
-<summary><span class="lead">In the DAG frameworks, a scheme is a graph.</span> Secret random sources, free deterministic nodes of any
-shape, and hash nodes. The low 128 bits of the root hash are the public key.</summary>
-<div class="more prose">
-<p>The graph is fixed, public, finite, directed and acyclic. Each node holds a bit string of a fixed
-length, computed from its parents' values, and is one of three kinds.</p>
-<ul>
-<li><strong>Secret sources</strong> have no parents and hold uniformly random strings, of any length.</li>
-<li><strong>Deterministic nodes</strong> apply any public function to any number of parents and produce
-any length: concatenate, select bits, split, combine, look up a table, anything computable without
-<code>H</code>. They cost nothing.</li>
-<li><strong>Hash nodes</strong> have one parent. Their value is
-<code>H(parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
-concatenation of many values, so a hash node absorbs inputs of any size, at a price.</li>
-</ul>
-<p>A value may feed any number of nodes. One hash node is designated the <em>root</em>. Key generation
-samples the sources, evaluates the graph in order, within 1024 compressions, keeps every value as the secret
-key, and publishes the low 128 bits of the root as <code>pk</code>.</p>
-<figure class="fig">{{ figs.bits|safe }}
-<figcaption>Bits on the move. Each bar is a value, as wide as it is long; the ribbons carry slices of it
-upwards. Deterministic nodes split, select, reuse and concatenate slices for free, and each
-<code>H</code> returns 256 bits at the cost written beside it. Equal input strings receive equal answers.</figcaption></figure>
-<figure class="fig">{{ figs.dag|safe }}
-<figcaption>A small graph with every freedom of the model. It is not a tree: two values feed two nodes
-each, and three deterministic nodes gather two or three values. Every hash node carries its cost.</figcaption></figure>
-<p>Lamport, Winternitz, chains under trees: the hash-based one-time signatures of the literature are such
-graphs, and so is anything else built from a hash function whose signatures consist of node values.</p>
-</div>
-</details>
-
-<details id="cut">
-<summary><span class="lead">A DAG signature is a cut.</span> Hashing the message with a nonce selects one of
-2<sup>115</sup> disclosure sets. The signature is the nonce and the values of that set, at most 5504 bits.</summary>
-<div class="more prose">
-<p>A scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
-<code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a <em>cut</em>: a set of nodes that excludes the
-root and meets every path from a secret source to the root. To sign <code>m</code>, the signer draws a
-256-bit nonce <code>η</code>, reads the index <code>i</code> from the low 128 bits of
-<code>H(m ‖ η)</code>, and tries fresh nonces until <code>i &lt; M</code>, for at most
-<code>2<sup>21</sup></code> trials, after which signing fails. A previously unqueried input lands below
-<code>M</code> with probability <code>2<sup>−13</sup></code>. The signature is
-<code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order: at most 5248 bits of
-values. The message chooses what is revealed; the signer computes nothing new.</p>
-<figure class="fig">{{ figs.cut|safe }}
-<figcaption>The graph above with one disclosure set lit. Every path from a source to the root crosses a
-revealed value, the root stays hidden, and the number beside each recomputed hash node is its
-cost.</figcaption></figure>
-</div>
-</details>
-
-<details id="cost">
-<summary><span class="lead">The score.</span> The verifier recomputes the root from the revealed values. A
-scheme scores the cost of its most expensive signature.</summary>
-<div class="more prose">
-<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, one compression, rejects if
-<code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of
-<code>A<sub>i</sub></code>, evaluates every node between the cut and the root, and accepts if the low 128
-bits of the recomputed root equal <code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it
-evaluates, the signature of index <code>i</code> costs</p>
-<p class="formula">C<sub>i</sub> = 1 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
-<p>and the score is <strong>max<sub>i</sub> C<sub>i</sub></strong>. The signature in the figure of the cut costs
-1 + 8 = 9. In the baseline scheme, 63 chains of length 14 grouped by three into 21 digests, those by three
-into 7, and the 7 hashed into the root, every signature recomputes 103 chain and digest hashes and the
-two-compression root: 1 + 103 + 2 = 106.</p>
-</div>
-</details>
-
-<details id="partial-disclosures">
-<summary><span class="lead">Partial disclosures.</span> Reveal any pieces of seeds or of at most 46 hash
-outputs. The payload still fits in 5,248 bits, plus the 256-bit nonce.</summary>
-<div class="more prose">
-<p>This framework adds one condition to the DAG model. Trace each disclosed node backwards through
-deterministic operations, stopping at the first hash on each path. Across the whole payload, at most
-46 distinct hash nodes may be reached. Secret sources contribute no hash origin; a new hash replaces
-its inputs' origins with its own.</p>
-<p>Arbitrary fragments and deterministic encodings are allowed. If <code>d = H(seed)</code> and
-<code>c = ReedSolomon(d)</code>, revealing any chosen symbols of <code>c</code>, including parity
-symbols, counts one origin. Several slices of that digest still count once. Mixing two digests counts
-two origins, even if the encoded result is short. Every parent edge of a deterministic node counts
-when tracing origins, even if its function ignores that parent.</p>
-<p>The disclosure sets must still cut every secret-source-to-root path, and verification reconstructs
-the graph forwards from the disclosed nodes. The rule allows encodings expressible in that model;
-it does not add arbitrary decoding from a chosen subset of symbols.</p>
-<p>A lower submission proves its bound for every weakly secure DAG scheme satisfying the 46-origin
-condition. Its bound does not change the unrestricted DAG record. Upper submissions use the fully
-generic interface and do not have this restriction.</p>
-<p>The certified lower baseline is <strong>{{ baselines.disclosure.lower }} compressions</strong>.
-The lower proof counts possible sets of reconstructed hashes under the 46-origin restriction and
-turns too many repeated patterns into a forgery. The reference upper certificate uses the existing forest,
-with a separate proof that it has at most 41 disclosed hash origins.</p>
-</div>
-</details>
-
-<details id="security">
-<summary><span class="lead">Security.</span> One signature on a message of the attacker's choice, then a
-forgery. An attacker spending <code>B</code> compressions must win with probability below
-<code>B / 2<sup>127</sup></code>.</summary>
-<div class="more prose">
-<p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature, and outputs a
-message and a signature. It wins if the pair verifies and differs from the one it received. <code>B</code>
-bounds the compressions spent in the whole experiment on every run, key generation, signing and the final
-verification included. This is <code>Scheme.Secure</code> in the statement, strong unforgeability. The
-<em>weak</em> form, <code>Scheme.WeaklySecure</code>, counts only forgeries on a message other than the signed
-one; every secure scheme is weakly secure.</p>
-<figure class="fig">{{ figs.experiment|safe }}
-<figcaption>The forgery experiment. Every query to <code>H</code>, by either party, counts towards
-<code>B</code>; the attacker's other computation is unbounded.</figcaption></figure>
-</div>
-</details>
-
-<details id="tracks">
-<summary><span class="lead">Lower frameworks, one generic upper.</span> Prove a limit for a chosen class, or
-construct an arbitrary oracle algorithm. Each lower class keeps its own record.</summary>
-<div class="more prose">
-<p>A DAG lower certificate proves that every weakly secure scheme in the DAG contract has a signature
-at least as expensive as the claim. The partial-disclosure theorem restricts that quantifier to schemes
-with at most 46 hash origins per payload. Their certified lower baselines are {{ baselines.dag.lower }}
-and {{ baselines.disclosure.lower }} compressions. Generic lower submissions remain in preparation.</p>
-<p>The single upper track uses arbitrary oracle algorithms and the same 127-bit security target.
-Its {{ generic_upper.claim }}-cost adapter candidate has security and cost proofs, with correctness and
-signing availability still pending. A generic construction need not belong to either DAG class, so its
-cost need not sit above either restricted lower record.</p>
-<p>The <a href="/#dash-title">comparison chart</a> shows all three lower series and the single generic
-upper candidate. Each point retains its theorem's scope.</p>
-</div>
-</details>
-
-<details id="params">
-<summary><span class="lead">Parameters.</span> 128-bit public key, 256-bit messages, signatures of at most 5504
-bits, 127-bit security. Fixed; a submission cannot change them.</summary>
-<div class="more prose">
-<table class="kv params">
-<tr><th>Hash output</th><td>256 bits</td></tr>
-<tr><th>Block</th><td>512 bits</td></tr>
-<tr><th>Public key</th><td>128 bits, the low bits of the root</td></tr>
-<tr><th>Message, nonce</th><td>256 bits each; the index is the low 128 bits of <code>H(m ‖ η)</code></td></tr>
-<tr><th>Revealed bits per signature</th><td>at most 5248, so signatures of at most 5504 bits</td></tr>
-<tr><th>Key generation</th><td>at most 1024 compressions</td></tr>
-<tr><th>Disclosure sets</th><td><code>2<sup>115</sup></code></td></tr>
-<tr><th>Signing trials</th><td>at most <code>2<sup>21</sup></code> nonces</td></tr>
-<tr><th>Security</th><td>forging with cost <code>B</code> succeeds with probability below <code>B / 2<sup>127</sup></code></td></tr>
-</table>
-</div>
-</details>
+  <h2 id="params">Fixed limits</h2>
+  <table class="kv params">
+    <tr><th>Public key / message</th><td>128 / 256 bits</td></tr>
+    <tr><th>Signature</th><td>At most 5,504 bits</td></tr>
+    <tr><th>Key generation / signing</th><td>At most 1,024 / 2<sup>21</sup> compressions</td></tr>
+  </table>
 </section>

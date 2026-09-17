@@ -14,6 +14,10 @@ A later, separate [partial-disclosure framework](partial-disclosures.md) adds DA
 at most 46 disclosed hash origins and certified bounds 80 and 106. It does not complete the
 generic admission requirements below or establish a generic lower bound.
 
+A separate [generic lower theorem](generic-lower.md) now proves at least one compression for every
+correct, weakly secure oracle algorithm whose signing succeeds with probability at least one half.
+This does not supply the adapter's missing correctness or availability proofs.
+
 ## Interface
 
 `formal/OptimalOTS/Algorithm.lean` introduces `AlgorithmScheme P`:

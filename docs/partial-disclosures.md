@@ -83,16 +83,18 @@ Satoshi/Vitalik submissions with claims relative to each framework's baselines.
 
 The formal milestone is local commit `84c5fd2` on `main`. Eleven service regression tests pass
 with `cd service && .venv/bin/python -m unittest discover -s tests -v`, covering independent
-record attribution, the combined chart, lower leaderboard filters, pending generic status, the single
-generic upper candidate, demo refresh preservation, solver and submission links, certified lower
-rule baselines, public rejection of legacy upper submissions, and pull-request root matching.
+record attribution, the combined chart, lower leaderboard filters, generic admission status, the single
+generic upper candidate, demo refresh preservation, solver and submission links, public rejection
+of legacy upper submissions, and pull-request root matching. Later rules tests ensure the rules
+remain independent of scores.
 Localhost serves the combined view and all three lower filters successfully; demo lower records
 are 20 for DAGs and 82 for partial disclosures. The old 101-cost upper demo rows remain in historical
 pages only. These invented claims are separate from the kernel-verified baselines. The commit hook
 refreshes localhost and adapts demo claims automatically.
 
 The website has three lower-bound frameworks and one fully generic upper track. The chart shows
-three lower series, with generic lower in a pending lane outside the compression axis, plus a single
+three lower series, now including the separate [checked generic lower bound of 1](generic-lower.md)
+for correct schemes whose signing succeeds at least half the time, plus a single
 106-cost generic adapter candidate. The candidate is not an admitted upper record: correctness and
 signing availability remain to be proved. Lower framework filters do not split the upper track.
 Legacy DAG upper certificates remain locally verifiable and their historical pages remain accessible;

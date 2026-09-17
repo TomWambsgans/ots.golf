@@ -23,13 +23,15 @@ the unrestricted DAG record. See docs/partial-disclosures.md.
 
 Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but submissions
 are not yet admitted: correctness and signing availability remain to be proved. See
-docs/generic-upper.md. No generic lower record is claimed.
+docs/generic-upper.md. A separate Lean-checked generic lower bound of 1 applies to every correct,
+weakly secure algorithm whose signing succeeds with probability at least one half. See
+docs/generic-lower.md. It is a foundation theorem, not yet an admitted comparator submission.
 
-The site plots three lower series and one generic upper candidate. Generic lower is explicitly
-pending outside the numeric compression axis; it is not a claim of zero. The generic upper adapter
+The site plots three numeric lower series, including the checked generic bound of 1, and one
+generic upper candidate. The generic upper adapter
 has checked cost/security proofs at 106, but is not an admitted record until the remaining
 admissibility proofs and challenge are complete. Framework filters affect only lower leaderboards.
-Rules show certified lower baselines. Local Satoshi/Vitalik demo records are marked illustrative.
+Rules describe requirements without scores. Local Satoshi/Vitalik demo records are marked illustrative.
 Legacy DAG upper roots and their historical rows remain references, not generic records; the public
 queue rejects new submissions to those upper roots.
 

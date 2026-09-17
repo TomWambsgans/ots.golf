@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from pathlib import Path
 
 import httpx
@@ -17,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth, charts, contract, figures, github, records, scheme_art
+from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
 from .db import SessionLocal, Submission, User, get_session, init_db, utcnow
 
@@ -60,6 +59,7 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
     ctx.setdefault("generic_upper", contract.generic_upper_candidate())
+    ctx.setdefault("generic_lower", contract.generic_lower_certificate())
     ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.framework(t["framework"])["title"]}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
@@ -178,9 +178,11 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     series = []
     for model in models:
         board = model["boards"].get("lower")
+        foundation = contract.generic_lower_certificate() if model["slug"] == "generic" else None
         series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
                        "framework": model["slug"], "kind": "lower", "label": f'{model["title"]} lower',
-                       "baseline": board["cfg"]["baseline"] if board else None,
+                       "baseline": board["cfg"]["baseline"] if board else foundation["claim"] if foundation else None,
+                       "status": foundation["status"] if foundation else "certified",
                        "points": board["curve"] if board else []})
     upper = contract.generic_upper_candidate()
     series.append({"slug": "generic-upper", "framework": "generic", "kind": "upper",
@@ -222,43 +224,9 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     return render(request, "solver.html", solver=solver, subs=subs)
 
 
-# One line per section of AGENTS.md, shown while the section is folded.
-RULE_BLURBS = {
-    "Layout": "One Lean project, three lower-bound classes and one generic upper track.",
-    "Frameworks": "Lower records stay within their class; upper constructions use arbitrary oracle algorithms.",
-    "What a submission exports": "Exact declarations for admitted lower tracks and preserved upper reference "
-                                 "certificates. Generic upper admission is pending.",
-    "Rules for the submission root": "Flat Lean files and a claim.txt; imports limited to Mathlib, VCVio and the "
-                                     "track's contract; only the three standard axioms.",
-    "Check locally before submitting": "The pipeline of the hosted verifier runs on your machine.",
-    "Submitting": "One pull request that changes only your track's submission root. The verifier answers on it.",
-}
-SECTION_RE = re.compile(r'<h3 id="([^"]*)">(.*?)</h3>', re.S)
-
-
-def rule_sections(html: str) -> list[dict]:
-    """The rendered AGENTS.md cut at its section headings, so the page can fold each section."""
-    parts = SECTION_RE.split(html)                # [before, id, title, body, id, title, body, ...]
-    out = []
-    for i in range(1, len(parts) - 2, 3):
-        title = re.sub(r"<[^>]+>", "", parts[i + 1]).strip()
-        out.append({"id": parts[i], "title": title, "blurb": RULE_BLURBS.get(title, ""), "body": parts[i + 2]})
-    return out
-
-
 @app.get("/rules", response_class=HTMLResponse)
-def rules(request: Request, session: Session = Depends(get_session)):
-    text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
-    # The page has its own title: drop the file's H1 and opening paragraph, and cut the rest at its
-    # sections, which the page shows folded.
-    sections = text.split("\n## ", 1)
-    body = "## " + sections[1] if len(sections) == 2 else text
-    html = markdown.markdown(body, extensions=["tables", "fenced_code", "toc"],
-                             extension_configs={"toc": {"baselevel": 2}})
-    baselines = {f["slug"]: {kind: t["baseline"] for kind, t in contract.framework_tracks(f["slug"]).items()}
-                 for f in contract.frameworks()}
-    return render(request, "rules.html", sections=rule_sections(html), cfg=contract.load(), baselines=baselines,
-                  figs=figures.static())
+def rules(request: Request):
+    return render(request, "rules.html", cfg=contract.load())
 
 
 @app.get("/llms.txt", response_class=PlainTextResponse)

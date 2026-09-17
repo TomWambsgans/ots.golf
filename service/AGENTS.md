@@ -19,9 +19,11 @@ running `.venv/bin/python seed_demo.py`: the seed replaces baseline database row
 For ordinary updates, `bash refresh-local.sh` preserves submission IDs and dates and leaves
 real submissions alone, so it is safe while the worker is running.
 
-The three frameworks apply only to lower bounds. The homepage plots three lower series, with
-uncertified generic lower bounds in an explicitly pending lane outside the numeric axis. Never
-substitute zero or a DAG theorem for a missing generic certificate. Lower leaderboards have separate
+The three frameworks apply only to lower bounds. The homepage plots three lower series. Generic
+lower shows the checked theorem at 1, with its assumption that correct signing succeeds at least
+half the time; generic admission remains pending. If a framework has no checked certificate, use
+a pending lane outside the numeric axis. Never substitute zero or a DAG theorem for a missing
+generic certificate. Lower leaderboards have separate
 rankings for generic algorithms, DAGs and partial disclosures; `?framework=dag|disclosure|generic`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
@@ -32,7 +34,8 @@ the upper leaderboard has no framework filter. Reject public submissions to lega
 Retain their proof files and historical pages as references, and preserve all existing demo rows.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
 
-Rules show certified lower baselines independently of the demo records. Partial-disclosure lower
+Keep the rules concise and independent of current scores, candidate results and proof history.
+Partial-disclosure lower
 uses `disclosure-lower` with the same baseline-relative demo offsets as DAG lower.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.

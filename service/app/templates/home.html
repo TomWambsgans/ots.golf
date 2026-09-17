@@ -97,12 +97,13 @@
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Lower <span aria-hidden="true">↑</span></dt>
-        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }}{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
+        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }}{% else %}{{ generic_lower.claim }}{% endif %}</dd></div>
       </dl>
       {% if model.boards %}
       <p class="framework-baseline">Certified lower baseline: <strong>{{ model.boards.lower.cfg.baseline }}</strong> compressions.</p>
       {% else %}
-      <p class="framework-baseline">No certified generic lower bound yet.</p>
+      <p class="framework-baseline">Checked for correct schemes whose signing succeeds at least half the time.
+      Generic submissions are pending.</p>
       {% endif %}
     </article>
     {% endfor %}
@@ -134,7 +135,8 @@
   <figure class="chart">
     <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption>Three lower-bound series, one per framework. The generic series is pending, outside the numeric axis.
+    <figcaption>Three lower-bound series, one per framework. The generic bound is a checked theorem for correct schemes
+    with signing success at least 1/2; its submission track is still in preparation.
     The single upper line is the {{ generic_upper.claim }}-cost generic adapter, a candidate pending admission.
     It is not an admitted record. Hover, focus or tap a lower record for its details.</figcaption>
   </figure>
@@ -182,9 +184,11 @@
           </table>
         </div>
         {% else %}
-        <p class="foundation-note">No certified generic lower bound yet. The DAG and partial-disclosure bounds cover narrower classes.
-        The generic admissibility contract must be finalized before generic lower submissions open.
-        <a href="/rules#generic-algorithms">Current proof status ↗</a></p>
+        <p class="foundation-note"><strong>Proved lower bound: {{ generic_lower.claim }} compression.</strong>
+        Covers arbitrary randomized algorithms with correct signing, signing success at least 1/2,
+        and the stated resource and security requirements. The proof forges on a fresh message.</p>
+        <p class="foundation-note">This is a Lean-checked foundation theorem. The generic admissibility contract
+        must be pinned before generic submissions open. <a href="/rules#generic-algorithms">Framework rules ↗</a></p>
         {% endif %}
       </section>
       {% endfor %}

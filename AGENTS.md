@@ -35,6 +35,9 @@ separate DAG or partial-disclosure upper leaderboards.
   and security-preserving 106-cost adapter are foundations; generic lower and upper submissions are not
   yet admitted. Correctness and signing-availability proofs, a pinned availability threshold and the
   generic challenge remain prerequisites for admission. The 106-cost adapter is a candidate, not a record.
+  `AlgorithmLower.lean` proves a generic lower theorem for every correct, weakly secure algorithm
+  with signing failure at most one half; see `docs/generic-lower.md`. This foundation theorem does
+  not open generic submissions or choose their final availability threshold.
 - **DAG lower** (`lower`): the unrestricted DAG model, with certified lower baseline 18.
 - **Partial-disclosure lower** (`disclosure-lower`): DAG schemes with certified lower baseline 80 and at most 46 distinct
   hash origins in each signature payload. A source has no hash origins; a hash has its own node as its

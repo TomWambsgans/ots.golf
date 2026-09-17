@@ -17,8 +17,9 @@ Claims are improvements relative to `challenges.json`: with baselines 18 and 106
 records progress from 19 to 20 and from 105 to 101.
 Partial-disclosure tracks have their own demo rows, with the same offsets from their own baselines.
 The homepage compares three **lower-bound** frameworks in cards and a shared chart. DAG and
-partial-disclosure lower bounds have numeric records; generic lower occupies a pending lane
-outside the compression axis. The leaderboard defaults to all lower frameworks, grouped by class.
+partial-disclosure lower bounds have numeric records. Generic lower shows the checked foundation
+theorem at 1, assuming correct signing succeeds at least half the time; generic admission remains
+pending. The leaderboard defaults to all lower frameworks, grouped by class.
 Filter it with `/?framework=dag`, `/?framework=disclosure`, or `/?framework=generic`.
 
 There is one **upper** track: fully generic algorithms. Its checked 106-cost adapter is shown as a
@@ -26,8 +27,8 @@ candidate while correctness, signing availability and the generic challenge rema
 There are no separate DAG or partial-disclosure upper leaderboards. `#lower` and `#upper` select
 the direction; framework filters apply only to lower bounds. Legacy DAG upper histories remain
 accessible as reference pages, and their demo rows are preserved, without becoming generic records.
-The public queue rejects new submissions to legacy upper roots. Rules show certified lower
-baselines independently of the illustrative local leaderboard.
+The public queue rejects new submissions to legacy upper roots. Rules describe the requirements
+without scores, candidate results or leaderboard history.
 
 After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
 demo claims to the current baselines and reload the running site, including its cached commit.

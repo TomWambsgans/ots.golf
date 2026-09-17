@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from html import escape
 
 W, H = 960, 410
-ML, MR, MT, MB = 48, 235, 30, 100
+ML, MR, MT = 48, 235, 30
 
 
 def _nice_ticks(lo: float, hi: float) -> list[int]:
@@ -25,6 +25,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     """Each series carries its own framework, kind, baseline (None if pending) and records."""
     numeric = [s for s in series if s["baseline"] is not None]
     pending = [s for s in series if s["baseline"] is None]
+    bottom_margin = 100 if pending else 45
     all_t = [p["t"] for s in numeric for p in s["points"]]
     t1 = now
     t0 = min(all_t) if all_t else now - timedelta(days=1)
@@ -40,22 +41,22 @@ def record_chart(series: list[dict], now: datetime) -> dict:
         return ML + (W - ML - MR) * (t - t0).total_seconds() / max((t1 - t0).total_seconds(), 1)
 
     def sy(v: float) -> float:
-        return MT + (H - MT - MB) * (y_hi - v) / max(y_hi - y_lo, 1)
+        return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="img" '
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
            '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and partial-disclosure '
-           'lower records are separate series. Generic algorithms have no certified lower record; their pending '
-           'line is outside the compression axis. The single upper series is the 106-cost generic candidate, '
+           'lower records are separate series. The generic lower theorem assumes correct signing with success '
+           'at least one half; generic submissions remain in preparation. The single upper series is the generic candidate, '
            'with admission still pending. Hover or focus a record for its framework and solver.</desc>']
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
         out.append(f'<line class="grid" x1="{ML}" x2="{W - MR}" y1="{y:.1f}" y2="{y:.1f}"/>')
         out.append(f'<text class="tick" x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end">{v}</text>')
-    out.append(f'<line class="axis" x1="{ML}" x2="{W - MR}" y1="{H - MB}" y2="{H - MB}"/>')
+    out.append(f'<line class="axis" x1="{ML}" x2="{W - MR}" y1="{H - bottom_margin}" y2="{H - bottom_margin}"/>')
     for t in _time_ticks(t0, t1):
-        out.append(f'<text class="tick" x="{sx(t):.1f}" y="{H - MB + 20}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
+        out.append(f'<text class="tick" x="{sx(t):.1f}" y="{H - bottom_margin + 20}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
     out.append(f'<text class="tick" x="4" y="{MT - 14}">compressions</text>')
 
     # Keep endpoint labels distinct even when different series have equal costs.
@@ -66,7 +67,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     for y, slug in ends:
         label_y[slug] = max(y, prev + 28)
         prev = label_y[slug]
-    overflow = max(prev - (H - MB - 4), 0)
+    overflow = max(prev - (H - bottom_margin - 4), 0)
     label_y = {slug: y - overflow for slug, y in label_y.items()}
 
     points = []
@@ -79,6 +80,8 @@ def record_chart(series: list[dict], now: datetime) -> dict:
         # Retain the contract baseline before the first improvement.
         first_x = sx(pts[0]["t"]) if pts else sx(t1)
         baseline_label = "adapter; admission pending" if status == "candidate" else "contract baseline"
+        if status == "foundation":
+            baseline_label = "checked theorem; correct signing succeeds at least half the time; admission pending"
         out.append(f'<path class="line baseline" d="M{ML},{sy(baseline):.1f} H{first_x:.1f}"><title>{label}: {baseline} · {baseline_label}</title></path>')
         last_claim = pts[-1]["claim"] if pts else baseline
         if pts:
@@ -110,6 +113,6 @@ def record_chart(series: list[dict], now: datetime) -> dict:
                    f'<path class="line" d="M{ML},{y} H{W - MR}"/>'
                    f'<text class="label" x="{W - MR + 23}" y="{y + 4}">{escape(s["label"])}: pending</text>'
                    f'<text class="tick" x="{ML}" y="{y - 10}">No certified bound · outside the numeric axis</text></g>')
-    out.append(f'<line class="crosshair" x1="0" x2="0" y1="{MT}" y2="{H - MB}" visibility="hidden"/>')
+    out.append(f'<line class="crosshair" x1="0" x2="0" y1="{MT}" y2="{H - bottom_margin}" visibility="hidden"/>')
     out.append('</svg>')
     return {"svg": '\n'.join(out), "points": json.dumps(points).replace('<', '\\u003c'), "series": series}

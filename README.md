@@ -50,8 +50,10 @@ certificates establish **80 and 106**; the latter is retained as a reference pro
 partial-disclosure lower baseline. See [the definition and proof status](docs/partial-disclosures.md).
 
 The site has **three lower-bound frameworks and one fully generic upper track**. The chart compares
-all three lower series and the single 106-cost generic adapter candidate. Generic lower remains
-pending outside the numeric axis; the upper candidate awaits admission proofs. Lower leaderboards
+all three lower series and the single 106-cost generic adapter candidate. A [Lean-checked generic
+lower bound of 1](docs/generic-lower.md) covers every correct, weakly secure algorithm whose signing
+succeeds with probability at least one half. Generic admission remains pending; the upper candidate
+awaits correctness and availability proofs. Lower leaderboards
 are grouped and filtered by framework. There are no separate DAG or partial-disclosure upper
 leaderboards, and the public queue rejects new submissions to those legacy upper roots. Existing
 proofs and historical pages remain available as references. Local demo lower records are explicitly

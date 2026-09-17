@@ -77,20 +77,24 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 2)
         self.assertEqual(len(re.findall(r'<article class="framework-card ', html)), 3)
 
-    def test_three_lower_series_with_generic_pending_outside_numeric_axis(self):
+    def test_three_lower_series_with_checked_generic_foundation(self):
         response = self.client.get("/?framework=generic")
         self.assertEqual(response.status_code, 200)
         svg = self.chart_svg(response.text)
         lower = svg.findall("./g[@data-kind='lower']")
         self.assertEqual({s.get('data-series') for s in lower}, {'generic-lower', 'lower', 'disclosure-lower'})
-        pending = svg.find("./g[@data-series='generic-lower']")
-        self.assertEqual(pending.get('data-status'), 'pending')
-        self.assertEqual(pending.findall('.//circle'), [])
+        generic = svg.find("./g[@data-series='generic-lower']")
+        self.assertEqual(generic.get('data-status'), 'foundation')
+        self.assertEqual(generic.find("text[@class='label']").text, 'Generic algorithms lower 1')
+        self.assertEqual(generic.findall('.//circle'), [])
         self.assertEqual(self.chart(response.text), [])
         axis_y = float(svg.find("./line[@class='axis']").get('y1'))
-        lane_y = float(re.search(r'M[\d.]+,([\d.]+)', pending.find('path').get('d')).group(1))
-        self.assertGreater(lane_y, axis_y)
-        self.assertTrue('No certified generic lower bound yet' in response.text)
+        bound_y = float(re.search(r'M[\d.]+,([\d.]+)', generic.find('path').get('d')).group(1))
+        self.assertLess(bound_y, axis_y)
+        self.assertIn('correct signing succeeds at least half the time', generic.find('path/title').text)
+        self.assertIn('Proved lower bound: 1 compression.', response.text)
+        self.assertIn('Admission pending', response.text)
+        self.assertNotIn('<table class="lb-table"', response.text)
         self.assertEqual(self.client.get("/?framework=unknown").status_code, 404)
 
     def test_single_generic_upper_is_a_candidate_not_an_inherited_record(self):
@@ -116,16 +120,16 @@ class FrameworkTests(unittest.TestCase):
             self.assertTrue(str(baseline) in group.find('path/title').text)
         self.assertFalse('Local demo leaderboard' in html)
 
-    def test_rules_use_certified_baselines_even_when_demo_records_are_higher(self):
+    def test_rules_explain_models_without_leaderboard_scores(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
         self.session.commit()
         html = self.client.get('/rules').text
-        table = re.search(r'<table class="framework-comparison">(.*?)</table>', html, re.S).group(1)
-        cells = re.findall(r'<td>(\d+)</td>', table)
-        self.assertEqual(cells, ['18', '80'])
-        self.assertTrue('Reed–Solomon' in html)
-        self.assertTrue('id="generic-algorithms"' in html)
-        self.assertTrue('outside the numeric axis' in html)
+        body = re.search(r'<main>(.*?)</main>', html, re.S).group(1)
+        self.assertNotRegex(body, r'\b(?:18|80|106)\b')
+        self.assertFalse('framework-comparison' in body)
+        self.assertTrue('Reed–Solomon' in body)
+        self.assertTrue('id="generic-algorithms"' in body)
+        self.assertTrue('One upper track: generic algorithms' in body)
 
     def test_refresh_preserves_existing_rows_and_adds_missing_tracks_once(self):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
