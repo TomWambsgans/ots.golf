@@ -163,6 +163,7 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; margin: 16px 0 20px; }
 .art-wrap { pointer-events: none; }
 .scheme-art { width: 100%; height: auto; display: block; }
+.scheme-art .e, .scheme-art .n { transition: fill .6s ease, stroke .6s ease, stroke-width .6s ease, opacity .6s ease; }
 .scheme-art .e { stroke: var(--art-faint); stroke-width: 1; }
 .scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.4; opacity: 0.9; }
 .scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.1; }

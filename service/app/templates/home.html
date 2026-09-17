@@ -7,6 +7,39 @@
   </div>
   <div class="art-wrap" aria-hidden="true">{{ art|safe }}</div>
 </section>
+<script>
+(function () {
+  // A fresh random signature on the necklace at load, and another one every two seconds:
+  // one chain opened to its source, one cut deep, the rest shallow, 96 chain hashes in all.
+  var svg = document.querySelector('svg.scheme-art');
+  if (!svg) return;
+  var CHAINS = +svg.dataset.chains, LEN = +svg.dataset.len, STEPS = +svg.dataset.steps;
+  var els = Array.prototype.slice.call(svg.querySelectorAll('[data-k]'));
+  var ks = els.map(function (e) { return +e.dataset.k; }), ts = els.map(function (e) { return +e.dataset.t; });
+  function rand(n) { return Math.floor(Math.random() * n); }
+  function sample() {
+    var steps = [], k;
+    for (k = 0; k < CHAINS; k++) steps.push(0);
+    var deep = rand(CHAINS), deeper;
+    do { deeper = rand(CHAINS); } while (deeper === deep);
+    steps[deep] = LEN; steps[deeper] = 6 + rand(7);
+    var budget = STEPS - steps[deep] - steps[deeper];
+    while (budget > 0) { k = rand(CHAINS); if (k !== deep && k !== deeper && steps[k] < 5) { steps[k]++; budget--; } }
+    return steps.map(function (s) { return LEN - s; });
+  }
+  function light(pos) {
+    for (var i = 0; i < els.length; i++) {
+      var tk = pos[ks[i]], t = ts[i], c = t === tk ? 'revealed' : t > tk ? 'recomputed' : 'untouched';
+      var cl = els[i].classList;
+      if (!cl.contains(c)) { cl.remove('revealed', 'recomputed', 'untouched'); cl.add(c); }
+    }
+  }
+  light(sample());
+  if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    setInterval(function () { if (!document.hidden) light(sample()); }, 2000);
+  }
+})();
+</script>
 
 <section class="dashboard" aria-labelledby="dash-title">
   <h2 id="dash-title" class="visually-hidden">Records over time</h2>

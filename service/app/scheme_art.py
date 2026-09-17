@@ -3,7 +3,9 @@
 Root at the center; 41 hash chains of 20 beads radiating outward to their secret sources, their
 ends hashed together into the root. One real signature is lit on it: one revealed value per chain,
 at positions whose recomputation costs exactly 96 chain hashes (revealed values, recomputed nodes,
-untouched beads), one chain opened down to its source.
+untouched beads), one chain opened down to its source. Every bead and edge carries its chain and
+position as data attributes, so the page's script can light a fresh random signature on load and
+every two seconds after that; the server-rendered one is only the first frame.
 """
 from __future__ import annotations
 
@@ -49,7 +51,7 @@ def svg() -> str:
     pos = signature_positions()
     reach = R_TIP + LEN * STEP + 14
     out = [f'<svg viewBox="{CX - reach:.0f} {CY - reach:.0f} {2 * reach:.0f} {2 * reach:.0f}" '
-           'class="scheme-art" aria-hidden="true" focusable="false">']
+           f'class="scheme-art" data-chains="{CHAINS}" data-len="{LEN}" data-steps="{STEPS}" aria-hidden="true" focusable="false">']
     edges, nodes = [], []
     for k in range(CHAINS):
         a = angle(k)
@@ -61,15 +63,16 @@ def svg() -> str:
 
         for t in range(1, LEN + 1):
             (x1, y1), (x2, y2) = pts[t - 1], pts[t]
-            edges.append(f'<line class="e {status(t)}" x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}"/>')
+            edges.append(f'<line class="e {status(t)}" data-k="{k}" data-t="{t}" x1="{x1:.1f}" y1="{y1:.1f}" '
+                         f'x2="{x2:.1f}" y2="{y2:.1f}"/>')
         for t in range(LEN + 1):
             x, y = pts[t]
             if t == 0:
                 s = 4.2
-                nodes.append(f'<rect class="n src {status(t)}" x="{x - s:.1f}" y="{y - s:.1f}" width="{2 * s:.1f}" '
-                             f'height="{2 * s:.1f}" transform="rotate(45 {x:.1f} {y:.1f})"/>')
+                nodes.append(f'<rect class="n src {status(t)}" data-k="{k}" data-t="{t}" x="{x - s:.1f}" y="{y - s:.1f}" '
+                             f'width="{2 * s:.1f}" height="{2 * s:.1f}" transform="rotate(45 {x:.1f} {y:.1f})"/>')
             else:
-                nodes.append(f'<circle class="n bead {status(t)}" cx="{x:.1f}" cy="{y:.1f}" r="3.4"/>')
+                nodes.append(f'<circle class="n bead {status(t)}" data-k="{k}" data-t="{t}" cx="{x:.1f}" cy="{y:.1f}" r="3.4"/>')
         tx, ty = pts[LEN]
         edges.append(f'<line class="e recomputed" x1="{tx:.1f}" y1="{ty:.1f}" x2="{CX:.1f}" y2="{CY:.1f}"/>')
     nodes.append(f'<circle class="n root recomputed" cx="{CX:.1f}" cy="{CY:.1f}" r="11"/>')
