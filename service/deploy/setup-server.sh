@@ -13,7 +13,13 @@ set -euo pipefail
 OTS_HOME=/srv/ots
 
 apt-get update
-apt-get install -y git curl build-essential python3 golang-go debian-keyring debian-archive-keyring apt-transport-https
+apt-get install -y git curl build-essential python3 debian-keyring debian-archive-keyring apt-transport-https
+# Go, current release from go.dev (landrun needs 1.24+; Ubuntu's golang-go is older)
+if ! /usr/local/go/bin/go version >/dev/null 2>&1; then
+  go_ver="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1)"
+  curl -fsSL "https://go.dev/dl/${go_ver}.linux-amd64.tar.gz" -o /tmp/go.tgz
+  rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
+fi
 # Caddy (TLS + reverse proxy)
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
@@ -36,17 +42,22 @@ sudo -u ots -H bash -euo pipefail <<USER
 cd "${OTS_HOME}"
 curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
 curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="\$HOME/.elan/bin:\$HOME/.local/bin:\$PATH"
+export PATH="\$HOME/.elan/bin:\$HOME/.local/bin:/usr/local/go/bin:\$PATH"
 [[ -d repo/.git ]] || git clone "${OTS_REPO_URL}" repo
 cd repo
 verifier/setup_tools.sh
-( cd formal && lake exe cache get && lake build )
+( cd formal && lake exe cache get && lake build && lake build Submissions )   # contract + both baselines
 python3 verifier/pin_contract.py check
 ( cd service && uv sync )
 USER
 
 install -m 644 "${OTS_HOME}/repo/service/deploy/ots-web.service" /etc/systemd/system/
 install -m 644 "${OTS_HOME}/repo/service/deploy/ots-worker.service" /etc/systemd/system/
+# the worker's memory backstop: 6 GB below the machine, at most the unit's 28G (the sandboxed run
+# itself is capped at the contract's 24 GiB by verify.py)
+mem_gb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
+cap=$(( mem_gb - 6 )); (( cap > 28 )) && cap=28
+sed -i "s/^MemoryMax=.*/MemoryMax=${cap}G/" /etc/systemd/system/ots-worker.service
 sed "s/{{DOMAIN}}/${OTS_DOMAIN}/" "${OTS_HOME}/repo/service/deploy/Caddyfile" > /etc/caddy/Caddyfile
 systemctl daemon-reload
 systemctl enable --now ots-web ots-worker caddy

@@ -1,7 +1,8 @@
 # Deploying on a server
 
-Target: one Linux box (Ubuntu 24.04, 8+ cores, 64 GB, NVMe on a filesystem with reflinks, such as
-btrfs or xfs, so each verification's clone of the warm build is instant).
+Target: one Linux box (Ubuntu 24.04, 8+ cores, 32 GB or more: the contract caps a verification at
+24 GiB). NVMe on a filesystem with reflinks, such as btrfs or xfs, makes each verification's clone of
+the warm build instant; on ext4 it is an 8 GB copy, which works but takes a minute.
 
 1. `OTS_REPO_URL=https://github.com/<org>/<repo> OTS_DOMAIN=ots.golf bash deploy/setup-server.sh`
    as root. It creates the `ots` user, installs elan, Go, uv and Caddy, clones the repository, builds
