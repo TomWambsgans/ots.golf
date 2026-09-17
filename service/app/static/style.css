@@ -104,7 +104,7 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .record-chart .label { font-size: 13px; font-weight: 600; fill: var(--ink); stroke: none; font-family: inherit; }
 .record-chart .label .muted { fill: var(--muted); font-weight: 400; }
 .record-chart .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.tooltip { position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 2; }
+.tooltip { position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 13px; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 2; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
 .swatch.s1 { background: var(--series-1); }
 .swatch.s2 { background: var(--series-2); }
