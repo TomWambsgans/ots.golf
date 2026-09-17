@@ -33,10 +33,11 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
     literature = literature or []
     all_t = [p["t"] for pts in curves.values() for p in pts] + [p["t"] for p in literature]
     t1 = now
-    t0 = min(all_t) if all_t else now - timedelta(days=7)
-    if t1 - t0 < timedelta(days=7):
-        t0 = t1 - timedelta(days=7)
-    t0 = t0 - (t1 - t0) * 0.03
+    t0 = min(all_t) if all_t else now - timedelta(days=1)
+    if t1 - t0 < timedelta(days=1):
+        t0 = t1 - timedelta(days=1)
+    t0 = t0 - (t1 - t0) * 0.04          # start just before the first point
+    tick_fmt = "%b %d %H:%M" if t1 - t0 < timedelta(days=3) else "%b %d"
     claims = [p["claim"] for pts in curves.values() for p in pts] + list(baselines.values()) \
         + [p[k] for p in literature for k in ("lower", "upper") if p.get(k) is not None]
     y_lo, y_hi = max(min(claims) - 6, -1), max(claims) + 6
@@ -59,7 +60,7 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
     out.append(f'<line class="axis" x1="{ML}" x2="{W - MR}" y1="{H - MB}" y2="{H - MB}"/>')
     for t in _time_ticks(t0, t1):
         x = sx(t)
-        out.append(f'<text class="tick" x="{x:.1f}" y="{H - MB + 18}" text-anchor="middle">{t.strftime("%b %d")}</text>')
+        out.append(f'<text class="tick" x="{x:.1f}" y="{H - MB + 18}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
     out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 14}" text-anchor="end">units</text>')
 
     points: list[dict] = []
