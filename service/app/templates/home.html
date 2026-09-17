@@ -34,16 +34,6 @@
     <div class="tooltip" id="tooltip" hidden></div>
     <figcaption class="muted">The record of each track over time, in compressions per verification, worst case. Filled dots are Lean-verified records; hollow dots are reference points from the literature, translated into this cost model. The open interval is the space between the curves.</figcaption>
   </figure>
-  {% if literature %}
-  <details class="refs">
-    <summary>Reference points</summary>
-    <ul>
-    {% for p in literature %}
-      <li><strong><a href="{{ p.url }}">{{ p.label }}</a></strong>, {{ p.date }}: upper {{ p.upper }}, lower {{ p.lower }}. <span class="muted">{{ p.note }}</span></li>
-    {% endfor %}
-    </ul>
-  </details>
-  {% endif %}
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
   <script>
   (function () {
