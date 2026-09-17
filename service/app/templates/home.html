@@ -17,7 +17,7 @@
   <div class="tiles">
     <div class="tile">
       <div class="label"><span class="swatch s1"></span>Lower bound <span class="muted">(proved, larger is better)</span></div>
-      <div class="value">{{ interval.lower.record_claim }}<span class="unit"> units</span></div>
+      <div class="value">{{ interval.lower.record_claim }}<span class="unit"> compressions</span></div>
       <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% else %}paper baseline, not yet verified here{% endif %}</div>
     </div>
     <div class="tile hero-tile">
@@ -27,14 +27,14 @@
     </div>
     <div class="tile">
       <div class="label"><span class="swatch s2"></span>Upper bound <span class="muted">(a scheme, smaller is better)</span></div>
-      <div class="value">{{ interval.upper.record_claim }}<span class="unit"> units</span></div>
+      <div class="value">{{ interval.upper.record_claim }}<span class="unit"> compressions</span></div>
       <div class="sub">{% if interval.upper.record_verified %}by <a href="/solvers/{{ interval.upper.record_setter }}">{{ interval.upper.record_setter }}</a>{% else %}paper baseline, Lean proof pending{% endif %}</div>
     </div>
   </div>
   <figure class="chart">
     {{ chart.svg|safe }}
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption class="muted">The record of each track over time, in hash units per verification, worst case. Filled dots are Lean-verified records; hollow dots are reference points from the literature, translated into this cost model. The open interval is the space between the curves.</figcaption>
+    <figcaption class="muted">The record of each track over time, in compressions per verification, worst case. Filled dots are Lean-verified records; hollow dots are reference points from the literature, translated into this cost model. The open interval is the space between the curves.</figcaption>
   </figure>
   {% if literature %}
   <details class="refs">
@@ -75,7 +75,7 @@
 {% set b = boards[slug] %}
 <div class="board">
   <h2><span class="swatch {{ 's1' if slug == 'lower' else 's2' }}"></span>{{ b.cfg.title }} records <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
-  <p class="board-stats muted">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }} · {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current {{ b.cfg.title|lower }} <strong>{{ b.state.record_claim }} units</strong>{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
+  <p class="board-stats muted">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }} · {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current {{ b.cfg.title|lower }} <strong>{{ b.state.record_claim }} compressions</strong>{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
   <table class="board-table">
     <thead><tr><th class="rank">#</th><th>Solver</th><th>Date</th><th class="num">Score</th><th class="num">Gain</th></tr></thead>
     <tbody>{{ records(b.frontier, b.cfg) }}</tbody>

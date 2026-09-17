@@ -91,7 +91,7 @@ def len : Name → ℕ
   | rc => 896
   | rh => 256
 
-/-- Query cost of a node: one unit for every hash node except the root, which costs two. -/
+/-- Query cost of a node: one compression for every hash node except the root, which costs two. -/
 def cost : Name → ℕ
   | ch _ _ => 1
   | gh _ => 1

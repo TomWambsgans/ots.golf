@@ -53,12 +53,12 @@ key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for e
    * `IdxPre d_A (u₁, i)`: a pre-signing encoding entry `u ≠ u₁` has index `i`;
    * `IdxPost d' d i`: a post-signing encoding entry has index `i`.
 
-5. **Charges** (`Potentials.lean`), per unit of query cost:
+5. **Charges** (`Potentials.lean`), per compression:
    * node-labelled query: `ε` (hidden-point hit, by resampling a hidden coordinate) + `ε` (Spr);
    * encoding query before signing: `ε` (valid-index count `/M`) + `ε` (collision pairs, scaled
      by `L/(2^256-L)`);
    * encoding query after signing: `ε` (index equals `i`).
-   Total `≤ 2ε` per unit, so `Pr[forge] ≤ 2ε N = (B-912)/2^127 < B/2^127`.
+   Total `≤ 2ε` per compression, so `Pr[forge] ≤ 2ε N = (B-912)/2^127 < B/2^127`.
 
 6. **Signing** (`SignIdx.lean`): `Pr[u₁ fresh ∧ i ∈ V(d_A)] ≤ |V|/M` and
    `Pr[some trial lands on a collided entry] ≤ L·pairs/(2^256-L)`.

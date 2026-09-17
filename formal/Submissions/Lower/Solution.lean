@@ -7,7 +7,7 @@ import Submissions.Lower.Assembly
 
 `verificationLowerBound_paper` proves the statement `VerificationLowerBound paperParams 25` of
 `OptimalOTS.Statement`: with the parameters of the paper, every secure graph-based one-time
-signature scheme has a signature whose verification costs at least 25 hash units.
+signature scheme has a signature whose verification costs at least 25 compressions.
 
 The proof assumes the contrary, builds the attack of `Submissions.Lower.Attack`, bounds its total
 cost (`Attack.costAtMost_experiment`) and its success probability (`Assembly.probTrue_gt`), and
@@ -24,7 +24,7 @@ namespace OptimalOTS
 
 
 /-- **Main theorem.** For the parameters of the paper, every secure graph-based one-time
-signature scheme has a signature whose verification costs at least 25 hash units. -/
+signature scheme has a signature whose verification costs at least 25 compressions. -/
 theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25 := by
   intro S hS
   by_contra hcon

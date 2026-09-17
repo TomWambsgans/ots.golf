@@ -3,7 +3,7 @@
 A Lean 4 formalization, built on [VCVio](https://github.com/Verified-zkEVM/VCVio), of the lower
 bound in `paper/looking-for-optimal-OTS.tex`: with a 128-bit public key, signatures of at
 most 5504 bits, and roughly 127 bits of security, every graph-based hash-based one-time signature
-has a signature whose verification costs at least 25 hash units.
+has a signature whose verification costs at least 25 compressions.
 
 ## The statement
 

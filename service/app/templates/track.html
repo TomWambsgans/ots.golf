@@ -4,7 +4,7 @@
 {% block content %}
 <h1>{{ t.title }} <span class="muted">{{ 'larger is better' if t.direction == '+' else 'smaller is better' }}</span></h1>
 <div class="tiles">
-  <div class="tile"><div class="label">Record</div><div class="value">{{ state.record_claim }}<span class="unit"> units</span></div>
+  <div class="tile"><div class="label">Record</div><div class="value">{{ state.record_claim }}<span class="unit"> compressions</span></div>
     <div class="sub">{% if state.record_verified %}by <a href="/solvers/{{ state.record_setter }}">{{ state.record_setter }}</a>{% else %}paper baseline, not yet verified{% endif %}</div></div>
   <div class="tile"><div class="label">Baseline</div><div class="value">{{ t.baseline }}</div><div class="sub">the paper</div></div>
   <div class="tile"><div class="label">Solvers</div><div class="value">{{ state.solvers }}</div><div class="sub">with a verified submission</div></div>

@@ -2,7 +2,7 @@ import OptimalOTS.Statement
 import Submissions.Upper.Main
 
 /-!
-# Upper track: the forest scheme of the paper, 106 units
+# Upper track: the forest scheme of the paper, 106 compressions
 
 The scheme of Section 8 of *A Verification Lower Bound for Hash-Based One-Time Signatures*:
 63 hash chains of length 14 whose ends are grouped three by three into 21 group digests, grouped
@@ -12,7 +12,7 @@ three by three into 7 subtree digests, hashed together into the root. All values
 drawn injectively from the three most common shapes (`Submissions.Upper.Cuts`).
 
 * `Submissions.Upper.Scheme`: `Forest.forestScheme : Scheme paperParams`, every signature
-  verifies in `106` units (`forestScheme_verifyCost`);
+  verifies in `106` compressions (`forestScheme_verifyCost`);
 * `Submissions.Upper.Main`: `Forest.forestScheme_secure : forestScheme.Secure`, with the bound
   `probTrue ≤ (B - 912) / 2 ^ 127` for every budget `B ≤ 2 ^ 127`.
 
@@ -37,7 +37,7 @@ noncomputable def scheme : Scheme paperParams := Forest.forestScheme
 /-- **Security.** The scheme satisfies the security requirement of the paper. -/
 theorem secure : scheme.Secure := Forest.forestScheme_secure
 
-/-- **Cost.** Every signature of the scheme verifies in at most `106` hash units. -/
+/-- **Cost.** Every signature of the scheme verifies in at most `106` compressions. -/
 theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ 106 := fun i =>
   (Forest.forestScheme_verifyCost i).le
 

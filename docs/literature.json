@@ -1,5 +1,5 @@
 {
-  "_comment": "Reference points drawn on the record chart. Not Lean-verified here; costs are translated into the contract's model (one hash unit per started 512-bit block, one-time part only).",
+  "_comment": "Reference points drawn on the record chart. Not Lean-verified here; costs are translated into the contract's model (one compression per started 512-bit block, one-time part only).",
   "points": [
     {
       "date": "2026-09-15",
@@ -15,7 +15,7 @@
       "url": "https://github.com/",
       "upper": 106,
       "lower": 25,
-      "note": "A Verification Lower Bound for Hash-Based One-Time Signatures: the forest scheme verifies every signature in 106 units (Lean proof pending), and the lower bound 25 is proved in Lean (the lower baseline of this site)."
+      "note": "A Verification Lower Bound for Hash-Based One-Time Signatures: the forest scheme verifies every signature in 106 compressions (Lean-verified: the upper baseline of this site), and the lower bound 25 is proved in Lean (the lower baseline of this site)."
     }
   ]
 }

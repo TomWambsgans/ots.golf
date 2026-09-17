@@ -1,11 +1,11 @@
-# Upper track baseline: the forest scheme, 106 units
+# Upper track baseline: the forest scheme, 106 compressions
 
 The scheme of Section 8 of the paper: 63 hash chains of length 14 whose ends are grouped three by
 three into 21 group digests, grouped three by three into 7 subtree digests, hashed together into
-the root. Chain and grouping hashes cost one unit, the root two. A signature reveals one 128-bit
+the root. Chain and grouping hashes cost one compression, the root two. A signature reveals one 128-bit
 value on every source-to-root path, and the `2 ^ 115` disclosure sets are cuts of reconstruction
 cost 105 with at most 41 revealed values (so at most 5248 revealed bits): every signature verifies
-in `1 + 105 = 106` units, and the scheme meets the 127-bit strong-unforgeability requirement of
+in `1 + 105 = 106` compressions, and the scheme meets the 127-bit strong-unforgeability requirement of
 `OptimalOTS/Statement.lean`. The proof gives `Pr[forge] ≤ (B - 912) / 2 ^ 127` for every budget
 `B ≤ 2 ^ 127`.
 
@@ -16,7 +16,7 @@ Exports (`Solution.lean`): `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost`
 | File | Content |
 |---|---|
 | `Semantics.lean` | records, deterministic evaluation, reconstruction with oracle tables (shared with the lower track; copied, since submissions cannot import each other) |
-| `Cache.lean`, `IUB.lean`, `Master.lean` | the lazy random oracle's cache; the identical-until-bad coupling; the supermartingale master lemma (a potential growing by at most `κ` per unit of query cost bounds a bad event by `κ · budget`) |
+| `Cache.lean`, `IUB.lean`, `Master.lean` | the lazy random oracle's cache; the identical-until-bad coupling; the supermartingale master lemma (a potential growing by at most `κ` per compression bounds a bad event by `κ · budget`) |
 | `Keygen.lean`, `Reconstruct.lean`, `SignIdx.lean`, `EncCharges.lean` | key generation as a uniform record; the verifier's run; the signing loop; charges of encoding queries |
 | `Names.lean`, `Tree.lean` | the 1913-node computation graph; the tree structure, visited sets, costs, cuts |
 | `Count.lean`, `Cuts.lean`, `Scheme.lean` | the disclosure family (more than `2 ^ 115` sets, certified by kernel computation) and `forestScheme` |

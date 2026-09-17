@@ -19,7 +19,7 @@ noncomputable def scheme : Scheme paperParams := sorry
 /-- **Security.** The scheme satisfies the security requirement of the paper. -/
 theorem secure : scheme.Secure := sorry
 
-/-- **Cost.** Every signature of the scheme verifies in at most `{{CLAIM}}` hash units. -/
+/-- **Cost.** Every signature of the scheme verifies in at most `{{CLAIM}}` compressions. -/
 theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.Upper

@@ -5,7 +5,7 @@ import Submissions.Upper.Cuts
 
 `forestScheme` is the scheme of Section 8 of the paper: the graph of `Forest.Names`, with the
 `2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.  Every signature
-verifies in `106` units (`forestScheme_verifyCost`).
+verifies in `106` compressions (`forestScheme_verifyCost`).
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -74,7 +74,7 @@ theorem isCut_setsName (i : Fin (2 ^ 115)) : IsCut (setsName i) :=
 theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i), n.cost = 105 :=
   cost_of_mem_family (setsName_mem i)
 
-/-- Every signature verifies in `106` units. -/
+/-- Every signature verifies in `106` compressions. -/
 theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 106 := by
   show 1 + graph.reconstructCost (fins (setsName i)) = 106
   rw [reconstructCost_eq]

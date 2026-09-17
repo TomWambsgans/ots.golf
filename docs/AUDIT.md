@@ -59,7 +59,7 @@ and needs no trust.
   paper requires both. Harmless: verification only touches nodes reached from the root, and extra
   nodes only consume key-generation and signature budget. Kept.
 - **F2 (info).** A hash node's parent may have output length 0; the paper requires a positive
-  length. Such a node costs one unit and is publicly computable, so it changes neither security
+  length. Such a node costs one compression and is publicly computable, so it changes neither security
   nor cost. Kept.
 - **F3 (info).** The index is the low 128 bits of the hash (`setWidth`); the paper says "the first
   128 bits". Any fixed 128 bits are equivalent. Kept.
@@ -73,7 +73,7 @@ and needs no trust.
   `Type`, which restricts nothing in practice. Kept.
 - **F7 (open until freeze).** `VerificationLowerBound paperParams c` is vacuous if no scheme
   satisfies `Secure`. Non-vacuity is established by a kernel-checked upper-bound baseline. The
-  contract is not frozen before the paper's 106-unit scheme verifies on the upper track.
+  contract is not frozen before the paper's 106-compression scheme verifies on the upper track.
 
 ## Freeze procedure
 

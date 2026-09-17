@@ -3,7 +3,7 @@
 {% block content %}
 <h1>{{ t.title }} submission <span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span></h1>
 <dl class="facts">
-  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} units{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}{% if sub.baseline %} <span class="tag">baseline</span>{% endif %}</dd>
+  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} compressions{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}{% if sub.baseline %} <span class="tag">baseline</span>{% endif %}</dd>
   <dt>Submitter</dt><dd><a href="/solvers/{{ sub.user.login }}">{{ sub.user.login }}</a>{% for c in sub.co_authors_list %}, {{ c }}{% endfor %}</dd>
   {% if sub.assisted_by %}<dt>Assisted by</dt><dd>{{ sub.assisted_by }}</dd>{% endif %}
   <dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>

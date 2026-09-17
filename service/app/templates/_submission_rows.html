@@ -29,7 +29,7 @@
     {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
   </td>
   <td class="muted nowrap">{{ s.record_at|date }}</td>
-  <td class="num"><a href="/submissions/{{ s.id }}">{{ s.claim }} units</a></td>
+  <td class="num"><a href="/submissions/{{ s.id }}">{{ s.claim }} compressions</a></td>
   <td class="num gain">{% if prev %}{% set d = s.claim - prev.claim %}{{ '+' if d > 0 else '' }}{{ d }} ({{ '%+.1f'|format(100 * d / prev.claim) }}%){% else %}<span class="muted">first record</span>{% endif %}</td>
 </tr>
 {% else %}

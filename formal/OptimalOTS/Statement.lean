@@ -19,12 +19,12 @@ theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25
 
 In words: with the parameters of the paper (a 128-bit public key, at most 5248 revealed bits per
 signature, 127 bits of security), every secure graph-based one-time signature scheme has a
-signature whose verification costs at least 25 hash units.
+signature whose verification costs at least 25 compressions.
 
 The file is organized as follows.
 
 1. `Params`: the numerical parameters.
-2. The random oracle and the cost of a query (one unit per started 512-bit block).
+2. The random oracle and the cost of a query (one compression per started 512-bit block).
 3. Computation graphs: secret sources, deterministic nodes and hash nodes.
 4. Schemes: disclosure sets, key generation, signing, verification, and the verification cost.
 5. Security: the one-signature forgery experiment and `Scheme.Secure`.
@@ -45,7 +45,7 @@ namespace OptimalOTS
 structure Params where
   /-- Output length of the random oracle. -/
   hashBits : ℕ
-  /-- A query on `k` input bits costs `⌈k / blockBits⌉` units (and at least one). -/
+  /-- A query on `k` input bits costs `⌈k / blockBits⌉` compressions (and at least one). -/
   blockBits : ℕ
   /-- Length of the public key: a prefix of the root hash. -/
   pkBits : ℕ
@@ -338,7 +338,7 @@ def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (S
   else
     return false
 
-/-- Query cost of verifying a signature at index `i`: one unit for the index, plus
+/-- Query cost of verifying a signature at index `i`: one compression for the index, plus
 reconstruction. -/
 def verifyCost (i : Fin P.numSets) : ℕ := 1 + S.graph.reconstructCost (S.sets i)
 
@@ -374,7 +374,7 @@ def Scheme.Secure {P : Params} (S : Scheme P) : Prop :=
 /-! ## 6. The statement -/
 
 /-- Every secure scheme with parameters `P` has a signature index whose verification costs at
-least `c` units. -/
+least `c` compressions. -/
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 

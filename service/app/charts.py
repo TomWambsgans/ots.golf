@@ -50,7 +50,7 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
         return MT + (H - MT - MB) * (y_hi - v) / max(y_hi - y_lo, 1)
 
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="img" '
-           f'aria-label="Records over time: lower and upper bound in hash units">']
+           f'aria-label="Records over time: lower and upper bound in compressions">']
     # grid + y axis
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
@@ -61,7 +61,7 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
     for t in _time_ticks(t0, t1):
         x = sx(t)
         out.append(f'<text class="tick" x="{x:.1f}" y="{H - MB + 18}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
-    out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 14}" text-anchor="end">units</text>')
+    out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 14}" text-anchor="end">compressions</text>')
 
     points: list[dict] = []
     for slug, (label, cls) in SERIES.items():

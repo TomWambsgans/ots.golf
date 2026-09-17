@@ -4,7 +4,7 @@ import Submissions.Upper.IUB
 # The supermartingale master lemma
 
 Let `Φ` be a potential on caches that grows on average by at most `κ · cost q` at every fresh
-hash query `q` (a *charge* of `κ` per unit of query cost), and let `I c b` be an invariant of the
+hash query `q` (a *charge* of `κ` per compression), and let `I c b` be an invariant of the
 cache and the remaining budget.  If every continuation `k x` started from a cache `d` with
 budget `b'` is bounded by `Φ d + κ b'`, then the whole computation `oa >>= k` started from `c`
 with budget `b` is bounded by `Φ c + κ b`:

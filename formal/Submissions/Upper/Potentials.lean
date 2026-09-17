@@ -14,7 +14,7 @@ encoding), the attacker's second stage and verification (`stB`).
 
 The potentials of the security proof (see `DESIGN.md`): `ΦA` for the first stage (hidden keygen
 points, `Spr`, and the encoding counts of the signing analysis), `ΦB` for the second stage; each
-grows on average by at most `κ = 2 ε` per unit of query cost (`ΦA_charge`, `ΦB_charge_some`,
+grows on average by at most `κ = 2 ε` per compression (`ΦA_charge`, `ΦB_charge_some`,
 `ΦB_charge_none`) under the invariant `Inv` (encoding entries plus remaining budget at most
 `2 ^ 127`).
 -/
@@ -104,7 +104,7 @@ theorem sign_eq (ξ : Rec) (m : Message paperParams) :
 
 /-! ## Potentials -/
 
-/-- The charge per unit of query cost. -/
+/-- The charge per compression. -/
 def κ : ℝ≥0∞ := 2 * ε
 
 /-- The weight of a set of records. -/

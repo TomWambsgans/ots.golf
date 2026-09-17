@@ -10,7 +10,7 @@ The leaderboard and the progress chart follow better.codes' design.
 The model is the one of *A Verification Lower Bound for Hash-Based One-Time Signatures*
 (`paper/`): a public computation graph of secret sources, deterministic nodes and hash nodes;
 signatures reveal node values selected by hashing the message with a nonce; the verifier
-recomputes the root and compares a 128-bit prefix with the public key. Hashing is charged one unit
+recomputes the root and compares a 128-bit prefix with the public key. Hashing is charged one compression
 per started 512-bit block. With a 128-bit public key, signatures of at most 5504 bits and 127-bit
 security:
 

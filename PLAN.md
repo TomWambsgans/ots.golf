@@ -3,7 +3,7 @@
 ## Goal
 A two-track, Lean-kernel-verified competition on the worst-case verification cost of graph-based
 hash-based one-time signatures (128-bit public key, signatures ≤ 5504 bits, 127-bit security).
-Current interval: **25 ≤ optimum ≤ 106** hash units.
+Current interval: **25 ≤ optimum ≤ 106** compressions.
 
 - **Upper track** (minimize): a concrete `Scheme paperParams`, a proof that it is `Secure`, and a
   proof that every index verifies in ≤ c. A record needs c ≤ record − 1.
@@ -35,7 +35,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 5. Audit `Statement.lean` against the paper: `CostAtMost` / `IsQueryBound`, the `Secure` bound and
    budget range, index computation, signature length check, trial limit, label injectivity,
    reveal and keygen budgets. Fix, then pin the hash.
-6. Done: the 106-unit proof is `formal/Submissions/Upper/` (`claim.txt = 106`; architecture in `docs/upper-bound-proof.md`).
+6. Done: the 106-compression proof is `formal/Submissions/Upper/` (`claim.txt = 106`; architecture in `docs/upper-bound-proof.md`).
 7. `AGENTS.md` and `llms.txt`.
 
 ## Workstream B — Verifier service (server)

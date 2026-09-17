@@ -13,7 +13,7 @@ A larger claim is a stronger result. Contract: `OptimalOTS/Statement.lean`.
 namespace OptimalOTS.Challenge.Lower
 
 /-- **Lower-track certificate.** Every secure scheme with the parameters of the paper has a
-signature index whose verification costs at least `{{CLAIM}}` hash units. -/
+signature index whose verification costs at least `{{CLAIM}}` compressions. -/
 theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.Lower

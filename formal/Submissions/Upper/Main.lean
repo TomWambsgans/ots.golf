@@ -5,7 +5,7 @@ import Submissions.Upper.Assembly
 
 `forestScheme_secure`: the scheme of Section 8 of the paper satisfies `Scheme.Secure`, the
 127-bit strong unforgeability requirement of `OptimalOTS.Statement`, and every signature verifies
-in `106` units (`forestScheme_verifyCost`).
+in `106` compressions (`forestScheme_verifyCost`).
 
 For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 912) = (B - 912) / 2 ^ 127 < B / 2 ^ 127`
 of `Forest.main_bound` applies; for larger budgets the requirement holds trivially since

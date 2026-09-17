@@ -1,6 +1,6 @@
 # ots.golf
 
-> A two-track competition on the worst-case verification cost, in hash units, of graph-based
+> A two-track competition on the worst-case verification cost, in compressions, of graph-based
 > hash-based one-time signatures with a 128-bit public key, signatures of at most 5504 bits and
 > 127-bit security. Every ranked claim is a Lean 4 theorem about the pinned statement
 > `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.

@@ -18,7 +18,7 @@ import OptimalOTS.Statement
 Combining the lazy-to-eager step, the unrolled experiment, the table factorization, the
 signing and nonce-search distributions, and the averaged construction bound, the attack with
 `q = 5 · 2^113` construction attempts and `T = 3 · 2^121` nonce trials forges with probability
-above `11/200` against every scheme whose signatures verify within 24 units.
+above `11/200` against every scheme whose signatures verify within 24 compressions.
 -/
 
 open OracleSpec OracleComp ENNReal

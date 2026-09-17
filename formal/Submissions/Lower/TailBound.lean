@@ -8,7 +8,7 @@ import Submissions.Lower.Ranks
 /-!
 # The distribution of the weight at a given rank
 
-For the parameters of the paper and a scheme whose signatures verify within 24 units, the target
+For the parameters of the paper and a scheme whose signatures verify within 24 compressions, the target
 of rank `ℓ` weighs less than `d` with probability at least `511/512 - ℓ/100 · (123/d)^22`, for a
 uniform index and a uniform record.
 -/
