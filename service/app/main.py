@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -204,17 +205,40 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     return render(request, "solver.html", solver=solver, subs=subs)
 
 
+# One line per section of AGENTS.md, shown while the section is folded.
+RULE_BLURBS = {
+    "Layout": "One Lean project, one contract file, one submission root per track.",
+    "What a submission exports": "One theorem for the lower track; a scheme and two theorems for the upper "
+                                 "track, under the exact names of the rendered stub.",
+    "Rules for the submission root": "Flat Lean files and a claim.txt; imports limited to Mathlib, VCVio and the "
+                                     "statement; only the three standard axioms.",
+    "Check locally before submitting": "The pipeline of the hosted verifier runs on your machine.",
+    "Submitting": "One pull request that changes only your track's submission root. The verifier answers on it.",
+}
+SECTION_RE = re.compile(r'<h3 id="([^"]*)">(.*?)</h3>', re.S)
+
+
+def rule_sections(html: str) -> list[dict]:
+    """The rendered AGENTS.md cut at its section headings, so the page can fold each section."""
+    parts = SECTION_RE.split(html)                # [before, id, title, body, id, title, body, ...]
+    out = []
+    for i in range(1, len(parts) - 2, 3):
+        title = re.sub(r"<[^>]+>", "", parts[i + 1]).strip()
+        out.append({"id": parts[i], "title": title, "blurb": RULE_BLURBS.get(title, ""), "body": parts[i + 2]})
+    return out
+
+
 @app.get("/rules", response_class=HTMLResponse)
 def rules(request: Request, session: Session = Depends(get_session)):
     text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
-    # The page has its own title: drop the file's H1 and opening paragraph, and demote its sections
-    # under the page's "Submission rules" heading.
+    # The page has its own title: drop the file's H1 and opening paragraph, and cut the rest at its
+    # sections, which the page shows folded.
     sections = text.split("\n## ", 1)
     body = "## " + sections[1] if len(sections) == 2 else text
     html = markdown.markdown(body, extensions=["tables", "fenced_code", "toc"],
                              extension_configs={"toc": {"baselevel": 2}})
     iv = records.interval(session)
-    return render(request, "rules.html", body=html, cfg=contract.load(), iv=iv,
+    return render(request, "rules.html", sections=rule_sections(html), cfg=contract.load(), iv=iv,
                   figs=figures.all_figures(iv["lower"]["record_claim"], iv["upper"]["record_claim"]))
 
 

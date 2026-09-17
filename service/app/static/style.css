@@ -214,3 +214,25 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .fig .arr { fill: none; stroke-width: 2; } .fig .arr.s1 { stroke: var(--series-1); } .fig .arr.s2 { stroke: var(--series-2); }
 table.params { max-width: 78ch; }
 table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
+
+/* rules page: each rule is a line that unfolds into its explanation */
+.rules-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.rules-head h1 { margin-bottom: 4px; }
+.rules-hint { margin: 0 0 8px; font-size: 14px; }
+.expand-all { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+.expand-all:hover { color: var(--ink); border-color: var(--ink-2); }
+.rules-list { max-width: 86ch; margin: 6px 0 8px; border-top: 1px solid var(--line); }
+.rules-list details { border-bottom: 1px solid var(--line); }
+.rules-list summary { list-style: none; cursor: pointer; padding: 13px 8px 13px 30px; position: relative; color: var(--ink-2); line-height: 1.5; border-radius: 6px; }
+.rules-list summary::-webkit-details-marker { display: none; }
+.rules-list summary::before { content: ""; position: absolute; left: 10px; top: 21px; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .18s ease; }
+.rules-list details[open] > summary::before { transform: rotate(45deg); top: 19px; }
+.rules-list summary:hover { background: var(--surface); color: var(--ink); }
+.rules-list summary:hover::before { border-color: var(--accent); }
+.rules-list summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rules-list .lead { color: var(--ink); font-weight: 650; margin-right: 4px; }
+.rules-list .more { padding: 2px 8px 22px 30px; max-width: none; }
+.rules-list .more > p:first-child { margin-top: 4px; }
+.rules-list .more .fig { max-width: 100%; }
+.rules-list details[open] > summary { color: var(--ink); }
+@media (max-width: 720px) { .rules-list summary { padding-left: 26px; } .rules-list .more { padding-left: 10px; } .rules-list summary::before { left: 6px; } }

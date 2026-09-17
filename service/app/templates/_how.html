@@ -1,13 +1,14 @@
-{# The model, explained before the submission rules: one-time signatures, the hash and its price, the
-   graph, cuts, the score, security, the two tracks. Figures come from app/figures.py. #}
-<section class="how-it-works prose">
+{# The model in seven lines. Each line is a <details>: the summary is the rule, always visible; the
+   body is the explanation with its figure, one click away. Figures come from app/figures.py. #}
+<section class="how-it-works rules-list">
 
-<h2 id="ots">1. One-time signatures</h2>
+<details id="ots">
+<summary><span class="lead">One-time signatures.</span> A key signs a single message. Seeing the public key and
+one signature, nobody should be able to produce another pair that verifies.</summary>
+<div class="more prose">
 <p>A signature scheme is three algorithms. <em>Key generation</em> makes a secret key <code>sk</code> and a
 public key <code>pk</code>. <em>Signing</em> turns <code>sk</code> and a message <code>m</code> into a signature
-<code>σ</code>. <em>Verification</em> accepts or rejects <code>(pk, m, σ)</code>. The scheme is
-<em>one-time</em> when a key signs a single message: an attacker who sees <code>pk</code> and one signature, on
-a message of its choice, must not be able to produce any other pair that verifies.</p>
+<code>σ</code>. <em>Verification</em> accepts or rejects <code>(pk, m, σ)</code>.</p>
 <figure class="fig">{{ figs.flow|safe }}
 <figcaption>One key, one message. The verifier sees only <code>pk</code>, <code>m</code> and
 <code>σ</code>.</figcaption></figure>
@@ -16,19 +17,24 @@ tree holds many one-time keys, and every verification pays for the one-time part
 competition minimises.</p>
 <p>A <em>hash-based</em> one-time signature uses nothing but a hash function. Lamport hashes secret
 strings and reveals one per message bit; Winternitz replaces the secrets of a group of message bits by one
-hash chain and reveals the value at the position the message dictates. Both follow one pattern: key generation runs a fixed
-computation on secret random inputs, a signature reveals a few intermediate values, and the verifier
-recomputes the final hash and compares it with the public key.</p>
+hash chain and reveals the value at the position the message dictates. Both follow one pattern: key
+generation runs a fixed computation on secret random inputs, a signature reveals a few intermediate values,
+and the verifier recomputes the final hash and compares it with the public key.</p>
 <figure class="fig">{{ figs.classics|safe }}
 <figcaption>Lamport and Winternitz as graphs, with one signature lit.
 <span class="k revealed">revealed</span> <span class="k recomputed">recomputed by the verifier</span>
 <span class="k untouched">never touched</span></figcaption></figure>
+</div>
+</details>
 
-<h2 id="hash">2. The hash function and its price</h2>
-<p>The only cryptographic tool is a hash function <code>H</code>, modelled as a <em>random oracle</em>: each
-new query, a label and an input, receives an independent uniform 256-bit answer, and a repeated query
-receives the same answer. Signer, verifier and attacker learn <code>H</code> only by querying it. A query on
-an input <code>u</code> costs</p>
+<details id="hash">
+<summary><span class="lead">One tool, one price.</span> The only cryptography is a hash function, a random
+oracle. A query costs one <em>compression</em> per started 512-bit block of its input. Everything else is
+free.</summary>
+<div class="more prose">
+<p>Each new query, a label and an input, receives an independent uniform 256-bit answer, and a repeated
+query receives the same answer. Signer, verifier and attacker learn <code>H</code> only by querying it. A
+query on an input <code>u</code> costs</p>
 <p class="formula">c(u) = ⌈ |u| / 512 ⌉ compressions, and at least one.</p>
 <p>Hash functions absorb their input in 512-bit blocks, one call of the compression function per block, and
 that call is the unit of work in software, in hardware and in a SNARK circuit. Nothing else is charged. A
@@ -36,16 +42,21 @@ deployed scheme also hashes a public parameter chosen per key and a tweak. The p
 full block and absorbed first: the state after that block depends only on the key, so everyone computes it
 once and starts every query from it, an observation of Justin Drake. Tweaks are what the labels of the model
 stand for, and they separate queries for free; a scheme that wants them inside its inputs builds them with
-deterministic nodes and pays for their bits. So a chain step over 128 bits, a hash of three chain ends and
-the index hash over message and nonce cost one compression each, and the root of the baseline scheme, over
-seven digests, costs two.</p>
-<p>Everything else is free, for everyone: concatenating, splitting, comparing, drawing randomness. Only
-queries to <code>H</code> count, and nothing else bounds the attacker's computation.</p>
+deterministic nodes and pays for their bits.</p>
+<p>So a chain step over 128 bits, a hash of three chain ends and the index hash over message and nonce cost
+one compression each, and the root of the baseline scheme, over seven digests, costs two. Concatenating,
+splitting, comparing and drawing randomness cost nothing, for anyone, and nothing else bounds the
+attacker's computation.</p>
 <figure class="fig">{{ figs.cost|safe }}
 <figcaption>Four inputs against 512-bit blocks. The cost is the number of blocks started.</figcaption></figure>
+</div>
+</details>
 
-<h2 id="graph">3. A scheme is a graph of computations</h2>
-<p>A scheme is a fixed, public, finite directed acyclic graph. Each node holds a bit string of a fixed
+<details id="graph">
+<summary><span class="lead">A scheme is a graph.</span> Secret random sources, free deterministic nodes of any
+shape, and hash nodes. The first 128 bits of the root hash are the public key.</summary>
+<div class="more prose">
+<p>The graph is fixed, public, finite, directed and acyclic. Each node holds a bit string of a fixed
 length, computed from its parents' values, and is one of three kinds.</p>
 <ul>
 <li><strong>Secret sources</strong> have no parents and hold uniformly random strings, of any length.</li>
@@ -56,70 +67,91 @@ any length: concatenate, select bits, split, combine, look up a table, anything 
 <code>H(label, parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
 concatenation of many values, so a hash node absorbs inputs of any size, at a price.</li>
 </ul>
-<p>A value may feed any number of nodes. One hash node is designated the <em>root</em>. Key generation samples the sources, evaluates the graph in order, within 1024
-compressions, keeps every value as the secret key, and publishes the first 128 bits of the root as
-<code>pk</code>.</p>
+<p>A value may feed any number of nodes. One hash node is designated the <em>root</em>. Key generation
+samples the sources, evaluates the graph in order, within 1024 compressions, keeps every value as the secret
+key, and publishes the first 128 bits of the root as <code>pk</code>.</p>
 <figure class="fig">{{ figs.bits|safe }}
 <figcaption>Bits on the move. Each bar is a value, as wide as it is long; the ribbons carry slices of it
 upwards. Deterministic nodes split, select, reuse and concatenate slices for free, and each
-<code>H</code> compresses whatever reaches it into 256 fresh bits at the cost written beside it. The first
-128 bits of the root are the public key.</figcaption></figure>
+<code>H</code> compresses whatever reaches it into 256 fresh bits at the cost written beside it.</figcaption></figure>
 <figure class="fig">{{ figs.dag|safe }}
 <figcaption>A small graph with every freedom of the model. It is not a tree: two values feed two nodes
 each, and three deterministic nodes gather two or three values. Every hash node carries its cost.</figcaption></figure>
 <p>Lamport, Winternitz, chains under trees: the hash-based one-time signatures of the literature are such
 graphs, and so is anything else built from a hash function whose signatures consist of node values.</p>
+</div>
+</details>
 
-<h2 id="cut">4. Signing reveals a cut</h2>
-<p>Besides the graph, a scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
+<details id="cut">
+<summary><span class="lead">A signature is a cut.</span> Hashing the message with a nonce selects one of
+2<sup>115</sup> disclosure sets. The signature is the nonce and the values of that set, at most 5504 bits.</summary>
+<div class="more prose">
+<p>A scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
 <code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a <em>cut</em>: a set of nodes that excludes the
 root and meets every path from a secret source to the root. To sign <code>m</code>, the signer draws a
 256-bit nonce <code>η</code>, reads the index <code>i</code> from the first 128 bits of
 <code>H(enc, m ‖ η)</code>, and tries fresh nonces until <code>i &lt; M</code>: about <code>2<sup>13</sup></code>
-trials on average and at most <code>2<sup>21</sup></code>, after which signing fails. The signature is <code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order:
-at most 5248 bits of values, so at most 5504 bits in all. The message chooses what is revealed; the signer
-computes nothing new.</p>
+trials on average and at most <code>2<sup>21</sup></code>, after which signing fails. The signature is
+<code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order: at most 5248 bits of
+values. The message chooses what is revealed; the signer computes nothing new.</p>
 <figure class="fig">{{ figs.cut|safe }}
 <figcaption>The graph above with one disclosure set lit. Every path from a source to the root crosses a
 revealed value, the root stays hidden, and the number beside each recomputed hash node is its
 cost.</figcaption></figure>
+</div>
+</details>
 
-<h2 id="cost">5. Verification and the score</h2>
+<details id="cost">
+<summary><span class="lead">The score.</span> The verifier recomputes the root from the revealed values. A
+scheme scores the cost of its most expensive signature.</summary>
+<div class="more prose">
 <p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, one compression, rejects if
-<code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of <code>A<sub>i</sub></code>, evaluates every node
-between the cut and the root, and accepts if the first 128 bits of the recomputed root equal
-<code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it evaluates, the signature of index
-<code>i</code> costs</p>
+<code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of
+<code>A<sub>i</sub></code>, evaluates every node between the cut and the root, and accepts if the first 128
+bits of the recomputed root equal <code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it
+evaluates, the signature of index <code>i</code> costs</p>
 <p class="formula">C<sub>i</sub> = 1 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
-<p>and the <strong>score of a scheme is max<sub>i</sub> C<sub>i</sub></strong>, its most expensive
-signature. The signature in the figure costs 1 + 8 = 9. In the baseline scheme, 63 chains of length 14
-grouped by three into 21 digests, those by three into 7, and the 7 hashed into the root, every signature
-recomputes 103 chain and digest hashes and the two-compression root: 1 + 103 + 2 = 106.</p>
+<p>and the score is <strong>max<sub>i</sub> C<sub>i</sub></strong>. The signature in the figure of the cut costs
+1 + 8 = 9. In the baseline scheme, 63 chains of length 14 grouped by three into 21 digests, those by three
+into 7, and the 7 hashed into the root, every signature recomputes 103 chain and digest hashes and the
+two-compression root: 1 + 103 + 2 = 106.</p>
+</div>
+</details>
 
-<h2 id="security">6. Security</h2>
-<p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature on a message
-of its choice, and outputs a message and a signature. It wins if the pair verifies and differs from the one
-it received. Let <code>B</code> bound the compressions spent in the whole experiment on every run, key
-generation, signing and the final verification included. The scheme is <em>secure</em> when every attacker wins with probability
-below <code>B / 2<sup>127</sup></code>: a forgery costs about <code>2<sup>127</sup></code> compressions per
-unit of success probability. This is <code>Scheme.Secure</code> in the statement, strong unforgeability. The
+<details id="security">
+<summary><span class="lead">Security.</span> One signature on a message of the attacker's choice, then a
+forgery. An attacker spending <code>B</code> compressions must win with probability below
+<code>B / 2<sup>127</sup></code>.</summary>
+<div class="more prose">
+<p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature, and outputs a
+message and a signature. It wins if the pair verifies and differs from the one it received. <code>B</code>
+bounds the compressions spent in the whole experiment on every run, key generation, signing and the final
+verification included. This is <code>Scheme.Secure</code> in the statement, strong unforgeability. The
 <em>weak</em> form, <code>Scheme.WeaklySecure</code>, counts only forgeries on a message other than the signed
 one; every secure scheme is weakly secure.</p>
 <figure class="fig">{{ figs.experiment|safe }}
 <figcaption>The forgery experiment. Every query to <code>H</code>, by either party, counts towards
 <code>B</code>; the attacker's other computation is unbounded.</figcaption></figure>
+</div>
+</details>
 
-<h2 id="tracks">7. Two tracks, one number</h2>
+<details id="tracks">
+<summary><span class="lead">Two tracks.</span> Upper: a scheme with Lean proofs of its security and its score;
+smaller wins. Lower: a Lean proof that no secure scheme scores less; larger wins.</summary>
+<div class="more prose">
 <p>Between the two records lies the answer: the least worst-case verification cost of a secure scheme with
-these parameters. The <strong>upper track</strong> attacks it from above: a scheme, a proof that it is
-secure, and a proof that every signature verifies within the claimed cost. Smaller wins. The
-<strong>lower track</strong> attacks it from below: a proof that every weakly secure scheme, and so every
-secure one, has a signature at least that expensive. Larger wins. Both are Lean theorems about the same pinned statement,
-<code>formal/OptimalOTS/Statement.lean</code>, checked by the kernel.</p>
+these parameters. An upper-track certificate is a scheme, a proof that it is secure, and a proof that every
+signature verifies within the claimed cost. A lower-track certificate proves that every weakly secure
+scheme, and so every secure one, has a signature at least that expensive. Both are theorems about the same
+pinned statement, <code>formal/OptimalOTS/Statement.lean</code>, checked by the Lean kernel.</p>
 <figure class="fig">{{ figs.interval|safe }}</figure>
+</div>
+</details>
 
-<h2 id="params">Parameters</h2>
-<p>Fixed in <code>paperParams</code>; a submission cannot change them.</p>
+<details id="params">
+<summary><span class="lead">Parameters.</span> 128-bit public key, 256-bit messages, signatures of at most 5504
+bits, 127-bit security. Fixed; a submission cannot change them.</summary>
+<div class="more prose">
 <table class="kv params">
 <tr><th>Hash output</th><td>256 bits</td></tr>
 <tr><th>Block</th><td>512 bits</td></tr>
@@ -131,4 +163,6 @@ secure one, has a signature at least that expensive. Larger wins. Both are Lean 
 <tr><th>Signing trials</th><td>at most <code>2<sup>21</sup></code> nonces</td></tr>
 <tr><th>Security</th><td>forging with cost <code>B</code> succeeds with probability below <code>B / 2<sup>127</sup></code></td></tr>
 </table>
+</div>
+</details>
 </section>

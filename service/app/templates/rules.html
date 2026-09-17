@@ -1,20 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Rules · ots.golf{% endblock %}
 {% block content %}
-<h1>Rules</h1>
+<div class="rules-head">
+  <h1>Rules</h1>
+  <button type="button" class="expand-all" id="expand-all" aria-pressed="false">Expand all</button>
+</div>
+<p class="rules-hint muted">Each line is the rule. Click one for the explanation and its figure.</p>
+
+<h2 id="model">The model</h2>
 {% include "_how.html" %}
+
+<h2 id="play">How to play</h2>
 <section class="how">
-  <h2 id="play">How to play</h2>
   <ol>
     <li>Fork <a href="https://github.com/{{ settings.contract_repo or 'TomWambsgans/ots.golf' }}">the contract repository</a> and edit one submission root: <code>formal/Submissions/Lower/</code> or <code>formal/Submissions/Upper/</code>.</li>
     <li>Export the track's declarations, put your claim in <code>claim.txt</code>, and check locally with <code>verifier/verify.py</code>.</li>
-    <li>Open a pull request. The verifier fetches your commit, keeps only the submission root, and answers on the pull request. A verified claim that strictly beats the record is merged; the merge is the promotion.</li>
+    <li>Open a pull request. The verifier answers on it. A verified claim that strictly beats the record is merged; the merge is the promotion.</li>
   </ol>
-  <p>The repository is the source of truth: each submission root holds the current record.</p>
 </section>
+
 <h2 id="rules">Submission rules</h2>
-<div class="prose">{{ body|safe }}</div>
-<h2 id="limits">Limits in force</h2>
+<section class="rules-list">
+{% for sec in sections %}
+<details id="{{ sec.id }}">
+<summary><span class="lead">{{ sec.title }}.</span> {{ sec.blurb }}</summary>
+<div class="more prose">{{ sec.body|safe }}</div>
+</details>
+{% endfor %}
+<details id="limits">
+<summary><span class="lead">Limits.</span> {{ cfg.limits.wall_clock_seconds // 60 }} minutes, {{ cfg.limits.memory_bytes // 1073741824 }} GiB, {{ cfg.limits.max_files }} files; axioms <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code> only.</summary>
+<div class="more prose">
 <table class="kv">
 <tr><th>Wall clock</th><td>{{ cfg.limits.wall_clock_seconds // 60 }} min</td></tr>
 <tr><th>Memory</th><td>{{ cfg.limits.memory_bytes // 1073741824 }} GiB</td></tr>
@@ -22,4 +37,32 @@
 <tr><th>Per file / per root</th><td>{{ cfg.limits.max_file_bytes // 1048576 }} MiB / {{ cfg.limits.max_total_bytes // 1048576 }} MiB</td></tr>
 <tr><th>Axioms</th><td><code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code></td></tr>
 </table>
+</div>
+</details>
+</section>
+<script>
+(function () {
+  var all = Array.prototype.slice.call(document.querySelectorAll('.rules-list details'));
+  var btn = document.getElementById('expand-all');
+  function sync() {
+    var open = all.every(function (d) { return d.open; });
+    btn.setAttribute('aria-pressed', String(open));
+    btn.textContent = open ? 'Collapse all' : 'Expand all';
+  }
+  btn.addEventListener('click', function () {
+    var open = btn.getAttribute('aria-pressed') !== 'true';
+    all.forEach(function (d) { d.open = open; });
+    sync();
+  });
+  all.forEach(function (d) { d.addEventListener('toggle', sync); });
+  function openTarget() {                       // a link to #cut, or to a heading inside a rule, opens it
+    var id = decodeURIComponent(location.hash.slice(1));
+    var el = id && document.getElementById(id);
+    while (el && el.tagName !== 'DETAILS') el = el.parentElement;
+    if (el) { el.open = true; el.scrollIntoView(); }
+  }
+  window.addEventListener('hashchange', openTarget);
+  openTarget();
+})();
+</script>
 {% endblock %}
