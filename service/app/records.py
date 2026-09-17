@@ -63,7 +63,9 @@ def interval(session: Session) -> dict:
     gap0 = upper_t["baseline"] - lower_t["baseline"]
     gap = up["record_claim"] - lo["record_claim"]
     progress = 1 - gap / gap0 if gap0 else 0.0
+    ratio = up["record_claim"] / lo["record_claim"] if lo["record_claim"] else float("inf")
     return {"lower": lo, "upper": up, "initial_gap": gap0, "gap": gap, "progress": max(0.0, min(1.0, progress)),
+            "ratio": ratio,
             "contract": {"version": cfg["contract"]["version"], "id": contract.contract_id(),
                          "commit": contract.trusted_commit()}}
 
