@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-A hash-based one-time signature reveals selected values of a fixed computation on secret inputs, and the verifier recomputes the final hash from these values and compares it with the public key. We ask how cheap this verification can be. The computation may combine hash queries with arbitrary deterministic operations, and we charge one compression for every 512 bits of hash input. For a 128-bit public key, signatures of at most 5504 bits, and a security requirement of roughly 127 bits against classical attackers, we prove that some signature must cost at least 25 compressions to verify. The proof is an explicit attack that turns one observed signature into a forgery on a new message. Its analysis bounds the information carried by the revealed values, counts the disclosure sets that this information leaves poorly protected, and bounds the cost of producing values that the verifier accepts for one of them.
+A hash-based one-time signature reveals selected values of a fixed computation on secret inputs, and the verifier recomputes the final hash from them and compares it with the public key. We ask how cheap this verification can be, counting one compression per 512-bit block hashed. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security, some signature must cost at least 25 compressions to verify, and a concrete scheme verifies every signature in 106. Both results are proved in Lean.
 \end{abstract}
 
 \setcounter{tocdepth}{2}
