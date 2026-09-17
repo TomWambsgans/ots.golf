@@ -9,23 +9,28 @@
 </section>
 <script>
 (function () {
-  // A fresh random signature on the necklace at load, and another one every two seconds:
-  // one chain opened to its source, one cut deep, the rest shallow, 96 chain hashes in all.
+  // A fresh random signature on the necklace at load, and another one every two seconds: a
+  // uniform element of the scheme's family, the position vectors with exactly 96 chain hashes
+  // in total (Cuts.lean), sampled exactly through the counting table (doubles carry the ratios).
   var svg = document.querySelector('svg.scheme-art');
   if (!svg) return;
   var CHAINS = +svg.dataset.chains, LEN = +svg.dataset.len, STEPS = +svg.dataset.steps;
   var els = Array.prototype.slice.call(svg.querySelectorAll('[data-k]'));
   var ks = els.map(function (e) { return +e.dataset.k; }), ts = els.map(function (e) { return +e.dataset.t; });
-  function rand(n) { return Math.floor(Math.random() * n); }
+  var ways = [];                                   // ways[k][s]: fillings of chains k.. with s hashes
+  for (var k = 0; k <= CHAINS; k++) { ways.push([]); for (var s = 0; s <= STEPS; s++) ways[k].push(0); }
+  ways[CHAINS][0] = 1;
+  for (k = CHAINS - 1; k >= 0; k--) for (s = 0; s <= STEPS; s++) {
+    var acc = 0; for (var c = 0; c <= Math.min(LEN, s); c++) acc += ways[k + 1][s - c]; ways[k][s] = acc;
+  }
   function sample() {
-    var steps = [], k;
-    for (k = 0; k < CHAINS; k++) steps.push(0);
-    var deep = rand(CHAINS), deeper;
-    do { deeper = rand(CHAINS); } while (deeper === deep);
-    steps[deep] = LEN; steps[deeper] = 6 + rand(7);
-    var budget = STEPS - steps[deep] - steps[deeper];
-    while (budget > 0) { k = rand(CHAINS); if (k !== deep && k !== deeper && steps[k] < 5) { steps[k]++; budget--; } }
-    return steps.map(function (s) { return LEN - s; });
+    var pos = [], budget = STEPS;
+    for (var k = 0; k < CHAINS; k++) {
+      var r = Math.random() * ways[k][budget], c = 0;
+      while (c < Math.min(LEN, budget) && r >= ways[k + 1][budget - c]) { r -= ways[k + 1][budget - c]; c++; }
+      pos.push(LEN - c); budget -= c;
+    }
+    return pos;
   }
   function light(pos) {
     for (var i = 0; i < els.length; i++) {

@@ -3,9 +3,9 @@
 Root at the center; 41 hash chains of 20 beads radiating outward to their secret sources, their
 ends hashed together into the root. One real signature is lit on it: one revealed value per chain,
 at positions whose recomputation costs exactly 96 chain hashes (revealed values, recomputed nodes,
-untouched beads), one chain opened down to its source. Every bead and edge carries its chain and
-position as data attributes, so the page's script can light a fresh random signature on load and
-every two seconds after that; the server-rendered one is only the first frame.
+untouched beads), drawn uniformly from the scheme's family of disclosure sets. Every bead and edge
+carries its chain and position as data attributes, so the page's script can light a fresh uniform
+signature on load and every two seconds after that; the server-rendered one is only the first frame.
 """
 from __future__ import annotations
 
@@ -26,24 +26,35 @@ def polar(r: float, a: float) -> tuple[float, float]:
     return CX + r * math.cos(a), CY + r * math.sin(a)
 
 
-def signature_positions() -> list[int]:
-    """Revealed positions t_k (0 = source, 20 = chain end) with sum(20 - t_k) = 96: pseudo-random
-    with a fixed seed, one chain opened all the way down to its source and one cut deep, the rest
-    shallow, so the lit signature looks like a real one rather than a pattern."""
+def ways() -> list[list[int]]:
+    """ways[k][s]: the number of ways to spend `s` chain hashes on chains k..40, each 0..20."""
+    w = [[0] * (STEPS + 1) for _ in range(CHAINS + 1)]
+    w[CHAINS][0] = 1
+    for k in range(CHAINS - 1, -1, -1):
+        for s in range(STEPS + 1):
+            w[k][s] = sum(w[k + 1][s - c] for c in range(0, min(LEN, s) + 1))
+    return w
+
+
+def signature_positions(seed: int = 0x6f74732e676f6c66) -> list[int]:
+    """Revealed positions t_k (0 = source, 20 = chain end) of one uniformly random disclosure set of
+    the scheme: a uniform element of {t : sum(20 - t_k) = 96}, the family of `Cuts.lean`, sampled
+    exactly by the counting table (`ways`). The seed only fixes the server-rendered first frame; the
+    page's script resamples the same distribution."""
     import random
-    rng = random.Random(0x6f74732e676f6c66)             # "ots.golf"
-    steps = [0] * CHAINS
-    deep, deeper = rng.sample(range(CHAINS), 2)
-    steps[deep], steps[deeper] = LEN, 8
-    budget = STEPS - LEN - 8
-    while budget > 0:                                   # the rest stays shallow (at most 5 beads)
-        k = rng.randrange(CHAINS)
-        if k not in (deep, deeper) and steps[k] < 5:
-            steps[k] += 1
-            budget -= 1
-    base = [LEN - c for c in steps]
-    assert sum(LEN - t for t in base) == STEPS
-    return base
+    rng = random.Random(seed)
+    w = ways()
+    steps, budget = [], STEPS
+    for k in range(CHAINS):
+        r = rng.randrange(w[k][budget])
+        c = 0
+        while r >= w[k + 1][budget - c]:
+            r -= w[k + 1][budget - c]
+            c += 1
+        steps.append(c)
+        budget -= c
+    assert budget == 0 and sum(steps) == STEPS
+    return [LEN - c for c in steps]
 
 
 @lru_cache(maxsize=1)
