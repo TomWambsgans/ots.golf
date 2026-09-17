@@ -50,12 +50,18 @@
   </script>
 </section>
 
-<section class="boards">
-{% for slug in ['lower', 'upper'] %}
+<section class="boards" aria-labelledby="board-title">
+<div class="board-head">
+  <h2 id="board-title">Leaderboard</h2>
+  <div class="seg" role="group" aria-label="Leaderboard track">
+    <button type="button" class="seg-btn" data-track="upper" aria-pressed="true"><span class="swatch s2"></span>Upper bound</button>
+    <button type="button" class="seg-btn" data-track="lower" aria-pressed="false"><span class="swatch s1"></span>Lower bound</button>
+  </div>
+</div>
+{% for slug in ['upper', 'lower'] %}
 {% set b = boards[slug] %}
-<div class="board">
-  <h2><span class="swatch {{ 's1' if slug == 'lower' else 's2' }}"></span>{{ b.cfg.title }} records <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
-  <p class="board-stats muted">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }} · {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current {{ b.cfg.title|lower }} <strong>{{ b.state.record_claim }} compressions</strong>{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
+<div class="board" data-track="{{ slug }}"{% if slug != 'upper' %} hidden{% endif %}>
+  <p class="board-stats muted">{{ 'A scheme; smaller is better.' if b.cfg.direction == '-' else 'A proved lower bound; larger is better.' }} {{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }} · {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current record <strong>{{ b.state.record_claim }} compressions</strong>{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
   <div class="board-scroll">
   <table class="board-table">
     <thead><tr><th class="rank">#</th><th>Solver</th><th>Date</th><th class="num">Score</th><th class="num">Gain</th></tr></thead>
@@ -64,6 +70,18 @@
   </div>
 </div>
 {% endfor %}
+<script>
+(function () {
+  var btns = document.querySelectorAll('.seg-btn'), boards = document.querySelectorAll('.board[data-track]');
+  function show(track) {
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.track === track)); });
+    boards.forEach(function (b) { b.hidden = b.dataset.track !== track; });
+    try { history.replaceState(null, '', track === 'upper' ? location.pathname : '#lower'); } catch (e) {}
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.track); }); });
+  if (location.hash === '#lower') show('lower');
+})();
+</script>
 </section>
 
 <section class="how">
