@@ -29,8 +29,18 @@
   <figure class="chart">
     {{ chart.svg|safe }}
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption class="muted">The record of each track over time, in hash units per verification, worst case. Each dot is a submission that set a record. The open interval is the space between the curves.</figcaption>
+    <figcaption class="muted">The record of each track over time, in hash units per verification, worst case. Filled dots are Lean-verified records; hollow dots are reference points from the literature, translated into this cost model and not verified here. The open interval is the space between the curves.</figcaption>
   </figure>
+  {% if literature %}
+  <details class="refs">
+    <summary>Reference points</summary>
+    <ul>
+    {% for p in literature %}
+      <li><strong><a href="{{ p.url }}">{{ p.label }}</a></strong>, {{ p.date }}: upper {{ p.upper }}, lower {{ p.lower }}. <span class="muted">{{ p.note }}</span></li>
+    {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
   <script>
   (function () {
@@ -44,9 +54,9 @@
       var m = toSvg(evt), best = null, bd = Infinity;
       pts.forEach(function (p) { var d = Math.abs(p.x - m.x) + Math.abs(p.y - m.y) * 0.25; if (d < bd) { bd = d; best = p; } });
       if (!best) return;
-      cross.setAttribute('x1', best.x); cross.setAttribute('x2', best.x); cross.setAttribute('y1', 18); cross.setAttribute('y2', 300);
+      cross.setAttribute('x1', best.x); cross.setAttribute('x2', best.x); cross.setAttribute('y1', 30); cross.setAttribute('y2', 300);
       cross.setAttribute('visibility', 'visible');
-      tip.innerHTML = '<strong>' + best.track + ' ' + best.claim + '</strong><br>' + best.login + ' · ' + best.date + '<br><a href="/submissions/' + best.id + '">submission</a>';
+      tip.innerHTML = '<strong>' + best.track + ' ' + best.claim + '</strong><br>' + best.login + ' · ' + best.date + '<br>' + (best.id ? '<a href="/submissions/' + best.id + '">submission</a>' : (best.url ? '<a href="' + best.url + '">reference</a> · not Lean-verified' : 'reference point'));
       var r = svg.getBoundingClientRect(), fx = r.left + best.x / 960 * r.width, fy = r.top + best.y / 340 * r.height;
       tip.style.left = (fx - r.left + 12) + 'px'; tip.style.top = (fy - r.top - 10) + 'px'; tip.hidden = false;
     });

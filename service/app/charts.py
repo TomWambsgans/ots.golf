@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from html import escape
 
 W, H = 960, 340
-ML, MR, MT, MB = 48, 160, 18, 40
+ML, MR, MT, MB = 48, 160, 30, 40
 SERIES = {"lower": ("Lower bound", "s1"), "upper": ("Upper bound", "s2")}
 
 
@@ -27,16 +27,19 @@ def _time_ticks(t0: datetime, t1: datetime, n: int = 5) -> list[datetime]:
     return [t0 + timedelta(seconds=span * i / (n - 1)) for i in range(n)]
 
 
-def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: datetime) -> dict:
-    """curves[slug]: ascending list of {t, claim, id, login}. Returns {svg, points}."""
-    all_t = [p["t"] for pts in curves.values() for p in pts]
+def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: datetime,
+                 literature: list[dict] | None = None) -> dict:
+    """curves[slug]: ascending list of {t, claim, id, login}; literature: [{t, label, url, note, lower?, upper?}]."""
+    literature = literature or []
+    all_t = [p["t"] for pts in curves.values() for p in pts] + [p["t"] for p in literature]
     t1 = now
     t0 = min(all_t) if all_t else now - timedelta(days=7)
     if t1 - t0 < timedelta(days=7):
         t0 = t1 - timedelta(days=7)
     t0 = t0 - (t1 - t0) * 0.03
-    claims = [p["claim"] for pts in curves.values() for p in pts] + list(baselines.values())
-    y_lo, y_hi = min(claims) - 6, max(claims) + 6
+    claims = [p["claim"] for pts in curves.values() for p in pts] + list(baselines.values()) \
+        + [p[k] for p in literature for k in ("lower", "upper") if p.get(k) is not None]
+    y_lo, y_hi = max(min(claims) - 6, -1), max(claims) + 6
     y_lo, y_hi = int(y_lo // 5) * 5, int(-(-y_hi // 5)) * 5
 
     def sx(t: datetime) -> float:
@@ -57,17 +60,36 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
     for t in _time_ticks(t0, t1):
         x = sx(t)
         out.append(f'<text class="tick" x="{x:.1f}" y="{H - MB + 18}" text-anchor="middle">{t.strftime("%b %d")}</text>')
-    out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 6}" text-anchor="end">units</text>')
+    out.append(f'<text class="tick" x="{ML - 8}" y="{MT - 14}" text-anchor="end">units</text>')
 
     points: list[dict] = []
     for slug, (label, cls) in SERIES.items():
-        pts = curves.get(slug, [])
+        pts = curves.get(slug, [])          # verified records, ascending
+        lits = [p for p in literature if p.get(slug) is not None]
+        lits = sorted(lits, key=lambda p: p["t"])
         x_end = sx(t1)
+        # reference points: hollow markers, dashed step, until the first verified record
+        first_rec_x = sx(pts[0]["t"]) if pts else x_end
+        if lits:
+            d = f"M{sx(lits[0]['t']):.1f},{sy(lits[0][slug]):.1f}"
+            for nxt in lits[1:]:
+                d += f" H{sx(nxt['t']):.1f} V{sy(nxt[slug]):.1f}"
+            d += f" H{first_rec_x:.1f}"
+            if pts:
+                d += f" V{sy(pts[0]['claim']):.1f}"
+            out.append(f'<path class="line {cls} dashed" d="{d}"/>')
+            for p in lits:
+                x, y = sx(p["t"]), sy(p[slug])
+                out.append(f'<circle class="mark hollow {cls}" cx="{x:.1f}" cy="{y:.1f}" r="4.5"/>')
+                points.append({"x": round(x, 1), "y": round(y, 1), "track": label, "claim": p[slug],
+                               "login": p["label"], "date": p["t"].strftime("%Y-%m-%d"), "id": None,
+                               "url": p.get("url"), "note": p.get("note", "")})
         if not pts:
-            # unverified baseline from the paper: a dashed flat line, no marker
-            y = sy(baselines[slug])
-            out.append(f'<line class="line {cls} dashed" x1="{ML}" x2="{x_end:.1f}" y1="{y:.1f}" y2="{y:.1f}"/>')
-            out.append(f'<text class="label {cls}" x="{x_end + 8:.1f}" y="{y + 4:.1f}">{label} {baselines[slug]}'
+            y_last = sy(lits[-1][slug]) if lits else sy(baselines[slug])
+            if not lits:
+                out.append(f'<line class="line {cls} dashed" x1="{ML}" x2="{x_end:.1f}" y1="{y_last:.1f}" y2="{y_last:.1f}"/>')
+            v_last = lits[-1][slug] if lits else baselines[slug]
+            out.append(f'<text class="label {cls}" x="{x_end + 8:.1f}" y="{y_last + 4:.1f}">{label} {v_last}'
                        f'<tspan class="muted" x="{x_end + 8:.1f}" dy="15">paper, unverified</tspan></text>')
             continue
         d = f"M{sx(pts[0]['t']):.1f},{sy(pts[0]['claim']):.1f}"

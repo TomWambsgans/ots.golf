@@ -108,3 +108,9 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
 .swatch.s1 { background: var(--series-1); }
 .swatch.s2 { background: var(--series-2); }
+.record-chart .mark.hollow { fill: var(--surface); stroke-width: 2; }
+.record-chart .mark.hollow.s1 { stroke: var(--series-1); }
+.record-chart .mark.hollow.s2 { stroke: var(--series-2); }
+.refs { margin: 10px 0 0; font-size: 14px; }
+.refs summary { cursor: pointer; color: var(--ink-2); }
+.refs ul { max-width: 90ch; }

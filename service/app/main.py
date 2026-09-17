@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 import markdown
@@ -106,9 +107,20 @@ def home(request: Request, session: Session = Depends(get_session)):
     boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"])[:10],
                           "others": records.others(session, t["slug"])[:5],
                           "in_flight": records.in_flight(session, t["slug"])} for t in contract.tracks()}
+    literature = load_literature()
     chart = charts.record_chart({t["slug"]: records.curve(session, t["slug"]) for t in contract.tracks()},
-                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow())
-    return render(request, "home.html", interval=iv, boards=boards, chart=chart)
+                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow(), literature)
+    return render(request, "home.html", interval=iv, boards=boards, chart=chart, literature=literature)
+
+
+def load_literature() -> list[dict]:
+    p = settings.repo_root / "docs" / "literature.json"
+    if not p.is_file():
+        return []
+    pts = json.loads(p.read_text(encoding="utf-8")).get("points", [])
+    for pt in pts:
+        pt["t"] = datetime.strptime(pt["date"], "%Y-%m-%d")
+    return pts
 
 
 @app.get("/tracks/{slug}", response_class=HTMLResponse)
