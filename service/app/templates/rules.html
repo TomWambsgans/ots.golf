@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Rules · ots.golf{% endblock %}
 {% block content %}
+<h1>Rules</h1>
+<p class="rules-toc">On this page:
+<a href="#ots">one-time signatures</a> <a href="#hash">the hash and its cost</a> <a href="#graph">the shape of a scheme</a>
+<a href="#cut">cuts</a> <a href="#cost">the score</a> <a href="#security">security</a> <a href="#tracks">the two tracks</a>
+<a href="#params">parameters</a> <a href="#play">how to play</a> <a href="#rules">submission rules</a> <a href="#limits">limits</a></p>
 {% include "_how.html" %}
 <section class="how">
   <h2 id="play">How to play</h2>
@@ -11,9 +16,9 @@
   </ol>
   <p>The repository is the source of truth: each submission root holds the current record.</p>
 </section>
-<h2 id="rules">The rules</h2>
+<h2 id="rules">Submission rules</h2>
 <div class="prose">{{ body|safe }}</div>
-<h2>Limits in force</h2>
+<h2 id="limits">Limits in force</h2>
 <table class="kv">
 <tr><th>Wall clock</th><td>{{ cfg.limits.wall_clock_seconds // 60 }} min</td></tr>
 <tr><th>Memory</th><td>{{ cfg.limits.memory_bytes // 1073741824 }} GiB</td></tr>

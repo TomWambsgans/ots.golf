@@ -184,34 +184,46 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 /* leaderboard, after better.codes */
 .board-stats { margin: 0 0 8px; font-size: 14px; }
 
-/* the framework explained (rules page) */
-.how-it-works h3 { margin: 28px 0 6px; font-size: 17px; }
-.fig { margin: 12px 0 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; max-width: 78ch; }
-.fig svg { width: 100%; height: auto; display: block; font-size: 12px; fill: var(--ink-2); }
-.fig .edges line { stroke: var(--art-faint); stroke-width: 1.4; }
-.fig .edges line.recomputed { stroke: var(--series-1); stroke-width: 1.8; }
-.fig .n { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.4; }
-.fig .n.root { stroke: var(--ink); stroke-width: 2; }
+/* the framework explained (rules page): figures sit directly on the page, no box around them */
+.rules-toc { font-size: 14px; color: var(--ink-2); max-width: 78ch; margin: 0 0 8px; }
+.rules-toc a { margin-right: 10px; white-space: nowrap; }
+.how-it-works h3 { margin: 36px 0 8px; font-size: 17px; }
+.how-it-works .formula { font-size: 17px; margin: 6px 0 10px 1.5em; }
+.how-it-works ul { padding-left: 1.2em; }
+.how-it-works li { margin: 4px 0; }
+.fig { margin: 18px 0 10px; padding: 0; max-width: 78ch; }
+.fig svg { width: 100%; height: auto; display: block; overflow: visible; font-family: inherit; font-size: 12px; }
+.fig figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 70ch; }
+.fig figcaption .k::before { content: "\25CF"; margin-right: 4px; }
+.fig figcaption .k.revealed::before { color: var(--series-2); }
+.fig figcaption .k.recomputed::before { color: var(--series-1); }
+.fig figcaption .k.untouched::before { color: var(--art-faint); }
+.fig .t { fill: var(--ink-2); }
+.fig .t.strong { fill: var(--ink); font-weight: 600; }
+.fig .t.muted { fill: var(--muted); font-size: 11px; }
+.fig .t.tag { fill: var(--muted); font-size: 10.5px; }
+.fig .t.cost { fill: var(--series-1); font-weight: 600; font-size: 11px; }
+.fig .e { stroke: var(--art-faint); stroke-width: 1.4; fill: none; }
+.fig .e.recomputed { stroke: var(--series-1); stroke-width: 1.8; }
+.fig .n { fill: var(--page); stroke: var(--ink-2); stroke-width: 1.4; }
+.fig .n.root { fill: var(--ink); stroke: var(--ink); }
 .fig .n.untouched { stroke: var(--art-faint); }
 .fig .n.recomputed { fill: var(--series-1); stroke: var(--series-1); }
 .fig .n.revealed { fill: var(--series-2); stroke: var(--series-2); }
-.fig .labels text { fill: var(--ink-2); }
-.fig .k.revealed { fill: var(--series-2); } .fig .k.recomputed { fill: var(--series-1); } .fig .k.untouched { fill: var(--muted); }
-.fig .blocks rect { fill: var(--page); stroke: var(--line); }
-.fig .blocks rect.odd { fill: var(--surface); }
-.fig .blocks .blk { text-anchor: middle; font-size: 10px; fill: var(--muted); }
-.fig .bar { fill: var(--series-1); opacity: .85; rx: 3; }
-.fig .lab { fill: var(--ink-2); }
-.fig .boxes rect { fill: var(--page); stroke: var(--ink-2); }
-.fig .boxes text { text-anchor: middle; fill: var(--ink); }
-.fig .arrows line, .fig .arrows path { stroke: var(--ink-2); stroke-width: 1.4; fill: none; marker-end: url(#arrowhead); }
-.fig #arrowhead path { fill: var(--ink-2); }
-.fig .arrows text { text-anchor: middle; fill: var(--ink-2); }
-.fig .arrows .win { text-anchor: start; fill: var(--ink); font-weight: 600; }
-.fig .axis { stroke: var(--ink-2); stroke-width: 1.4; }
-.fig .tick { stroke: var(--ink-2); text-anchor: middle; fill: var(--muted); font-size: 11px; }
+.fig .pill { fill: var(--page); stroke: var(--ink-2); stroke-width: 1.3; }
+.fig .arrow { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+.fig .arrow.dashed { stroke: var(--muted); stroke-dasharray: 4 4; }
+.fig marker path { fill: var(--ink-2); }
+.fig .life { stroke: var(--line); stroke-width: 1.4; }
+.fig .blockline { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.fig .bar { fill: var(--series-1); }
+.fig .hatch line { stroke: var(--muted); stroke-width: 1.6; }
+.fig .brk { stroke: var(--ink-2); stroke-width: 1.4; }
+.fig .axis, .fig .tick { stroke: var(--ink-2); stroke-width: 1.4; }
+.fig .ticklab { fill: var(--muted); font-size: 11px; }
 .fig .gap { fill: var(--accent-track); opacity: .55; }
-.fig .gaplab { text-anchor: middle; fill: var(--ink-2); }
 .fig .mark { stroke-width: 3; } .fig .mark.s1 { stroke: var(--series-1); } .fig .mark.s2 { stroke: var(--series-2); }
-.fig .mlab { text-anchor: middle; font-weight: 600; } .fig .mlab.s1 { fill: var(--series-1); } .fig .mlab.s2 { fill: var(--series-2); }
+.fig .mlab { font-weight: 600; } .fig .mlab.s1 { fill: var(--series-1); } .fig .mlab.s2 { fill: var(--series-2); }
 .fig .arr { fill: none; stroke-width: 2; } .fig .arr.s1 { stroke: var(--series-1); } .fig .arr.s2 { stroke: var(--series-2); }
+table.params { max-width: 78ch; }
+table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }

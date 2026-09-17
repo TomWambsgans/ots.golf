@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth, charts, contract, github, records, scheme_art
+from . import auth, charts, contract, figures, github, records, scheme_art
 from .config import settings
 from .db import Submission, User, get_session, init_db, utcnow
 
@@ -146,8 +146,10 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 @app.get("/rules", response_class=HTMLResponse)
 def rules(request: Request, session: Session = Depends(get_session)):
     text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    iv = records.interval(session)
     return render(request, "rules.html", body=markdown.markdown(text, extensions=["tables", "fenced_code"]),
-                  cfg=contract.load(), iv=records.interval(session))
+                  cfg=contract.load(), iv=iv,
+                  figs=figures.all_figures(iv["lower"]["record_claim"], iv["upper"]["record_claim"]))
 
 
 @app.get("/llms.txt", response_class=PlainTextResponse)
