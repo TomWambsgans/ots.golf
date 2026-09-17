@@ -9,12 +9,14 @@ Pipeline
      working tree of `--source` when no commit is given.
   2. Lay it over a copy of the TRUSTED tree (`--trusted`, default: this repo), so every protected
      file comes from the contract by construction.
-  3. Attach a fresh clone of the warm `.lake` (`--lake`, default: <trusted>/.lake) with any
+  3. Policy checks: protected pin, flat root of regular files, imports, sizes, canonical claim.
+  4. Attach a fresh clone of the warm `.lake` (`--lake`, default: <trusted>/formal/.lake) with any
      previous build products of this track removed. The submission is compiled for the first
      time inside comparator's sandbox, which is one of comparator's stated assumptions.
-  4. Policy checks: protected pin, flat root, imports, sizes, canonical claim.
-  5. Render the challenge stub with the claim and run comparator under the contract's wall-clock
-     limit (and, with systemd on Linux, its memory limit).
+  5. Render the challenge stub with the claim and run comparator. On Linux it runs as a transient
+     systemd user service: the contract's memory and wall-clock limits on the whole process tree,
+     no AF_UNIX sockets (comparator's documented requirement, since Landlock cannot block them),
+     no new privileges, and an environment holding nothing but PATH, HOME and the tool paths.
   6. Report: verified | rejected | policy_rejected | timeout | failed.
 
 Tools come from verifier/setup_tools.sh (verifier/.tools/env.sh). On non-Linux hosts comparator
@@ -30,7 +32,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -38,7 +42,15 @@ sys.path.insert(0, str(HERE))
 from contract import ContractError, load_challenges, read_claim, repo_root, track  # noqa: E402
 
 
+LOG_CAP = 4 * 1024 * 1024        # bytes of comparator output kept; the rest is read and dropped
+
+
+class PolicyReject(Exception):
+    """The submission is refused before anything of it is copied or compiled."""
+
+
 def run(cmd, **kw):
+    kw.setdefault("timeout", 600)
     return subprocess.run(cmd, check=True, text=True, capture_output=True, **kw)
 
 
@@ -54,23 +66,36 @@ def tools_env(root: Path) -> dict:
     return env
 
 
-def export_submission(source: str, commit: str | None, rel_root: str, dest: Path) -> str:
+def export_submission(source: str, commit: str | None, rel_root: str, dest: Path, max_files: int = 200) -> str:
     """Materialize <rel_root> from the source at the commit into dest; returns the commit."""
     dest.mkdir(parents=True)
     if commit is None:
         src = Path(source)
         if not (src / rel_root).is_dir():
             raise ContractError(f"{source} has no {rel_root}")
-        shutil.copytree(src / rel_root, dest / rel_root)
+        shutil.copytree(src / rel_root, dest / rel_root, symlinks=True)   # a link stays a link, and is refused
         return "worktree"
     with tempfile.TemporaryDirectory(prefix="ots-src-") as tmp:
         repo = Path(tmp) / "repo"
         if Path(source).is_dir():
             repo = Path(source)
         else:
-            run(["git", "clone", "--filter=blob:none", "--no-checkout", source, str(repo)])
+            run(["git", "clone", "--filter=blob:none", "--no-checkout", "--", source, str(repo)])
             run(["git", "-C", str(repo), "fetch", "--depth=1", "origin", commit])
         full = run(["git", "-C", str(repo), "rev-parse", "--verify", f"{commit}^{{commit}}"]).stdout.strip()
+        # Only regular files may leave the repository: a symlink would be followed by the copy below,
+        # outside any sandbox, and a submodule is somebody else's tree.
+        tree = run(["git", "-C", str(repo), "ls-tree", "-r", "-z", full, "--", rel_root]).stdout
+        entries = [e for e in tree.split("\0") if e]
+        if not entries:
+            raise PolicyReject(f"the commit has no {rel_root}")
+        if len(entries) > max_files:
+            raise PolicyReject(f"more than {max_files} files in {rel_root}")
+        for e in entries:
+            meta, name = e.split("\t", 1)
+            mode, kind = meta.split()[:2]
+            if kind != "blob" or mode not in ("100644", "100755"):
+                raise PolicyReject(f"{name}: only regular files are allowed (found {kind}, mode {mode})")
         tar = subprocess.run(["git", "-C", str(repo), "archive", "--format=tar", full, rel_root],
                              check=True, capture_output=True).stdout
         subprocess.run(["tar", "-x", "-C", str(dest)], input=tar, check=True)
@@ -95,7 +120,7 @@ def main() -> int:
     ap.add_argument("--source", required=True, help="git URL, or a local directory (git repo or plain tree)")
     ap.add_argument("--commit", help="commit to verify; omit to take the working tree of a local --source")
     ap.add_argument("--trusted", type=Path, help="the contract checkout (default: this repo)")
-    ap.add_argument("--lake", type=Path, help="warm .lake to clone (default: <trusted>/.lake)")
+    ap.add_argument("--lake", type=Path, help="warm .lake to clone (default: <trusted>/formal/.lake)")
     ap.add_argument("--work", type=Path, help="work directory (default: a temp dir)")
     ap.add_argument("--keep", action="store_true", help="keep the work directory")
     ap.add_argument("--json", action="store_true")
@@ -129,7 +154,8 @@ def main() -> int:
         env = tools_env(trusted)
         # 1. submission root only
         staged = work / "staged"
-        result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged)
+        result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged,
+                                              max_files=lim["max_files"])
         # 2. the trusted tree, allowlisted: only what a verification needs, so the copy can never
         #    recurse into work directories, tool checkouts or unrelated files
         def skip(names_to_skip):
@@ -143,7 +169,7 @@ def main() -> int:
             rel = Path(dirpath).resolve().relative_to((trusted / lean_root).resolve())
             return {n for n in names if n == ".lake" or (rel / n) in {root_rel, chal_rel}}
         shutil.copytree(trusted / lean_root, project / lean_root, ignore=skip_lean, symlinks=True)
-        shutil.copytree(staged / t["submission_root"], project / t["submission_root"])
+        shutil.copytree(staged / t["submission_root"], project / t["submission_root"], symlinks=True)
         # 3. policy (before the expensive clone)
         pin = subprocess.run([sys.executable, str(HERE / "pin_contract.py"), "check", "--root", str(project)],
                              text=True, capture_output=True)
@@ -172,28 +198,83 @@ def main() -> int:
         shutil.rmtree(lake_dir / "build/lib/lean/OptimalOTS/Challenge", ignore_errors=True)
         # 5. render + comparator
         run([sys.executable, str(HERE / "render_challenge.py"), a.track, "--root", str(project)])
-        cmd = ["lake", "env", env["COMPARATOR_BIN"], str(project / t["comparator_config"])]
+        home = str(Path.home())
+        path = f"{home}/.elan/bin:{os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin')}"
+        # Nothing of the caller's environment reaches comparator or the code it builds: the worker's
+        # carries the GitHub token and the webhook secret.
+        sandbox_env = {"PATH": path, "HOME": home, "LANG": "C.UTF-8",
+                       "COMPARATOR_LANDRUN": env["COMPARATOR_LANDRUN"],
+                       "COMPARATOR_LEAN4EXPORT": env["COMPARATOR_LEAN4EXPORT"]}
+        lake = shutil.which("lake", path=path) or "lake"
+        cmd = [lake, "env", env["COMPARATOR_BIN"], str(project / t["comparator_config"])]
+        cenv, unit = dict(sandbox_env), None
         if platform.system() == "Linux" and shutil.which("systemd-run"):
-            cmd = ["systemd-run", "--user", "--scope", "--quiet",
-                   "-p", f"MemoryMax={lim['memory_bytes']}"] + cmd   # network is landrun's job
-        cenv = {**os.environ, "PATH": f"{Path.home()}/.elan/bin:{os.environ.get('PATH', '')}",
-                "COMPARATOR_LANDRUN": env["COMPARATOR_LANDRUN"], "COMPARATOR_LEAN4EXPORT": env["COMPARATOR_LEAN4EXPORT"]}
-        if cmd[0] == "systemd-run":
-            # under a system service there is no session environment; the user's manager (kept alive
-            # by `loginctl enable-linger`) listens under /run/user/<uid>
-            runtime = cenv.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
-            cenv.setdefault("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")
-        with log_path.open("w") as log:
+            lsm = Path("/sys/kernel/security/lsm")
+            if not (lsm.is_file() and "landlock" in lsm.read_text()):
+                return finish("failed", reason="Landlock is not enabled on this kernel: refusing to build untrusted code")
+            # A transient user SERVICE, not a scope: only a service can carry RestrictAddressFamilies,
+            # which comparator requires because Landlock cannot block unix sockets, and only a service
+            # is killed as a whole cgroup when the time is up. Under a system service there is no
+            # session environment; the user's manager (kept alive by `loginctl enable-linger`)
+            # listens under /run/user/<uid>.
+            unit = f"ots-verify-{uuid.uuid4().hex[:12]}"
+            props = [f"MemoryMax={lim['memory_bytes']}", "MemorySwapMax=0",
+                     f"RuntimeMaxSec={lim['wall_clock_seconds']}", "KillMode=control-group",
+                     "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes"]
+            cmd = (["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet", f"--unit={unit}",
+                    f"--working-directory={project / lean_root}"]
+                   + [x for p in props for x in ("-p", p)]
+                   + [x for k, v in sandbox_env.items() for x in ("-E", f"{k}={v}")] + ["--"] + cmd)
+            runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+            cenv = {"PATH": path, "HOME": home, "XDG_RUNTIME_DIR": runtime,
+                    "DBUS_SESSION_BUS_ADDRESS": os.environ.get("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")}
+        elif "TMPDIR" in os.environ:
+            cenv["TMPDIR"] = os.environ["TMPDIR"]
+
+        def stop_unit():
+            if unit:
+                subprocess.run(["systemctl", "--user", "kill", "--signal=KILL", unit], env=cenv,
+                               capture_output=True, timeout=30)
+
+        started = time.time()
+        proc = subprocess.Popen(cmd, cwd=project / lean_root, env=cenv, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+
+        def pump():                                   # keep the head of the output, drain the rest
+            kept = 0
+            with log_path.open("wb") as log:
+                for chunk in iter(lambda: proc.stdout.read(65536), b""):
+                    if kept < LOG_CAP:
+                        log.write(chunk[:LOG_CAP - kept])
+                        kept += len(chunk)
+                        if kept >= LOG_CAP:
+                            log.write(b"\n[output truncated]\n")
+
+        reader = threading.Thread(target=pump, daemon=True)
+        reader.start()
+        try:
+            proc.wait(timeout=lim["wall_clock_seconds"] + 60)
+        except subprocess.TimeoutExpired:
+            stop_unit()
             try:
-                proc = subprocess.run(cmd, cwd=project / lean_root, env=cenv, stdout=log, stderr=subprocess.STDOUT,
-                                      timeout=lim["wall_clock_seconds"])
-            except subprocess.TimeoutExpired:
-                return finish("timeout", limit_s=lim["wall_clock_seconds"])
+                os.killpg(proc.pid, 9)
+            except OSError:
+                pass
+            proc.wait()
+            reader.join(10)
+            return finish("timeout", limit_s=lim["wall_clock_seconds"])
+        reader.join(30)
+        if proc.returncode != 0 and time.time() - started >= lim["wall_clock_seconds"] - 1:
+            stop_unit()                               # RuntimeMaxSec already killed the tree
+            return finish("timeout", limit_s=lim["wall_clock_seconds"])
         text = log_path.read_text(errors="replace")
         if proc.returncode == 0 and "Your solution is okay!" in text:
             return finish("verified", comparator_exit=0)
         return finish("rejected", comparator_exit=proc.returncode, tail=text[-2000:])
-    except (ContractError, subprocess.CalledProcessError) as exc:
+    except PolicyReject as exc:
+        log_path.write_text(str(exc) + "\n")
+        return finish("policy_rejected", errors=[str(exc)])
+    except (ContractError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         detail = getattr(exc, "stderr", "") or str(exc)
         log_path.write_text(str(detail))
         return finish("failed", reason=str(detail)[-2000:])
