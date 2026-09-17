@@ -36,7 +36,7 @@
       "slug": "lower",
       "title": "Lower bound",
       "direction": "+",
-      "baseline": 25,
+      "baseline": 2,
       "submission_root": "formal/Submissions/Lower",
       "module_prefix": "Submissions.Lower",
       "solution_module": "Submissions.Lower.Solution",

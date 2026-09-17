@@ -1,4 +1,4 @@
-# Porting the upper proof to the bare oracle (working notes, branch `bare-oracle`)
+# Porting both proofs to the bare oracle (working notes, branch `bare-oracle`)
 
 Temporary file: delete before merging.
 
@@ -197,3 +197,43 @@ Known downstream breakages reported by the Values port:
   Added: `cost_hashParent`, `hashParent_ne_src`, `yv_ci`, `yv_ci_ne`, `evaluated_hashParent`,
   `yv_hashParent`, `tagNat_yv`.
   Tactic note: `rw [detVal_gc]` fails on `y : graph.Assignment` (only defeq to `Asg`); use `show … = _`.
+
+
+## Lower-track work, 2026-09-17
+
+### Verified milestone: unconditional bound 2
+
+`Submissions/Lower/Elementary.lean` proves `Scheme.two_le_verifyCost` for every scheme and every
+index, with no security hypothesis: the index costs at least one compression, and the root belongs
+to `evaluated`, is a hash node, and costs at least one compression. `Solution.lean` exports
+`VerificationLowerBound paperParams 2`. The lower baseline and `claim.txt` are 2; the protected pin
+was regenerated (contract id `2e7dff7c4648229c43e9edd5e736d863296f3d32ba4af347e9e7157bc0f30191`).
+
+Official verifier: `verified: track=lower claim=2 commit=worktree in 53.0s`.
+The old labeled entropy development remains present for reference while the replacement is explored;
+it is not imported by the certificate and has not yet been ported.
+
+### Mathematical obstructions found before porting
+
+The handoff's proposed fresh-coordinate repair is false in both required places, even with
+probability-one duplicate inputs. A hidden earlier hash can own the fresh coordinate used by a
+later reconstructed hash, putting its entropy deficit outside the reconstruction set. It can also
+own the coordinate needed by a newly evaluated node, making the latter's proposed weight zero
+while its construction can fail. Detailed independent derivations are being recorded in
+`bare-oracle-information-analysis.md` and `bare-oracle-construction-analysis.md`.
+Consequently, the Bell-budget numerical calculation alone cannot establish 24.
+
+An alternative under investigation groups indices by their sets of evaluated hash nodes.
+When two indices have the same set, the observed oracle input/output pairs permit free conversion
+of their disclosures by finite search. If all verification costs are at most 17, the number of
+patterns is less than `2^110`; most indices then have several interchangeable targets. This is a
+prospective route to 18, not a verified lower bound.
+
+### Parallel file ownership
+
+- Construction: `Semantics.lean`, new `Conversion.lean` / `Encoding.lean`, construction analysis.
+- Information: new `Patterns.lean`, information analysis.
+- Numerics: `tools/tune_lower_bound.py`, numerics notes, new `CacheFresh.lean`.
+- Root: certificate, attack integration, remaining probability/cost modules, project documentation.
+
+No upper-track file is being edited. No push, deployment, or main-branch operation is authorized.

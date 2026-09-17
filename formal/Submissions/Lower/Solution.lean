@@ -1,60 +1,22 @@
 import OptimalOTS.Statement
-import Submissions.Lower.Cost
-import Submissions.Lower.Assembly
+import Submissions.Lower.Elementary
 
 /-!
-# The main theorem
+# An unconditional certificate for the bare single-oracle model
 
-`verificationLowerBound_paper` proves the statement `VerificationLowerBound paperParams 25` of
-`OptimalOTS.Statement`: with the parameters of the paper, every secure graph-based one-time
-signature scheme has a signature whose verification costs at least 25 compressions.
-
-The proof assumes the contrary, builds the attack of `Submissions.Lower.Attack`, bounds its total
-cost (`Attack.costAtMost_experiment`) and its success probability (`Assembly.probTrue_gt`), and
-contradicts the security requirement.
+Every verification pays for the index and the root hash. This interim certificate makes no
+independence assumption and does not need security. The stronger entropy argument is under review.
 -/
-
-open OracleSpec OracleComp ENNReal
-
-noncomputable section
-
-open scoped Classical
 
 namespace OptimalOTS
 
+/-- Every weakly secure bare-oracle scheme has a verification costing at least two compressions. -/
+theorem verificationLowerBound_paper : VerificationLowerBound paperParams 2 := by
+  intro S _
+  exact ⟨⟨0, by decide⟩, S.two_le_verifyCost _⟩
 
-/-- **Main theorem.** For the parameters of the paper, every graph-based one-time signature scheme
-that is weakly secure (existentially unforgeable), and therefore every secure one, has a signature
-whose verification costs at least 25 compressions. The attacker forges on a message other than
-the signed one, so it wins the weak experiment. -/
-theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25 := by
-  intro S hS
-  by_contra hcon
-  push Not at hcon
-  have hcost : ∀ i, S.verifyCost i ≤ 24 := fun i => Nat.lt_succ_iff.mp (hcon i)
-  have hB := Attack.costAtMost_experiment S Numerics.q Numerics.T 23 (by decide) fun i => by
-    have := hcost i
-    have hidx : idxCost paperParams = 1 := by decide
-    simp only [Scheme.verifyCost, hidx] at this
-    omega
-  have hsec := hS _ _ hB
-  have hprob := Assembly.probTrue_gt S hcost
-  have hcostval : ((paperParams.keygenBudget + paperParams.trialLimit + Numerics.T +
-      (Numerics.q + 2) * 23 + 2 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.securityBits <
-      ENNReal.ofReal (11 / 200) := by
-    have hval : (paperParams.keygenBudget + paperParams.trialLimit + Numerics.T +
-        (Numerics.q + 2) * 23 + 2 : ℕ) = Numerics.attackCost := rfl
-    rw [hval, ← ENNReal.ofReal_natCast, show (2 : ℝ≥0∞) ^ paperParams.securityBits =
-        ENNReal.ofReal ((2 : ℝ) ^ 127) by
-          rw [ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_ofNat]; rfl,
-      ← ENNReal.ofReal_div_of_pos (by norm_num)]
-    rw [ENNReal.ofReal_lt_ofReal_iff (by norm_num)]
-    linarith [Numerics.attackCost_div_lt]
-  exact absurd (hprob.trans hsec) (not_lt.mpr hcostval.le)
-
-/-- **Exported certificate of the lower track.** Its statement must be exactly the one in
-`OptimalOTS/Challenge/Lower.lean.in` with the number of `claim.txt` substituted. -/
-theorem Challenge.Lower.candidate : VerificationLowerBound paperParams 25 :=
+/-- The exported lower-track certificate. -/
+theorem Challenge.Lower.candidate : VerificationLowerBound paperParams 2 :=
   verificationLowerBound_paper
 
 end OptimalOTS
