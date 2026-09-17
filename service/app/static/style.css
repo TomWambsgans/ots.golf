@@ -142,6 +142,11 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 
 /* leaderboard, after better.codes */
 .board-stats { margin: 0 0 8px; font-size: 14px; }
+.board-scroll { max-height: 460px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.board-scroll table { border: 0; border-radius: 0; }
+.board-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; box-shadow: 0 1px 0 var(--line); }
+.board-table tr.other td { color: var(--muted); }
+.board-table tr.other td a { color: inherit; }
 .board-table td.rank, .board-table th.rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; }
 .board-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .board-table th.num { text-align: right; }

@@ -36,3 +36,33 @@
 <tr><td colspan="5" class="muted">No verified record yet.</td></tr>
 {% endfor %}
 {%- endmacro %}
+
+{% macro board(frontier, others, in_flight, cfg) -%}
+{{ records(frontier, cfg) }}
+{% for s in others %}
+<tr class="other">
+  <td class="rank">–</td>
+  <td>
+    {% if s.user.avatar_url %}<img class="avatar-sm" src="{{ s.user.avatar_url }}" alt="">{% endif %}
+    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} <span class="muted">and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}</span>{% endif %}
+    {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
+  </td>
+  <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
+  <td class="num"><a href="/submissions/{{ s.id }}">{{ s.claim }} compressions</a></td>
+  <td class="num gain"><span class="muted">verified, not a record</span></td>
+</tr>
+{% endfor %}
+{% for s in in_flight %}
+<tr class="other">
+  <td class="rank">…</td>
+  <td>
+    {% if s.user.avatar_url %}<img class="avatar-sm" src="{{ s.user.avatar_url }}" alt="">{% endif %}
+    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
+    {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
+  </td>
+  <td class="muted nowrap">{{ s.created_at|date }}</td>
+  <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} compressions{% else %}–{% endif %}</a></td>
+  <td class="num gain"><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
+</tr>
+{% endfor %}
+{%- endmacro %}

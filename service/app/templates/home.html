@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_submission_rows.html" import rows, records %}
+{% from "_submission_rows.html" import rows, records, board %}
 {% block content %}
 <section class="hero">
   <div class="hero-text">
@@ -58,11 +58,12 @@
 <div class="board">
   <h2><span class="swatch {{ 's1' if slug == 'lower' else 's2' }}"></span>{{ b.cfg.title }} records <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
   <p class="board-stats muted">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }} · {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current {{ b.cfg.title|lower }} <strong>{{ b.state.record_claim }} compressions</strong>{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
+  <div class="board-scroll">
   <table class="board-table">
     <thead><tr><th class="rank">#</th><th>Solver</th><th>Date</th><th class="num">Score</th><th class="num">Gain</th></tr></thead>
-    <tbody>{{ records(b.frontier, b.cfg) }}</tbody>
+    <tbody>{{ board(b.frontier, b.others, b.in_flight, b.cfg) }}</tbody>
   </table>
-  <p><a href="/tracks/{{ slug }}">All {{ b.cfg.title|lower }} submissions</a></p>
+  </div>
 </div>
 {% endfor %}
 </section>

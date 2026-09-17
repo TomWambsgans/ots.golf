@@ -104,8 +104,8 @@ async def webhook(request: Request, session: Session = Depends(get_session)):
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, session: Session = Depends(get_session)):
     iv = records.interval(session)
-    boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"])[:10],
-                          "others": records.others(session, t["slug"])[:5],
+    boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"]),
+                          "others": records.others(session, t["slug"]),
                           "in_flight": records.in_flight(session, t["slug"]),
                           "solvers": records.solver_count(session, t["slug"]),
                           "state": records.track_state(session, t)} for t in contract.tracks()}
@@ -125,15 +125,6 @@ def load_literature() -> list[dict]:
         pt["t"] = datetime.strptime(pt["date"], "%Y-%m-%d")
     return pts
 
-
-@app.get("/tracks/{slug}", response_class=HTMLResponse)
-def track_page(slug: str, request: Request, session: Session = Depends(get_session)):
-    t = contract.track(slug)
-    if t is None:
-        raise HTTPException(404)
-    return render(request, "track.html", t=t, state=records.track_state(session, t),
-                  frontier=records.frontier(session, slug), others=records.others(session, slug),
-                  in_flight=records.in_flight(session, slug))
 
 
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)
