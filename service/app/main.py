@@ -146,9 +146,14 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 @app.get("/rules", response_class=HTMLResponse)
 def rules(request: Request, session: Session = Depends(get_session)):
     text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    # The page has its own title and introduction: drop the file's H1 and opening paragraph, and
+    # demote its sections under the page's "Submission rules" heading.
+    sections = text.split("\n## ", 1)
+    body = "## " + sections[1] if len(sections) == 2 else text
+    html = markdown.markdown(body, extensions=["tables", "fenced_code", "toc"],
+                             extension_configs={"toc": {"baselevel": 2}})
     iv = records.interval(session)
-    return render(request, "rules.html", body=markdown.markdown(text, extensions=["tables", "fenced_code"]),
-                  cfg=contract.load(), iv=iv,
+    return render(request, "rules.html", body=html, cfg=contract.load(), iv=iv,
                   figs=figures.all_figures(iv["lower"]["record_claim"], iv["upper"]["record_claim"]))
 
 
