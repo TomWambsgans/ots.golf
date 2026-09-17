@@ -3,7 +3,7 @@
 The checked certificates, service regressions, numerical checks and local browser audit pass.
 The website and worker run the reviewed code on localhost. **Public deployment still requires
 acceptance on the actual Linux host and a staging GitHub repository.** This review does not claim
-that macOS testing establishes production isolation. Nothing was pushed or deployed.
+that macOS testing establishes production isolation. Nothing was pushed or deployed. The implementation is committed locally as `1000826` on `main`.
 
 The review covered the formal contract and exports, verifier, queue/webhook/reporting service,
 website, numerical tools, deployment configuration and documentation. Parallel reviewers owned
@@ -96,6 +96,16 @@ The official verifier accepted every pinned certificate:
 | `disclosure-lower` | 93 | 187.6 s |
 | `upper` — historical reference | 106 | 250.1 s |
 | `disclosure-upper` — historical reference | 106 | 247.3 s |
+
+After the final verifier changes, the official Git-commit path also accepted `generic-lower` at
+`1000826ac5bb2526dd3024d137c03a1a88f2bbf4`, claim 1, in 58.8 seconds. This exercises committed-byte
+export and the final bounded subprocess helper; the log is
+`/private/tmp/ots-review-commit-certificate.log`. All five policy checks pass as well.
+
+After the commit hook refreshed localhost, its homepage displayed the new commit, all 26 reachable
+internal HTML links returned successfully, and all 19 demo rows retained their IDs, claims and dates.
+The web server and worker were both restarted with the reviewed implementation. Documentation links
+in the updated READMEs and reports also resolve.
 
 These are macOS proof-pipeline results, not Linux sandbox acceptance. The permitted exported axiom
 set remains `propext`, `Quot.sound` and `Classical.choice`; no `sorry` or `native_decide` certificate
