@@ -3,9 +3,9 @@ import Submissions.Upper.Cuts
 /-!
 # The concrete scheme as a `Scheme paperParams`
 
-`forestScheme` is the scheme of Section 8 of the paper: the graph of `Forest.Names`, with the
-`2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.  Every signature
-verifies in `106` units (`forestScheme_verifyCost`).
+`forestScheme` is the flat scheme: the graph of `Forest.Names` (41 chains of length 20 under the
+root), with the `2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.
+Every signature verifies in `109` units (`forestScheme_verifyCost`).
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -71,13 +71,14 @@ theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
 theorem isCut_setsName (i : Fin (2 ^ 115)) : IsCut (setsName i) :=
   isCut_of_mem_family (setsName_mem i)
 
-theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i), n.cost = 105 :=
+theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i), n.cost = 107 :=
   cost_of_mem_family (setsName_mem i)
 
-/-- Every signature verifies in `106` units. -/
-theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 106 := by
-  show 1 + graph.reconstructCost (fins (setsName i)) = 106
-  rw [reconstructCost_eq]
+/-- Every signature verifies in `109` units: two for the index query and `107` for reconstruction. -/
+theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 109 := by
+  show idxCost paperParams + graph.reconstructCost (fins (setsName i)) = 109
+  have hidx : idxCost paperParams = 2 := by decide
+  rw [reconstructCost_eq, hidx]
   have h := cost_setsName i
   omega
 

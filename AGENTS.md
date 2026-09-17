@@ -1,7 +1,9 @@
 # ots.golf — submission rules
 
 ots.golf is a two-track, Lean-kernel-verified competition on the worst-case verification cost of
-graph-based hash-based one-time signatures. Everything a submission must satisfy is in this file;
+graph-based hash-based one-time signatures. A hash query on `k` input bits costs
+`⌈(k + 192) / 512⌉` units: the 192 overhead bits stand for a 128-bit public parameter and a
+64-bit tweak, so a 128-bit chain hash costs one unit and the 512-bit message index two. Everything a submission must satisfy is in this file;
 `challenges.json` is the machine-readable version and `verifier/` runs the same checks the hosted
 verifier runs.
 
@@ -12,7 +14,7 @@ formal/                         the Lean project (lake root)
   OptimalOTS/Statement.lean     THE CONTRACT: the model, `Scheme`, `Secure`, `verifyCost`, `paperParams`
   OptimalOTS/Challenge/*.lean.in  challenge stubs; rendered with your claim at verification time
   Submissions/Lower/            lower-track submission root (baseline: the paper's proof, claim 25)
-  Submissions/Upper/            upper-track submission root (baseline: the paper's scheme, claim 106)
+  Submissions/Upper/            upper-track submission root (baseline: 41 flat chains, claim 109)
 verifier/                       policy checks, contract pin, comparator configs, local verifier
 challenges.json                 tracks, limits, protected files
 ```

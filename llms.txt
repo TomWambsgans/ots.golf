@@ -5,8 +5,9 @@
 > 127-bit security. Every ranked claim is a Lean 4 theorem about the pinned statement
 > `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.
 
-Interval today: lower bound 25 (proved), upper bound 106 (the paper's scheme). Both baselines
-live in this repository as ordinary submissions.
+Cost model: one hash unit per started 512-bit block of the input plus 192 overhead bits (public
+parameter and tweak). Interval today: lower bound 25 (proved), upper bound 109 (41 chains of length
+20 under the root). Both baselines live in this repository as ordinary submissions.
 
 - Rules and the exact exported declarations: AGENTS.md
 - Machine-readable tracks, limits and protected files: challenges.json

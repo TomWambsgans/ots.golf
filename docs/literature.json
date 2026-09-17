@@ -1,21 +1,21 @@
 {
-  "_comment": "Reference points drawn on the record chart. Not Lean-verified here; costs are translated into the contract's model (one hash unit per started 512-bit block, one-time part only).",
+  "_comment": "Reference points drawn on the record chart. Costs are in the contract's model: one hash unit per started 512-bit block of the input plus 192 overhead bits, one-time part only.",
   "points": [
     {
       "date": "2026-09-15",
       "label": "leanVM XMSS",
       "url": "https://github.com/leanEthereum/leanVM/blob/main/doc/xmss/main.tex",
-      "upper": 111,
+      "upper": 112,
       "lower": 0,
-      "note": "The one-time signature under leanVM's XMSS: 42 chains of 128 bits with 3-bit chunks (7 steps each) and target sum 195, so 42·7 − 195 = 99 chain steps to verify; the leaf hash of the 42 chain ends (5376 bits) costs 11 blocks; the message encoding 1. The Merkle path (32 more) belongs to the many-time layer and is not counted. Lower bound: none was known (0)."
+      "note": "The one-time signature under leanVM's XMSS: 42 chains of 128 bits with 3-bit chunks (7 steps each) and target sum 195, so 42·7 − 195 = 99 chain steps to verify (one block each with the 192 overhead bits); the leaf hash of the 42 chain ends (5376 + 192 bits) costs 11 blocks; the message encoding (704 + 192 bits) 2. The Merkle path (32 more) belongs to the many-time layer and is not counted. Lower bound: none was known (0)."
     },
     {
       "date": "2026-09-16",
       "label": "This paper",
       "url": "https://github.com/",
-      "upper": 106,
+      "upper": 109,
       "lower": 25,
-      "note": "A Verification Lower Bound for Hash-Based One-Time Signatures: the forest scheme verifies every signature in 106 units (Lean proof pending), and the lower bound 25 is proved in Lean (the lower baseline of this site)."
+      "note": "A Verification Lower Bound for Hash-Based One-Time Signatures: 41 chains of length 20 hashed directly into the root verify every signature in 109 units (96 chain hashes, 11 blocks for the root, 2 for the index), proved secure in Lean; the lower bound 25 is proved in Lean (the two baselines of this site)."
     }
   ]
 }

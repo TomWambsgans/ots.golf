@@ -37,15 +37,9 @@ inductive Above : Name → Name → Prop
 
 /-- Distance to the root. -/
 def height : Name → ℕ
-  | src _ => 36
-  | ch _ t => 35 - 2 * t
-  | cv _ t => 34 - 2 * t
-  | gc _ => 7
-  | gh _ => 6
-  | gv _ => 5
-  | ec _ => 4
-  | eh _ => 3
-  | ev _ => 2
+  | src _ => 42
+  | ch _ t => 41 - 2 * t
+  | cv _ t => 40 - 2 * t
   | rc => 1
   | rh => 0
 
@@ -87,65 +81,53 @@ theorem not_above_rh (m : Name) : ¬ Above m rh := by
 def ancSet : Name → Finset Name
   | rh => ∅
   | rc => {rh}
-  | ev _ => {rc, rh}
-  | eh l => {ev l, rc, rh}
-  | ec l => {eh l, ev l, rc, rh}
-  | gv j => {ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
-  | gh j => {gv j, ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
-  | gc j => {gh j, gv j, ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
-  | cv k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
-      (Finset.univ.filter fun t' : Fin 14 => t < t').image (cv k) ∪
-      {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
-        ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
-  | ch k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
-      (Finset.univ.filter fun t' : Fin 14 => t ≤ t').image (cv k) ∪
-      {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
-        ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
-  | src k => Finset.univ.image (ch k) ∪ Finset.univ.image (cv k) ∪
-      {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
-        ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
+  | cv k t => (Finset.univ.filter fun t' : Fin 20 => t < t').image (ch k) ∪
+      (Finset.univ.filter fun t' : Fin 20 => t < t').image (cv k) ∪ {rc, rh}
+  | ch k t => (Finset.univ.filter fun t' : Fin 20 => t < t').image (ch k) ∪
+      (Finset.univ.filter fun t' : Fin 20 => t ≤ t').image (cv k) ∪ {rc, rh}
+  | src k => Finset.univ.image (ch k) ∪ Finset.univ.image (cv k) ∪ {rc, rh}
 
 theorem child_eq_none {n : Name} (h : child n = none) : n = rh := by
   cases n <;> simp only [Name.child, reduceCtorEq] at h <;> try rfl
   split_ifs at h
 
-theorem filter_lt_succ (t : Fin 14) (ht : t.val < 13) :
-    Finset.univ.filter (fun t' : Fin 14 => t < t') =
-      insert (⟨t.val + 1, by omega⟩ : Fin 14)
-        (Finset.univ.filter (fun t' : Fin 14 => (⟨t.val + 1, by omega⟩ : Fin 14) < t')) := by
+theorem filter_lt_succ (t : Fin 20) (ht : t.val < 19) :
+    Finset.univ.filter (fun t' : Fin 20 => t < t') =
+      insert (⟨t.val + 1, by omega⟩ : Fin 20)
+        (Finset.univ.filter (fun t' : Fin 20 => (⟨t.val + 1, by omega⟩ : Fin 20) < t')) := by
   ext t'
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert, Fin.lt_def,
     Fin.ext_iff]
   omega
 
-theorem filter_lt_eq_filter_le (t : Fin 14) (ht : t.val < 13) :
-    Finset.univ.filter (fun t' : Fin 14 => t < t') =
-      Finset.univ.filter (fun t' : Fin 14 => (⟨t.val + 1, by omega⟩ : Fin 14) ≤ t') := by
+theorem filter_lt_eq_filter_le (t : Fin 20) (ht : t.val < 19) :
+    Finset.univ.filter (fun t' : Fin 20 => t < t') =
+      Finset.univ.filter (fun t' : Fin 20 => (⟨t.val + 1, by omega⟩ : Fin 20) ≤ t') := by
   ext t'
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fin.lt_def, Fin.le_def]
   omega
 
-theorem filter_le_eq_insert (t : Fin 14) :
-    Finset.univ.filter (fun t' : Fin 14 => t ≤ t') =
-      insert t (Finset.univ.filter (fun t' : Fin 14 => t < t')) := by
+theorem filter_le_eq_insert (t : Fin 20) :
+    Finset.univ.filter (fun t' : Fin 20 => t ≤ t') =
+      insert t (Finset.univ.filter (fun t' : Fin 20 => t < t')) := by
   ext t'
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert, Fin.le_def,
     Fin.lt_def, Fin.ext_iff]
   omega
 
-theorem filter_lt_13 : Finset.univ.filter (fun t' : Fin 14 => (13 : Fin 14) < t') = ∅ :=
+theorem filter_lt_19 : Finset.univ.filter (fun t' : Fin 20 => (19 : Fin 20) < t') = ∅ :=
   Finset.filter_eq_empty_iff.mpr fun t' _ => not_lt.mpr (Fin.le_last t')
 
 theorem univ_eq_insert_zero :
-    (Finset.univ : Finset (Fin 14)) =
-      insert 0 (Finset.univ.filter (fun t' : Fin 14 => 0 < t')) := by
+    (Finset.univ : Finset (Fin 20)) =
+      insert 0 (Finset.univ.filter (fun t' : Fin 20 => 0 < t')) := by
   ext t'
   simp only [Finset.mem_univ, Finset.mem_insert, Finset.mem_filter, true_and, true_iff, Fin.lt_def,
     Fin.ext_iff, Fin.val_zero]
   omega
 
 theorem filter_zero_le :
-    Finset.univ.filter (fun t' : Fin 14 => (0 : Fin 14) ≤ t') = Finset.univ := by
+    Finset.univ.filter (fun t' : Fin 20 => (0 : Fin 20) ≤ t') = Finset.univ := by
   simp
 
 theorem ancSet_child {n p : Name} (h : child n = some p) : ancSet n = insert p (ancSet p) := by
@@ -154,10 +136,10 @@ theorem ancSet_child {n p : Name} (h : child n = some p) : ancSet n = insert p (
     simp only [Name.child, Option.some.injEq] at h; subst h
     simp only [ancSet]
     rw [show Finset.univ.image (cv k) =
-        (Finset.univ.filter (fun t' : Fin 14 => (0 : Fin 14) ≤ t')).image (cv k) from by
+        (Finset.univ.filter (fun t' : Fin 20 => (0 : Fin 20) ≤ t')).image (cv k) from by
       rw [filter_zero_le]]
     rw [show Finset.univ.image (ch k) =
-        insert (ch k 0) ((Finset.univ.filter (fun t' : Fin 14 => 0 < t')).image (ch k)) from by
+        insert (ch k 0) ((Finset.univ.filter (fun t' : Fin 20 => 0 < t')).image (ch k)) from by
       rw [← Finset.image_insert, ← univ_eq_insert_zero]]
     rw [Finset.insert_union, Finset.insert_union]
   | ch k t =>
@@ -169,25 +151,17 @@ theorem ancSet_child {n p : Name} (h : child n = some p) : ancSet n = insert p (
     simp only [Name.child] at h
     split_ifs at h with ht
     · simp only [Option.some.injEq] at h; subst h
-      have ht' : t = 13 := Fin.ext ht
+      have ht' : t = 19 := Fin.ext ht
       subst ht'
-      simp only [ancSet, filter_lt_13, Finset.image_empty, Finset.empty_union]
-      have hk : (k : ℕ) / 3 / 3 = k / 9 := by omega
-      simp only [hk]
+      simp only [ancSet, filter_lt_19, Finset.image_empty, Finset.empty_union]
     · simp only [Option.some.injEq] at h; subst h
       simp only [ancSet]
-      rw [show (Finset.univ.filter (fun t' : Fin 14 => t < t')).image (cv k) =
+      rw [show (Finset.univ.filter (fun t' : Fin 20 => t < t')).image (cv k) =
           (Finset.univ.filter
-            (fun t' : Fin 14 => (⟨t.val + 1, by omega⟩ : Fin 14) ≤ t')).image (cv k) from by
+            (fun t' : Fin 20 => (⟨t.val + 1, by omega⟩ : Fin 20) ≤ t')).image (cv k) from by
         rw [filter_lt_eq_filter_le t (by omega)]]
       rw [filter_lt_succ t (by omega), Finset.image_insert, Finset.insert_union,
         Finset.insert_union]
-  | gc j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
-  | gh j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
-  | gv j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
-  | ec l => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
-  | eh l => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
-  | ev l => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
   | rc => simp only [Name.child, Option.some.injEq] at h; subst h; simp [ancSet]
   | rh => simp [Name.child] at h
 
@@ -340,8 +314,6 @@ theorem no_hidden_source_iff (A : Finset Name) :
 /-- The hash node whose output is the value of a 128-bit node (none for sources). -/
 def hashOf : Name → Option Name
   | cv k t => some (ch k t)
-  | gv j => some (gh j)
-  | ev l => some (eh l)
   | _ => none
 
 theorem child_hashOf {a h : Name} (hh : hashOf a = some h) : child h = some a := by
@@ -390,7 +362,7 @@ theorem IsCut.trichotomy {A : Finset Name} (hA : IsCut A) (n : Name) :
 section
 
 /- Unifying or normalising a hypothesis of the form `p ∈ evaluatedSet A` makes Lean unfold
-`Finset.univ : Finset Name` through the `Fintype` instance (1913 elements), which exhausts the
+`Finset.univ : Finset Name` through the `Fintype` instance (1683 elements), which exhausts the
 recursion depth; `evaluatedSet` is therefore kept opaque in this section. -/
 attribute [local irreducible] evaluatedSet
 
