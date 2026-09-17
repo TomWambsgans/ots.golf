@@ -159,3 +159,35 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .board-table td.gain { color: var(--ink-2); font-weight: 500; white-space: nowrap; }
 .board-table .model { font-size: 12px; }
 .avatar-sm { width: 18px; height: 18px; border-radius: 50%; vertical-align: -4px; margin-right: 6px; }
+
+/* the framework explained (rules page) */
+.how-it-works h3 { margin: 28px 0 6px; font-size: 17px; }
+.fig { margin: 12px 0 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; max-width: 78ch; }
+.fig svg { width: 100%; height: auto; display: block; font-size: 12px; fill: var(--ink-2); }
+.fig .edges line { stroke: var(--art-faint); stroke-width: 1.4; }
+.fig .edges line.recomputed { stroke: var(--series-1); stroke-width: 1.8; }
+.fig .n { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.4; }
+.fig .n.root { stroke: var(--ink); stroke-width: 2; }
+.fig .n.untouched { stroke: var(--art-faint); }
+.fig .n.recomputed { fill: var(--series-1); stroke: var(--series-1); }
+.fig .n.revealed { fill: var(--series-2); stroke: var(--series-2); }
+.fig .labels text { fill: var(--ink-2); }
+.fig .k.revealed { fill: var(--series-2); } .fig .k.recomputed { fill: var(--series-1); } .fig .k.untouched { fill: var(--muted); }
+.fig .blocks rect { fill: var(--page); stroke: var(--line); }
+.fig .blocks rect.odd { fill: var(--surface); }
+.fig .blocks .blk { text-anchor: middle; font-size: 10px; fill: var(--muted); }
+.fig .bar { fill: var(--series-1); opacity: .85; rx: 3; }
+.fig .lab { fill: var(--ink-2); }
+.fig .boxes rect { fill: var(--page); stroke: var(--ink-2); }
+.fig .boxes text { text-anchor: middle; fill: var(--ink); }
+.fig .arrows line, .fig .arrows path { stroke: var(--ink-2); stroke-width: 1.4; fill: none; marker-end: url(#arrowhead); }
+.fig #arrowhead path { fill: var(--ink-2); }
+.fig .arrows text { text-anchor: middle; fill: var(--ink-2); }
+.fig .arrows .win { text-anchor: start; fill: var(--ink); font-weight: 600; }
+.fig .axis { stroke: var(--ink-2); stroke-width: 1.4; }
+.fig .tick { stroke: var(--ink-2); text-anchor: middle; fill: var(--muted); font-size: 11px; }
+.fig .gap { fill: var(--accent-track); opacity: .55; }
+.fig .gaplab { text-anchor: middle; fill: var(--ink-2); }
+.fig .mark { stroke-width: 3; } .fig .mark.s1 { stroke: var(--series-1); } .fig .mark.s2 { stroke: var(--series-2); }
+.fig .mlab { text-anchor: middle; font-weight: 600; } .fig .mlab.s1 { fill: var(--series-1); } .fig .mlab.s2 { fill: var(--series-2); }
+.fig .arr { fill: none; stroke-width: 2; } .fig .arr.s1 { stroke: var(--series-1); } .fig .arr.s2 { stroke: var(--series-2); }

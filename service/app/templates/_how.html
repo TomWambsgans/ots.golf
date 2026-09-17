@@ -1,0 +1,135 @@
+{# The framework explained, before the rules. Illustrations are inline SVG styled from style.css. #}
+<section class="how-it-works prose">
+<h2>How it works</h2>
+
+<h3>1. A signature scheme is a public computation on secret inputs</h3>
+<p>A scheme is a fixed directed acyclic graph. Its leaves are <em>secret sources</em>, uniformly random bit strings.
+The other nodes are either <em>hash nodes</em>, which query a random oracle <code>H</code> on their single parent's
+value, or <em>deterministic nodes</em>, which apply any public function to their parents (concatenate, truncate, split;
+these are free). One hash node is the <em>root</em>. Key generation draws the sources, evaluates the graph, and publishes
+the first 128 bits of the root as the public key.</p>
+<figure class="fig">
+<svg viewBox="0 0 570 250" role="img" aria-label="A small computation graph: four chains of hash nodes over secret sources, joined by a concatenation node into the root">
+  <g class="edges">
+    {% for x in [70, 150, 230, 310] %}
+    <line x1="{{ x }}" y1="215" x2="{{ x }}" y2="165"/><line x1="{{ x }}" y1="165" x2="{{ x }}" y2="115"/>
+    <line x1="{{ x }}" y1="115" x2="190" y2="70"/>
+    {% endfor %}
+    <line x1="190" y1="70" x2="190" y2="25"/>
+  </g>
+  {% for x in [70, 150, 230, 310] %}
+  <rect class="n src" x="{{ x - 6 }}" y="209" width="12" height="12" transform="rotate(45 {{ x }} 215)"/>
+  <circle class="n hash" cx="{{ x }}" cy="165" r="6"/><circle class="n hash" cx="{{ x }}" cy="115" r="6"/>
+  {% endfor %}
+  <rect class="n det" x="184" y="64" width="12" height="12"/>
+  <circle class="n hash root" cx="190" cy="25" r="8"/>
+  <g class="labels">
+    <text x="345" y="219">secret sources</text>
+    <text x="345" y="169">hash nodes</text>
+    <text x="345" y="119">H(parent)</text>
+    <text x="215" y="74">deterministic node</text>
+    <text x="215" y="29">root → public key = first 128 bits</text>
+  </g>
+</svg>
+</figure>
+
+<h3>2. Signing reveals a cut</h3>
+<p>The scheme also fixes <code>2<sup>115</sup></code> <em>disclosure sets</em> <code>A<sub>0</sub>, …, A<sub>M−1</sub></code>: sets of nodes,
+never the root, meeting every path from a source to the root. To sign a message <code>m</code>, the signer draws a nonce
+<code>η</code>, reads the index <code>i</code> as the first 128 bits of <code>H(m ‖ η)</code> (trying another nonce if
+<code>i ≥ M</code>), and outputs <code>η</code> together with the values of the nodes of <code>A<sub>i</sub></code>.
+The message chooses which values are revealed; the signer never computes anything new.</p>
+<figure class="fig">
+<svg viewBox="0 0 570 250" role="img" aria-label="The same graph with one disclosure set lit: revealed values in orange, the nodes the verifier recomputes in blue, untouched nodes grey">
+  {% set cut = {70: 165, 150: 215, 230: 115, 310: 165} %}
+  <g class="edges">
+    {% for x, cy in cut.items() %}
+    <line class="{{ 'recomputed' if cy >= 165 else '' }}" x1="{{ x }}" y1="165" x2="{{ x }}" y2="115"/>
+    <line class="{{ 'recomputed' if cy == 215 else '' }}" x1="{{ x }}" y1="215" x2="{{ x }}" y2="165"/>
+    <line class="recomputed" x1="{{ x }}" y1="115" x2="190" y2="70"/>
+    {% endfor %}
+    <line class="recomputed" x1="190" y1="70" x2="190" y2="25"/>
+  </g>
+  {% for x, cy in cut.items() %}
+  <rect class="n src {{ 'revealed' if cy == 215 else 'untouched' }}" x="{{ x - 6 }}" y="209" width="12" height="12" transform="rotate(45 {{ x }} 215)"/>
+  <circle class="n hash {{ 'revealed' if cy == 165 else ('recomputed' if cy > 165 else 'untouched') }}" cx="{{ x }}" cy="165" r="6"/>
+  <circle class="n hash {{ 'revealed' if cy == 115 else 'recomputed' }}" cx="{{ x }}" cy="115" r="6"/>
+  {% endfor %}
+  <rect class="n det recomputed" x="184" y="64" width="12" height="12"/>
+  <circle class="n hash root recomputed" cx="190" cy="25" r="8"/>
+  <g class="labels">
+    <text x="345" y="45">H(m ‖ η) → index i</text>
+    <text x="345" y="63">the signature: η and the</text>
+    <text x="345" y="79">values of A<tspan baseline-shift="sub" font-size="9">i</tspan></text>
+    <text class="k revealed" x="345" y="169">● revealed</text>
+    <text class="k recomputed" x="345" y="187">● recomputed by the verifier</text>
+    <text class="k untouched" x="345" y="205">● never touched</text>
+  </g>
+</svg>
+</figure>
+
+<h3>3. Verification recomputes the root, and its cost is what we measure</h3>
+<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, checks the length of the revealed
+string, evaluates every node above the cut from the revealed values, and accepts if the first 128 bits of the root equal
+the public key. Every query to <code>H</code> is charged one <em>compression</em> per started 512-bit block of input;
+everything else is free. The score of a scheme is the cost of its most expensive signature, index query included.</p>
+<figure class="fig">
+<svg viewBox="0 0 560 120" role="img" aria-label="Three hash inputs of 128, 384 and 896 bits against a grid of 512-bit blocks: one, one and two compressions">
+  <g class="blocks">
+    {% for k in range(3) %}<rect x="{{ 20 + 128 * k }}" y="12" width="128" height="90" class="{{ 'odd' if k % 2 else '' }}"/>
+    <text class="blk" x="{{ 84 + 128 * k }}" y="112">block {{ k + 1 }} · 512 bits</text>{% endfor %}
+  </g>
+  <rect class="bar" x="20" y="20" width="32" height="14"/><text class="lab" x="58" y="31">128 bits, a chain step: 1 compression</text>
+  <rect class="bar" x="20" y="50" width="96" height="14"/><text class="lab" x="122" y="61">384 bits, three digests: 1 compression</text>
+  <rect class="bar" x="20" y="80" width="224" height="14"/><text class="lab" x="250" y="91">896 bits, seven digests: 2 compressions</text>
+</svg>
+</figure>
+
+<h3>4. Security: one signature, then a forgery</h3>
+<p>The attacker receives the public key, may query <code>H</code> freely, and asks for one signature on a message of its
+choice. It wins if the verifier then accepts a message–signature pair different from the one it received. Counting the
+compressions of the whole experiment (key generation, signing, the attacker's queries, the final verification) as
+<code>B</code>, a scheme is <em>secure</em> when every attacker wins with probability below <code>B / 2<sup>127</sup></code>:
+a forgery costs about <code>2<sup>127</sup></code> compressions per unit of success probability.</p>
+<figure class="fig">
+<svg viewBox="0 0 660 130" role="img" aria-label="The forgery experiment: key generation gives the public key to the attacker, who picks a message, receives its signature, and outputs a different message and signature to the verifier">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker></defs>
+  <g class="boxes">
+    <rect x="8" y="34" width="100" height="36" rx="6"/><text x="58" y="57">key generation</text>
+    <rect x="176" y="34" width="96" height="36" rx="6"/><text x="224" y="57">attacker</text>
+    <rect x="340" y="34" width="96" height="36" rx="6"/><text x="388" y="57">signer</text>
+    <rect x="504" y="34" width="96" height="36" rx="6"/><text x="552" y="57">verifier</text>
+  </g>
+  <g class="arrows">
+    <line x1="108" y1="52" x2="172" y2="52"/><text x="142" y="28">pk</text>
+    <line x1="272" y1="44" x2="336" y2="44"/><text x="304" y="28">m<tspan baseline-shift="sub" font-size="9">1</tspan></text>
+    <line x1="336" y1="62" x2="276" y2="62"/><text x="304" y="86">σ<tspan baseline-shift="sub" font-size="9">1</tspan></text>
+    <path d="M224 70 v34 h328 v-30"/><text x="388" y="122">(m<tspan baseline-shift="sub" font-size="9">2</tspan>, σ<tspan baseline-shift="sub" font-size="9">2</tspan>) ≠ (m<tspan baseline-shift="sub" font-size="9">1</tspan>, σ<tspan baseline-shift="sub" font-size="9">1</tspan>)</text>
+    <text x="608" y="57" class="win">accept?</text>
+  </g>
+</svg>
+</figure>
+
+<h3>5. Two games, one number</h3>
+<p>Somewhere between the records lies the true optimum: the cheapest worst-case verification any secure scheme with a
+128-bit public key and signatures of at most 5504 bits can have. The <strong>upper track</strong> attacks it from above:
+exhibit a scheme, prove it secure, and bound the cost of every signature. The <strong>lower track</strong> attacks it from
+below: prove that every secure scheme has a signature at least that expensive. Both certificates are Lean theorems about
+the same statement, <code>formal/OptimalOTS/Statement.lean</code>, checked by the kernel.</p>
+<figure class="fig">
+{% set lo = iv.lower.record_claim %}{% set up = iv.upper.record_claim %}
+{% set xl = 30 + lo * 4.2 %}{% set xu = 30 + up * 4.2 %}
+<svg viewBox="0 0 640 110" role="img" aria-label="A number line with the lower-bound record and the upper-bound record; the optimum lies in between">
+  <line class="axis" x1="30" y1="60" x2="610" y2="60"/>
+  {% for v in [0, 25, 50, 75, 100, 125] %}<line class="tick" x1="{{ 30 + v * 4.2 }}" y1="60" x2="{{ 30 + v * 4.2 }}" y2="66"/><text class="tick" x="{{ 30 + v * 4.2 }}" y="80">{{ v }}</text>{% endfor %}
+  <rect class="gap" x="{{ xl }}" y="48" width="{{ xu - xl }}" height="24"/>
+  <text class="gaplab" x="{{ (xl + xu) / 2 }}" y="103">the optimum is in here</text>
+  <line class="mark s1" x1="{{ xl }}" y1="40" x2="{{ xl }}" y2="72"/>
+  <text class="mlab s1" x="{{ xl }}" y="32">lower bound {{ lo }}</text>
+  <path class="arr s1" d="M{{ xl + 6 }} 60 h18 l-6 -4 m6 4 l-6 4"/>
+  <line class="mark s2" x1="{{ xu }}" y1="40" x2="{{ xu }}" y2="72"/>
+  <text class="mlab s2" x="{{ xu }}" y="32">upper bound {{ up }}</text>
+  <path class="arr s2" d="M{{ xu - 6 }} 60 h-18 l6 -4 m-6 4 l6 4"/>
+</svg>
+</figure>
+</section>

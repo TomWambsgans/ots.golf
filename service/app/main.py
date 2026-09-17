@@ -158,10 +158,10 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 
 
 @app.get("/rules", response_class=HTMLResponse)
-def rules(request: Request):
+def rules(request: Request, session: Session = Depends(get_session)):
     text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
     return render(request, "rules.html", body=markdown.markdown(text, extensions=["tables", "fenced_code"]),
-                  cfg=contract.load())
+                  cfg=contract.load(), iv=records.interval(session))
 
 
 @app.get("/llms.txt", response_class=PlainTextResponse)
