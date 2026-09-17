@@ -1,6 +1,7 @@
 """ots.golf: the site, and the pull-request webhook that queues submissions."""
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -32,9 +33,17 @@ def _startup() -> None:
     init_db()
 
 
+def static_version() -> str:
+    """A short content hash of the stylesheet, appended to its URL so that a deployment never leaves
+    visitors with a cached copy of the previous one."""
+    css = APP_DIR / "static" / "style.css"
+    return hashlib.sha256(css.read_bytes()).hexdigest()[:10] if css.is_file() else "0"
+
+
 def render(request: Request, name: str, **ctx) -> HTMLResponse:
     ctx.update(request=request, settings=settings, contract_version=contract.load()["contract"]["version"],
-               contract_id=contract.contract_id(), contract_commit=contract.trusted_commit())
+               contract_id=contract.contract_id(), contract_commit=contract.trusted_commit(),
+               static_v=static_version())
     return templates.TemplateResponse(request, name, ctx)
 
 
