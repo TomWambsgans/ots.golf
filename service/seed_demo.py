@@ -35,13 +35,13 @@ PEOPLE = [
 ROWS = [
     ("upper", "satoshi-nakamoto", 107, 6 * 24 + 5, "verified", True, "GPT-2", []),
     ("upper", "vitalik-butterin", 105, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "LLaMA 7B", []),
-    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "GPT-2", []),
-    ("upper", "vitalik-butterin", 101, 26, "verified", True, "GPT-2", []),
-    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
+    ("upper", "vitalik-butterin", 101, 26, "verified", True, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "GPT-2", []),
     ("lower", "vitalik-butterin", 26, 5 * 24 + 3, "verified", True, "LLaMA 7B", []),
     ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "GPT-2", []),
-    ("lower", "vitalik-butterin", 26, 22, "verified", False, "GPT-2", []),
+    ("lower", "vitalik-butterin", 26, 22, "verified", False, "LLaMA 7B", []),
 ]
 
 
