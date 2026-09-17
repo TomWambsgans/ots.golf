@@ -11,7 +11,7 @@ The attacker of the paper, for a scheme `S`, `q` construction attempts and `T` n
    records consistent with everything observed;
 3. compute the weights and rank all disclosure indices by the weight of the hash nodes they would
    newly evaluate (index `i` first);
-4. try `T` nonces for `msg₂` and keep the best-ranked index among the 100 lowest ranks;
+4. try `T` nonces for `msg₂` and keep the best-ranked index among the 450 lowest ranks;
 5. reuse the received values if that index is `i`, and otherwise run up to `q` construction
    attempts and output the values of a surviving candidate.
 -/
@@ -70,7 +70,7 @@ def key (i : Fin P.numSets) (C : Finset S.graph.Rec) (j : Fin P.numSets) : Lex (
 def rank (i : Fin P.numSets) (C : Finset S.graph.Rec) (j : Fin P.numSets) : ℕ :=
   (Finset.univ.filter fun j' => key S i C j' < key S i C j).card
 
-/-- One nonce trial: keep the best rank below `100` found so far, with its index and nonce. -/
+/-- One nonce trial: keep the best rank below `450` found so far, with its index and nonce. -/
 def searchStep (i : Fin P.numSets) (C : Finset S.graph.Rec)
     (best : Option (ℕ × Fin P.numSets × Nonce P)) (k : ℕ) :
     OracleComp (Spec P) (Option (ℕ × Fin P.numSets × Nonce P)) := do
@@ -78,7 +78,7 @@ def searchStep (i : Fin P.numSets) (C : Finset S.graph.Rec)
   let j ← index P (msg₂ P) η
   if hj : j < P.numSets then
     let r := rank S i C ⟨j, hj⟩
-    if r < 100 ∧ ∀ b ∈ best, r < b.1 then
+    if r < 450 ∧ ∀ b ∈ best, r < b.1 then
       return some (r, ⟨j, hj⟩, η)
     else
       return best

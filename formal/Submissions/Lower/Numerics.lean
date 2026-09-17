@@ -6,7 +6,7 @@ import Submissions.Lower.NumericsDefs
 
 namespace OptimalOTS.Numerics
 
-theorem hundred_lt_countingFactor : 100 < (2 : ℝ) ^ 115 * countingFactor 22 5257 123 := by
+theorem five_hundred_lt_countingFactor : 500 < (2 : ℝ) ^ 115 * countingFactor 21 5257 113 := by
   unfold countingFactor
   simp only [Finset.prod_range_succ, Finset.prod_range_zero]
   norm_num
@@ -28,9 +28,9 @@ private lemma prod_strictAntiOn (g : ℕ → ℝ → ℝ)
     exact mul_lt_mul'' h1 h2 hp.le (hpos (n + 1) y hy).le
 
 theorem countingFactor_div_pow_strictAntiOn :
-    StrictAntiOn (fun d : ℝ => countingFactor 22 5257 d / d ^ 22) (Set.Ioi 0) := by
+    StrictAntiOn (fun d : ℝ => countingFactor 21 5257 d / d ^ 21) (Set.Ioi 0) := by
   set g : ℕ → ℝ → ℝ := fun k d =>
-    (21 * 5257 / (5257 + d) + ((k : ℝ) + 1)) / (22 * 5257 + ((k : ℝ) + 1) * d) with hg
+    (20 * 5257 / (5257 + d) + ((k : ℝ) + 1)) / (21 * 5257 + ((k : ℝ) + 1) * d) with hg
   have hpos : ∀ k d, 0 < d → 0 < g k d := by
     intro k d hd; simp only [hg]; positivity
   have hanti : ∀ k, StrictAntiOn (g k) (Set.Ioi 0) := by
@@ -38,21 +38,21 @@ theorem countingFactor_div_pow_strictAntiOn :
     simp only [Set.mem_Ioi] at hx hy
     simp only [hg]
     have hk : (0 : ℝ) ≤ k := Nat.cast_nonneg k
-    have hnum : 21 * 5257 / (5257 + y) + ((k : ℝ) + 1) ≤ 21 * 5257 / (5257 + x) + ((k : ℝ) + 1) := by
+    have hnum : 20 * 5257 / (5257 + y) + ((k : ℝ) + 1) ≤ 20 * 5257 / (5257 + x) + ((k : ℝ) + 1) := by
       gcongr
-    have hden : 22 * 5257 + ((k : ℝ) + 1) * x < 22 * 5257 + ((k : ℝ) + 1) * y := by
+    have hden : 21 * 5257 + ((k : ℝ) + 1) * x < 21 * 5257 + ((k : ℝ) + 1) * y := by
       nlinarith
-    calc (21 * 5257 / (5257 + y) + ((k : ℝ) + 1)) / (22 * 5257 + ((k : ℝ) + 1) * y)
-        ≤ (21 * 5257 / (5257 + x) + ((k : ℝ) + 1)) / (22 * 5257 + ((k : ℝ) + 1) * y) := by
+    calc (20 * 5257 / (5257 + y) + ((k : ℝ) + 1)) / (21 * 5257 + ((k : ℝ) + 1) * y)
+        ≤ (20 * 5257 / (5257 + x) + ((k : ℝ) + 1)) / (21 * 5257 + ((k : ℝ) + 1) * y) := by
           gcongr
-      _ < (21 * 5257 / (5257 + x) + ((k : ℝ) + 1)) / (22 * 5257 + ((k : ℝ) + 1) * x) := by
+      _ < (20 * 5257 / (5257 + x) + ((k : ℝ) + 1)) / (21 * 5257 + ((k : ℝ) + 1) * x) := by
           apply div_lt_div_of_pos_left (by positivity) (by positivity) hden
-  have heq : Set.EqOn (fun d : ℝ => countingFactor 22 5257 d / d ^ 22)
-      (fun d => ∏ k ∈ Finset.range (21 + 1), g k d) (Set.Ioi 0) := by
+  have heq : Set.EqOn (fun d : ℝ => countingFactor 21 5257 d / d ^ 21)
+      (fun d => ∏ k ∈ Finset.range (20 + 1), g k d) (Set.Ioi 0) := by
     intro d hd
     simp only [Set.mem_Ioi] at hd
     simp only [countingFactor]
-    rw [show d ^ 22 = ∏ k ∈ Finset.range (21 + 1), d by simp, ← Finset.prod_div_distrib]
+    rw [show d ^ 21 = ∏ k ∈ Finset.range (20 + 1), d by simp, ← Finset.prod_div_distrib]
     apply Finset.prod_congr rfl
     intro k _
     simp only [hg]
@@ -61,27 +61,25 @@ theorem countingFactor_div_pow_strictAntiOn :
     have h1 : 5257 + d ≠ 0 := by positivity
     field_simp
     ring
-  exact (prod_strictAntiOn g hpos hanti 21).congr heq.symm
+  exact (prod_strictAntiOn g hpos hanti 20).congr heq.symm
 
-theorem budget_lt_logb : 123 < Real.logb 2 (Real.exp 1 * q * Real.log q) := by
+theorem budget_lt_logb : 113 < Real.logb 2 (Real.exp 1 * q * Real.log q) := by
   have he := Real.exp_one_gt_d9
   have hl := Real.log_two_gt_d9
-  have hq' : (q : ℝ) = 5 * 2 ^ 113 := by unfold q; push_cast; ring
-  have hq : Real.log (q : ℝ) = Real.log 5 + 113 * Real.log 2 := by
-    rw [hq', Real.log_mul (by norm_num) (by positivity), Real.log_pow]
-    norm_num
-  have h5 : 0 < Real.log 5 := Real.log_pos (by norm_num)
-  have hlq : 78 < Real.log (q : ℝ) := by rw [hq]; nlinarith
+  have hq' : (q : ℝ) = 2 ^ 110 := by unfold q; push_cast; ring
+  have hq : Real.log (q : ℝ) = 110 * Real.log 2 := by
+    rw [hq', Real.log_pow]; norm_num
+  have hlq : 76 < Real.log (q : ℝ) := by rw [hq]; nlinarith
   have hqpos : (0 : ℝ) < q := by unfold q; positivity
   rw [Real.lt_logb_iff_rpow_lt (by norm_num) (by positivity)]
-  have : (2 : ℝ) ^ (123 : ℝ) = 2 ^ (123 : ℕ) := by norm_cast
+  have : (2 : ℝ) ^ (113 : ℝ) = 2 ^ (113 : ℕ) := by norm_cast
   rw [this]
   rw [hq']
   rw [hq'] at hlq
-  have h1 : (2:ℝ)^123 = 1024 * 2^113 := by norm_num
+  have h1 : (2:ℝ)^113 = 8 * 2^110 := by norm_num
   rw [h1]
-  have h2 : (0:ℝ) < 2^113 := by positivity
-  have h3 : (1024 : ℝ) < Real.exp 1 * 5 * Real.log (5 * 2 ^ 113) := by nlinarith
+  have h2 : (0:ℝ) < 2^110 := by positivity
+  have h3 : (8 : ℝ) < Real.exp 1 * Real.log (2 ^ 110) := by nlinarith
   nlinarith
 
 theorem signFailure_lt : signFailure < (2 : ℝ)⁻¹ ^ 256 := by
@@ -97,7 +95,7 @@ theorem signFailure_lt : signFailure < (2 : ℝ)⁻¹ ^ 256 := by
         exact pow_lt_pow_left₀ Real.exp_neg_one_lt_half (Real.exp_pos _).le (by norm_num)
     _ = (2 : ℝ)⁻¹ ^ 256 := by norm_num
 
-theorem attackCost_div_lt : (attackCost : ℝ) / 2 ^ 127 < 27 / 500 := by
+theorem attackCost_div_lt : (attackCost : ℝ) / 2 ^ 127 < 3 / 32 := by
   unfold attackCost T q
   norm_num
 

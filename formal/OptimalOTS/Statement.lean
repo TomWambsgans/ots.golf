@@ -24,7 +24,8 @@ signature whose verification costs at least 25 hash units.
 The file is organized as follows.
 
 1. `Params`: the numerical parameters.
-2. The random oracle and the cost of a query (one unit per started 512-bit block).
+2. The random oracle and the cost of a query (one unit per started 512-bit block of the input
+   plus 192 overhead bits: a 128-bit public parameter and a 64-bit tweak).
 3. Computation graphs: secret sources, deterministic nodes and hash nodes.
 4. Schemes: disclosure sets, key generation, signing, verification, and the verification cost.
 5. Security: the one-signature forgery experiment and `Scheme.Secure`.
@@ -45,8 +46,12 @@ namespace OptimalOTS
 structure Params where
   /-- Output length of the random oracle. -/
   hashBits : ℕ
-  /-- A query on `k` input bits costs `⌈k / blockBits⌉` units (and at least one). -/
+  /-- A query on `k` input bits costs `⌈(k + overheadBits) / blockBits⌉` units (and at least one). -/
   blockBits : ℕ
+  /-- Bits every query carries besides its input: a public parameter for multi-user domain
+  separation and a tweak for addressing. They are charged but do not appear in the model, where
+  labels provide the separation for free. -/
+  overheadBits : ℕ
   /-- Length of the public key: a prefix of the root hash. -/
   pkBits : ℕ
   /-- Length of messages. -/
@@ -83,8 +88,12 @@ abbrev hashSpec (P : Params) : OracleSpec Query := Query →ₒ BitVec P.hashBit
 /-- The oracles of every party: free uniform sampling and the random oracle. -/
 abbrev Spec (P : Params) := unifSpec + hashSpec P
 
-/-- Cost of hashing `k` bits: the number of started blocks, and at least one. -/
-def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.blockBits - 1) / P.blockBits)
+/-- Cost of hashing `k` bits: the number of started blocks of the input together with the
+overhead bits, and at least one. -/
+def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.overheadBits + P.blockBits - 1) / P.blockBits)
+
+/-- Cost of the index query `H(enc, m ‖ η)`. -/
+def idxCost (P : Params) : ℕ := blockCost P (P.msgBits + P.nonceBits)
 
 /-- Cost of a query: uniform sampling is free, hashing `k` bits costs `blockCost P k`. -/
 def queryCost (P : Params) : (Spec P).Domain → ℕ
@@ -338,9 +347,8 @@ def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (S
   else
     return false
 
-/-- Query cost of verifying a signature at index `i`: one unit for the index, plus
-reconstruction. -/
-def verifyCost (i : Fin P.numSets) : ℕ := 1 + S.graph.reconstructCost (S.sets i)
+/-- Query cost of verifying a signature at index `i`: the index query, plus reconstruction. -/
+def verifyCost (i : Fin P.numSets) : ℕ := idxCost P + S.graph.reconstructCost (S.sets i)
 
 end Scheme
 
@@ -382,6 +390,7 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
 def paperParams : Params where
   hashBits := 256
   blockBits := 512
+  overheadBits := 192
   pkBits := 128
   msgBits := 256
   nonceBits := 256

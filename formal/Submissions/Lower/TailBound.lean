@@ -9,7 +9,7 @@ import Submissions.Lower.Ranks
 # The distribution of the weight at a given rank
 
 For the parameters of the paper and a scheme whose signatures verify within 24 units, the target
-of rank `ℓ` weighs less than `d` with probability at least `511/512 - ℓ/100 · (123/d)^22`, for a
+of rank `ℓ` weighs less than `d` with probability at least `511/512 - ℓ/500 · (113/d)^21`, for a
 uniform index and a uniform record.
 -/
 
@@ -41,7 +41,7 @@ lemma nodeCost_pos {P : Params} (G : Graph P) (v : Fin G.size) (hv : (G.kind v).
     | .hash p hp τ hl, _ => exact (h p hp τ hl hk).elim
 
 lemma card_targetSet_le (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24)
-    (j : Fin paperParams.numSets) : (targetSet S j).card ≤ 22 := by
+    (j : Fin paperParams.numSets) : (targetSet S j).card ≤ 21 := by
   have hroot : S.graph.root ∈ evalHashAt S j := by
     simp only [evalHashAt, Graph.evalHash, Graph.evaluated, Finset.mem_filter, Finset.mem_univ,
       true_and]
@@ -56,6 +56,8 @@ lemma card_targetSet_le (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i 
       _ ≤ _ := Finset.sum_le_sum_of_subset (Finset.filter_subset _ _)
   have h2 := hcost j
   unfold Scheme.verifyCost at h2
+  have hidx : idxCost paperParams = 2 := by decide
+  rw [hidx] at h2
   unfold targetSet
   rw [Finset.card_erase_of_mem hroot]
   omega
@@ -78,33 +80,33 @@ lemma h_zero_aux (S : Scheme paperParams) (ξ : S.graph.Rec) (i : Fin paperParam
   have : g ∈ evalHashAt S i := Finset.mem_of_mem_erase hg
   simp [weight, this]
 
-lemma ratio_le_countingFactor (ℓ : ℕ) (d : ℝ) (hd : 0 < d) (hd' : d ≤ 123) :
-    (ℓ : ℝ) / countingFactor 22 5257 d ≤
-      (ℓ : ℝ) / 100 * (123 / d) ^ 22 * (2 : ℝ) ^ 115 := by
+lemma ratio_le_countingFactor (ℓ : ℕ) (d : ℝ) (hd : 0 < d) (hd' : d ≤ 113) :
+    (ℓ : ℝ) / countingFactor 21 5257 d ≤
+      (ℓ : ℝ) / 500 * (113 / d) ^ 21 * (2 : ℝ) ^ 115 := by
   have hanti := Numerics.countingFactor_div_pow_strictAntiOn.antitoneOn
-    (show d ∈ Set.Ioi (0:ℝ) from hd) (show (123:ℝ) ∈ Set.Ioi (0:ℝ) by norm_num) hd'
-  have h100 := Numerics.hundred_lt_countingFactor
-  have hdp : (0:ℝ) < d ^ 22 := by positivity
-  have hcp : (0:ℝ) < (123:ℝ) ^ 22 := by positivity
-  set β := countingFactor 22 5257 d
-  set β' := countingFactor 22 5257 123
+    (show d ∈ Set.Ioi (0:ℝ) from hd) (show (113:ℝ) ∈ Set.Ioi (0:ℝ) by norm_num) hd'
+  have h500 := Numerics.five_hundred_lt_countingFactor
+  have hdp : (0:ℝ) < d ^ 21 := by positivity
+  have hcp : (0:ℝ) < (113:ℝ) ^ 21 := by positivity
+  set β := countingFactor 21 5257 d
+  set β' := countingFactor 21 5257 113
   have hβ' : 0 < β' := by
     have : (0:ℝ) < (2:ℝ) ^ 115 * β' := by linarith
     exact pos_of_mul_pos_right this (by positivity)
-  -- β ≥ β' * d^22 / 123^22
-  have hβ : β' * d ^ 22 / 123 ^ 22 ≤ β := by
+  -- β ≥ β' * d^21 / 113^21
+  have hβ : β' * d ^ 21 / 113 ^ 21 ≤ β := by
     rw [div_le_div_iff₀ hcp hdp] at hanti
     rw [div_le_iff₀ hcp]
     nlinarith
   have hβpos : 0 < β := lt_of_lt_of_le (by positivity) hβ
-  have key : 100 * (d ^ 22 / 123 ^ 22) ≤ (2:ℝ) ^ 115 * β := by
-    calc 100 * (d ^ 22 / 123 ^ 22) ≤ (2 ^ 115 * β') * (d ^ 22 / 123 ^ 22) := by
+  have key : 500 * (d ^ 21 / 113 ^ 21) ≤ (2:ℝ) ^ 115 * β := by
+    calc 500 * (d ^ 21 / 113 ^ 21) ≤ (2 ^ 115 * β') * (d ^ 21 / 113 ^ 21) := by
           gcongr
-      _ = 2 ^ 115 * (β' * d ^ 22 / 123 ^ 22) := by ring
+      _ = 2 ^ 115 * (β' * d ^ 21 / 113 ^ 21) := by ring
       _ ≤ 2 ^ 115 * β := by gcongr
   have hℓ0 : (0:ℝ) ≤ ℓ := Nat.cast_nonneg ℓ
-  have e : (ℓ : ℝ) / 100 * (123 / d) ^ 22 * (2 : ℝ) ^ 115 =
-      (ℓ : ℝ) / (100 * (d ^ 22 / 123 ^ 22)) * (2 : ℝ) ^ 115 := by
+  have e : (ℓ : ℝ) / 500 * (113 / d) ^ 21 * (2 : ℝ) ^ 115 =
+      (ℓ : ℝ) / (500 * (d ^ 21 / 113 ^ 21)) * (2 : ℝ) ^ 115 := by
     field_simp
   rw [e, div_mul_eq_mul_div, le_div_iff₀ (by positivity), div_mul_eq_mul_div,
     div_le_iff₀ hβpos]
@@ -123,11 +125,11 @@ lemma sum_card_filter_comm {α β : Type*} [Fintype α] [Fintype β] (Q : α →
   exact Finset.sum_comm
 
 lemma card_bad_le (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) (ℓ : ℕ)
-    (hℓ : ℓ < 100) (d : ℝ) (hd : 0 < d) (ξ : S.graph.Rec) :
+    (hℓ : ℓ < 450) (d : ℝ) (hd : 0 < d) (ξ : S.graph.Rec) :
     ((Finset.univ.filter fun i => ¬ D S i ℓ ξ < d).card : ℝ) ≤
       ((Finset.univ.filter fun i : Fin paperParams.numSets =>
           ((5248 : ℕ) : ℝ) + 9 < ∑ g, infoWeight (evalHashAt S i) (reveal S i) ξ g).card : ℝ) +
-        (ℓ : ℝ) / countingFactor 22 5257 d := by
+        (ℓ : ℝ) / countingFactor 21 5257 d := by
   have hℓM : ℓ < paperParams.numSets := lt_of_lt_of_le hℓ (by norm_num [paperParams])
   have hsub : (Finset.univ.filter fun i => ¬ D S i ℓ ξ < d) ⊆
       (Finset.univ.filter fun i : Fin paperParams.numSets =>
@@ -147,7 +149,7 @@ lemma card_bad_le (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24
         linarith
       · have := card_targetWeight_lt_le S i (obsCands S i ξ) hℓM hi
         exact Nat.lt_succ_of_le this
-  have hB := card_few_low_weight_targets_le (ι := Fin paperParams.numSets) (targetSet S) 22
+  have hB := card_few_low_weight_targets_le (ι := Fin paperParams.numSets) (targetSet S) 21
     (by norm_num) (card_targetSet_le S hcost) (fun i g => weight S i (obsCands S i ξ) g)
     (fun i g => weight_nonneg S i _ g) (fun i => h_zero_aux S ξ i) 5257 d (by norm_num) hd
     (ℓ + 1) (by omega)
@@ -190,8 +192,8 @@ lemma card_info_le (S : Scheme paperParams) (i : Fin paperParams.numSets) :
   · ring
 
 theorem tail_bound (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) (ℓ : ℕ)
-    (hℓ : ℓ < 100) (d : ℝ) (hd : 0 < d) (hd' : d ≤ 123) :
-    511 / 512 - (ℓ : ℝ) / 100 * (123 / d) ^ 22 ≤
+    (hℓ : ℓ < 450) (d : ℝ) (hd : 0 < d) (hd' : d ≤ 113) :
+    511 / 512 - (ℓ : ℝ) / 500 * (113 / d) ^ 21 ≤
       ((Finset.univ.filter fun p : Fin paperParams.numSets × S.graph.Rec =>
           D S p.1 ℓ p.2 < d).card : ℝ) /
         ((paperParams.numSets : ℝ) * (Fintype.card S.graph.Rec : ℝ)) := by
@@ -224,17 +226,17 @@ theorem tail_bound (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 2
   have hbad : ((Finset.univ.filter fun p : Fin paperParams.numSets × S.graph.Rec =>
           ¬ D S p.1 ℓ p.2 < d).card : ℝ) ≤
       (paperParams.numSets : ℝ) * ((Fintype.card S.graph.Rec : ℝ) / 512) +
-        (Fintype.card S.graph.Rec : ℝ) * ((ℓ : ℝ) / countingFactor 22 5257 d) := by
+        (Fintype.card S.graph.Rec : ℝ) * ((ℓ : ℝ) / countingFactor 21 5257 d) := by
     rw [hbadN, Nat.cast_sum]
     calc _ ≤ ∑ ξ : S.graph.Rec,
           (((Finset.univ.filter fun i : Fin paperParams.numSets =>
             ((5248 : ℕ) : ℝ) + 9 < ∑ g, infoWeight (evalHashAt S i) (reveal S i) ξ g).card : ℝ) +
-            (ℓ : ℝ) / countingFactor 22 5257 d) :=
+            (ℓ : ℝ) / countingFactor 21 5257 d) :=
           Finset.sum_le_sum fun ξ _ => card_bad_le S hcost ℓ hℓ d hd ξ
       _ = (∑ ξ : S.graph.Rec,
           ((Finset.univ.filter fun i : Fin paperParams.numSets =>
             ((5248 : ℕ) : ℝ) + 9 < ∑ g, infoWeight (evalHashAt S i) (reveal S i) ξ g).card : ℝ)) +
-            (Fintype.card S.graph.Rec : ℝ) * ((ℓ : ℝ) / countingFactor 22 5257 d) := by
+            (Fintype.card S.graph.Rec : ℝ) * ((ℓ : ℝ) / countingFactor 21 5257 d) := by
           rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
       _ ≤ _ := by linarith [hinfo]
   have hnum := mul_le_mul_of_nonneg_left (ratio_le_countingFactor ℓ d hd hd') hRpos.le

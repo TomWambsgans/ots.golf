@@ -16,7 +16,7 @@ def contractDecls : List Name :=
    ``OptimalOTS.Graph, ``OptimalOTS.Scheme,
    ``OptimalOTS.Scheme.verifyCost, ``OptimalOTS.Graph.reconstructCost,
    ``OptimalOTS.Scheme.Secure, ``OptimalOTS.experiment, ``OptimalOTS.probTrue,
-   ``OptimalOTS.CostAtMost, ``OptimalOTS.queryCost, ``OptimalOTS.blockCost,
+   ``OptimalOTS.CostAtMost, ``OptimalOTS.queryCost, ``OptimalOTS.blockCost, ``OptimalOTS.idxCost,
    ``OptimalOTS.oracleImpl, ``OptimalOTS.Scheme.keygen, ``OptimalOTS.Scheme.sign,
    ``OptimalOTS.Scheme.verify, ``OptimalOTS.index,
    ``OptimalOTS.VerificationLowerBound]
