@@ -88,8 +88,8 @@ class Node:
     bits: int
     x: float
     y: float
-    tag: str = ""                 # small inline label for deterministic nodes
-    side: str = "r"               # side of the tag: "l" or "r"
+    tag: str = ""                 # small inline label (operation, width)
+    side: str = "r"               # side of the tag: "l", "r" or "b" (below)
 
 
 class Dag:
@@ -138,8 +138,23 @@ class Dag:
     def keygen_cost(self) -> int:
         return sum(self.node_cost(v) for v in self.nodes)
 
-    def draw(self, cut: set[str] | None = None, costs: bool = False) -> str:
+    @staticmethod
+    def width(bits: int) -> float:
+        """Edge width for a value of `bits` bits: the eye sees which wires are wide."""
+        return round(0.9 + bits / 300, 2)
+
+    def radius(self, name: str) -> float:
+        n = self.nodes[name]
+        return self.R_ROOT if name == self.root else self.R_HASH if n.kind == "hash" else self.S_DET
+
+    def draw(self, cut: set[str] | None = None, costs: str = "", fig: str = "g") -> str:
+        """costs: "" for none, "evaluated" for the recomputed hash nodes, "all" for every hash node.
+        `fig` prefixes the arrowhead marker ids, which must be unique on the page."""
         ev = self.evaluated(cut) if cut is not None else set()
+        defs = "<defs>" + "".join(
+            f'<marker id="ah-{fig}-{k}" class="ah {k}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" '
+            f'markerHeight="7" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 L10 5 L0 10 z"/></marker>'
+            for k in ("e", "rec")) + "</defs>"
 
         def status(v: str) -> str:
             if cut is None:
@@ -150,7 +165,13 @@ class Dag:
         for name, n in self.nodes.items():
             for p in n.parents:
                 q = self.nodes[p]
-                edges.append(line(q.x, q.y, n.x, n.y, "e recomputed" if name in ev else "e"))
+                dx, dy = n.x - q.x, n.y - q.y
+                d = (dx * dx + dy * dy) ** 0.5 or 1.0
+                k = (d - self.radius(name) - 1.5) / d          # stop at the child's border
+                rec = name in ev
+                e = line(q.x, q.y, q.x + dx * k, q.y + dy * k, "e recomputed" if rec else "e")
+                edges.append(e.replace("/>", f' style="stroke-width:{_fmt(self.width(q.bits))}" '
+                                             f'marker-end="url(#ah-{fig}-{"rec" if rec else "e"})"/>'))
             st = status(name)
             if n.kind == "src":
                 shapes.append(diamond(n.x, n.y, self.S_SRC, "n src" + st))
@@ -163,41 +184,45 @@ class Dag:
             if n.tag:
                 if n.side == "l":
                     labels.append(text(n.x - 11, n.y + 3.5, n.tag, "t tag", "end"))
+                elif n.side == "b":
+                    labels.append(text(n.x, n.y + 18, n.tag, "t tag", "middle"))
                 else:
                     labels.append(text(n.x + 11, n.y + 3.5, n.tag, "t tag", "start"))
-            if costs and name in ev and n.kind == "hash":
-                labels.append(text(n.x + 12, n.y + 4, str(self.node_cost(name)), "t cost", "start"))
-        return "".join(edges + shapes + labels)
+            if n.kind == "hash" and (costs == "all" or (costs == "evaluated" and name in ev)):
+                cls = "t cost" if name in ev else "t cost faint"
+                labels.append(text(n.x + 12, n.y + 4, str(self.node_cost(name)), cls, "start"))
+        return defs + "".join(edges + shapes + labels)
 
 
 def generic_graph() -> Dag:
-    """A small graph showing every feature of the model: a chain, a tree over a concatenation, a
-    concatenation of two secrets, a truncation, and a root over the concatenation of three values."""
+    """A small graph that is a real DAG, not a tree: values of many widths (64 to 768 bits), a
+    source and a truncated value each feeding two nodes, deterministic nodes of one, two and three
+    parents (a selection of bits, an arbitrary function, concatenations), hash nodes over inputs of
+    128, 384, 512 and 768 bits, costing one or two compressions each."""
     H = HASH_BITS
     nodes = {
-        "s1": Node("src", (), 128, 110, 292),
-        "s2": Node("src", (), 128, 190, 292),
-        "s3": Node("src", (), 128, 300, 292),
-        "s4": Node("src", (), 128, 420, 346),
-        "s5": Node("src", (), 128, 480, 346),
-        "a1": Node("hash", ("s1",), H, 110, 238),
-        "a2": Node("hash", ("s2",), H, 190, 238),
-        "b1": Node("hash", ("s3",), H, 300, 238),
-        "c0": Node("det", ("s4", "s5"), 256, 450, 292, "concat"),
-        "c1": Node("hash", ("c0",), H, 450, 238),
-        "a3": Node("det", ("a1", "a2"), 512, 150, 184, "concat", "l"),
-        "b2": Node("hash", ("b1",), H, 300, 184),
-        "c2": Node("det", ("c1",), 128, 450, 184, "truncate"),
-        "a4": Node("hash", ("a3",), H, 150, 130),
-        "b3": Node("hash", ("b2",), H, 300, 130),
-        "c3": Node("hash", ("c2",), H, 450, 130),
-        "r0": Node("det", ("a4", "b3", "c3"), 768, 300, 76, "concat"),
-        "root": Node("hash", ("r0",), H, 300, 28),
+        "s1": Node("src", (), 128, 80, 340, "128 b", "b"),
+        "s2": Node("src", (), 256, 230, 340, "256 b", "b"),
+        "s3": Node("src", (), 128, 300, 340, "128 b", "b"),
+        "s4": Node("src", (), 128, 440, 340, "128 b", "b"),
+        "h1": Node("hash", ("s1",), H, 80, 285),
+        "t":  Node("det", ("h1",), 128, 80, 230, "first 128 b", "l"),
+        "h2": Node("hash", ("t",), H, 80, 175),
+        "f":  Node("det", ("h2",), 64, 80, 125, "any f · 64 b", "l"),
+        "h5": Node("hash", ("f",), H, 80, 75),
+        "c2": Node("det", ("s2", "s3"), 384, 265, 285, "concat · 384 b"),
+        "h3": Node("hash", ("c2",), H, 265, 230),
+        "c3": Node("det", ("t", "h3", "s4"), 512, 300, 175, "concat · 512 b"),
+        "h4": Node("hash", ("c3",), H, 300, 120),
+        "h6": Node("hash", ("s4",), H, 440, 285),
+        "h7": Node("hash", ("h6",), H, 440, 230),
+        "r0": Node("det", ("h5", "h4", "h7"), 768, 300, 65, "concat · 768 b"),
+        "root": Node("hash", ("r0",), H, 300, 22),
     }
     return Dag(nodes, "root")
 
 
-GENERIC_CUT = {"a1", "a2", "b2", "c1"}
+GENERIC_CUT = {"t", "h3", "s4"}
 
 
 # ------------------------------------------------------------------ figures
@@ -269,12 +294,12 @@ def classics() -> str:
     assert W.is_cut(win_cut)
 
     b = [text(170, 18, "Lamport", "t strong"), text(540, 18, "Winternitz", "t strong")]
-    b.append(L.draw(lam_cut))
+    b.append(L.draw(lam_cut, fig="lam"))
     for i, v in enumerate(bits):
         b.append(text(70 + 100 * i, 231, f"bit {i + 1} = {v}", "t muted"))
     b.append(text(170, 262, "a pair of secrets per message bit", "t muted"))
     b.append(text(170, 278, "sign bit b: reveal secret b, and the other hash", "t muted"))
-    b.append(W.draw(win_cut))
+    b.append(W.draw(win_cut, fig="win"))
     for t in range(4):
         b.append(text(X0 - 22, YS[t] + 3.5, str(t), "t muted", "end"))
     for k, d in enumerate(digits):
@@ -287,25 +312,30 @@ def classics() -> str:
 
 
 def dag() -> str:
-    """The generic graph, with the legend of node kinds."""
+    """The generic graph, every hash node priced, with the legend of node kinds."""
     G = generic_graph()
-    b = [G.draw()]
-    X, Y = 530, 60
+    b = [G.draw(costs="all", fig="dag")]
+    X, Y = 520, 40
     entries = [
-        ("src", "secret source", "128 uniformly random bits"),
-        ("hash", "hash node", "H(label, parent), 256-bit output"),
-        ("det", "deterministic node", "any public function, free"),
-        ("root", "root", "public key = its first 128 bits"),
+        ("src", "secret source", ["uniformly random bits, any length"]),
+        ("det", "deterministic node", ["any public function of any parents,", "any output length; costs nothing"]),
+        ("hash", "hash node", ["H(label, input), 256-bit output;", "any input length, at (|input| + 192) / 512", "compressions rounded up (the blue numbers)"]),
+        ("root", "root", ["the one hash node without children;", "public key = its first 128 bits"]),
     ]
-    for i, (kind, title, detail) in enumerate(entries):
-        y = Y + 52 * i
+    y = Y
+    for kind, title, details in entries:
         b.append(_legend_glyph(kind, X + 7, y - 4))
         b.append(text(X + 22, y, title, "t strong", "start"))
-        b.append(text(X + 22, y + 16, detail, "t muted", "start"))
-    b.append(text(X + 7, Y + 52 * 4 + 6, f"key generation: {G.keygen_cost()} compressions", "t muted", "start"))
-    return svg("dag", 760, 370, "".join(b),
-               "A computation graph of the model: five secret sources, hash chains, concatenations, a "
-               "truncation, and the root hash whose first 128 bits are the public key.")
+        for j, d in enumerate(details):
+            b.append(text(X + 22, y + 16 + 14 * j, d, "t muted", "start"))
+        y += 30 + 14 * len(details)
+    b.append(text(X + 7, y + 4, "wire width follows the bits carried;", "t muted", "start"))
+    b.append(text(X + 7, y + 18, "a value may feed any number of nodes", "t muted", "start"))
+    b.append(text(X + 7, y + 40, f"key generation: {G.keygen_cost()} compressions", "t muted", "start"))
+    return svg("dag", 780, 370, "".join(b),
+               "A computation graph of the model: four secret sources of 128 or 256 bits, deterministic nodes "
+               "selecting bits, applying an arbitrary function and concatenating two or three values, hash nodes "
+               "over 128 to 768 bits costing one or two compressions, values feeding several nodes, and the root.")
 
 
 def dag_cut() -> str:
@@ -315,22 +345,150 @@ def dag_cut() -> str:
     assert G.is_cut(cut)
     costs = G.hash_costs(cut)
     total = sum(costs)
-    b = [G.draw(cut, costs=True)]
-    X, Y = 530, 60
+    b = [G.draw(cut, costs="evaluated", fig="cut")]
+    X, Y = 520, 60
     b.append(circle(X + 7, Y - 4, 5.5, "n hash revealed"))
     b.append(text(X + 22, Y, "revealed", "t strong", "start"))
-    b.append(text(X + 22, Y + 16, f"the signature: {len(cut)} × 256 = {G.reveal_bits(cut)} bits", "t muted", "start"))
+    b.append(text(X + 22, Y + 16, f"the signature: {G.reveal_bits(cut)} bits of values", "t muted", "start"))
     b.append(circle(X + 7, Y + 48, 5.5, "n hash recomputed"))
     b.append(text(X + 22, Y + 52, "recomputed by the verifier", "t strong", "start"))
-    b.append(text(X + 22, Y + 68, f"{len(costs)} hash nodes: {' + '.join(map(str, costs))} compressions", "t muted", "start"))
+    b.append(text(X + 22, Y + 68, f"{len(costs)} hash nodes: {' + '.join(map(str, costs))} = {total}", "t muted", "start"))
     b.append(circle(X + 7, Y + 100, 5.5, "n hash untouched"))
     b.append(text(X + 22, Y + 104, "never touched", "t strong", "start"))
     b.append(text(X + 22, Y + 120, "below the cut, still secret", "t muted", "start"))
     b.append(text(X + 7, Y + 166, "verification cost", "t strong", "start"))
     b.append(text(X + 7, Y + 184, f"2 (index) + {total} = {2 + total} compressions", "t muted", "start"))
-    return svg("cut", 760, 370, "".join(b),
-               "The same graph with one disclosure set lit: four revealed values, the nodes the verifier "
-               "recomputes above them with their costs, and the untouched nodes below.")
+    return svg("cut", 780, 370, "".join(b),
+               "The same graph with one disclosure set lit: three revealed values (one of them a secret source), "
+               "the nodes the verifier recomputes above them with their costs, and the untouched nodes below.")
+
+
+# --------------------------------------------------------------- bit flow
+
+BIT, BAR = 0.42, 14          # px per bit, bar height
+
+
+def _bar(x: float, y: float, bits: int, cls: str, label: str = "") -> str:
+    w = bits * BIT
+    out = f'<rect class="bb {cls}" x="{_fmt(x)}" y="{_fmt(y)}" width="{_fmt(w)}" height="{BAR}" rx="2"/>'
+    if label:
+        out += text(x + w / 2, y + BAR / 2 + 3.3, label, "t bl")
+    return out
+
+
+def _rib(x1a: float, x1b: float, y1: float, x2a: float, x2b: float, y2: float, cls: str) -> str:
+    """A ribbon carrying the bits [x1a, x1b] at height y1 to [x2a, x2b] at height y2."""
+    ym = (y1 + y2) / 2
+    d = (f"M{_fmt(x1a)},{_fmt(y1)} C{_fmt(x1a)},{_fmt(ym)} {_fmt(x2a)},{_fmt(ym)} {_fmt(x2a)},{_fmt(y2)} "
+         f"L{_fmt(x2b)},{_fmt(y2)} C{_fmt(x2b)},{_fmt(ym)} {_fmt(x1b)},{_fmt(ym)} {_fmt(x1b)},{_fmt(y1)} Z")
+    return f'<path class="rib {cls}" d="{d}"/>'
+
+
+def _hash(b: list[str], x0: float, x1: float, y_in: float, cx: float, cy: float, out_x: float, out_y: float,
+          in_bits: int, cls: str, label: str) -> int:
+    """Input bits [x0, x1] leaving height y_in funnel into H at (cx, cy) and come out as a fresh 256-bit
+    value at (out_x, out_y). Returns the cost."""
+    cost = block_cost(in_bits)
+    b.append(_rib(x0, x1, y_in, cx - 6, cx + 6, cy - 8, cls))
+    b.append(_rib(cx - 6, cx + 6, cy + 8, out_x, out_x + HASH_BITS * BIT, out_y, cls))
+    b.append(circle(cx, cy, 8, "n hash"))
+    b.append(text(cx, cy + 3.3, "H", "t hl"))
+    b.append(text(cx + 12, cy + 4, str(cost), "t cost", "start"))
+    b.append(_bar(out_x, out_y, HASH_BITS, cls, label))
+    return cost
+
+
+def bit_flow() -> str:
+    """Values as bars, bits as ribbons: four secret sources of 64 to 256 bits are split, sliced,
+    transformed by an arbitrary function, reused and concatenated for free, and hashed into fresh
+    256-bit values at various costs, down to a root whose first 128 bits are the public key."""
+    Y = [22, 84, 146, 208, 270, 332, 394, 446]           # tops of the bars, row by row
+    bot = [y + BAR for y in Y]
+    mid = [(bot[i] + Y[i + 1]) / 2 for i in range(len(Y) - 1)]  # heights of the hash circles
+    W = lambda n: n * BIT
+    b: list[str] = []
+    costs = []
+    # row 0: the secret sources
+    A, B, C, D = 40, 200, 360, 480
+    b += [_bar(A, Y[0], 128, "bits-a", "A · 128 b"), _bar(B, Y[0], 256, "bits-b", "B · 256 b"),
+          _bar(C, Y[0], 64, "bits-c"), text(C + W(64) / 2, Y[0] - 5, "C · 64 b", "t tag"),
+          _bar(D, Y[0], 128, "bits-d", "D · 128 b")]
+    # row 1: H₁ = H(A); B split in two; E = f(C), an arbitrary function with a 96-bit output
+    H1 = 40
+    costs.append(_hash(b, A, A + W(128), bot[0], A + W(128) / 2, mid[0], H1, Y[1], 128, "bits-h1", "H₁ = H(A) · 256 b"))
+    BL, BH = 190, 254
+    b += [_rib(B, B + W(128), bot[0], BL, BL + W(128), Y[1], "bits-b"),
+          _rib(B + W(128), B + W(256), bot[0], BH, BH + W(128), Y[1], "bits-b"),
+          _bar(BL, Y[1], 128, "bits-b", "B[:128]"), _bar(BH, Y[1], 128, "bits-b", "B[128:]")]
+    E, fx = 353, C + W(64) / 2
+    b += [_rib(C, C + W(64), bot[0], fx - 6, fx + 6, mid[0] - 7, "bits-c"),
+          _rib(fx - 6, fx + 6, mid[0] + 7, E, E + W(96), Y[1], "bits-f"),
+          square(fx, mid[0], 7, "n det"), text(fx, mid[0] + 3.3, "f", "t hl"),
+          text(fx + 12, mid[0] + 4, "any function", "t tag", "start"),
+          _bar(E, Y[1], 96, "bits-f", "f(C) · 96 b")]
+    # row 2: T = H₁[:128]; C1 = B[128:] ‖ D; C2 = B[:128] ‖ f(C) ‖ D  (D is used twice)
+    T, C1, C2 = 40, 250, 400
+    b += [_rib(H1, H1 + W(128), bot[1], T, T + W(128), Y[2], "bits-h1"), _bar(T, Y[2], 128, "bits-h1", "H₁[:128]")]
+    b += [_rib(BH, BH + W(128), bot[1], C1, C1 + W(128), Y[2], "bits-b"),
+          _rib(D, D + W(128), bot[0], C1 + W(128), C1 + W(256), Y[2], "bits-d"),
+          _bar(C1, Y[2], 128, "bits-b", "B[128:]"), _bar(C1 + W(128), Y[2], 128, "bits-d", "D")]
+    b += [_rib(BL, BL + W(128), bot[1], C2, C2 + W(128), Y[2], "bits-b"),
+          _rib(E, E + W(96), bot[1], C2 + W(128), C2 + W(224), Y[2], "bits-f"),
+          _rib(D, D + W(128), bot[0], C2 + W(224), C2 + W(352), Y[2], "bits-d"),
+          _bar(C2, Y[2], 128, "bits-b", "B[:128]"), _bar(C2 + W(128), Y[2], 96, "bits-f", "f(C)"),
+          _bar(C2 + W(224), Y[2], 128, "bits-d", "D")]
+    # row 3: C3 = T ‖ C1 (384 bits); H₂ = H(C2), 352 bits in
+    C3, H2 = 160, 420
+    b += [_rib(T, T + W(128), bot[2], C3, C3 + W(128), Y[3], "bits-h1"),
+          _rib(C1, C1 + W(128), bot[2], C3 + W(128), C3 + W(256), Y[3], "bits-b"),
+          _rib(C1 + W(128), C1 + W(256), bot[2], C3 + W(256), C3 + W(384), Y[3], "bits-d"),
+          _bar(C3, Y[3], 128, "bits-h1", "H₁[:128]"), _bar(C3 + W(128), Y[3], 128, "bits-b", "B[128:]"),
+          _bar(C3 + W(256), Y[3], 128, "bits-d", "D")]
+    costs.append(_hash(b, C2, C2 + W(352), bot[2], C2 + W(352) / 2, mid[2], H2, Y[3], 352, "bits-h2", "H₂ · 256 b"))
+    # row 4: H₃ = H(C3), 384 bits in
+    H3 = 186
+    costs.append(_hash(b, C3, C3 + W(384), bot[3], C3 + W(384) / 2, mid[3], H3, Y[4], 384, "bits-h3", "H₃ · 256 b"))
+    # row 5: R = H₁[192:] ‖ H₃ ‖ H₂ (576 bits): a slice of H₁ travels four rows down
+    R = 100
+    b += [_rib(H1 + W(192), H1 + W(256), bot[1], R, R + W(64), Y[5], "bits-h1"),
+          _rib(H3, H3 + W(256), bot[4], R + W(64), R + W(320), Y[5], "bits-h3"),
+          _rib(H2, H2 + W(256), bot[3], R + W(320), R + W(576), Y[5], "bits-h2"),
+          _bar(R, Y[5], 64, "bits-h1"), _bar(R + W(64), Y[5], 256, "bits-h3", "H₃"),
+          _bar(R + W(320), Y[5], 256, "bits-h2", "H₂"), text(R + W(32), Y[5] + BAR + 11, "H₁[192:]", "t tag")]
+    # row 6: the root = H(R), 576 bits in; row 7: pk = root[:128]
+    RT = R + W(576) / 2 - W(256) / 2
+    costs.append(_hash(b, R, R + W(576), bot[5], R + W(576) / 2, mid[5], RT, Y[6], 576, "bits-root", "root · 256 b"))
+    b += [_rib(RT, RT + W(128), bot[6], RT, RT + W(128), Y[7], "bits-root"),
+          _bar(RT, Y[7], 128, "bits-pk", "pk · 128 b"),
+          text(RT + W(128) + 8, Y[7] + BAR / 2 + 3.5, "the other 128 bits of the root are never used", "t tag", "start")]
+    # legend
+    X, y = 586, 30
+    rows = [
+        ("A B C D", "secret sources", ["uniformly random bits, 64 to 256 here"]),
+        ("H", "hash node", ["any input in, 256 fresh bits out, at", "(|input| + 192) / 512 compressions", "rounded up (the blue numbers)"]),
+        ("f", "deterministic node", ["any public function, any output length"]),
+        ("~", "ribbons", ["bits on the move: split, sliced, reused,", "concatenated, and all of it free"]),
+    ]
+    for glyph, title, lines in rows:
+        if glyph == "H":
+            b += [circle(X + 7, y - 4, 7, "n hash"), text(X + 7, y - 0.7, "H", "t hl")]
+        elif glyph == "f":
+            b += [square(X + 7, y - 4, 6.5, "n det"), text(X + 7, y - 0.7, "f", "t hl")]
+        elif glyph == "~":
+            b.append(_rib(X, X + 14, y - 11, X, X + 14, y + 3, "bits-b"))
+        else:
+            for i, c in enumerate("abcd"):
+                b.append(f'<rect class="bb bits-{c}" x="{_fmt(X + 3.5 * i)}" y="{_fmt(y - 10)}" width="3" height="12" rx="1"/>')
+        b.append(text(X + 22, y, title, "t strong", "start"))
+        for j, ln in enumerate(lines):
+            b.append(text(X + 22, y + 16 + 14 * j, ln, "t muted", "start"))
+        y += 32 + 14 * len(lines)
+    b.append(text(X + 7, y + 6, f"key generation: {' + '.join(map(str, costs))} = {sum(costs)}", "t muted", "start"))
+    b.append(text(X + 7, y + 20, "compressions", "t muted", "start"))
+    return svg("bits", 810, 480, "".join(b),
+               "Bits flowing through a scheme: four secret sources of 64 to 256 bits are split, sliced, passed "
+               "through an arbitrary function, reused and concatenated for free, and hashed into fresh 256-bit "
+               "values costing one or two compressions each, down to a root whose first 128 bits are the public key.")
 
 
 def cost_ruler() -> str:
@@ -441,6 +599,7 @@ def static() -> dict[str, str]:
         "flow": ots_flow(),
         "classics": classics(),
         "dag": dag(),
+        "bits": bit_flow(),
         "cut": dag_cut(),
         "cost": cost_ruler(),
         "experiment": experiment(),

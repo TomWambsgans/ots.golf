@@ -1,136 +1,119 @@
-{# The model explained before the submission rules: one-time signatures, the hash and its cost, the
-   shape of a scheme, cuts, the score, security, the two tracks. Figures come from app/figures.py
-   and sit directly on the page. #}
+{# The model, explained before the submission rules: one-time signatures, the hash and its price, the
+   graph, cuts, the score, security, the two tracks. Figures come from app/figures.py. #}
 <section class="how-it-works prose">
 
-<h2 id="ots">1. What is a one-time signature?</h2>
-<p>A signature scheme is three algorithms. <em>Key generation</em> produces a secret key <code>sk</code> and
-a public key <code>pk</code>. <em>Signing</em> takes <code>sk</code> and a message <code>m</code> and returns a
-signature <code>σ</code>. <em>Verification</em> takes <code>pk</code>, <code>m</code> and <code>σ</code> and
-accepts or rejects. The scheme is <em>one-time</em> when a key signs a single message: an attacker who sees
-<code>pk</code> and one signature, on a message of its choice, must not be able to produce any other pair
-that verifies.</p>
+<h2 id="ots">1. One-time signatures</h2>
+<p>A signature scheme is three algorithms. <em>Key generation</em> makes a secret key <code>sk</code> and a
+public key <code>pk</code>. <em>Signing</em> turns <code>sk</code> and a message <code>m</code> into a signature
+<code>σ</code>. <em>Verification</em> accepts or rejects <code>(pk, m, σ)</code>. The scheme is
+<em>one-time</em> when a key signs a single message: an attacker who sees <code>pk</code> and one signature, on
+a message of its choice, must not be able to produce any other pair that verifies.</p>
 <figure class="fig">{{ figs.flow|safe }}
 <figcaption>One key, one message. The verifier sees only <code>pk</code>, <code>m</code> and
 <code>σ</code>.</figcaption></figure>
-<p>One-time signatures are the building block of hash-based signatures. XMSS, SPHINCS+ and their
-descendants, including leanVM's signature shown on the home page, sign many messages by placing many
-one-time keys under a Merkle tree. Every verification pays for the one-time part, in a hardware wallet, in a
-blockchain client or in a SNARK that aggregates thousands of signatures. Its cost is the number worth
-minimizing.</p>
-<p>A <em>hash-based</em> one-time signature uses nothing but a hash function. Lamport's scheme has two
-secrets per message bit; the public key is the hash of all their hashes, and signing reveals one secret per
-bit. Winternitz's scheme replaces each pair by a chain of hashes and reveals the value at the position given
-by the message digit; the verifier hashes the rest of the way up. Both follow the same pattern: key
-generation runs a fixed computation on secret random inputs, a signature reveals some intermediate values,
-and the verifier recomputes the final hash and compares it with the public key.</p>
+<p>One-time signatures are the building block of hash-based signatures such as XMSS and SPHINCS+: a Merkle
+tree holds many one-time keys, and every verification pays for the one-time part. That cost is what this
+competition minimises.</p>
+<p>A <em>hash-based</em> one-time signature uses nothing but a hash function. Lamport hashes secret
+strings and reveals one per message bit; Winternitz replaces each pair of secrets by a hash chain and reveals
+the value at the position the message dictates. Both follow one pattern: key generation runs a fixed
+computation on secret random inputs, a signature reveals a few intermediate values, and the verifier
+recomputes the final hash and compares it with the public key.</p>
 <figure class="fig">{{ figs.classics|safe }}
-<figcaption>Lamport and Winternitz as graphs: secret sources at the bottom, hash nodes above them, a
-concatenation and the root at the top, with one signature lit.
+<figcaption>Lamport and Winternitz as graphs, with one signature lit.
 <span class="k revealed">revealed</span> <span class="k recomputed">recomputed by the verifier</span>
 <span class="k untouched">never touched</span></figcaption></figure>
 
-<h2 id="hash">2. The hash function: a random oracle with a price</h2>
-<p>The only cryptographic tool is a hash function <code>H</code>, modelled as a <em>random oracle</em>. A
-query is a public label <code>τ</code> and an input <code>u</code>. Every new pair <code>(τ, u)</code> gets an
-independent, uniformly random 256-bit answer; asking again returns the same answer. Labels keep the roles of
-the hash apart: each hash node of a scheme has its own label, and the label <code>enc</code> is reserved for
-hashing the message. Signer, verifier and attacker can evaluate <code>H</code> only by querying it. A query
-on input <code>u</code> costs</p>
+<h2 id="hash">2. The hash function and its price</h2>
+<p>The only cryptographic tool is a hash function <code>H</code>, modelled as a <em>random oracle</em>: each
+new query, a label and an input, receives an independent uniform 256-bit answer, and a repeated query
+receives the same answer. Signer, verifier and attacker learn <code>H</code> only by querying it. A query on
+an input <code>u</code> costs</p>
 <p class="formula">c(u) = ⌈ (|u| + 192) / 512 ⌉ compressions.</p>
-<p><strong>Why blocks.</strong> A hash function absorbs its input in fixed-size blocks, and each block is
-one call of its compression function; SHA-256's blocks are 512 bits. That call is the unit of work in
-software, in hardware and in a SNARK circuit, so counting compressions is counting what the verifier pays.
-Charging per started block means that a short input costs one compression and a long input costs
-proportionally more: a scheme cannot hide work in one enormous hash.</p>
-<p><strong>Why 192 extra bits.</strong> Deployed tweakable hash functions never hash a bare value. They
-prepend a 128-bit <em>public parameter</em>, different for every key pair, so that one precomputation cannot
-attack all users at once, and a 64-bit <em>tweak</em>, the address of the position in the scheme, so that no
-two positions hash alike. These 192 bits occupy part of the first block, and the model charges for them. It
-does not need to represent them: its labels play the tweak's role for free. So a chain step over a 128-bit
-value hashes 320 bits and costs one compression, the index query over a 256-bit message and a 256-bit nonce
-hashes 704 bits and costs two, and the root of the record scheme, over 41 chain ends of 128 bits, costs
-eleven.</p>
-<p><strong>Everything else is free.</strong> Concatenating, splitting, truncating, comparing, drawing
-randomness, storing values: none of it counts, for anyone. Only queries to <code>H</code> cost, and nothing
-else bounds the attacker's computation. That keeps the cost measure simple and makes the lower bound
-stronger.</p>
+<p>Hash functions absorb their input in 512-bit blocks, one call of the compression function per block, and
+that call is the unit of work in software, in hardware and in a SNARK circuit. The 192 extra bits are what a
+deployed tweakable hash prepends to every input, a 128-bit public parameter and a 64-bit tweak, and the
+model charges for them without representing them: its labels play the tweak's role. So a chain step over
+128 bits costs one compression, the index hash over message and nonce costs two, and the root of the record
+scheme, over 41 chain ends, costs eleven.</p>
+<p>Everything else is free, for everyone: concatenating, splitting, comparing, drawing randomness. Only
+queries to <code>H</code> count, and nothing else bounds the attacker's computation.</p>
 <figure class="fig">{{ figs.cost|safe }}
-<figcaption>Four inputs against 512-bit blocks. The hatched prefix is the overhead every query carries;
-the cost is the number of blocks started.</figcaption></figure>
+<figcaption>Four inputs against 512-bit blocks. The hatched prefix is the overhead of every query; the
+cost is the number of blocks started.</figcaption></figure>
 
-<h2 id="graph">3. The shape of a scheme: a graph of hashes</h2>
-<p>A scheme is a fixed, public, finite directed acyclic graph. An edge from <code>v</code> to <code>w</code>
-means that <code>w</code> uses the value of <code>v</code>. Every node has a fixed output length. There are
-three kinds of nodes.</p>
+<h2 id="graph">3. A scheme is a graph of computations</h2>
+<p>A scheme is a fixed, public, finite directed acyclic graph. Each node holds a bit string of a fixed
+length, computed from its parents' values, and is one of three kinds.</p>
 <ul>
-<li><strong>Secret sources</strong> have no parents. Each holds an independent, uniformly random string.</li>
-<li><strong>Deterministic nodes</strong> apply a public function to their parents' values: concatenate,
-select bits, truncate, anything computable without <code>H</code>. They cost nothing.</li>
+<li><strong>Secret sources</strong> have no parents and hold uniformly random strings, of any length.</li>
+<li><strong>Deterministic nodes</strong> apply any public function to any number of parents and produce
+any length: concatenate, select bits, split, combine, look up a table, anything computable without
+<code>H</code>. They cost nothing.</li>
 <li><strong>Hash nodes</strong> have one parent and their own label. Their value is
-<code>H(label, parent value)</code>, 256 bits, and evaluating one costs <code>c</code> of the parent's
-value.</li>
+<code>H(label, parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
+concatenation of many values, so a hash node absorbs inputs of any size, at a price.</li>
 </ul>
-<p>One hash node has no children: the <em>root</em>. Every node has a path to it. Key generation samples
-the sources, evaluates the graph in topological order and publishes the first 128 bits of the root as the
-public key; the secret key is the whole table of values. Key generation may cost at most 1024 compressions.
-The graph, its functions, lengths and labels are chosen once, independently of the oracle, and are public.</p>
+<p>A value may feed any number of nodes. Exactly one hash node has no children, the <em>root</em>, and every
+node has a path to it. Key generation samples the sources, evaluates the graph in order, within 1024
+compressions, keeps every value as the secret key, and publishes the first 128 bits of the root as
+<code>pk</code>.</p>
+<figure class="fig">{{ figs.bits|safe }}
+<figcaption>Bits on the move. Each bar is a value, as wide as it is long; the ribbons carry slices of it
+downwards. Deterministic nodes split, select, reuse and concatenate slices for free, and each
+<code>H</code> compresses whatever reaches it into 256 fresh bits at the cost written beside it. The first
+128 bits of the root are the public key.</figcaption></figure>
 <figure class="fig">{{ figs.dag|safe }}
-<figcaption>A small graph with every feature of the model: chains, a tree over a concatenation, a
-concatenation of two secrets, a truncation, and the root over three values.</figcaption></figure>
-<p>Lamport, Winternitz, forests of chains, trees over concatenations: every hash-based one-time signature in
-the literature is such a graph, and so is any scheme whose signatures consist of node values selected by
-hashing the message.</p>
+<figcaption>A small graph with every freedom of the model. It is not a tree: two values feed two nodes
+each, and three deterministic nodes gather two or three values of different widths. Every hash node carries
+its cost.</figcaption></figure>
+<p>Lamport, Winternitz, chains under trees, forests of chains: every hash-based one-time signature in the
+literature is such a graph, and so is anything else built from a hash function whose signatures consist of
+node values.</p>
 
 <h2 id="cut">4. Signing reveals a cut</h2>
 <p>Besides the graph, a scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
-<code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a set of nodes that excludes the root and meets every
-path from a secret source to the root: a <em>cut</em>. Excluding the root forces the verifier to recompute
-it; meeting every path guarantees that the revealed values suffice to do so.</p>
-<p>To sign <code>m</code>, the signer draws a 256-bit nonce <code>η</code> and reads the index <code>i</code>
-from the first 128 bits of <code>H(enc, m ‖ η)</code>. If <code>i ≥ M</code> it draws another nonce, up to
-<code>2<sup>21</sup></code> times; one nonce in <code>2<sup>13</sup></code> works, so failure is negligible. The
-signature is <code>η</code> followed by the values of the nodes of <code>A<sub>i</sub></code> in a fixed
-order. Lengths and order are known, so there are no node identifiers and no delimiters. Writing
-<code>ℓ<sub>i</sub></code> for the total length of the values on <code>A<sub>i</sub></code>, a signature has
-<code>256 + ℓ<sub>i</sub></code> bits, and the model requires <code>ℓ<sub>i</sub> ≤ 5248</code>: signatures
-of at most 5504 bits. The message decides which values are revealed; the signer computes nothing new.</p>
+<code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a <em>cut</em>: a set of nodes that excludes the
+root and meets every path from a secret source to the root. To sign <code>m</code>, the signer draws a
+256-bit nonce <code>η</code>, reads the index <code>i</code> from the first 128 bits of
+<code>H(enc, m ‖ η)</code>, and draws again while <code>i ≥ M</code>, at most <code>2<sup>21</sup></code>
+times. The signature is <code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order:
+at most 5248 bits of values, so at most 5504 bits in all. The message chooses what is revealed; the signer
+computes nothing new.</p>
 <figure class="fig">{{ figs.cut|safe }}
-<figcaption>The graph above with one disclosure set lit. The revealed values form a cut: every path from a
-source to the root crosses one of them, and the root stays hidden. The number beside each recomputed hash
-node is its cost.</figcaption></figure>
+<figcaption>The graph above with one disclosure set lit. Every path from a source to the root crosses a
+revealed value, the root stays hidden, and the number beside each recomputed hash node is its
+cost.</figcaption></figure>
 
-<h2 id="cost">5. Verification, and the number we measure</h2>
-<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, two compressions, and
-rejects if <code>i ≥ M</code> or if the revealed string does not have length <code>ℓ<sub>i</sub></code>. It
-splits the string into the values of <code>A<sub>i</sub></code>, walks back from the root, stopping at the
-nodes of <code>A<sub>i</sub></code>, evaluates the visited nodes in topological order, and accepts if the
-first 128 bits of the recomputed root equal <code>pk</code>. With <code>E<sub>i</sub></code> the set of hash
-nodes it evaluates, verifying a signature of index <code>i</code> costs</p>
+<h2 id="cost">5. Verification and the score</h2>
+<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, two compressions, checks the
+length of the revealed string, splits it into the values of <code>A<sub>i</sub></code>, evaluates every node
+between the cut and the root, and accepts if the first 128 bits of the recomputed root equal
+<code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it evaluates, the signature of index
+<code>i</code> costs</p>
 <p class="formula">C<sub>i</sub> = 2 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
-<p>and the <strong>score of a scheme is max<sub>i</sub> C<sub>i</sub></strong>, the cost of its most expensive
-signature. In the figure above, four hash nodes are recomputed for 2 + 2 + 1 + 1 compressions, so that
-signature verifies in 8. In the record scheme, 41 chains of 20 hashed together into the root, every
-signature recomputes 96 chain hashes and the 11-compression root: 2 + 96 + 11 = 109.</p>
+<p>and the <strong>score of a scheme is max<sub>i</sub> C<sub>i</sub></strong>, its most expensive
+signature. The signature in the figure costs 2 + 8 = 10. In the record scheme, 41 chains of 20 hashed
+together into the root, every signature recomputes 96 chain hashes and the 11-compression root:
+2 + 96 + 11 = 109.</p>
 
-<h2 id="security">6. Security: one signature, then a forgery</h2>
-<p>The attacker receives <code>pk</code>, may query <code>H</code> at will, asks for one signature on a
-message of its choice, and outputs a message–signature pair. It wins if the verifier accepts the pair and
-it differs from the one it received. Let <code>B</code> bound the compressions spent in the whole experiment,
-key generation, signing and the final verification included. The scheme is <em>secure</em> when every
-attacker wins with probability below <code>B / 2<sup>127</sup></code>: a forgery costs about
-<code>2<sup>127</sup></code> compressions per unit of success probability. This is the predicate
-<code>Scheme.Secure</code> of the statement.</p>
+<h2 id="security">6. Security</h2>
+<p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature on a message
+of its choice, and outputs a message and a signature. It wins if the pair verifies and differs from the one
+it received. Let <code>B</code> be the compressions spent in the whole experiment, key generation, signing
+and the final verification included. The scheme is <em>secure</em> when every attacker wins with probability
+below <code>B / 2<sup>127</sup></code>: a forgery costs about <code>2<sup>127</sup></code> compressions per
+unit of success probability. This is <code>Scheme.Secure</code> in the statement.</p>
 <figure class="fig">{{ figs.experiment|safe }}
 <figcaption>The forgery experiment. Every query to <code>H</code>, by either party, counts towards
 <code>B</code>; the attacker's other computation is unbounded.</figcaption></figure>
 
 <h2 id="tracks">7. Two tracks, one number</h2>
 <p>Between the two records lies the answer: the least worst-case verification cost of a secure scheme with
-these parameters. The <strong>upper track</strong> approaches it from above: submit a scheme, a proof that it
-is secure and a proof that every signature verifies within the claimed cost; smaller claims win. The
-<strong>lower track</strong> approaches it from below: prove that every secure scheme has a signature at
-least that expensive; larger claims win. Both are Lean theorems about the same pinned statement,
+these parameters. The <strong>upper track</strong> attacks it from above: a scheme, a proof that it is
+secure, and a proof that every signature verifies within the claimed cost. Smaller wins. The
+<strong>lower track</strong> attacks it from below: a proof that every secure scheme has a signature at least
+that expensive. Larger wins. Both are Lean theorems about the same pinned statement,
 <code>formal/OptimalOTS/Statement.lean</code>, checked by the kernel.</p>
 <figure class="fig">{{ figs.interval|safe }}</figure>
 
@@ -138,7 +121,7 @@ least that expensive; larger claims win. Both are Lean theorems about the same p
 <p>Fixed in <code>paperParams</code>; a submission cannot change them.</p>
 <table class="kv params">
 <tr><th>Hash output</th><td>256 bits</td></tr>
-<tr><th>Block, and overhead per query</th><td>512 bits, and 192 bits (128-bit public parameter, 64-bit tweak)</td></tr>
+<tr><th>Block, and overhead per query</th><td>512 bits, and 192 bits</td></tr>
 <tr><th>Public key</th><td>128 bits, the first bits of the root</td></tr>
 <tr><th>Message, nonce</th><td>256 bits each; the index is the first 128 bits of <code>H(enc, m ‖ η)</code></td></tr>
 <tr><th>Revealed bits per signature</th><td>at most 5248, so signatures of at most 5504 bits</td></tr>

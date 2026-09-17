@@ -202,6 +202,7 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .fig .t.muted { fill: var(--muted); font-size: 11px; }
 .fig .t.tag { fill: var(--muted); font-size: 10.5px; }
 .fig .t.cost { fill: var(--series-1); font-weight: 600; font-size: 11px; }
+.fig .t.cost.faint { fill: var(--accent-ink); font-weight: 500; }
 .fig .e { stroke: var(--art-faint); stroke-width: 1.4; fill: none; }
 .fig .e.recomputed { stroke: var(--series-1); stroke-width: 1.8; }
 .fig .n { fill: var(--page); stroke: var(--ink-2); stroke-width: 1.4; }
@@ -210,9 +211,18 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .fig .n.recomputed { fill: var(--series-1); stroke: var(--series-1); }
 .fig .n.revealed { fill: var(--series-2); stroke: var(--series-2); }
 .fig .pill { fill: var(--page); stroke: var(--ink-2); stroke-width: 1.3; }
+.fig .bb { stroke: none; }
+.fig .bits-a { fill: #4c8ef5; } .fig .bits-b { fill: #f0883e; } .fig .bits-c { fill: #3fb27f; } .fig .bits-d { fill: #a66bff; }
+.fig .bits-f { fill: #2bb3b1; } .fig .bits-h1 { fill: #8593a3; } .fig .bits-h2 { fill: #66747f; } .fig .bits-h3 { fill: #9aa7b3; }
+.fig .bits-root { fill: #4e5a66; } .fig .bits-pk { fill: #2f3a46; }
+.fig .rib { opacity: .3; stroke: none; }
+.fig .t.bl { fill: #fff; font-size: 9px; font-weight: 600; }
+.fig .t.hl { fill: var(--ink); font-size: 9px; font-weight: 700; }
 .fig .arrow { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
 .fig .arrow.dashed { stroke: var(--muted); stroke-dasharray: 4 4; }
 .fig marker path { fill: var(--ink-2); }
+.fig marker.ah.e path { fill: var(--art-faint); }
+.fig marker.ah.rec path { fill: var(--series-1); }
 .fig .life { stroke: var(--line); stroke-width: 1.4; }
 .fig .blockline { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 3 4; }
 .fig .bar { fill: var(--series-1); }
