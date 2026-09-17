@@ -7,11 +7,11 @@
   Two tracks close in on the answer from both sides, and every claim is a Lean theorem about the same pinned statement.</p>
 </section>
 
-<section class="interval" aria-labelledby="interval-title">
-  <h2 id="interval-title" class="visually-hidden">The interval</h2>
+<section class="dashboard" aria-labelledby="dash-title">
+  <h2 id="dash-title" class="visually-hidden">Records over time</h2>
   <div class="tiles">
     <div class="tile">
-      <div class="label">Lower bound <span class="muted">(proved)</span></div>
+      <div class="label"><span class="swatch s1"></span>Lower bound <span class="muted">(proved, larger is better)</span></div>
       <div class="value">{{ interval.lower.record_claim }}<span class="unit"> units</span></div>
       <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% else %}paper baseline, not yet verified here{% endif %}</div>
     </div>
@@ -21,33 +21,51 @@
       <div class="sub">1 − (upper − lower) / {{ interval.initial_gap }}</div>
     </div>
     <div class="tile">
-      <div class="label">Upper bound <span class="muted">(a scheme)</span></div>
+      <div class="label"><span class="swatch s2"></span>Upper bound <span class="muted">(a scheme, smaller is better)</span></div>
       <div class="value">{{ interval.upper.record_claim }}<span class="unit"> units</span></div>
       <div class="sub">{% if interval.upper.record_verified %}by <a href="/solvers/{{ interval.upper.record_setter }}">{{ interval.upper.record_setter }}</a>{% else %}paper baseline, Lean proof pending{% endif %}</div>
     </div>
   </div>
-  <div class="meter" role="img" aria-label="Interval from {{ interval.lower.record_claim }} to {{ interval.upper.record_claim }} hash units, inside the initial interval">
-    <div class="meter-track">
-      <div class="meter-fill left" style="width: {{ '%.2f'|format(meter.left * 100) }}%"></div>
-      <div class="meter-fill right" style="width: {{ '%.2f'|format(meter.right * 100) }}%"></div>
-      {% if meter.left > 0 %}<div class="meter-mark lo" style="left: {{ '%.2f'|format(meter.left * 100) }}%"><span>{{ interval.lower.record_claim }}</span></div>{% endif %}
-      {% if meter.right > 0 %}<div class="meter-mark hi" style="right: {{ '%.2f'|format(meter.right * 100) }}%"><span>{{ interval.upper.record_claim }}</span></div>{% endif %}
-    </div>
-    <div class="meter-ends"><span>{{ boards.lower.cfg.baseline }}</span><span class="muted">hash units per verification, worst case</span><span>{{ boards.upper.cfg.baseline }}</span></div>
-  </div>
+  <figure class="chart">
+    {{ chart.svg|safe }}
+    <div class="tooltip" id="tooltip" hidden></div>
+    <figcaption class="muted">The record of each track over time, in hash units per verification, worst case. Each dot is a submission that set a record. The open interval is the space between the curves.</figcaption>
+  </figure>
+  <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
+  <script>
+  (function () {
+    var svg = document.querySelector('svg.record-chart'), tip = document.getElementById('tooltip');
+    if (!svg || !tip) return;
+    var pts = JSON.parse(document.getElementById('chart-points').textContent);
+    var cross = svg.querySelector('.crosshair');
+    if (!pts.length) return;
+    function toSvg(evt) { var p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+    svg.addEventListener('mousemove', function (evt) {
+      var m = toSvg(evt), best = null, bd = Infinity;
+      pts.forEach(function (p) { var d = Math.abs(p.x - m.x) + Math.abs(p.y - m.y) * 0.25; if (d < bd) { bd = d; best = p; } });
+      if (!best) return;
+      cross.setAttribute('x1', best.x); cross.setAttribute('x2', best.x); cross.setAttribute('y1', 18); cross.setAttribute('y2', 300);
+      cross.setAttribute('visibility', 'visible');
+      tip.innerHTML = '<strong>' + best.track + ' ' + best.claim + '</strong><br>' + best.login + ' · ' + best.date + '<br><a href="/submissions/' + best.id + '">submission</a>';
+      var r = svg.getBoundingClientRect(), fx = r.left + best.x / 960 * r.width, fy = r.top + best.y / 340 * r.height;
+      tip.style.left = (fx - r.left + 12) + 'px'; tip.style.top = (fy - r.top - 10) + 'px'; tip.hidden = false;
+    });
+    svg.addEventListener('mouseleave', function () { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+  })();
+  </script>
 </section>
 
 <section class="boards">
 {% for slug in ['lower', 'upper'] %}
 {% set b = boards[slug] %}
 <div class="board">
-  <h2><a href="/tracks/{{ slug }}">{{ b.cfg.title }}</a> <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
+  <h2><span class="swatch {{ 's1' if slug == 'lower' else 's2' }}"></span>{{ b.cfg.title }} records <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
   <table>
     <thead><tr><th>Claim</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
     <tbody>{{ rows(b.frontier) }}</tbody>
   </table>
   {% if b.in_flight %}<p class="muted">{{ b.in_flight|length }} in verification.</p>{% endif %}
-  {% if b.others %}<p><a href="/tracks/{{ slug }}">{{ b.others|length }} more verified submission{{ 's' if b.others|length > 1 }}</a></p>{% endif %}
+  <p><a href="/tracks/{{ slug }}">All {{ b.cfg.title|lower }} submissions</a></p>
 </div>
 {% endfor %}
 </section>

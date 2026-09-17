@@ -53,7 +53,8 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
   setup script.
 
 ## Workstream C — Site (ots.golf)
-- Home: interval bar (progress = 1 − gap / 81), two record leaderboards, verified-non-record lists.
+- Home: dashboard with the two record curves over time (step chart, hover tooltip), the gap
+  closed (1 − gap / 81), and the record tables; no per-track tabs.
 - Submission pages: status, score, attribution, description, source download, diff vs base.
   Solver pages.
 - Rules page: the model in words, contract version and hash, limits. Literature points with

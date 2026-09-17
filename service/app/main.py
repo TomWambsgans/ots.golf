@@ -12,9 +12,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth, contract, github, records
+from . import auth, charts, contract, github, records
 from .config import settings
-from .db import Submission, User, get_session, init_db
+from .db import Submission, User, get_session, init_db, utcnow
 
 APP_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None)
@@ -106,10 +106,9 @@ def home(request: Request, session: Session = Depends(get_session)):
     boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"])[:10],
                           "others": records.others(session, t["slug"])[:5],
                           "in_flight": records.in_flight(session, t["slug"])} for t in contract.tracks()}
-    g0 = iv["initial_gap"] or 1
-    meter = {"left": (iv["lower"]["record_claim"] - contract.track("lower")["baseline"]) / g0,
-             "right": (contract.track("upper")["baseline"] - iv["upper"]["record_claim"]) / g0}
-    return render(request, "home.html", interval=iv, boards=boards, meter=meter)
+    chart = charts.record_chart({t["slug"]: records.curve(session, t["slug"]) for t in contract.tracks()},
+                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow())
+    return render(request, "home.html", interval=iv, boards=boards, chart=chart)
 
 
 @app.get("/tracks/{slug}", response_class=HTMLResponse)

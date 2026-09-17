@@ -66,3 +66,10 @@ def interval(session: Session) -> dict:
     return {"lower": lo, "upper": up, "initial_gap": gap0, "gap": gap, "progress": max(0.0, min(1.0, progress)),
             "contract": {"version": cfg["contract"]["version"], "id": contract.contract_id(),
                          "commit": contract.trusted_commit()}}
+
+
+def curve(session: Session, slug: str) -> list[dict]:
+    """Every record of a track in the order it was set: the step curve of the record over time."""
+    recs = list(session.scalars(_verified(slug).where(Submission.is_record.is_(True))
+                                .order_by(Submission.record_at.asc())))
+    return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login} for s in recs]
