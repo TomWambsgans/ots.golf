@@ -8,7 +8,7 @@ Let the verifier reconstruct the root from values `given` at the disclosure set 
 assignment `y`, all answers being recorded in the cache `d` (`Graph.ReconEqs`), and accept:
 the first 128 bits of `y` at the root are the public key of the honest record `ξ`.
 
-* `up` (the walk of Lemma 8.3 of the paper): if `y` differs from the honest values at a
+* `up` (the walk in the proof of the paper's Section 7.3): if `y` differs from the honest values at a
   non-hash node visited by the reconstruction, some recorded answer at a non-keygen point begins
   with an honest value (`Spr d ξ`).
 * `events_none`: if nothing was exposed, then `Spr d ξ` or the root's keygen point was queried.
