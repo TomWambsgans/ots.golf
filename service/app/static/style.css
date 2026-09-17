@@ -185,8 +185,6 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .board-stats { margin: 0 0 8px; font-size: 14px; }
 
 /* the framework explained (rules page): figures sit directly on the page, no box around them */
-.rules-toc { font-size: 14px; color: var(--ink-2); max-width: 78ch; margin: 0 0 8px; }
-.rules-toc a { margin-right: 10px; white-space: nowrap; }
 .how-it-works h3 { margin: 36px 0 8px; font-size: 17px; }
 .how-it-works .formula { font-size: 17px; margin: 6px 0 10px 1.5em; }
 .how-it-works ul { padding-left: 1.2em; }
