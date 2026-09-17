@@ -517,8 +517,9 @@ def cost_ruler() -> str:
         c = block_cost(bits)
         b.append(text(X0 + 3 * BW + 16, y + 4, f"{c} compression{'s' if c > 1 else ''}", "t strong", "start"))
     return svg("cost", 800, 176, "".join(b),
-               "Four hash inputs laid against 512-bit blocks: a 128-bit chain step, three chain ends of 384 "
-               "bits and the 512-bit index query cost one compression each, the baseline's 896-bit root two.")
+               "Four hash inputs laid against 512-bit blocks: a 144-bit tweaked chain step, a 400-bit "
+               "tweaked group and the 512-bit index query cost one compression each; the baseline's "
+               "912-bit tweaked root costs two.")
 
 
 def experiment() -> str:

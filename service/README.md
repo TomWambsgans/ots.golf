@@ -6,14 +6,17 @@ the source of truth; the site is its human-readable view.
 ```sh
 cd service
 uv sync                                   # deps into .venv
-.venv/bin/uvicorn app.main:app --reload --port 8000   # the site and the webhook
-.venv/bin/python -m app.worker            # the verifier (one submission at a time)
-.venv/bin/python -m app.queue lower --baseline   # queue the lower baseline (same for upper)
+./run-local.sh                            # demo board, site, webhook and verifier worker
 ```
 
-`./run-local.sh` starts the site and the worker together. `seed_demo.py` fills the LOCAL database with
-invented leaderboard rows for development; it deletes the baselines and refuses any other database
-unless forced.
+`./run-local.sh` starts the site and the worker together and, by default, seeds the local preview
+with the invented Satoshi Nakamoto and Vitalik Buterin submissions. Preserve this demo board when
+refreshing localhost; it is the preferred development view. Seeding is repeatable: it replaces
+earlier demo rows and removes baseline entries from the preview board.
+
+Use `OTS_DEMO_DATA=0 ./run-local.sh` to skip seeding. To also remove existing demo rows, run
+`.venv/bin/python seed_demo.py --remove` first. `seed_demo.py` only accepts the default local
+database unless explicitly forced; the deployed services do not run the local startup script.
 
 Prerequisites: `verifier/setup_tools.sh` has run and `formal/` has been built once (the worker
 clones that warm build for every verification).
@@ -43,4 +46,5 @@ Attribution comes from the pull request: the author, plus optional `Assisted by:
 `Co-authors: a, b` lines in its body; the rest of the body is the description.
 
 On localhost there is no GitHub, so `python -m app.queue` queues a local commit the way the
-webhook would.
+webhook would. For a baseline-only preview with demo data disabled, use
+`.venv/bin/python -m app.queue lower --baseline` (and the same command for `upper`).
