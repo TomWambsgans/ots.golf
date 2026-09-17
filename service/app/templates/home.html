@@ -78,15 +78,13 @@
 <section class="framework-overview" aria-labelledby="framework-title">
   <div class="section-heading">
     <h2 id="framework-title">Three lower bounds. One generic upper bound.</h2>
-    <a href="/rules#model">Compare the rules ↗</a>
   </div>
   <p class="section-intro">Prove a lower bound for any of three classes, or build a fully generic algorithm for the upper bound.
   Every class uses the same hash-cost model and 127-bit security target.</p>
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
-      <div class="framework-card-heading"><span class="framework-number">0{{ loop.index }}</span>
-        <span class="framework-status">{{ 'Lower submissions open' if model.status == 'active' else 'In preparation' }}</span></div>
+      <div class="framework-card-heading"><span class="framework-number">0{{ loop.index }}</span></div>
       <h3><a href="/rules#{{ 'partial-disclosures' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm. Honest signatures verify; signing succeeds at least half the time.
