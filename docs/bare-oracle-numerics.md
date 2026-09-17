@@ -86,9 +86,9 @@ is a porting route, not an assertion that the bare-oracle theorem is proved.
 Commands run:
 
 ```
-python3 tools/tune_lower_bound.py --s-star 5309 --idx 1 --claims 24,25
-python3 tools/tune_lower_bound.py --s-star 5310 --idx 1 --claims 24 --no-search
-python3 tools/tune_lower_bound.py --s-star 5313 --idx 1 --claims 24,25
+python3 tools/tune_lower_bound.py --method entropy --s-star 5309 --idx 1 --claims 24,25
+python3 tools/tune_lower_bound.py --method entropy --s-star 5310 --idx 1 --claims 24 --no-search
+python3 tools/tune_lower_bound.py --method entropy --s-star 5313 --idx 1 --claims 24,25
 ```
 
 The coarse grid for proposed claim 24 found estimated margins 0.1111409 at
@@ -118,3 +118,29 @@ avoid subtracting nearby floats. The q grid is reduced to its first feasible
 point for each K: once the construction threshold is met, the success formula
 is independent of q and the cost strictly increases in q. This preserves the
 original grid optimum while making the full search fast.
+
+
+## Exact reconstruction-pattern calculation
+
+The replacement attack uses no entropy budget. Running
+`python3 tools/tune_lower_bound.py --idx 1 --claims 18,19` uses integer binomial coefficients
+and exact rational arithmetic throughout. For 18 the pattern bound is
+
+```
+sum(k=0..15, choose(1023,k)) = 984793598840378644322567920484352 < 2^110.
+```
+
+The conservative inequalities used by Lean are: at least three quarters of indices have
+at least eight equal patterns; signing selects such an index with probability at least
+one half from a fresh message domain; each of the two uniform-message choices retains
+at least nine tenths of the mass; and `2^122` nonce trials hit eight targets with probability
+at least `1/9`. Hence success is at least `9/200`. With reconstruction cost at most 16,
+`B=1024+2^21+2^122+34` has `B/2^127 < 1/25`. The tool checks these comparisons exactly.
+Its tighter rational success estimate is about 0.089686955, but the certificate only needs
+the conservative 0.045 bound.
+
+For 19 the corresponding pattern count is
+`62105400126157768832237678313804609 > 2^115`, so this counting argument supplies no
+positive good-class fraction. That is a limitation of this method, not an upper bound.
+The tool now defaults to the pattern calculation at 18. Select `--method entropy` to reproduce
+the historical conditional numerical searches above; their false transfer lemmas remain false.

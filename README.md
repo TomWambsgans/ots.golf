@@ -7,18 +7,32 @@ Foundation, Yukon and zkSecurity; [proximity-prize/proximity-prize](https://gith
 and [zk.golf](https://zk.golf) (zkSecurity; [zksecurity/zk-golf-challenges](https://github.com/zksecurity/zk-golf-challenges)).
 The leaderboard and the progress chart follow better.codes' design.
 
-The model is the one of *A Verification Lower Bound for Hash-Based One-Time Signatures*
-(`paper/`): a public computation graph of secret sources, deterministic nodes and hash nodes;
-signatures reveal node values selected by hashing the message with a nonce; the verifier
-recomputes the root and compares a 128-bit prefix with the public key. Hashing is charged one compression
-per started 512-bit block of the input and nothing else: a per-key public parameter can be absorbed
-once in a block of its own and its chaining state reused (an observation of Justin Drake), and
-tweaks are the role of the model's labels. A chain hash and the message index cost one compression each. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security:
+The model is a public computation graph of secret sources, deterministic nodes and hash nodes.
+Signatures reveal node values selected by hashing the message with a nonce; the verifier recomputes
+the root and compares its low 128 bits with the public key. Every party uses one random oracle on
+bit strings. Repeated strings receive the same answer, even across node and index queries. The
+contract provides no labels, tweaks or separation condition.
+
+Hashing costs one compression per started 512-bit block of the actual input, at least one.
+Deterministic computation and private randomness are free. The 512-bit message-and-nonce index
+costs one compression. The upper baseline includes a 16-bit tweak in every node's input and pays
+for it: chain inputs have 144 bits, three-digest inputs 400 bits, and the root input 912 bits.
+With a 128-bit public key, signatures of at most 5504 bits and 127-bit security:
 
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
-| Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 25 (Lean-verified) | c ≥ record + 1 |
+| Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 18 (Lean-verified) | c ≥ record + 1 |
 | Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | c ≤ record − 1 |
+
+The verified lower bound 18 counts sets of hash nodes recomputed during verification. If every
+signature cost at most 17, many indices would share such a set, allowing an attacker to convert
+an observed signature and forge on a different message. The proof applies to every weakly secure
+scheme, including schemes whose hash inputs coincide.
+
+Bounds above 18 remain open. The former labeled-model bound 25 and the proposed fresh-weight
+transfer do not establish a bare-oracle bound; see
+[`docs/bare-oracle-port.md`](docs/bare-oracle-port.md) and the
+[conditional numerical investigation](docs/bare-oracle-numerics.md).
 
 Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).

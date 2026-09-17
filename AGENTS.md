@@ -11,7 +11,7 @@ submission must satisfy is in this file; `challenges.json` is the machine-readab
 formal/                      the Lean project (lake root)
   OptimalOTS/Statement.lean  the contract: Scheme, Secure, verifyCost, paperParams
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
-  Submissions/Lower/         lower-track root; baseline: the paper's proof, claim 25
+  Submissions/Lower/         lower-track root; baseline: repeated reconstruction patterns, claim 18
   Submissions/Upper/         upper-track root; baseline: a forest of 63 chains, claim 106
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
@@ -20,6 +20,18 @@ challenges.json              tracks, limits, protected files
 Protected files (listed in `challenges.json`, pinned in `verifier/protected.sha256`) always come
 from the contract, never from a submission. A submission is the content of one submission root and
 nothing else.
+
+## Oracle model
+
+The contract has one random oracle on bit strings (`Query := Σ k, BitVec k`). There are no labels,
+tweaks or separation conditions in the model. Equal input strings receive the same answer, including
+when a node query equals an index query. A scheme may put a tweak in its input and pays for those bits;
+the upper baseline uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
+least one. The 512-bit message-and-nonce index costs one compression.
+
+The verified bare-oracle lower bound is 18, proved for every weakly secure scheme by counting
+reconstructed hash-node sets and converting signatures between equal sets. Bounds above 18 remain
+open; research notes are in `docs/bare-oracle-port.md`. A numerical search is not a certificate.
 
 ## What a submission exports
 

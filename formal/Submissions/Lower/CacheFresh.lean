@@ -125,7 +125,7 @@ theorem uniform_nonfresh_or_eq_le {P : Params} {c : CacheP P} {D : Finset Query}
   exact ENNReal.div_le_div_right (by exact_mod_cast card_nonfresh_or_eq_le hc m₀) _
 
 /-- A complement form useful when freshness gates an attack. -/
-theorem uniform_complement_ge (n : ℕ) (bad : BitVec n → Prop) (δ : ℝ≥0∞)
+theorem uniform_complement_ge (n : ℕ) (bad : BitVec n → Prop) [DecidablePred bad] (δ : ℝ≥0∞)
     (hbad : expectedValue ($ᵗ BitVec n) (fun m => if bad m then (1 : ℝ≥0∞) else 0) ≤ δ) :
     1 - δ ≤ expectedValue ($ᵗ BitVec n) (fun m => if ¬ bad m then (1 : ℝ≥0∞) else 0) := by
   apply tsub_le_iff_right.mpr

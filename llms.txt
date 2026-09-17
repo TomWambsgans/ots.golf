@@ -5,10 +5,15 @@
 > 127-bit security. Every ranked claim is a Lean 4 theorem about the pinned statement
 > `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.
 
-Cost model: one compression per started 512-bit block of the input, nothing else. The baselines:
-lower bound 25, upper bound 106 (63 chains of length 14 under 21 group digests, 7 subtree digests
+Oracle model: one random oracle on bare bit strings, with no labels, tweaks or separation
+condition. Equal strings share an answer across all uses. Cost: one compression per started
+512-bit block of the actual input, at least one; the message-and-nonce index costs one. The
+upper scheme includes and pays for 16-bit node tweaks. The verified bare-oracle baselines:
+lower bound 18 (repeated reconstruction patterns), upper bound 106 (63 chains of length 14 under 21 group digests, 7 subtree digests
 and the root). Both live in this repository as ordinary submissions; the current records are the
-claim.txt files of the two submission roots.
+claim.txt files of the two submission roots. The lower proof covers every weakly secure scheme
+without a separation hypothesis. Bounds above 18 remain open; see docs/bare-oracle-port.md.
+The former labeled-model bound 25 is not a bare-oracle certificate.
 
 - Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
 - Rules and the exact exported declarations: AGENTS.md

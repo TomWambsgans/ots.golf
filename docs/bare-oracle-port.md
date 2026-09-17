@@ -261,3 +261,31 @@ The numerical investigation confirms conditional feasibility of 24 at the old si
 point, even with budget 5313, but cannot repair the false lemmas. It also corrects the Bell rounding:
 `Bell(22)>2^52`, so even the proposed (false) Bell inequality would need budget 5310 rather than 5309.
 The tune tool now marks this analysis as conditional and accepts `--s-star`.
+
+### Verified milestone: bare-oracle lower bound 18
+
+The complete pattern attack and assembly now build. `Solution.lean` exports exactly
+`VerificationLowerBound paperParams 18`, with only the three allowed axioms. Official pipeline:
+
+```
+verified: track=lower claim=18 commit=worktree in 89.5s
+```
+
+Log: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-9e5s6dgp/verify.log`.
+The lower baseline and claim are now 18, protected pin
+`9564de9198acd6555659e804186120f228c838c84de0628a608ed4722fa6efce`.
+
+The probability proof uses actual finite caches, not a separated experiment. Messages are sampled
+uniformly after key generation and after honest reconstruction. `SignFresh` proves the exact
+signing law on a fresh message domain; `PatternSearch` proves its success lower bound `1/9`;
+`PatternAttack` proves the conditional forging bound `1/10` and the total cost;
+`PatternAssembly` proves success at least `9/200`, above the security threshold.
+
+Unused files of the labeled proof were removed from the submission root so the full library builds.
+Their original source is preserved in git at `e2eaf4e`; no historical independent-output law is
+part of the replacement. The current file map is in `lower-bound-proof.md`.
+
+The proposed fresh-weight steps were settled by counterexamples, not proved. Bounds 19 through 24
+remain open here. The equality-pattern method alone stops at 18, because allowing sixteen nonroot
+hash nodes gives more possible patterns than the `2^115` indices. No condition on schemes was added.
+Final full-project checks and upper regression are next.

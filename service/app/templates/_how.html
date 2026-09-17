@@ -32,21 +32,17 @@ and the verifier recomputes the final hash and compares it with the public key.<
 oracle. A query costs one <em>compression</em> per started 512-bit block of its input. Everything else is
 free.</summary>
 <div class="more prose">
-<p>Each new query, a label and an input, receives an independent uniform 256-bit answer, and a repeated
-query receives the same answer. Signer, verifier and attacker learn <code>H</code> only by querying it. A
+<p>Each previously unqueried bit string receives an independent uniform 256-bit answer. Repeating
+the same string receives the same answer, including across node and index queries. Signer, verifier and attacker learn <code>H</code> only by querying it. A
 query on an input <code>u</code> costs</p>
 <p class="formula">c(u) = ⌈ |u| / 512 ⌉ compressions, and at least one.</p>
-<p>Hash functions absorb their input in 512-bit blocks, one call of the compression function per block, and
-that call is the unit of work in software, in hardware and in a SNARK circuit. Nothing else is charged. A
-deployed scheme also hashes a public parameter chosen per key and a tweak. The parameter can be padded to a
-full block and absorbed first: the state after that block depends only on the key, so everyone computes it
-once and starts every query from it, an observation of Justin Drake. Tweaks are what the labels of the model
-stand for, and they separate queries for free; a scheme that wants them inside its inputs builds them with
-deterministic nodes and pays for their bits.</p>
-<p>So a chain step over 128 bits, a hash of three chain ends and the index hash over message and nonce cost
-one compression each, and the root of the baseline scheme, over seven digests, costs two. Concatenating,
-splitting, comparing and drawing randomness cost nothing, for anyone, and nothing else bounds the
-attacker's computation.</p>
+<p>The oracle takes only an input string, with its length. It supplies no labels, tweaks or domain
+separation. A scheme can construct a tweak inside an input using deterministic nodes, and those bits count
+towards the input length and cost.</p>
+<p>The upper baseline prepends a 16-bit tweak to every node query. Its chain inputs are 144 bits and its
+three-digest inputs are 400 bits, each costing one compression. Its root input is 912 bits and costs two.
+The message-and-nonce index has 512 bits and costs one. Concatenating, splitting, comparing and drawing
+randomness cost nothing, and the attacker's other computation is unbounded.</p>
 <figure class="fig">{{ figs.cost|safe }}
 <figcaption>Four inputs against 512-bit blocks. The cost is the number of blocks started.</figcaption></figure>
 </div>
@@ -54,7 +50,7 @@ attacker's computation.</p>
 
 <details id="graph">
 <summary><span class="lead">A scheme is a graph.</span> Secret random sources, free deterministic nodes of any
-shape, and hash nodes. The first 128 bits of the root hash are the public key.</summary>
+shape, and hash nodes. The low 128 bits of the root hash are the public key.</summary>
 <div class="more prose">
 <p>The graph is fixed, public, finite, directed and acyclic. Each node holds a bit string of a fixed
 length, computed from its parents' values, and is one of three kinds.</p>
@@ -63,17 +59,17 @@ length, computed from its parents' values, and is one of three kinds.</p>
 <li><strong>Deterministic nodes</strong> apply any public function to any number of parents and produce
 any length: concatenate, select bits, split, combine, look up a table, anything computable without
 <code>H</code>. They cost nothing.</li>
-<li><strong>Hash nodes</strong> have one parent and their own label. Their value is
-<code>H(label, parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
+<li><strong>Hash nodes</strong> have one parent. Their value is
+<code>H(parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
 concatenation of many values, so a hash node absorbs inputs of any size, at a price.</li>
 </ul>
 <p>A value may feed any number of nodes. One hash node is designated the <em>root</em>. Key generation
 samples the sources, evaluates the graph in order, within 1024 compressions, keeps every value as the secret
-key, and publishes the first 128 bits of the root as <code>pk</code>.</p>
+key, and publishes the low 128 bits of the root as <code>pk</code>.</p>
 <figure class="fig">{{ figs.bits|safe }}
 <figcaption>Bits on the move. Each bar is a value, as wide as it is long; the ribbons carry slices of it
 upwards. Deterministic nodes split, select, reuse and concatenate slices for free, and each
-<code>H</code> compresses whatever reaches it into 256 fresh bits at the cost written beside it.</figcaption></figure>
+<code>H</code> returns 256 bits at the cost written beside it. Equal input strings receive equal answers.</figcaption></figure>
 <figure class="fig">{{ figs.dag|safe }}
 <figcaption>A small graph with every freedom of the model. It is not a tree: two values feed two nodes
 each, and three deterministic nodes gather two or three values. Every hash node carries its cost.</figcaption></figure>
@@ -89,9 +85,10 @@ graphs, and so is anything else built from a hash function whose signatures cons
 <p>A scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
 <code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a <em>cut</em>: a set of nodes that excludes the
 root and meets every path from a secret source to the root. To sign <code>m</code>, the signer draws a
-256-bit nonce <code>η</code>, reads the index <code>i</code> from the first 128 bits of
-<code>H(enc, m ‖ η)</code>, and tries fresh nonces until <code>i &lt; M</code>: about <code>2<sup>13</sup></code>
-trials on average and at most <code>2<sup>21</sup></code>, after which signing fails. The signature is
+256-bit nonce <code>η</code>, reads the index <code>i</code> from the low 128 bits of
+<code>H(m ‖ η)</code>, and tries fresh nonces until <code>i &lt; M</code>, for at most
+<code>2<sup>21</sup></code> trials, after which signing fails. A previously unqueried input lands below
+<code>M</code> with probability <code>2<sup>−13</sup></code>. The signature is
 <code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order: at most 5248 bits of
 values. The message chooses what is revealed; the signer computes nothing new.</p>
 <figure class="fig">{{ figs.cut|safe }}
@@ -107,7 +104,7 @@ scheme scores the cost of its most expensive signature.</summary>
 <div class="more prose">
 <p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, one compression, rejects if
 <code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of
-<code>A<sub>i</sub></code>, evaluates every node between the cut and the root, and accepts if the first 128
+<code>A<sub>i</sub></code>, evaluates every node between the cut and the root, and accepts if the low 128
 bits of the recomputed root equal <code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it
 evaluates, the signature of index <code>i</code> costs</p>
 <p class="formula">C<sub>i</sub> = 1 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
@@ -144,6 +141,10 @@ these parameters. An upper-track certificate is a scheme, a proof that it is sec
 signature verifies within the claimed cost. A lower-track certificate proves that every weakly secure
 scheme, and so every secure one, has a signature at least that expensive. Both are theorems about the same
 pinned statement, <code>formal/OptimalOTS/Statement.lean</code>, checked by the Lean kernel.</p>
+<p>The verified bare-oracle baselines are 18 compressions for the lower track and 106 for the upper
+track. The lower proof shows that cheaper verification would force many indices to recompute the same
+hash nodes, letting an attacker convert a signature and forge on a different message. Bounds above 18
+remain open.</p>
 <figure class="fig">{{ figs.interval|safe }}</figure>
 </div>
 </details>
@@ -155,8 +156,8 @@ bits, 127-bit security. Fixed; a submission cannot change them.</summary>
 <table class="kv params">
 <tr><th>Hash output</th><td>256 bits</td></tr>
 <tr><th>Block</th><td>512 bits</td></tr>
-<tr><th>Public key</th><td>128 bits, the first bits of the root</td></tr>
-<tr><th>Message, nonce</th><td>256 bits each; the index is the first 128 bits of <code>H(enc, m ‖ η)</code></td></tr>
+<tr><th>Public key</th><td>128 bits, the low bits of the root</td></tr>
+<tr><th>Message, nonce</th><td>256 bits each; the index is the low 128 bits of <code>H(m ‖ η)</code></td></tr>
 <tr><th>Revealed bits per signature</th><td>at most 5248, so signatures of at most 5504 bits</td></tr>
 <tr><th>Key generation</th><td>at most 1024 compressions</td></tr>
 <tr><th>Disclosure sets</th><td><code>2<sup>115</sup></code></td></tr>

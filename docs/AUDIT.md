@@ -1,88 +1,117 @@
-# Audit of the contract (draft v1)
+# Audit of the bare-oracle contract
 
-Scope: `formal/OptimalOTS/Statement.lean` against Section 2 of the paper, the VCVio definitions
-it relies on (commit `25f26bf`), and the toolchain it is checked with. Date: 2026-09-16; updated
-2026-09-17 for the weak-security hypothesis of the lower track and again for the cost model without
-overhead bits (one compression per started block of the input, nothing else).
-Result: no soundness issue found; six harmless generalizations documented; the non-vacuity item
-(F7) is closed by the verified upper baseline.
+Scope: `formal/OptimalOTS/Statement.lean`, its VCVio cost/oracle definitions, and the
+submission certificates. Updated 2026-09-17 for the bare single-oracle branch.
+The contract exposes only bit strings as oracle queries. The verified baselines
+are lower 18 and upper 106. The official lower verifier accepted claim 18 in
+89.5 seconds on this branch. The lower proof uses repeated reconstruction
+patterns; it does not transfer the former labeled-model entropy argument.
 
 ## What is trusted
 
 | Component | Pinned at | Role |
 |---|---|---|
-| Lean 4 | `formal/lean-toolchain` (v4.33.1) | the kernel that accepts every claim |
-| Mathlib, VCVio and their dependencies | `formal/lake-manifest.json` | definitions the statement is built from |
-| leanprover/comparator | `c0c5a52d` (declared toolchain 4.33.0, built on 4.33.1) | statement match, axiom check, kernel replay |
-| lean4export | `15f6055e` (tag v4.33.0, comparator's own pin) | export of the closure of the named declarations |
-| landrun + systemd (Linux verifier) | `811cfff5` | keeps the submission's build off the network and off the trusted files |
+| Lean 4 | `formal/lean-toolchain` (v4.33.1) | kernel checking every claim |
+| Mathlib, VCVio and dependencies | `formal/lake-manifest.json` | definitions used by the statement |
+| leanprover/comparator | `c0c5a52d` | statement matching, axiom checking, kernel replay |
+| lean4export | `15f6055e` (v4.33.0) | export of declaration dependencies |
+| landrun + systemd (Linux verifier) | `811cfff5` | build isolation |
 
-Everything else, including the baseline proofs and every submission, is checked by the kernel
-and needs no trust.
+Submission proofs are checked by the kernel. Their permitted axioms are only
+`propext`, `Classical.choice` and `Quot.sound`.
 
-## Checks performed
+## Contract semantics
 
-1. Line-by-line comparison of the statement with the paper (table below).
-2. The two VCVio definitions carrying the cost model and the oracle:
-   `IsQueryBound oa B canQuery cost` unfolds to `PFunctor.FreeM.IsRollBound`: `pure` satisfies any
-   bound, and `query t >>= k` satisfies it when `canQuery t B` and every continuation satisfies it
-   at `cost t B`. With `canQuery := queryCost ≤ ·` and `cost := · − queryCost` this is "total cost
-   at most B on every execution path", including all branches. `randomOracle` is
-   `uniformSampleImpl.withCaching`: a uniform answer on the first query, cached under the full
-   query, which is the label together with the input length and bits.
-3. `formal/scripts/check-axioms.lean`: the 19 declarations that fix a certificate's meaning depend
-   only on `propext`, `Classical.choice`, `Quot.sound`; no axiom is declared in a protected module.
-4. Comparator's own test suite passes on the pinned toolchain (14 tests). Both baselines verify
-   end to end: statement match, axiom closure, kernel replay accepted (lower 25, upper 106).
+`CostAtMost` uses VCVio's `IsQueryBound`: a pure computation satisfies any budget;
+a query is permitted when its cost is at most the remaining budget, and every
+continuation must satisfy the remaining budget after subtraction. Thus the
+budget covers every execution path, including branches with negligible
+probability. Private uniform sampling is free.
 
-## Correspondence with the paper
+The oracle implementation is `uniformSampleImpl.withCaching`. Its cache key is
+`Query := Σ k, BitVec k`: the full length and bits, with no role or node label.
+The first query to a string gets a uniform 256-bit answer; all later queries to
+that string get the cached answer. Hash-node inputs can coincide with each other
+or with message-and-nonce inputs. Such outputs are not independent uniform
+record coordinates. No graph separation hypothesis is part of the contract.
 
-| Paper (Section 2) | Lean | Note |
+| Contract feature | Lean declaration | Audit note |
 |---|---|---|
-| Random oracle, 256-bit answers, keyed by label and bit string | `hashSpec`, `Query := Label × Σ k, BitVec k`, `randomOracle` | inputs of different lengths are different queries |
-| Cost ⌈|u|/512⌉ (at least 1), label free | `blockCost`, `queryCost`; uniform sampling costs 0 | F2 |
-| Sources, deterministic nodes, hash nodes; one parent per hash node; distinct labels | `NodeKind`, `Graph.label_injective` | F1 |
-| Root is a hash node | `Graph.root_isHash` | |
-| Key generation evaluates all nodes; cost Σ c_g ≤ 1024 | `Graph.keygen`, `keygenCost`, `Scheme.keygen_le` | |
-| Disclosure sets exclude the root and meet every source-to-root path | `root_not_mem`, `no_hidden_source` | |
-| Reconstruction stops at revealed nodes; E_i = hash nodes evaluated | `Graph.Visited`, `evaluated`, `reconstruct` | root always evaluated |
-| C_i = c(idx) + Σ_{g∈E_i} c_g, c(idx) = 2 | `Scheme.verifyCost` via `idxCost` | |
-| idx(m, η) = first 128 bits of H(enc, m‖η) | `index`, `setWidth idxBits` | F3 |
-| Signing: fresh random nonces, at most L trials | `Scheme.sign`, `signLoop`, `trialLimit` | |
-| Verification: recompute idx, check length, reconstruct, compare 128-bit prefix | `Scheme.verify`, `publicKey` | |
-| Forgery: accepted pair ≠ the signer's pair; any accepted pair if signing failed | `experiment` | strong unforgeability, as in the paper |
-| Weak forgery: accepted pair on a message ≠ the signed one; any accepted pair if signing failed | `weakExperiment`, `Scheme.WeaklySecure` | the hypothesis of the lower track; implied by `Secure` (`Scheme.Secure.weaklySecure` in `formal/OptimalOTS/Weak.lean`) |
-| Security: cost ≤ B on every execution ⇒ Pr[Forge] < B/2^127 | `CostAtMost`, `Scheme.Secure` | F5 |
-| Parameters table | `paperParams` | all eleven values match |
-| Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline |
+| One random oracle on bit strings | `Query`, `hashSpec`, `oracleImpl` | length is part of a string's identity |
+| Cost per started 512-bit block, at least one | `blockCost`, `queryCost` | every bit in an explicit tweak is charged |
+| Sources, arbitrary deterministic nodes, hash nodes | `NodeKind`, `Graph` | hash nodes have one parent and no label |
+| Root is a hash node | `Graph.root_isHash` | root is never disclosed |
+| Key generation evaluates all nodes, within 1024 compressions | `Graph.keygen`, `Scheme.keygen_le` | |
+| Disclosure sets cut every source-to-root path | `root_not_mem`, `no_hidden_source` | |
+| Reconstruction stops at disclosed values | `Graph.Visited`, `evaluated`, `reconstruct` | root is always evaluated |
+| Verification cost is index plus reconstruction | `Scheme.verifyCost`, `idxCost` | the 512-bit index input costs one compression |
+| Index is low 128 bits of `H(m ‖ η)` | `index`, `setWidth idxBits` | the same oracle handles node inputs |
+| Signing samples distinct nonces, at most `2^21` trials | `Scheme.sign`, `signLoop` | fresh nonces need not be fresh oracle strings |
+| Public key is low 128 bits of the root | `publicKey`, `Scheme.verify` | |
+| Strong forgery differs from the received pair | `experiment`, `Scheme.Secure` | any accepted pair wins when signing fails |
+| Weak forgery uses a different message | `weakExperiment`, `Scheme.WeaklySecure` | hypothesis used by the lower track |
+| Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure`, `WeaklySecure` | includes keygen, signing and final verification |
+| Unconditional lower certificate | `VerificationLowerBound paperParams 18` | repeated reconstruction patterns and a forgery on a different message |
 
-## Findings
+`formal/OptimalOTS/Weak.lean` proves that strong security implies weak security.
+The lower certificate therefore applies to every secure scheme and also to
+schemes permitting malleability of a signature on the signed message.
 
-- **F1 (info).** The graph need not have a unique sink, and a node need not reach the root. The
-  paper requires both. Harmless: verification only touches nodes reached from the root, and extra
-  nodes only consume key-generation and signature budget. Kept.
-- **F2 (info).** A hash node's parent may have output length 0; the paper requires a positive
-  length. Such a node costs one compression and is publicly computable, so it changes neither security
-  nor cost. Kept.
-- **F3 (info).** The index and the public key are the low 128 bits of their hash (`setWidth` in
-  `index` and `publicKey`); the paper says "the first 128 bits". Any fixed 128 bits are equivalent.
-  Kept.
-- **F4 (info).** `sampleAssignment` samples a value for every node; only the sources' values are
-  used. Sampling is free. Kept.
-- **F5 (info).** `Secure` quantifies over every budget `B` for which `CostAtMost` holds. The bound
-  `B/2^127` is monotone in `B`, so this is the paper's requirement stated for all valid budgets.
-  Kept.
-- **F6 (info).** Adversary computation is unbounded and its private randomness is free; only
-  oracle queries are charged. This is the paper's model. The adversary's state type lives in
-  `Type`, which restricts nothing in practice. Kept.
-- **F7 (closed).** `VerificationLowerBound paperParams c` would be vacuous if no scheme
-  satisfied `Secure`. Non-vacuity is established by the kernel-checked upper-bound baseline: the
-  forest of 63 chains of length 14 verifies at 106 compressions.
+## Certificate status and open proof work
 
-## Freeze procedure
+The lower certificate proves 18 for every weakly secure scheme. Under the contrary
+assumption that every verification costs at most 17, each reconstruction uses at
+most 15 non-root hash nodes among at most 1023. There are fewer than `2^110`
+possible such node sets. Most of the `2^115` indices therefore lie in classes of
+at least eight indices with the same reconstruction pattern. A deterministic
+candidate construction converts a valid signature to any index in its class.
 
-1. F7 is resolved.
-2. Set `contract.version` in `challenges.json` to `ots-v1`, run `verifier/pin_contract.py pin`,
-   and record the contract id printed there on the site.
-3. From then on, any change to a protected file is `ots-v2`: the v1 leaderboard is archived and
-   both tracks re-baseline.
+The attack samples messages uniformly to avoid previously queried message-prefix
+domains, then tests `2^122` distinct nonces for its new message. Its proven success
+is at least `9/200`; its total cost is at most
+`1024 + 2^21 + 2^122 + 34`, whose ratio to `2^127` is smaller than `9/200`.
+This contradicts weak security. No assumption about distinct hash inputs or
+independent node outputs is used. The elementary index-plus-root bound 2 remains
+available as a separate lemma.
+
+The upper certificate remains 106. Its concrete scheme prepends a 16-bit tweak
+to every node input; those bits are included in the charged input lengths (144,
+400 and 912 bits). This is a choice made by that scheme, not a restriction on
+schemes considered by the lower theorem.
+
+The former lower bound 25 relied on distinct oracle labels. Two proposed
+fresh-coordinate replacements fail in the bare model. An earlier hidden hash
+can query the same string as a later reconstructed hash, placing the information
+weight outside the reconstructed set; the corresponding construction bound can
+also charge outside its target set. A Bell-number correction does not repair
+these counterexamples. Details:
+
+- [Information analysis](bare-oracle-information-analysis.md).
+- [Construction analysis](bare-oracle-construction-analysis.md).
+- [Conditional numerics](bare-oracle-numerics.md): the simple proposed-24 point has
+  numerical slack, but its missing mathematical hypotheses prevent certification.
+- [Current port status](bare-oracle-port.md) and [proof map](lower-bound-proof.md).
+
+The repeated-pattern proof establishes 18. Bounds 19 through 25 remain open in
+the bare model. In particular, the number of subsets of at most 16 non-root hash
+nodes already exceeds `2^115`, so the same counting argument does not directly
+prove 19. Conditional numerical searches do not establish a stronger bound.
+
+## Model details retained
+
+- The graph need not have a unique sink, and nodes need not reach the root.
+  Verification follows the root's dependencies; other nodes still consume
+  key-generation or disclosure budgets.
+- An empty hash input costs one compression.
+- `sampleAssignment` samples values for all nodes, but only source samples are
+  used. Sampling is free.
+- Index and public-key truncation use the low bits, matching `setWidth`.
+- The adversary's other computation and private randomness are unbounded and free.
+- The secure upper certificate establishes non-vacuity of both security classes.
+
+## Contract changes and verification
+
+Protected files are pinned by `verifier/protected.sha256`. Changes to the oracle
+model or baseline metadata require re-pinning and official verification of both
+tracks. The bare-oracle branch is a contract revision in development; these
+notes do not claim a production deployment or leaderboard promotion.

@@ -206,7 +206,7 @@ def generic_graph() -> Dag:
         "s3": Node("src", (), 128, 300, 340, "128 b", "b"),
         "s4": Node("src", (), 256, 440, 340, "256 b", "b"),
         "h1": Node("hash", ("s1",), H, 80, 285),
-        "t":  Node("det", ("h1",), 128, 80, 230, "first 128 b", "l"),
+        "t":  Node("det", ("h1",), 128, 80, 230, "low 128 b", "l"),
         "h2": Node("hash", ("t",), H, 80, 175),
         "f":  Node("det", ("h2",), 64, 80, 125, "any f · 64 b", "l"),
         "h5": Node("hash", ("f",), H, 80, 75),
@@ -319,8 +319,8 @@ def dag() -> str:
     entries = [
         ("src", "secret source", ["uniformly random bits, any length"]),
         ("det", "deterministic node", ["any public function of any parents,", "any output length; costs nothing"]),
-        ("hash", "hash node", ["H(label, input), 256-bit output;", "any input length, at |input| / 512", "compressions rounded up (the blue numbers)"]),
-        ("root", "root", ["the designated hash node;", "public key = its first 128 bits"]),
+        ("hash", "hash node", ["H(input), 256-bit output;", "any input length, at |input| / 512", "compressions rounded up (the blue numbers)"]),
+        ("root", "root", ["the designated hash node;", "public key = its low 128 bits"]),
     ]
     y = Y
     for kind, title, details in entries:
@@ -388,7 +388,7 @@ def _rib(x1a: float, x1b: float, y1: float, x2a: float, x2b: float, y2: float, c
 def _hash(b: list[str], x0: float, x1: float, y_from: float, cx: float, cy: float, out_x: float, y_to: float,
           in_bits: int, cls: str, label: str, out_y: float) -> int:
     """Input bits [x0, x1] leaving height y_from funnel into H at (cx, cy) and come out, at height
-    y_to, as a fresh 256-bit value drawn at (out_x, out_y). Returns the cost."""
+    y_to, as a 256-bit value drawn at (out_x, out_y). Returns the cost."""
     cost = block_cost(in_bits)
     b.append(_rib(x0, x1, y_from, cx - 6, cx + 6, cy + 8, cls))
     b.append(_rib(cx - 6, cx + 6, cy - 8, out_x, out_x + HASH_BITS * BIT, y_to, cls))
@@ -402,8 +402,8 @@ def _hash(b: list[str], x0: float, x1: float, y_from: float, cx: float, cy: floa
 def bit_flow() -> str:
     """Values as bars, bits as ribbons, flowing upwards like every other figure: four secret sources
     of 64 to 256 bits are split, sliced, transformed by an arbitrary function, reused and
-    concatenated for free, and hashed into fresh 256-bit values at various costs, up to a root whose
-    first 128 bits are the public key."""
+    concatenated for free, and hashed into 256-bit values at various costs, up to a root whose
+    low 128 bits are the public key."""
     Y = [446, 384, 322, 260, 198, 136, 74, 22]           # tops of the bars, row 0 (sources) at the bottom
     top = Y                                               # bits leave a bar through its top edge
     bot = [y + BAR for y in Y]                            # and enter the next bar through its bottom edge
@@ -458,7 +458,7 @@ def bit_flow() -> str:
           _rib(H2, H2 + W(256), top[3], R + W(320), R + W(576), bot[5], "bits-h2"),
           _bar(R, Y[5], 64, "bits-h1"), _bar(R + W(64), Y[5], 256, "bits-h3", "H₃"),
           _bar(R + W(320), Y[5], 256, "bits-h2", "H₂"), text(R + W(32), Y[5] - 5, "H₁[192:]", "t tag")]
-    # row 6: the root = H(R), 576 bits in; row 7: pk = root[:128]
+    # row 6: the root = H(R), 576 bits in; row 7: pk = the low 128 root bits
     RT = R + W(576) / 2 - W(256) / 2
     costs.append(_hash(b, R, R + W(576), top[5], R + W(576) / 2, mid[5], RT, bot[6], 576, "bits-root", "root · 256 b", Y[6]))
     b += [_rib(RT, RT + W(128), top[6], RT, RT + W(128), bot[7], "bits-root"),
@@ -468,7 +468,7 @@ def bit_flow() -> str:
     X, y = 586, 30
     rows = [
         ("A B C D", "secret sources", ["uniformly random bits, 64 to 256 here"]),
-        ("H", "hash node", ["any input in, 256 fresh bits out, at", "|input| / 512 compressions, rounded up", "(the blue numbers)"]),
+        ("H", "hash node", ["any input in, 256 bits out, at", "|input| / 512 compressions, rounded up", "(the blue numbers)"]),
         ("f", "deterministic node", ["any public function, any output length"]),
         ("~", "ribbons", ["bits on the move: split, sliced, reused,", "concatenated, and all of it free"]),
     ]
@@ -490,8 +490,8 @@ def bit_flow() -> str:
     b.append(text(X + 7, y + 20, "compressions", "t muted", "start"))
     return svg("bits", 810, 480, "".join(b),
                "Bits flowing up through a scheme: four secret sources of 64 to 256 bits are split, sliced, passed "
-               "through an arbitrary function, reused and concatenated for free, and hashed into fresh 256-bit "
-               "values costing one or two compressions each, up to a root whose first 128 bits are the public key.")
+               "through an arbitrary function, reused and concatenated for free, and hashed into 256-bit "
+               "values costing one or two compressions each, up to a root whose low 128 bits are the public key.")
 
 
 def cost_ruler() -> str:
@@ -499,10 +499,10 @@ def cost_ruler() -> str:
     X0, BW = 240, 130              # left edge of block 1, pixels per 512-bit block
     px = BW / BLOCK
     rows = [
-        ("chain step: a 128-bit value", 128),
-        ("a group: three 128-bit chain ends", 3 * 128),
-        ("index query H(enc, m ‖ η), 512 bits", 512),
-        ("root of the baseline: 7 × 128 bits", 7 * 128),
+        ("chain step: 16 + 128 bits", 16 + 128),
+        ("group: 16 + 3 × 128 bits", 16 + 3 * 128),
+        ("index query H(m ‖ η), 512 bits", 512),
+        ("baseline root: 16 + 7 × 128 bits", 16 + 7 * 128),
     ]
     b = []
     for k in range(4):

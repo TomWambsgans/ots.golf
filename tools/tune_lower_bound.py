@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Explore conditional lower-bound attack numerics; this is NOT a Lean certificate.
+"""Check reconstruction-pattern attack arithmetic or explore conditional entropy numerics.
 
-    tools/tune_lower_bound.py --s-star 5309 --idx 1 --claims 24,25
+    tools/tune_lower_bound.py --idx 1 --claims 18
+    tools/tune_lower_bound.py --method entropy --s-star 5313 --idx 1 --claims 24,25
 
 For a proposed bound c, the attack assumes C_i <= c-1 for all i. Reconstruction
 then costs at most v = c-1-idx and evaluates at most a = v-1 hash nodes besides
@@ -10,9 +11,10 @@ model estimates success as (1-delta) sum omega_l b_l and charges
 B = 1024 + L*idx + T*idx + (q+2)*v + 2*idx. A contradiction would need success
 (strictly) greater than B/2^127, PLUS all the mathematical attack hypotheses.
 
-The defaults explore the bare-oracle research target, not the currently proved
-claim. In particular S*=5309 is a requested exploratory value: a Bell(22) union
-bound actually requires S* >= 5310 for an integer budget at epsilon=2^-9.
+The default pattern method uses exact integer and rational arithmetic. The
+entropy method is conditional research: its proposed fresh-coordinate lemmas
+are false in the bare model, so positive numerical margins do not prove a bound.
+Even a Bell(22) union bound would require S* >= 5310 at epsilon=2^-9.
 Counting at an integer operating point and its cost are evaluated as exact
 fractions. Search, logarithms, and success use floats and the approximation
 (1-x)^T ~ exp(-x*T); a positive margin is only numerical evidence. The budget
@@ -105,18 +107,44 @@ def print_point(c: int, idx: int, s_star: int) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--idx", type=int, default=1)
-    ap.add_argument("--s-star", type=int, default=5309,
-                    help="exploratory information budget (default: 5309)")
-    ap.add_argument("--claims", default="24,25",
-                    help="proposed claims to explore, not established claims (default: 24,25)")
+    ap.add_argument("--method", choices=("patterns", "entropy"), default="patterns")
+    ap.add_argument("--s-star", type=int, default=5313,
+                    help="conditional entropy information budget (default: 5313)")
+    ap.add_argument("--claims", default=None,
+                    help="claims to check (default: 18 for patterns, 24,25 for entropy)")
     ap.add_argument("--no-search", action="store_true", help="only report simple integer operating points")
     args = ap.parse_args()
     try:
-        claims = list(map(int, args.claims.split(",")))
+        claims = list(map(int, (args.claims or ("18" if args.method == "patterns" else "24,25")).split(",")))
     except ValueError:
         ap.error("--claims must be comma-separated integers")
     if args.idx < 1 or args.s_star <= 0 or any(c - args.idx - 2 < 2 for c in claims):
         ap.error("require idx >= 1, s-star > 0, and c-idx-2 >= 2 for every proposed claim")
+    if args.method == "patterns":
+        if args.idx != 1:
+            ap.error("the pattern certificate uses paperParams with --idx 1")
+        print("EXACT PATTERN-ATTACK ARITHMETIC; run the official verifier for a certificate.")
+        T = 2 ** 122
+        for c in claims:
+            a, v = c - 3, c - 2
+            count = sum(math.comb(1023, k) for k in range(a + 1))
+            good = max(Fraction(0), 1 - Fraction(8 * count, M))
+            sign_success = Fraction(256, 257)
+            fresh1 = 1 - Fraction(1024, 2 ** 256)
+            fresh2 = 1 - Fraction(1024 + L + 1, 2 ** 256)
+            search_success = Fraction(1, 9)
+            lower = fresh1 * good * sign_success * fresh2 * search_success
+            budget = 1024 + L + T + 2 * v + 2
+            ratio = Fraction(budget, 2 ** 127)
+            print(f"c={c}, a={a}, reconstruction budget={v}, patterns={count}")
+            print(f"  exact pattern count < 2^110: {count < 2 ** 110}")
+            print(f"  good-index fraction >= {good}; search success >= 1/9")
+            print(f"  exact success bound > cost/2^127: {lower > ratio} "
+                  f"(display ~ {float(lower):.9f} > {float(ratio):.9f})")
+            if c == 18:
+                print(f"  certificate inequalities: success >= 9/200: {lower >= Fraction(9, 200)}; "
+                      f"cost/2^127 < 1/25: {ratio < Fraction(1, 25)}")
+        return 0
     print("CONDITIONAL NUMERICAL EXPLORATION; no proof or certificate is produced.")
     print(f"index hash = {args.idx} compression(s), S* = {args.s_star}")
     for n in (22, 23):

@@ -1,63 +1,80 @@
-# OptimalOTS: a machine-checked verification lower bound
+# The bare-oracle verification lower bound
 
-A Lean 4 formalization, built on [VCVio](https://github.com/Verified-zkEVM/VCVio), of the lower
-bound in `paper/looking-for-optimal-OTS.tex`: with a 128-bit public key, signatures of at
-most 5504 bits, and roughly 127 bits of security, every graph-based hash-based one-time signature
-has a signature whose verification costs at least 25 compressions.
-
-## The statement
-
-`formal/OptimalOTS/Statement.lean` is the complete statement, in one file and generic in the numerical
-parameters. It defines the random oracle with per-block query costs, computation graphs,
-disclosure sets, key generation, signing, verification, the one-signature forgery experiment in its
-strong form (`experiment`, `Scheme.Secure`) and its weak form (`weakExperiment`,
-`Scheme.WeaklySecure`: the forged message must differ from the signed one), and
+The contract is `formal/OptimalOTS/Statement.lean`: one random oracle on bit strings, with no
+labels, tweaks, separation assumptions, or restrictions on deterministic node functions beyond
+parent locality. The lower track quantifies over every weakly secure scheme:
 
 ```lean
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.WeaklySecure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 ```
 
-The hypothesis is the weak one on purpose: the bound then covers every scheme, malleable ones
-included, and the attack qualifies because it forges on the fixed message `msg₂ ≠ msg₁`.
+`Submissions/Lower/Solution.lean` now proves `VerificationLowerBound paperParams 18`.
+The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
+and `Quot.sound`. The official verifier accepted claim 18 in 89.5 seconds. The earlier bound of 2
+was officially verified before the replacement was developed.
 
-together with the parameters `paperParams` of the paper. `formal/Submissions/Lower/Solution.lean` proves
-`verificationLowerBound_paper : VerificationLowerBound paperParams 25`.
+## Proof
 
-A better lower bound is a proof of `VerificationLowerBound paperParams c` with `c > 25`; other
-parameter regimes change `P`.
+Assume every verification costs at most 17. The index and root each cost at least one, so the
+set of reconstructed nonroot hash nodes has size at most 15. Key generation allows at most
+1024 hash nodes. Consequently there are fewer than `2^110` reconstruction patterns among
+`2^115` indices. At least three quarters of indices belong to classes of size at least eight.
 
-## The proof
+After receiving a signature, the attacker reconstructs it and chooses any algebraic record
+consistent with the disclosed values and observed hash outputs. Every such record makes the
+same queries at the observed hash nodes. Its disclosure at any index with the same reconstruction
+pattern therefore verifies under the actual oracle. The choice is computationally unbounded
+and makes no oracle queries; no probability distribution on candidate records is assumed.
 
-The files in `formal/Submissions/Lower/` follow the paper.
+The attacker samples its first message after key generation and its second after signing and
+reconstruction. A cache of at most `D` queries excludes the full nonce domains of at most `D`
+message prefixes. Each uniform-message choice thus retains at least `9/10` probability mass
+with a completely fresh nonce domain (and, for the second, a different message). Conditional
+on freshness, the signing law is exact, giving a good signed index with probability at least
+`1/2`. Searching `2^122` distinct nonces hits a class of eight indices with probability at least
+`1/9`. The converted signature wins on a new message, so it wins `weakExperiment`.
 
-| File | Content |
-|---|---|
-| `Attack.lean` | the attacker |
-| `Cost.lean` | the attack experiment's total query cost |
-| `LazyEagerDefs.lean`, `LazyEager.lean` | the lazy random oracle equals a uniform table on the queried cells |
-| `Semantics.lean` | records, oracle tables, deterministic evaluation and reconstruction |
-| `AnalysisDefs.lean`, `Cells.lean` | the finite probability space of the analysis |
-| `Decomp.lean` | the experiment with a fixed table is at least an explicit sum |
-| `Product.lean` | splitting a uniform table into independent parts |
-| `Sign.lean`, `Nonce.lean` | the index selected by signing and the rank found by the nonce search |
-| `Entropy.lean`, `EntropyLemmas.lean` | conditional entropy for a uniform choice |
-| `Information.lean` | Lemma 2, the information bound |
-| `ConstructionDefs.lean`, `Construction.lean` | Lemma 3, the construction bound |
-| `Counting.lean`, `CountingFactor.lean` | Lemma 4, the counting bound |
-| `Ranks.lean`, `TailBound.lean`, `RankIntegral.lean`, `AvgSucc.lean` | the weight at each rank and the averaged construction success |
-| `Repetition.lean`, `Numerics*.lean` | Appendices A and B |
-| `Assembly.lean` | the success probability of the attack exceeds 11/200 |
+Success is at least `9/200`; the total pathwise budget is
+`B = 1024 + 2^21 + 2^122 + 34`, with `B/2^127 < 1/25 < 9/200`. This contradicts weak security.
+All numerical comparisons in Lean use exact arithmetic. The pattern-count argument stops at
+18: allowing sixteen nonroot hash nodes produces more patterns than there are indices.
 
-## Building
+## File map
+
+| File | Role |
+| --- | --- |
+| `Elementary.lean` | Unconditional cost of at least two, retained from the interim certificate |
+| `Semantics.lean`, `Encoding.lean` | Algebraic graph records and disclosure round trips |
+| `Cache.lean`, `Expectation.lean` | Lazy bare-oracle runs and expectation identities |
+| `KeygenSupport.lean` | Actual key-generation outputs satisfy the final cache's node equations |
+| `Conversion.lean` | Deterministic cached conversion whenever `E_j ⊆ E_i` |
+| `Patterns.lean`, `PatternGoods.lean` | Exact pattern counts and the large-class fraction |
+| `CacheFresh.lean`, `PatternHelpers.lean` | Finite-cache prefix counting and probability bounds |
+| `Index.lean`, `SignFresh.lean` | Signing support and its exact fresh-cache probability law |
+| `PatternSearch.lean` | Nonce search, cost, correctness, and success at least `1/9` |
+| `CostCore.lean`, `PatternAttack.lean` | The attack and its total pathwise query cost |
+| `PatternAssembly.lean`, `Solution.lean` | Success bound, security contradiction, exported certificate |
+
+## Why the previous entropy proof was replaced
+
+The labeled proof's node outputs were independent. Bare nodes can repeat earlier hidden queries.
+The proposed fresh-coordinate information bound with a Bell correction and the proposed
+construction bound are both false; exact counterexamples are in
+`bare-oracle-information-analysis.md` and `bare-oracle-construction-analysis.md`, and Appendix A
+of the paper. The repeated-pattern proof bypasses those statements. It does not prove 24 or 25.
+The historical labeled proof remains available in git at `e2eaf4e`.
+
+`tools/tune_lower_bound.py` defaults to the exact pattern arithmetic at 18.
+`--method entropy --s-star 5313 --claims 24,25` reproduces conditional numerical exploration;
+it cannot validate the false mathematical transfer lemmas.
+
+## Verification
 
 ```sh
-cd formal
-lake exe cache get
-lake build OptimalOTS Submissions.Lower.Solution
+cd formal && lake build OptimalOTS Submissions
+cd .. && python3 verifier/pin_contract.py check
+python3 verifier/check_submission.py lower
+python3 verifier/verify.py lower --source .
+python3 verifier/verify.py upper --source .
 ```
-
-`tools/tune_lower_bound.py` explores the operating points of the attack; the proof uses
-`a = 22`, `K = 100`, `q = 5 · 2^113`, `T = 3 · 2^121`.
-
-VCVio and its dependencies compile from source on the first build.

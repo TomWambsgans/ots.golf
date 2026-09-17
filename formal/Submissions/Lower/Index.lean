@@ -87,8 +87,8 @@ variable (P : Params)
 /-- An encoding input. -/
 abbrev EncInput (P : Params) := BitVec (P.msgBits + P.nonceBits)
 
-/-- The encoding query at input `u`: the query of length `msgBits + nonceBits` with bits `u`. The
-oracle has no labels, so an encoding query is told apart from every other query by its length. -/
+/-- The encoding query at input `u`, represented by its length and bits. A node query may
+use exactly the same string; freshness must be proved from the cache. -/
 def encQuery (u : EncInput P) : Query := ⟨P.msgBits + P.nonceBits, u⟩
 
 /-- The index read from an oracle answer. -/

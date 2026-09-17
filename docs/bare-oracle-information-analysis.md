@@ -118,3 +118,38 @@ coupling proof; it is not implied just by writing down the numerical union bound
 This route avoids both false entropy lemmas. It does not establish 24. At size 16 the
 same pattern count exceeds `2^115` (its log2 is approximately 115.58027394383527), so the
 argument as written stops at 18.
+
+## Direct bare-oracle probability argument for the pattern attack
+
+The replacement avoids an independent index oracle entirely. Condition on any key-generation
+outcome and its cache. The cache has at most 1024 entries because every hash query costs at least
+one. A uniformly sampled 256-bit message has its entire nonce domain disjoint from that cache
+unless it equals the message prefix of a cached 512-bit string. There are at most 1024 such
+prefixes, so the probability of full freshness is at least `1-1024/2^256 > 9/10`.
+
+For any fixed fresh message, each signing trial is fresh, including after conditioning on all
+previous failed trials, because the signer never retries a nonce. If `G` is the good set of
+indices (pattern-class size at least eight), the probability of a returned index in `G` is
+exactly `(G.card/M)*(1-(1-M/2^128)^L)`. Here `G.card/M >= 3/4`. The elementary inequality
+`(1-p)^L <= 1/(1+L*p)` gives failure at most `1/257`; hence signing selects `G` with probability
+at least `1/2`. This law does not require independence from the hidden graph once the initial
+cache is fixed and the message's nonce domain is fresh.
+
+Condition next on any such signed outcome. Its cache has at most `1024+2^21` entries.
+Reconstructing the honest disclosure only repeats cached key-generation queries. Sample a
+second uniform message now, independently of this whole outcome. Its full nonce domain is
+fresh and it differs from the first message with probability at least
+`1-(1024+2^21+1)/2^256 > 9/10`. Search the first `T=2^122` distinct nonces of this message.
+For a class of size at least eight, the chance of finding a class index is at least
+`1-(1-8/2^128)^T >= (T*8/2^128)/(1+T*8/2^128) = 1/9`.
+
+Convert the signed disclosure to that target by the deterministic candidate procedure.
+The verifier repeats already cached queries and accepts. The messages differ, so this wins
+`weakExperiment`. Multiplication of the conditional lower bounds gives success at least
+`(9/10)*(1/2)*(9/10)*(1/9) = 9/200`.
+The whole pathwise budget is `B=1024+2^21+2^122+34` (two index queries beyond the search,
+and two reconstructions of cost at most 16). Exact arithmetic gives `B/2^127 < 1/25 < 9/200`.
+
+This settles the probability argument on paper without the adaptive coupling gap mentioned
+in the initial exploration above. The Lean formalization of the full attack is in progress;
+these calculations alone are not an exported certificate.
