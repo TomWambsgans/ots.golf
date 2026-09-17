@@ -77,23 +77,24 @@ def record_chart(series: list[dict], now: datetime) -> dict:
         pts, baseline = s["points"], s["baseline"]
         status = s.get("status", "certified")
         out.append(f'<g class="chart-series {cls}" data-series="{slug}" data-kind="{s["kind"]}" data-status="{status}">')
-        # Retain the contract baseline before the first improvement.
-        first_x = sx(pts[0]["t"]) if pts else sx(t1)
-        baseline_label = "adapter; admission pending" if status == "candidate" else "contract baseline"
-        out.append(f'<path class="line baseline" d="M{ML},{sy(baseline):.1f} H{first_x:.1f}"><title>{label}: {baseline} · {baseline_label}</title></path>')
         last_claim = pts[-1]["claim"] if pts else baseline
         if pts:
-            d = f'M{first_x:.1f},{sy(baseline):.1f} V{sy(pts[0]["claim"]):.1f}'
+            # Record history begins with its first submission, with no invented earlier step.
+            d = f'M{sx(pts[0]["t"]):.1f},{sy(pts[0]["claim"]):.1f}'
             for p in pts[1:]:
                 d += f' H{sx(p["t"]):.1f} V{sy(p["claim"]):.1f}'
             d += f' H{sx(t1):.1f}'
             out.append(f'<path class="line" d="{d}"/>')
+        else:
+            reference_label = "adapter; admission pending" if status == "candidate" else "verified bound"
+            out.append(f'<path class="line reference" d="M{ML},{sy(baseline):.1f} H{sx(t1):.1f}"><title>{label}: {baseline} · {reference_label}</title></path>')
         for p in pts:
             x, y = sx(p["t"]), sy(p["claim"])
             point = {"x": round(x, 1), "y": round(y, 1), "track": s["label"], "framework": s["framework"],
                      "kind": s["kind"], "claim": p["claim"], "login": p["login"],
                      "date": p["t"].strftime("%Y-%m-%d %H:%M UTC"), "id": p["id"], "demo": p.get("demo", False)}
-            title = escape(f'{s["label"]}: {p["claim"]} compressions · {p["login"]} · {point["date"]}'
+            unit = "compression" if p["claim"] == 1 else "compressions"
+            title = escape(f'{s["label"]}: {p["claim"]} {unit} · {p["login"]} · {point["date"]}'
                            + (' · demo' if point["demo"] else ''))
             out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{title}">'
                        f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{title}</title></circle></a>')

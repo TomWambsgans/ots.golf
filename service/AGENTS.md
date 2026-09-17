@@ -5,6 +5,10 @@ by default. Preserve or restore those demo rows when updating the running local 
 replace the demo board with a baseline-only board unless the user explicitly requests it.
 Demo claims must follow the current contract baselines, using the offsets in `seed_demo.py`;
 never preserve stale absolute claims when a baseline changes.
+Show results as ordinary submissions with solver attribution, never as a special "baseline" in
+the website. Generic lower's checked claim appears as a default Vitalik demo submission with zero
+offset from the contract claim. Preserve it across refreshes, including its ID and dates, and keep
+its demo label. Internal verifier thresholds still come from the contract.
 
 Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
 `refresh-local.sh`: it adjusts existing demo claims and triggers the running server to reload.
@@ -38,8 +42,9 @@ Do not relabel legacy DAG upper submissions as generic. The chart has one upper 
 the upper leaderboard has no framework filter. Reject public submissions to legacy DAG upper roots.
 Retain their proof files and historical pages as references, and preserve all existing demo rows.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
-Preserve Satoshi/Vitalik's existing demos, but do not invent generic-lower improvements: that track
-starts at its actual certified baseline until real submissions are verified.
+Preserve Satoshi/Vitalik's existing demos. Generic lower includes Vitalik's demo at the checked
+claim, with no invented improvement beyond it. The card, chart point, leaderboard, submission page
+and solver profile must all refer to this same row.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Partial-disclosure lower

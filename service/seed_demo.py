@@ -46,7 +46,10 @@ BASE_ROWS = [
     ("lower", "satoshi-nakamoto", 2, 2 * 24 + 1, "verified", True, "GPT-2", []),
     ("lower", "vitalik-buterin", 1, 22, "verified", False, "LLaMA 7B", []),
 ]
-ROWS = BASE_ROWS + [("disclosure-" + track, *rest) for track, *rest in BASE_ROWS]
+# The generic proof is shown as a normal submission with fictional Vitalik attribution.
+# Zero offset keeps its claim equal to the checked repository result when that result changes.
+GENERIC_ROWS = [("generic-lower", "vitalik-buterin", 0, 20, "verified", True, "LLaMA 7B", [])]
+ROWS = BASE_ROWS + [("disclosure-" + track, *rest) for track, *rest in BASE_ROWS] + GENERIC_ROWS
 
 
 def demo_claim(track: str, improvement: int) -> int:

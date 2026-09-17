@@ -6,12 +6,12 @@
 <h1>{{ t.title }} submission <span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span></h1>
 {% if legacy_upper %}<p class="submission-scope">This is a legacy DAG upper certificate, preserved as a reference.
 The site's single upper track uses fully generic algorithms; this submission is not a generic upper record.</p>{% else %}
-<p class="submission-scope">{% if framework.slug == 'disclosure' %}This claim covers DAG schemes whose payloads have at most {{ framework.origin_limit }} hash origins. Its record belongs to the partial-disclosure framework.{% else %}This claim covers the DAG framework, including schemes with arbitrary sharing and deterministic operations.{% endif %}
-<a href="/rules#{{ 'partial-disclosures' if framework.slug == 'disclosure' else 'graph' }}">Framework rules</a>.</p>
+<p class="submission-scope">{% if framework.slug == 'generic' %}This claim covers arbitrary oracle algorithms with correct signing, signing success at least 1/2, and the stated resource and security requirements.{% elif framework.slug == 'disclosure' %}This claim covers DAG schemes whose payloads have at most {{ framework.origin_limit }} hash origins. Its record belongs to the partial-disclosure framework.{% else %}This claim covers the DAG framework, including schemes with arbitrary sharing and deterministic operations.{% endif %}
+<a href="/rules#{{ 'generic-algorithms' if framework.slug == 'generic' else 'partial-disclosures' if framework.slug == 'disclosure' else 'graph' }}">Framework rules</a>.</p>
 {% endif %}
-{% if sub.detail_dict.get('demo') %}<p class="demo-note">Illustrative local submission. This demo claim is not a kernel-verified result.</p>{% endif %}
+{% if sub.detail_dict.get('demo') %}<p class="demo-note">Illustrative local submission with fictional attribution. This entry was not submitted by the named solver.</p>{% endif %}
 <dl class="facts">
-  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} compressions{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}{% if sub.baseline %} <span class="tag">baseline</span>{% endif %}</dd>
+  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} compression{{ '' if sub.claim == 1 else 's' }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}</dd>
   <dt>Submitter</dt><dd><a href="/solvers/{{ sub.user.login }}">{{ sub.user.login }}</a>{% for c in sub.co_authors_list %}, {{ c }}{% endfor %}</dd>
   {% if sub.assisted_by %}<dt>Assisted by</dt><dd>{{ sub.assisted_by }}</dd>{% endif %}
   <dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>

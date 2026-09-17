@@ -84,14 +84,16 @@ Its normal form and transcript arguments have not yet been ported to Lean. No sc
 
 ## Local website
 
-The generic lower card, chart and leaderboard use the normal track metadata and certified baseline.
+The generic lower card, chart and leaderboard show claim 1 as an ordinary Vitalik demo submission.
 All three lower tracks are open; only generic upper admission remains pending. The generic lower
-row has no invented improvements. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
+row uses the checked claim with fictional attribution and no invented improvement. Its chart point,
+detail page and solver profile link to the same persistent row. Website copy has no special baseline
+labels. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
 the one-half signing-success threshold and all three submission roots, without current scores.
 The top navigation contains only the logo and Rules.
 
-All 14 service tests pass, covering the generic lower queue and pull-request root mapping,
-score-independent rules, framework isolation and preservation of demo rows. A proof or admission
+All 15 service tests pass, covering the generic lower queue and pull-request root mapping,
+score-independent rules, framework isolation, Vitalik's linked generic submission and preservation of demo rows. A proof or admission
 change must now update the website, metadata, rules and documentation in the same change.
 Headless Firefox checks pass for the three lower lines and tables, generic lower's open status,
 the simplified top navigation, direction switches, sorting, keyboard chart tooltips, filtered

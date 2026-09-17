@@ -64,7 +64,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             html = response.text
             points = self.chart(html)
-            self.assertEqual({p['framework'] for p in points}, {'dag', 'disclosure'})
+            self.assertEqual({p['framework'] for p in points}, {'generic', 'dag', 'disclosure'})
             self.assertEqual({p['kind'] for p in points}, {'lower'})
             for point in points:
                 sub = self.session.get(Submission, point["id"])
@@ -93,16 +93,51 @@ class FrameworkTests(unittest.TestCase):
         axis_y = float(svg.find("./line[@class='axis']").get('y1'))
         bound_y = float(re.search(r'M[\d.]+,([\d.]+)', generic.find('path').get('d')).group(1))
         self.assertLess(bound_y, axis_y)
-        self.assertIn('contract baseline', generic.find('path/title').text)
+        self.assertIn('verified bound', generic.find('path/title').text)
         self.assertIn('Honest signatures verify; signing succeeds at least half the time.', response.text)
         self.assertIn('<table class="lb-table" data-track="generic-lower">', response.text)
-        self.assertIn('0 records, 0 solvers · baseline 1', response.text)
+        self.assertIn('0 records, 0 solvers', response.text)
+        self.assertNotIn('baseline', response.text.lower())
         lower_panel = re.search(r'<div class="board-track" data-track="lower">(.*?)'
                                 r'<div class="board-track" data-track="upper"', response.text, re.S).group(1)
         self.assertNotIn('pending', lower_panel.lower())
         self.assertNotIn('foundation', lower_panel.lower())
         self.assertEqual(svg.findall("./g[@data-kind='lower'][@data-status='pending']"), [])
         self.assertEqual(self.client.get("/?framework=unknown").status_code, 404)
+
+    def test_generic_result_is_vitalik_submission_on_board_chart_and_profile(self):
+        seed_demo.refresh(self.session)
+        sub = self.session.scalar(select(Submission).where(Submission.track == 'generic-lower'))
+        self.assertEqual((sub.user.login, sub.claim, sub.is_record), ('vitalik-buterin', 1, True))
+        self.assertTrue(sub.detail_dict['demo'])
+        self.assertFalse(sub.baseline)
+        identity = (sub.id, sub.created_at, sub.record_at)
+        self.assertEqual(seed_demo.refresh(self.session), 0)
+        self.assertEqual((sub.id, sub.created_at, sub.record_at), identity)
+        self.assertEqual(len(list(self.session.scalars(
+            select(Submission).where(Submission.track == 'generic-lower')))), 1)
+
+        html = self.client.get('/?framework=generic').text
+        self.assertIn('1 record, 1 solver', html)
+        self.assertIn('class="lb-row record current" data-score="1"', html)
+        self.assertIn(f'href="/submissions/{sub.id}"', html)
+        self.assertIn('href="/solvers/vitalik-buterin"', html)
+        self.assertNotIn('baseline', html.lower())
+        points = [p for p in self.chart(html) if p['framework'] == 'generic']
+        self.assertEqual([(p['id'], p['claim'], p['login']) for p in points],
+                         [(sub.id, 1, 'vitalik-buterin')])
+        self.assertTrue(points[0]['demo'])
+        detail = self.client.get(f'/submissions/{sub.id}').text
+        self.assertIn('1 compression', detail)
+        self.assertIn('arbitrary oracle algorithms', detail)
+        self.assertIn('href="/rules#generic-algorithms"', detail)
+        self.assertIn('fictional attribution', detail)
+        self.assertNotIn('DAG framework', detail)
+        self.assertNotIn('baseline', detail.lower())
+        profile = self.client.get('/solvers/vitalik-buterin').text
+        self.assertIn(f'href="/submissions/{sub.id}"', profile)
+        self.assertIn('href="/?framework=generic#lower">Generic algorithms</a>', profile)
+        self.assertNotIn('baseline', profile.lower())
 
     def test_single_generic_upper_is_a_candidate_not_an_inherited_record(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
@@ -152,11 +187,13 @@ class FrameworkTests(unittest.TestCase):
         demo = next(s for s in self.session.scalars(select(Submission)) if s.detail_dict.get("demo"))
         demo.claim = 999
         self.session.commit()
-        self.assertEqual(seed_demo.refresh(self.session), 10)
+        self.assertEqual(seed_demo.refresh(self.session), 11)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), len(seed_demo.ROWS) + 1)
-        self.assertFalse(any(s.track == "generic-lower" for s in now))
+        generic = [s for s in now if s.track == "generic-lower"]
+        self.assertEqual(len(generic), 1)
+        self.assertEqual((generic[0].claim, generic[0].user.login), (1, 'vitalik-buterin'))
         self.assertEqual(self.session.get(Submission, real.id).claim, 18)
         self.assertTrue(self.session.get(Submission, real.id).baseline)
         for sub in now:
@@ -166,12 +203,12 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(sub.claim, seed_demo.demo_claim(sub.track, sub.detail_dict["improvement"]))
 
     def test_disclosure_submission_links_to_its_framework(self):
-        seed_demo.add_rows(self.session, [seed_demo.ROWS[-1]])
+        seed_demo.add_rows(self.session, [next(r for r in seed_demo.ROWS if r[0] == 'disclosure-lower')])
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f"/submissions/{sub.id}").text
         self.assertTrue('href="/?framework=disclosure#lower">Partial disclosures</a>' in html)
-        self.assertTrue('This demo claim is not a kernel-verified result' in html)
+        self.assertTrue('Illustrative local submission with fictional attribution' in html)
 
     def test_solver_page_names_framework_and_bound_kind(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)

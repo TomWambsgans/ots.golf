@@ -268,7 +268,7 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .framework-bounds dt { color: var(--ink-2); font-size: 12px; }
 .framework-bounds dd { margin: 0; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.4; }
 .framework-bounds .pending-value { font-size: 20px; font-weight: 500; color: var(--muted); }
-.framework-card > .framework-baseline { margin: 0; font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.framework-card > .framework-record { margin: 0; font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
 .scope-note { font-size: 13px; color: var(--ink-2); max-width: 90ch; margin: 14px 0 0; }
 .demo-note { color: var(--ink-2); font-size: 13px; margin: 10px 0; }
 .chart-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 0; margin: 16px 0 12px; font-size: 12px; }
@@ -281,7 +281,7 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .record-chart .chart-series .line, .record-chart .chart-series .connector { stroke: var(--framework-color); }
 .record-chart .chart-series .connector { fill: none; stroke-width: 1; opacity: .6; }
 .record-chart .chart-series.upper .line { stroke-dasharray: 8 5; }
-.record-chart .chart-series .line.baseline { stroke-dasharray: 3 5; opacity: .5; }
+.record-chart .chart-series .line.reference { stroke-dasharray: 3 5; opacity: .5; }
 .record-chart .chart-series .mark { fill: var(--framework-color); }
 .record-chart .chart-series.upper .mark { fill: var(--surface); stroke: var(--framework-color); }
 .record-chart .chart-series .label { font-size: 12px; }
