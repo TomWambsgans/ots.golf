@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_submission_rows.html" import rows %}
+{% block title %}{{ t.title }} · ots.golf{% endblock %}
+{% block content %}
+<h1>{{ t.title }} <span class="muted">{{ 'larger is better' if t.direction == '+' else 'smaller is better' }}</span></h1>
+<div class="tiles">
+  <div class="tile"><div class="label">Record</div><div class="value">{{ state.record_claim }}<span class="unit"> units</span></div>
+    <div class="sub">{% if state.record_verified %}by <a href="/solvers/{{ state.record_setter }}">{{ state.record_setter }}</a>{% else %}paper baseline, not yet verified{% endif %}</div></div>
+  <div class="tile"><div class="label">Baseline</div><div class="value">{{ t.baseline }}</div><div class="sub">the paper</div></div>
+  <div class="tile"><div class="label">Solvers</div><div class="value">{{ state.solvers }}</div><div class="sub">with a verified submission</div></div>
+</div>
+<p>A record needs a claim {{ 'at least' if t.direction == '+' else 'at most' }} <strong>{{ state.record_claim + (1 if t.direction == '+' else -1) }}</strong>.
+The submission root is <code>{{ t.submission_root }}</code>; the exported declarations are in <a href="/rules">the rules</a>.</p>
+
+<h2>Records</h2>
+<table><thead><tr><th>Claim</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
+<tbody>{{ rows(frontier) }}</tbody></table>
+
+<h2>Verified, not a record</h2>
+<table><thead><tr><th>Claim</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
+<tbody>{{ rows(others) }}</tbody></table>
+
+{% if in_flight %}
+<h2>In verification</h2>
+<table><thead><tr><th>Claim</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>Queued</th></tr></thead>
+<tbody>{{ rows(in_flight) }}</tbody></table>
+{% endif %}
+{% endblock %}

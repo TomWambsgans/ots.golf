@@ -1,0 +1,19 @@
+[Unit]
+Description=ots.golf verifier worker (one submission at a time)
+After=network.target
+
+[Service]
+User=ots
+WorkingDirectory=/srv/ots/repo/service
+EnvironmentFile=/etc/ots/env
+Environment=OTS_REPO_ROOT=/srv/ots/repo
+Environment=PATH=/srv/ots/.elan/bin:/usr/local/bin:/usr/bin:/bin
+# The worker itself is light; the sandboxed comparator run is a transient systemd-run scope with
+# the contract's memory cap (verifier/verify.py). This unit's own cap is a backstop.
+MemoryMax=28G
+ExecStart=/srv/ots/repo/service/.venv/bin/python -m app.worker
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

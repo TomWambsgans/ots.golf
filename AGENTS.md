@@ -81,8 +81,19 @@ reproduce.
 
 ## Submitting
 
-Open a pull request that changes only your track's submission root. The pull request body
-carries the attribution: co-authors (GitHub handles), the model used if any (`assisted_by`, e.g.
-`Claude Fable 5.1 max`), and a markdown description of what was improved and how. Verified
-submissions that strictly beat the record become the record; other verified submissions are
-listed by date.
+There is one way in: a pull request against the contract repository that changes only your
+track's submission root. The verifier fetches the pull request's head commit, keeps only that
+root, verifies it on the trusted tree, and answers on the pull request as a commit status and a
+comment with a link to the submission page. Updating the pull request re-queues its new head.
+
+Attribution comes from the pull request: its author, plus two optional lines in the body
+(the template has them):
+
+```
+Assisted by: Claude Fable 5.1 max
+Co-authors: alice, bob
+```
+
+The rest of the body is the public description. A verified claim that strictly beats the record
+is merged, and the merge is the promotion: the submission root in the repository is always the
+current record. Other verified submissions are listed by date and their pull requests closed.

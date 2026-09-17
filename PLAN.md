@@ -18,7 +18,7 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 | Upper certificate | `def scheme : Scheme paperParams`, `theorem secure : scheme.Secure`, `theorem cost : ∀ i, scheme.verifyCost i ≤ <literal>`. |
 | Lower certificate | `theorem candidate : VerificationLowerBound paperParams <literal>`. |
 | Claimed score | Read from `claim.txt`, rendered as a literal into the challenge stub before verification. |
-| Submission | A git commit (pull request or API). Flat root per track, only `.lean` + `claim.txt`. Imports: Statement, sibling files, Mathlib, VCVio. Protected files untouchable. |
+| Submission | A pull request (the only channel). Flat root per track, only `.lean` + `claim.txt`. Imports: Statement, sibling files, Mathlib, VCVio. Protected files untouchable. |
 | Axioms | `propext`, `Quot.sound`, `Classical.choice` only (excludes `native_decide`). |
 | Verifier | Own server. `leanprover/comparator` + landrun + systemd-run. 20 min wall clock, 24 GiB, no network, cached Mathlib/VCVio. |
 | Ranking | Strict integer improvements are records. Other verified submissions listed by date. |
@@ -45,10 +45,10 @@ Current interval: **25 ≤ optimum ≤ 106** hash units.
 - Pipeline, one job at a time: fetch commit → protected-hash and root checks → render claim →
   comparator in sandbox → store verdict/score/log → GitHub status + PR comment →
   record, or "verified, not a record".
-- Entry points: GitHub App webhook (pull requests) and bearer-token API (after GitHub login).
-  Same queue.
-- API: public reads (tracks, leaderboard, state, submission); authenticated: submit, list own,
-  update description, read log. Limits: 1–2 in flight per user, queue cap, 429 when busy.
+- One entry point: the pull-request webhook. Attribution from the PR (author, `Assisted by:`,
+  `Co-authors:` lines). Merge = promotion. No login, no tokens, no upload.
+- API: read-only (interval, tracks, leaderboard, submission, log). Limits: 2 in flight per
+  user, queue cap.
 - Ops: unprivileged worker, secrets only in the API process, nightly DB dump, rebuildable from a
   setup script.
 

@@ -15,5 +15,7 @@ live in this repository as ordinary submissions.
 - Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
 - Upper track root: formal/Submissions/Upper (module prefix Submissions.Upper)
 
-Submission channel: a pull request changing only one submission root. The hosted verifier and
-its HTTP API are described here once they are live.
+The one submission channel: a pull request against the contract repository changing only one
+submission root (`gh pr create` works). Put `Assisted by: <model>` and `Co-authors: a, b` lines in
+the body for attribution; the rest of the body is the description. The verifier answers on the
+pull request; the site and its read-only JSON API show every submission's status.

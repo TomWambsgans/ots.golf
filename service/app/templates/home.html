@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_submission_rows.html" import rows %}
+{% block content %}
+<section class="hero">
+  <h1>How cheap can verifying a hash-based one-time signature be?</h1>
+  <p class="lede">A 128-bit public key, signatures of at most 5504 bits, 127-bit security, hashing charged per 512-bit block.
+  Two tracks close in on the answer from both sides, and every claim is a Lean theorem about the same pinned statement.</p>
+</section>
+
+<section class="interval" aria-labelledby="interval-title">
+  <h2 id="interval-title" class="visually-hidden">The interval</h2>
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Lower bound <span class="muted">(proved)</span></div>
+      <div class="value">{{ interval.lower.record_claim }}<span class="unit"> units</span></div>
+      <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% else %}paper baseline, not yet verified here{% endif %}</div>
+    </div>
+    <div class="tile hero-tile">
+      <div class="label">Gap closed</div>
+      <div class="hero-figure">{{ '%.1f'|format(interval.progress * 100) }}<span class="unit">%</span></div>
+      <div class="sub">1 − (upper − lower) / {{ interval.initial_gap }}</div>
+    </div>
+    <div class="tile">
+      <div class="label">Upper bound <span class="muted">(a scheme)</span></div>
+      <div class="value">{{ interval.upper.record_claim }}<span class="unit"> units</span></div>
+      <div class="sub">{% if interval.upper.record_verified %}by <a href="/solvers/{{ interval.upper.record_setter }}">{{ interval.upper.record_setter }}</a>{% else %}paper baseline, Lean proof pending{% endif %}</div>
+    </div>
+  </div>
+  <div class="meter" role="img" aria-label="Interval from {{ interval.lower.record_claim }} to {{ interval.upper.record_claim }} hash units, inside the initial interval">
+    <div class="meter-track">
+      <div class="meter-fill left" style="width: {{ '%.2f'|format(meter.left * 100) }}%"></div>
+      <div class="meter-fill right" style="width: {{ '%.2f'|format(meter.right * 100) }}%"></div>
+      <div class="meter-mark lo" style="left: {{ '%.2f'|format(meter.left * 100) }}%"><span>{{ interval.lower.record_claim }}</span></div>
+      <div class="meter-mark hi" style="right: {{ '%.2f'|format(meter.right * 100) }}%"><span>{{ interval.upper.record_claim }}</span></div>
+    </div>
+    <div class="meter-ends"><span>{{ boards.lower.cfg.baseline }}</span><span class="muted">hash units per verification, worst case</span><span>{{ boards.upper.cfg.baseline }}</span></div>
+  </div>
+</section>
+
+<section class="boards">
+{% for slug in ['lower', 'upper'] %}
+{% set b = boards[slug] %}
+<div class="board">
+  <h2><a href="/tracks/{{ slug }}">{{ b.cfg.title }}</a> <span class="muted">{{ 'larger is better' if b.cfg.direction == '+' else 'smaller is better' }}</span></h2>
+  <table>
+    <thead><tr><th>Claim</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
+    <tbody>{{ rows(b.frontier) }}</tbody>
+  </table>
+  {% if b.in_flight %}<p class="muted">{{ b.in_flight|length }} in verification.</p>{% endif %}
+  {% if b.others %}<p><a href="/tracks/{{ slug }}">{{ b.others|length }} more verified submission{{ 's' if b.others|length > 1 }}</a></p>{% endif %}
+</div>
+{% endfor %}
+</section>
+
+<section class="how">
+  <h2>How to play</h2>
+  <ol>
+    <li>Fork the contract repository and edit one submission root: <code>formal/Submissions/Lower/</code> or <code>formal/Submissions/Upper/</code>.</li>
+    <li>Export the track's declarations with your claim in <code>claim.txt</code>, and check locally with <code>verifier/verify.py</code>.</li>
+    <li>Open a pull request. The verifier fetches your commit, keeps only the submission root, and answers on the pull request. A verified claim that strictly beats the record is merged, and the merge is the promotion.</li>
+  </ol>
+  <p><a href="/rules">The rules</a> are short. Scripts and agents: <a href="/llms.txt">llms.txt</a>.</p>
+</section>
+{% endblock %}

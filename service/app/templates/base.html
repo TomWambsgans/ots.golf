@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ots.golf{% endblock %}</title>
+<meta name="description" content="How cheap can verifying a hash-based one-time signature be? A two-track competition, every claim checked by the Lean kernel.">
+<link rel="alternate" type="text/markdown" href="/llms.txt" title="LLM / agent documentation">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">ots<span>.golf</span></a>
+  <nav>
+    <a href="/tracks/lower">Lower bound</a>
+    <a href="/tracks/upper">Upper bound</a>
+    <a href="/rules">Rules</a>
+    <a href="/api/v1/docs">API</a>
+    <a href="/llms.txt">llms.txt</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  <p>Contract <code>{{ contract_version }}</code> · id <code title="{{ contract_id }}">{{ contract_id[:16] }}</code> · trusted commit <code>{{ contract_commit[:10] }}</code>.
+  Every ranked claim is exported, compared against the pinned statement, and accepted by the Lean kernel.</p>
+</footer>
+</body>
+</html>

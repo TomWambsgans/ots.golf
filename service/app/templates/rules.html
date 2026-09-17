@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Rules · ots.golf{% endblock %}
+{% block content %}
+<div class="prose">{{ body|safe }}</div>
+<h2>Limits in force</h2>
+<table class="kv">
+<tr><th>Wall clock</th><td>{{ cfg.limits.wall_clock_seconds // 60 }} min</td></tr>
+<tr><th>Memory</th><td>{{ cfg.limits.memory_bytes // 1073741824 }} GiB</td></tr>
+<tr><th>Files per root</th><td>{{ cfg.limits.max_files }}</td></tr>
+<tr><th>Per file / per root</th><td>{{ cfg.limits.max_file_bytes // 1048576 }} MiB / {{ cfg.limits.max_total_bytes // 1048576 }} MiB</td></tr>
+<tr><th>Axioms</th><td><code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code></td></tr>
+</table>
+{% endblock %}

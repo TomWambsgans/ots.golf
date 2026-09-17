@@ -130,17 +130,19 @@ def main() -> int:
         # 1. submission root only
         staged = work / "staged"
         result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged)
-        # 2. trusted tree (without .lake and without this track's root), then overlay
-        def ignore(dirpath, names):
-            rel = Path(dirpath).resolve().relative_to(trusted)
-            skip = set()
-            for n in names:
-                p = rel / n
-                if str(p) in {f"{lean_root}/.lake", ".lake", ".git", "verifier/.tools", "verifier/.work",
-                              t["submission_root"], t["challenge_file"]}:
-                    skip.add(n)
-            return skip
-        shutil.copytree(trusted, project, ignore=ignore, symlinks=True)
+        # 2. the trusted tree, allowlisted: only what a verification needs, so the copy can never
+        #    recurse into work directories, tool checkouts or unrelated files
+        def skip(names_to_skip):
+            return lambda dirpath, names: {n for n in names if n in names_to_skip or n == "__pycache__"}
+        project.mkdir(parents=True)
+        shutil.copyfile(trusted / "challenges.json", project / "challenges.json")
+        shutil.copytree(trusted / "verifier", project / "verifier", ignore=skip({".tools", ".work"}))
+        root_rel = Path(t["submission_root"]).relative_to(lean_root)
+        chal_rel = Path(t["challenge_file"]).relative_to(lean_root)
+        def skip_lean(dirpath, names):
+            rel = Path(dirpath).resolve().relative_to((trusted / lean_root).resolve())
+            return {n for n in names if n == ".lake" or (rel / n) in {root_rel, chal_rel}}
+        shutil.copytree(trusted / lean_root, project / lean_root, ignore=skip_lean, symlinks=True)
         shutil.copytree(staged / t["submission_root"], project / t["submission_root"])
         # 3. policy (before the expensive clone)
         pin = subprocess.run([sys.executable, str(HERE / "pin_contract.py"), "check", "--root", str(project)],

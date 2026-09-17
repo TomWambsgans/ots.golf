@@ -1,0 +1,18 @@
+[project]
+name = "ots-golf-service"
+version = "0.1.0"
+description = "ots.golf: hosted verifier, API and site"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlalchemy>=2.0",
+  "jinja2>=3.1",
+  "httpx>=0.27",
+  "itsdangerous>=2.1",
+  "python-multipart>=0.0.9",
+  "markdown>=3.6",
+]
+
+[tool.uv]
+package = false

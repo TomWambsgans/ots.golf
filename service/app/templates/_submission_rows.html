@@ -1,0 +1,17 @@
+{% macro rows(subs, show_track=False) -%}
+{% for s in subs %}
+<tr>
+  <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }}{% else %}–{% endif %}</a></td>
+  {% if show_track %}<td>{{ s.track }}</td>{% endif %}
+  <td>
+    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
+    {% if s.baseline %}<span class="tag">baseline</span>{% endif %}
+  </td>
+  <td class="muted">{{ s.assisted_by or '' }}</td>
+  <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
+  <td class="muted">{{ (s.finished_at or s.created_at)|dt }}</td>
+</tr>
+{% else %}
+<tr><td colspan="{{ 6 if show_track else 5 }}" class="muted">Nothing yet.</td></tr>
+{% endfor %}
+{%- endmacro %}
