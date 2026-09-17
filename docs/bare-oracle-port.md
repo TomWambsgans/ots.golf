@@ -96,3 +96,38 @@ inside the strings it hashes.
   Call sites to adapt: `Values.lean:247` (`Graph.keygenCache_apply_iff graph T ξ q w`),
   `Assembly.lean:230` (`E_run_keygen forestScheme T g'`). The concrete `T : graph.Tagging` must cover
   every hash node, the root included.
+* `Names.lean` / `Tree.lean` / `Cuts.lean` (Scheme.lean unchanged, claim 106): constructor order is now
+  `src, ci, ch, cv, gc, gh, gv, ec, eh, ev, rc, rh`; `N = 2795`; lengths `ci ↦ 144`, `gc, ec ↦ 400`,
+  `rc ↦ 912`; `child (src k) = ci k 0`, `child (ci k t) = ch k t`, `child (cv k t) = ci k (t+1)` for
+  `t < 13` (`child_cv_of_lt`); `parents (ch k t) = {ci k t}`, `parents (ci k t) = {prev k t}`;
+  `Name.sum_eq` has a `ci` term after `src`. Tweaks (HIGH bits, `tw h ++ payload`):
+  `tw`, `tw_toNat`, `tw_injective`, `append_inj`, `tw_append_inj`, `tw_append_eq_iff`, `tw_query_inj`,
+  `tagNat (q : Query) : ℕ := q.2.toNat / 2 ^ (q.1 - 16)`, `tagNat_append`, `tagNat_tw_append`,
+  `tagNat_cast`, `detVal_ci/gc/ec/rc` (rfl lemmas, e.g.
+  `detVal (.ci k t) x = tw (ch k t) ++ trunc (x (prev k t).fin)`),
+  `tagNat_detVal (hc : child p = some h) (hh : h.cost ≠ 0) x : tagNat ⟨p.len, detVal p x⟩ = h.idx`,
+  `tagNat_cast_detVal`. Low bits are untouched, so `trunc (tw h ++ cat3 x y z) = z` still holds.
+  `IsCut.values` (every cut node has length 128) means `ci`, `gc`, `ec`, `rc` are never in a cut.
+  Cuts.lean: new `ci_not_mem_cutOf`, `evaluated_ci_iff'`, `evaluated_ci_iff`.
+
+## Design of the convergent files (decided)
+
+* `hashParent (ch k t) = some (ci k t)` (was `prev k t`); `gh ↦ gc`, `eh ↦ ec`, `rh ↦ rc` unchanged.
+* `pointOf ξ h p : Query := ⟨p.len, val ξ p⟩` (no label). Its tag: `tagNat (pointOf ξ h p) = h.idx` when
+  `hashParent h = some p`. `pointOf_inj_left` therefore needs both `hashParent` hypotheses. Its length is
+  144, 400 or 912, never `paperParams.msgBits + paperParams.nonceBits = 512`.
+* The concrete tagging: `def tagging : graph.Tagging` with
+  `tag q := if h : tagNat q < N then some ⟨tagNat q, h⟩ else none`.
+* The event `Spr` is restricted to strings carrying the node's tweak, otherwise one fresh answer could be
+  a spurious preimage for every node with that input length (the multi-target loss tweaks exist to avoid):
+  ```lean
+  def Spr (c : Cache paperParams) (ξ : Rec) : Prop :=
+    ∃ h p, hashParent h = some p ∧ ∃ u : BitVec p.len, u ≠ val ξ p ∧ tagNat ⟨p.len, u⟩ = h.idx ∧
+      ∃ w, c ⟨p.len, u⟩ = some w ∧ trunc w = trunc (ξ.2 h.fin)
+  ```
+  A fresh query `q` can create a `Spr` entry for at most one `h` (the one with `h.idx = tagNat q`), so
+  `spr_charge` keeps its bound `ε`. In `Events.lean` the witness `u = yv y p` satisfies the tag condition
+  because the parent `p` of an evaluated hash node is itself evaluated (it cannot be in a cut, its length
+  is not 128), hence `yv y p = detVal p y` (`yv_det`) and `tagNat_detVal` applies.
+* Lemmas about enc-labelled points (`kc_enc`, `fExp_enc`, `fHid_enc`, `spr_cacheQuery_enc`) are restated for
+  `encQuery paperParams u` with `u : EncInput paperParams`.
