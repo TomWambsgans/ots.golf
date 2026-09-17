@@ -9,6 +9,10 @@ This is the first step toward generic upper submissions. The pinned contract, ch
 submission import policy, and both submission roots are unchanged. The existing leaderboard
 continues to certify DAG schemes with bounds 18 and 106.
 
+A later, separate [partial-disclosure framework](partial-disclosures.md) adds DAG schemes with
+at most 46 disclosed hash origins and certified bounds 80 and 106. It does not complete the
+generic admission requirements below or establish a generic lower bound.
+
 ## Interface
 
 `formal/OptimalOTS/Algorithm.lean` introduces `AlgorithmScheme P`:

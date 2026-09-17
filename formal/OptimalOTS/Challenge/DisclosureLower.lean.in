@@ -1,0 +1,11 @@
+import OptimalOTS.Disclosure
+
+/-! Rendered by the verifier with the submission's claim. This bound applies only to
+DAG schemes with at most 46 distinct hash origins in each disclosed payload. -/
+
+namespace OptimalOTS.Challenge.DisclosureLower
+
+/-- Every weakly secure scheme in the partial-disclosure framework has an index this costly. -/
+theorem candidate : DisclosureVerificationLowerBound paperParams 46 {{CLAIM}} := sorry
+
+end OptimalOTS.Challenge.DisclosureLower

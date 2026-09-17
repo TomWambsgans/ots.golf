@@ -17,7 +17,8 @@ Hashing costs one compression per started 512-bit block of the actual input, at 
 Deterministic computation and private randomness are free. The 512-bit message-and-nonce index
 costs one compression. The upper baseline includes a 16-bit tweak in every node's input and pays
 for it: chain inputs have 144 bits, three-digest inputs 400 bits, and the root input 912 bits.
-With a 128-bit public key, signatures of at most 5504 bits and 127-bit security:
+With a 128-bit public key, signatures of at most 5504 bits and 127-bit security, the unrestricted
+**DAG framework** has these baselines:
 
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
@@ -29,23 +30,30 @@ signature cost at most 17, many indices would share such a set, allowing an atta
 an observed signature and forge on a different message. The proof applies to every weakly secure
 scheme, including schemes whose hash inputs coincide.
 
-Bounds above 18 remain open. The former labeled-model bound 25 and the proposed fresh-weight
+Unrestricted DAG bounds above 18 remain open. The former labeled-model bound 25 and the proposed fresh-weight
 transfer do not establish a bare-oracle bound; see
 [`docs/bare-oracle-port.md`](docs/bare-oracle-port.md) and the
 [conditional numerical investigation](docs/bare-oracle-numerics.md).
 
-Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
+Every ranked claim is a theorem about its pinned contract, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
 
 A generic oracle-algorithm interface and an exact adapter for the 106-cost forest are available
-as a [foundation for a future upper track](docs/generic-upper.md). The current challenge and its
-DAG lower bound are unchanged; generic submissions are not yet admitted.
+as a [foundation for a future upper track](docs/generic-upper.md). Generic submissions are not yet admitted.
+
+The **partial-disclosure framework** adds one restriction to the DAG model: a signature's payload may
+derive from at most **46 distinct hash outputs**. Arbitrary fragments, deterministic mixtures and
+Reed–Solomon encodings are allowed; multiple pieces of one digest count once. The 5248-bit payload,
+256-bit nonce and 127-bit security requirements remain. Its `disclosure-lower` and `disclosure-upper`
+tracks have separately verified baselines **80 and 106**; their bounds do not change the unrestricted DAG lower record.
+See [the definition and proof status](docs/partial-disclosures.md). The site lets you select generic
+algorithms, DAGs or partial disclosures without mixing their records.
 
 ## Layout
 
 - `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), `OptimalOTS/Weak.lean`
   (strong security implies the weak security the lower track assumes), the challenge stubs, and
-  `Submissions/{Lower,Upper}/` (the submission roots, holding the baselines).
+  `Submissions/{Lower,Upper,DisclosureLower,DisclosureUpper}/` (the submission roots, holding the baselines).
 - `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
 - `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
   scripts and agents.

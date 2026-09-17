@@ -1,4 +1,5 @@
-<!-- A submission changes exactly one submission root (formal/Submissions/Lower or formal/Submissions/Upper)
+<!-- A submission changes exactly one submission root under formal/Submissions/:
+     Lower or Upper (DAG), or DisclosureLower or DisclosureUpper (partial disclosures),
      and nothing else. The verifier fetches this pull request's head commit, keeps only that root, and
      answers below as a commit status and a comment. Keep the two lines below; the rest is your description. -->
 

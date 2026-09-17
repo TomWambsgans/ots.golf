@@ -1,19 +1,29 @@
 # ots.golf
 
-> A two-track competition on the worst-case verification cost, in compressions, of graph-based
-> hash-based one-time signatures with a 128-bit public key, signatures of at most 5504 bits and
-> 127-bit security. Every ranked claim is a Lean 4 theorem about the pinned statement
-> `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.
+> A competition on the worst-case verification cost, in compressions, of hash-based one-time
+> signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
+> Generic algorithms, DAGs and partial disclosures have separate frameworks. Each active
+> framework has lower and upper tracks checked by the Lean kernel through leanprover/comparator.
 
 Oracle model: one random oracle on bare bit strings, with no labels, tweaks or separation
 condition. Equal strings share an answer across all uses. Cost: one compression per started
 512-bit block of the actual input, at least one; the message-and-nonce index costs one. The
-upper scheme includes and pays for 16-bit node tweaks. The verified bare-oracle baselines:
+upper scheme includes and pays for 16-bit node tweaks. The unrestricted DAG baselines:
 lower bound 18 (repeated reconstruction patterns), upper bound 106 (63 chains of length 14 under 21 group digests, 7 subtree digests
-and the root). Both live in this repository as ordinary submissions; the current records are the
-claim.txt files of the two submission roots. The lower proof covers every weakly secure scheme
+and the root). Both live in this repository as ordinary submissions; current records are in
+the claim.txt files of the submission roots. The DAG lower proof covers every weakly secure scheme
 without a separation hypothesis. Bounds above 18 remain open; see docs/bare-oracle-port.md.
 The former labeled-model bound 25 is not a bare-oracle certificate.
+
+Partial disclosures add a limit of 46 distinct hash origins across the payload, with baselines
+80 and 106. Sources contribute none; hash outputs contribute their own node; deterministic
+processing inherits its parents' origins. Partial bits and Reed-Solomon symbols are allowed.
+Verification still requires a structural DAG cut. This restricted lower bound does not change
+the unrestricted DAG record. See docs/partial-disclosures.md.
+
+Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but submissions
+are not yet admitted: correctness and signing availability remain to be proved. See
+docs/generic-upper.md. No generic lower record is claimed.
 
 - Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
 - Rules and the exact exported declarations: AGENTS.md
@@ -22,6 +32,9 @@ The former labeled-model bound 25 is not a bare-oracle certificate.
 - Local verification, identical to the hosted verifier: verifier/verify.py
 - Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
 - Upper track root: formal/Submissions/Upper (module prefix Submissions.Upper)
+- Partial-disclosure lower root: formal/Submissions/DisclosureLower (claim 80)
+- Partial-disclosure upper root: formal/Submissions/DisclosureUpper (claim 106)
+- Partial-disclosure contract: formal/OptimalOTS/Disclosure.lean
 
 The one submission channel: a pull request against the contract repository changing only one
 submission root (`gh pr create` works). Put `Assisted by: <model>` and `Co-authors: a, b` lines in

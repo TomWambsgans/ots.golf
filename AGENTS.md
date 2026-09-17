@@ -1,7 +1,8 @@
 # ots.golf — submission rules
 
-ots.golf is a two-track, Lean-kernel-verified competition on the worst-case verification cost of
-hash-based one-time signatures. The model is `formal/OptimalOTS/Statement.lean`. Everything a
+ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
+one-time signatures, with separate frameworks and two tracks per active framework. The DAG model is
+`formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/Disclosure.lean` adds the partial-disclosure class. Everything a
 submission must satisfy is in this file; `challenges.json` is the machine-readable version, and
 `verifier/` runs the same checks as the hosted verifier.
 
@@ -13,6 +14,8 @@ formal/                      the Lean project (lake root)
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/Lower/         lower-track root; baseline: repeated reconstruction patterns, claim 18
   Submissions/Upper/         upper-track root; baseline: a forest of 63 chains, claim 106
+  Submissions/DisclosureLower/  partial-disclosure lower-track root
+  Submissions/DisclosureUpper/  partial-disclosure upper-track root
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -20,6 +23,26 @@ challenges.json              tracks, limits, protected files
 Protected files (listed in `challenges.json`, pinned in `verifier/protected.sha256`) always come
 from the contract, never from a submission. A submission is the content of one submission root and
 nothing else.
+
+## Frameworks
+
+The frameworks have separate records. A restricted lower bound does not improve a broader class's
+lower record.
+
+- **Generic algorithms** (`formal/OptimalOTS/Algorithm.lean`): arbitrary oracle programs. The interface
+  and security-preserving 106-cost adapter are foundations; generic submissions are not yet admitted.
+  Correctness and signing-availability proofs remain prerequisites for admission.
+- **DAG** (`lower`, `upper`): the current unrestricted DAG model, with baselines 18 and 106.
+- **Partial disclosures** (`disclosure-lower`, `disclosure-upper`): DAG schemes with at most 46 distinct
+  hash origins in each signature payload. A source has no hash origins; a hash has its own node as its
+  sole origin; a deterministic node inherits the union of its parents' origins. The signature's origins
+  are the union across all disclosed nodes. Every parent edge counts, even if its function ignores it.
+
+The partial-disclosure class allows arbitrary fragments and deterministic encodings, including selected
+Reed–Solomon symbols of a digest. Several fragments of one hash output count once; a mixture of multiple
+outputs counts each. The existing 5248-bit payload budget, 256-bit nonce, 127-bit security target, DAG
+disclosure cuts and forward reconstruction stay unchanged. This does not add arbitrary decoding from
+subsets of encoded symbols. See `docs/partial-disclosures.md` for the definition and proof status.
 
 ## Oracle model
 
@@ -29,7 +52,7 @@ when a node query equals an index query. A scheme may put a tweak in its input a
 the upper baseline uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
 least one. The 512-bit message-and-nonce index costs one compression.
 
-The verified bare-oracle lower bound is 18, proved for every weakly secure scheme by counting
+The verified unrestricted DAG lower bound is 18, proved for every weakly secure scheme by counting
 reconstructed hash-node sets and converting signatures between equal sets. Bounds above 18 remain
 open; research notes are in `docs/bare-oracle-port.md`. A numerical search is not a certificate.
 
@@ -62,12 +85,33 @@ theorem OptimalOTS.Challenge.Upper.cost :
 theorems pin it down. Describe the scheme in the pull request; the leaderboard shows the
 description.
 
+**Partial-disclosure lower track** (`formal/Submissions/DisclosureLower/`):
+
+```lean
+theorem OptimalOTS.Challenge.DisclosureLower.candidate :
+    DisclosureVerificationLowerBound paperParams 46 <claim> := ...
+```
+
+**Partial-disclosure upper track** (`formal/Submissions/DisclosureUpper/`):
+
+```lean
+noncomputable def OptimalOTS.Challenge.DisclosureUpper.scheme : Scheme paperParams := ...
+theorem OptimalOTS.Challenge.DisclosureUpper.secure : scheme.Secure := ...
+theorem OptimalOTS.Challenge.DisclosureUpper.cost :
+    ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ <claim> := ...
+theorem OptimalOTS.Challenge.DisclosureUpper.disclosure : scheme.DisclosureBound 46 := ...
+```
+
+The directions and record rules are the same as for their DAG counterparts. Both partial-disclosure
+tracks may additionally import `OptimalOTS.Disclosure`.
+
 ## Rules for the submission root
 
 1. **Flat.** Only `.lean` files named as identifiers, `claim.txt`, and optionally `README.md`. No
    subdirectories. `Solution.lean` is required: it is the module the verifier exports from.
-2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, and sibling files of the same root
-   as `Submissions.<Track>.<File>`. Nothing else: not `OptimalOTS`, not the stubs, not the other
+2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, `OptimalOTS.Disclosure` for the two
+   partial-disclosure tracks, and sibling files of the same root as `Submissions.<Track>.<File>`.
+   Nothing else: not `OptimalOTS`, not the stubs, not the other
    track.
 3. **Claim.** `claim.txt` holds one non-negative integer without leading zeros, at most 1,000,000,
    with at most one trailing newline. It is
@@ -89,6 +133,8 @@ cd ..
 python3 verifier/check_submission.py lower     # policy checks
 python3 verifier/verify.py lower --source .    # the full pipeline
 ```
+
+Replace `lower` by `upper`, `disclosure-lower` or `disclosure-upper` for the other tracks.
 
 `setup_tools.sh` installs comparator and lean4export (and landrun on Linux); the `lake build` line
 fetches Mathlib and builds VCVio, the contract and the two baselines. `check_submission.py` runs the policy

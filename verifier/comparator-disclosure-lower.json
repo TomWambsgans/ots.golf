@@ -1,0 +1,13 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.DisclosureLower",
+  "solution_module": "Submissions.DisclosureLower.Solution",
+  "theorem_names": [
+    "OptimalOTS.Challenge.DisclosureLower.candidate"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

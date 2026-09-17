@@ -21,7 +21,12 @@
     "formal/OptimalOTS.lean",
     "formal/OptimalOTS/Statement.lean",
     "formal/OptimalOTS/Challenge/Lower.lean.in",
-    "formal/OptimalOTS/Challenge/Upper.lean.in"
+    "formal/OptimalOTS/Challenge/Upper.lean.in",
+    "verifier/comparator-disclosure-lower.json",
+    "formal/OptimalOTS/Challenge/DisclosureLower.lean.in",
+    "verifier/comparator-disclosure-upper.json",
+    "formal/OptimalOTS/Challenge/DisclosureUpper.lean.in",
+    "formal/OptimalOTS/Disclosure.lean"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -48,7 +53,9 @@
         "Mathlib",
         "VCVio",
         "OptimalOTS.Statement"
-      ]
+      ],
+      "framework": "dag",
+      "kind": "lower"
     },
     {
       "slug": "upper",
@@ -66,8 +73,77 @@
         "Mathlib",
         "VCVio",
         "OptimalOTS.Statement"
+      ],
+      "framework": "dag",
+      "kind": "upper"
+    },
+    {
+      "slug": "disclosure-lower",
+      "title": "Lower bound",
+      "framework": "disclosure",
+      "kind": "lower",
+      "direction": "+",
+      "baseline": 80,
+      "submission_root": "formal/Submissions/DisclosureLower",
+      "module_prefix": "Submissions.DisclosureLower",
+      "solution_module": "Submissions.DisclosureLower.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/DisclosureLower.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/DisclosureLower.lean",
+      "challenge_module": "OptimalOTS.Challenge.DisclosureLower",
+      "comparator_config": "verifier/comparator-disclosure-lower.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement",
+        "OptimalOTS.Disclosure"
+      ]
+    },
+    {
+      "slug": "disclosure-upper",
+      "title": "Upper bound",
+      "framework": "disclosure",
+      "kind": "upper",
+      "direction": "-",
+      "baseline": 106,
+      "submission_root": "formal/Submissions/DisclosureUpper",
+      "module_prefix": "Submissions.DisclosureUpper",
+      "solution_module": "Submissions.DisclosureUpper.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/DisclosureUpper.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/DisclosureUpper.lean",
+      "challenge_module": "OptimalOTS.Challenge.DisclosureUpper",
+      "comparator_config": "verifier/comparator-disclosure-upper.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement",
+        "OptimalOTS.Disclosure"
       ]
     }
   ],
-  "lean_root": "formal"
+  "lean_root": "formal",
+  "frameworks": [
+    {
+      "slug": "generic",
+      "title": "Generic algorithms",
+      "status": "foundation",
+      "description": "Any oracle algorithm. The 106-cost adapter is Lean checked; generic admission awaits correctness and signing-availability proofs."
+    },
+    {
+      "slug": "dag",
+      "title": "DAG",
+      "status": "active",
+      "lower_track": "lower",
+      "upper_track": "upper",
+      "description": "Any fixed computation DAG, with arbitrary sharing, deterministic operations and disclosure cuts."
+    },
+    {
+      "slug": "disclosure",
+      "title": "Partial disclosures",
+      "status": "active",
+      "lower_track": "disclosure-lower",
+      "upper_track": "disclosure-upper",
+      "origin_limit": 46,
+      "description": "DAG schemes whose signatures disclose values derived from at most 46 hash outputs. Fragments and deterministic encodings are allowed."
+    }
+  ]
 }

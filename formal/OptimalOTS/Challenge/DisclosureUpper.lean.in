@@ -1,0 +1,16 @@
+import OptimalOTS.Disclosure
+
+/-! Rendered by the verifier with the submission's claim. In addition to strong security
+and cost, the scheme must satisfy the partial-disclosure framework's origin bound. -/
+
+namespace OptimalOTS.Challenge.DisclosureUpper
+
+noncomputable def scheme : Scheme paperParams := sorry
+
+theorem secure : scheme.Secure := sorry
+
+theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ {{CLAIM}} := sorry
+
+theorem disclosure : scheme.DisclosureBound 46 := sorry
+
+end OptimalOTS.Challenge.DisclosureUpper

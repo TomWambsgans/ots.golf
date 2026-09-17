@@ -309,3 +309,13 @@ The complete outcome, mathematical limitations, verifier log paths, local milest
 file list are in [bare-oracle-lower-report.md](bare-oracle-lower-report.md).
 `Statement.lean`, `Weak.lean`, and `Submissions/Upper/` are unchanged from the handoff commit.
 All work remained local on `bare-oracle`; nothing was pushed or deployed.
+
+## Subsequent work: partial disclosures
+
+After the bare-oracle work was merged locally, a separate restricted framework was added on
+`main`: each disclosed payload represents at most 46 hash origins, allowing arbitrary fragments
+and deterministic encodings. Its lower bound 80 and upper bound 106 both pass the official
+verifier. The unrestricted DAG statement and both original submission roots remain unchanged;
+their records are still 18 and 106. The new proof uses ordered pattern counting and an averaged
+conversion attack, without oracle separation assumptions. See [partial-disclosures.md](partial-disclosures.md)
+for the definition, proof, verification logs and scope of encoded fragments.
