@@ -17,7 +17,7 @@
       <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% endif %}</div>
     </div>
     <div class="tile">
-      <div class="label"><span class="swatch s2"></span>Upper bound <span class="muted">(a scheme, smaller is better)</span></div>
+      <div class="label"><span class="swatch s2"></span>Upper bound <span class="muted">(smaller is better)</span></div>
       <div class="value">{{ interval.upper.record_claim }}<span class="unit"> compressions</span></div>
       <div class="sub">{% if interval.upper.record_verified %}by <a href="/solvers/{{ interval.upper.record_setter }}">{{ interval.upper.record_setter }}</a>{% endif %}</div>
     </div>
