@@ -23,8 +23,10 @@ open scoped Classical
 namespace OptimalOTS
 
 
-/-- **Main theorem.** For the parameters of the paper, every secure graph-based one-time
-signature scheme has a signature whose verification costs at least 25 compressions. -/
+/-- **Main theorem.** For the parameters of the paper, every graph-based one-time signature scheme
+that is weakly secure (existentially unforgeable), and therefore every secure one, has a signature
+whose verification costs at least 25 compressions. The attacker forges on a message other than
+the signed one, so it wins the weak experiment. -/
 theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25 := by
   intro S hS
   by_contra hcon

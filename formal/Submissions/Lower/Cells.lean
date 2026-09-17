@@ -231,8 +231,8 @@ theorem hq_forge (q T : ℕ) (σ : Option (Signature P)) :
 end Helpers
 
 theorem hashQueriesIn_experiment (q T : ℕ) :
-    HashQueriesIn (decode S) (experiment S (Attack.adversary S q T)) := by
-  unfold experiment
+    HashQueriesIn (decode S) (weakExperiment S (Attack.adversary S q T)) := by
+  unfold weakExperiment
   refine hq_bind hq_keygen fun ⟨pk, sk⟩ => ?_
   refine hq_bind (hq_pure _) fun ⟨m₁, st⟩ => ?_
   refine hq_bind (hq_signLoop _ _ _ _) fun σ₁ => ?_

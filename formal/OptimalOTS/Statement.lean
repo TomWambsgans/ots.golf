@@ -6,20 +6,23 @@ import VCVio.OracleComp.ProbComp
 import VCVio.EvalDist.BitVec
 
 /-!
-# A verification lower bound for hash-based one-time signatures: the statement
+# Verification cost of hash-based one-time signatures: the statement
 
-This file is the complete statement proved in `Submissions.Lower.Solution`; nothing here is proof-related.
+This file is the contract of both tracks; nothing here is proof-related.
 
 ```
-VerificationLowerBound P c :=
-  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
-
-theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25
+upper track:  S : Scheme paperParams,   S.Secure,   ∀ i, S.verifyCost i ≤ c
+lower track:  VerificationLowerBound paperParams c :=
+                ∀ S : Scheme paperParams, S.WeaklySecure → ∃ i, c ≤ S.verifyCost i
 ```
 
 In words: with the parameters of the paper (a 128-bit public key, at most 5248 revealed bits per
-signature, 127 bits of security), every secure graph-based one-time signature scheme has a
-signature whose verification costs at least 25 compressions.
+signature, 127 bits of security), an upper-track certificate is a graph-based one-time signature
+scheme, strongly unforgeable, all of whose signatures verify within `c` compressions; a lower-track
+certificate shows that every such scheme, even one that is only existentially unforgeable, has a
+signature whose verification costs at least `c` compressions. Strong security implies weak
+security (every win of `weakExperiment` is a win of `experiment`, at the same cost; proved in
+`OptimalOTS/Weak.lean`), so the two tracks bound the same number from both sides.
 
 The file is organized as follows.
 
@@ -379,12 +382,29 @@ def Scheme.Secure {P : Params} (S : Scheme P) : Prop :=
   ∀ (A : Adversary P) (B : ℕ), CostAtMost P (experiment S A) B →
     probTrue P (experiment S A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
 
+/-- The forgery experiment of existential unforgeability: the same run, but the attacker wins only
+if the verifier accepts its output on a message other than the signed one (or signing failed, so
+that no signature was issued at all). Every win here is a win of `experiment`. -/
+def weakExperiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec P) Bool := do
+  let (pk, sk) ← S.keygen
+  let (m₁, st) ← A.choose pk
+  let σ₁ ← S.sign sk m₁
+  let (m₂, σ₂) ← A.forge st σ₁
+  let ok ← S.verify pk m₂ σ₂
+  return ok && (σ₁.isNone || decide (m₂ ≠ m₁))
+
+/-- Weak security: the bound of `Secure`, against forgeries on a new message only. It is the
+hypothesis of the lower track, which makes a lower bound cover malleable schemes as well. -/
+def Scheme.WeaklySecure {P : Params} (S : Scheme P) : Prop :=
+  ∀ (A : Adversary P) (B : ℕ), CostAtMost P (weakExperiment S A) B →
+    probTrue P (weakExperiment S A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
+
 /-! ## 6. The statement -/
 
-/-- Every secure scheme with parameters `P` has a signature index whose verification costs at
-least `c` compressions. -/
+/-- Every weakly secure scheme with parameters `P`, hence every secure one, has a signature index
+whose verification costs at least `c` compressions. -/
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
+  ∀ S : Scheme P, S.WeaklySecure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 
 /-- The parameters of the paper. -/
 def paperParams : Params where

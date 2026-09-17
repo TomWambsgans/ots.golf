@@ -124,16 +124,16 @@ An attacker receives $\pk$, can query $H$, and may request one signature on a me
 \begin{equation}\label{eq:security}
 \Pr[\mathrm{Forge}]<\frac{B}{2^{127}}.
 \end{equation}
-The probability is over the oracle, the source strings, and all signing and attack randomness. The cost includes key generation, signing, the attacker's queries, and final verification. Only oracle queries are charged; there is no bound on the attacker's other computation. Informally, the requirement says that a forgery costs about $2^{127}$ compressions per unit of success probability.
+The probability is over the oracle, the source strings, and all signing and attack randomness. The cost includes key generation, signing, the attacker's queries, and final verification. Only oracle queries are charged; there is no bound on the attacker's other computation. Informally, the requirement says that a forgery costs about $2^{127}$ compressions per unit of success probability. This is strong unforgeability. The \emph{weak} requirement is the same bound for forgeries on a new message only: the accepted pair must carry a message other than the signed one, or signing must have failed. A scheme satisfying~\eqref{eq:security} satisfies the weak requirement, since every weak forgery is a forgery and costs the same.
 
 \begin{theorem}\label{thm:main}
-In the model of this section, with the parameters listed above, every scheme satisfying the security requirement~\eqref{eq:security} has
+In the model of this section, with the parameters listed above, every scheme satisfying the security requirement~\eqref{eq:security}, or only its weak form, has
 \[
 \max_{0\le i<M}C_i\ge25.
 \]
 \end{theorem}
 
-The proof occupies the rest of the paper. We assume instead that every $C_i\le24$ and construct an attacker that violates~\eqref{eq:security}. The attacker requests a signature on a message $m_1$ and then builds a signature on a different message $m_2$. Section~\ref{sec:information} describes the secret records consistent with the observed signature and bounds the information it reveals. Section~\ref{sec:conversion} shows how to produce values for another disclosure set and bounds the cost. Section~\ref{sec:counting} shows that many disclosure sets are cheap in this sense. Section~\ref{sec:attack} analyzes the nonce search that selects one of them and adds up costs and probabilities.
+The proof occupies the rest of the paper. We assume instead that every $C_i\le24$ and construct an attacker that violates~\eqref{eq:security}. The attacker requests a signature on a message $m_1$ and then builds a signature on a different message $m_2$, so it breaks the weak requirement as well. Section~\ref{sec:information} describes the secret records consistent with the observed signature and bounds the information it reveals. Section~\ref{sec:conversion} shows how to produce values for another disclosure set and bounds the cost. Section~\ref{sec:counting} shows that many disclosure sets are cheap in this sense. Section~\ref{sec:attack} analyzes the nonce search that selects one of them and adds up costs and probabilities.
 
 \section{Information in the revealed values}\label{sec:information}
 

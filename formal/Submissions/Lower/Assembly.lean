@@ -83,7 +83,7 @@ theorem sum_Fsum_le_probTrue (S : Scheme paperParams) (q T : ℕ) :
         ((Fintype.card S.graph.Tab : ℝ≥0∞) *
           Fintype.card (Nonce paperParams → BitVec paperParams.hashBits) *
           Fintype.card (Nonce paperParams → BitVec paperParams.hashBits)) ≤
-      probTrue paperParams (experiment S (adversary S q T)) := by
+      probTrue paperParams (weakExperiment S (adversary S q T)) := by
   rw [← sum_table_eq S msg₁_ne_msg₂ (Fsum S q T)]
   unfold probTrue
   rw [probOutput_oracleImpl_eq_sum_table (decode S) (decode_injective S) _ (hashQueriesIn_experiment S q T) true]
@@ -405,7 +405,7 @@ theorem sigma_mul_eq :
 
 theorem probTrue_gt (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) :
     ENNReal.ofReal (3 / 32) <
-      probTrue paperParams (experiment S (adversary S Numerics.q Numerics.T)) := by
+      probTrue paperParams (weakExperiment S (adversary S Numerics.q Numerics.T)) := by
   have h1 := sum_Fsum_le_probTrue S Numerics.q Numerics.T
   have h2 := sum_Fsum_ge S hcost
   have hT0 : (Fintype.card S.graph.Tab : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
@@ -418,7 +418,7 @@ theorem probTrue_gt (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
     ((Fintype.card S.graph.Tab : ℝ≥0∞) * Fintype.card NTab * Fintype.card NTab)
     (sigma * ENNReal.ofReal ((paperParams.numSets : ℝ) * successR)) hc0 hct
   have h3 : sigma * ENNReal.ofReal ((paperParams.numSets : ℝ) * successR) ≤
-      probTrue paperParams (experiment S (adversary S Numerics.q Numerics.T)) := by
+      probTrue paperParams (weakExperiment S (adversary S Numerics.q Numerics.T)) := by
     rw [← hcancel]
     exact (ENNReal.div_le_div_right h2 _).trans h1
   rw [sigma_mul_eq] at h3

@@ -17,7 +17,7 @@ message index two. With a 128-bit public key, signatures of at most 5504 bits an
 
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
-| Lower | `VerificationLowerBound paperParams c` | 25 (Lean-verified) | c ≥ record + 1 |
+| Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 25 (Lean-verified) | c ≥ record + 1 |
 | Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 109 (Lean-verified) | c ≤ record − 1 |
 
 Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
@@ -25,8 +25,9 @@ the Lean kernel with [leanprover/comparator](https://github.com/leanprover/compa
 
 ## Layout
 
-- `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), the challenge stubs,
-  and `Submissions/{Lower,Upper}/` (the submission roots, holding the baselines).
+- `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), `OptimalOTS/Weak.lean`
+  (strong security implies the weak security the lower track assumes), the challenge stubs, and
+  `Submissions/{Lower,Upper}/` (the submission roots, holding the baselines).
 - `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
 - `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
   scripts and agents.

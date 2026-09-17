@@ -277,10 +277,10 @@ theorem costAtMost_forge (q T : ℕ) {v : ℕ}
 
 theorem costAtMost_experiment {P : Params} (S : Scheme P) (q T v : ℕ)
     (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) :
-    CostAtMost P (experiment S (adversary S q T))
+    CostAtMost P (weakExperiment S (adversary S q T))
       (P.keygenBudget + P.trialLimit * idxCost P + T * idxCost P + (q + 2) * v +
         2 * idxCost P) := by
-  unfold experiment
+  unfold weakExperiment
   refine S.costAtMost_keygen.bind_le
     (b₂ := P.trialLimit * idxCost P +
       ((idxCost P + (v + (T * idxCost P + q * v))) + (idxCost P + v))) (fun x => ?_)

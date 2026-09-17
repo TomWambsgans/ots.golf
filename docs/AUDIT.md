@@ -51,6 +51,7 @@ and needs no trust.
 | Signing: fresh random nonces, at most L trials | `Scheme.sign`, `signLoop`, `trialLimit` | |
 | Verification: recompute idx, check length, reconstruct, compare 128-bit prefix | `Scheme.verify`, `publicKey` | |
 | Forgery: accepted pair ≠ the signer's pair; any accepted pair if signing failed | `experiment` | strong unforgeability, as in the paper |
+| Weak forgery: accepted pair on a message ≠ the signed one; any accepted pair if signing failed | `weakExperiment`, `Scheme.WeaklySecure` | the hypothesis of the lower track; implied by `Secure` (`Scheme.Secure.weaklySecure` in `formal/OptimalOTS/Weak.lean`) |
 | Security: cost ≤ B on every execution ⇒ Pr[Forge] < B/2^127 | `CostAtMost`, `Scheme.Secure` | F5 |
 | Parameters table | `paperParams` | all twelve values match |
 | Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline (re-tuned for the two-compression index) |

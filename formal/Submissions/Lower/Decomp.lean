@@ -786,9 +786,8 @@ theorem forge_stage (q T : ℕ) (h12 : msg₁ P ≠ msg₂ P) (z : S.graph.Assig
           (forge S q T (some (η₁, S.graph.encode (S.sets i) (S.graph.evalTab z (graphTab S g))))) >>=
         fun x_2 => simulateQ (tableImpl P (decode S) g)
           (S.verify (S.publicKey (S.graph.evalTab z (graphTab S g))) x_2.1 x_2.2) >>= fun b =>
-            pure (b && decide (Option.map (fun s => (msg₁ P, s))
-              (some (η₁, S.graph.encode (S.sets i) (S.graph.evalTab z (graphTab S g)))) ≠
-                some (x_2.1, x_2.2)))] := by
+            pure (b && ((some (η₁, S.graph.encode (S.sets i)
+              (S.graph.evalTab z (graphTab S g)))).isNone || decide (x_2.1 ≠ msg₁ P)))] := by
   set C := obsCands S i (S.graph.recOf z (graphTab S g)) with hC
   rcases hb : bestPure P T (rkOf S i C) (nonceTab S g (msg₂ P)) with _ | ℓ
   · simp
@@ -814,7 +813,7 @@ theorem forge_stage (q T : ℕ) (h12 : msg₁ P ≠ msg₂ P) (z : S.graph.Assig
   · subst hji
     simp only [if_true, simulateQ_pure, pure_bind]
     rw [sim_verify_true S g j η₂ _ _ hidx (evalTab_nodeEqs S z _ j) rfl]
-    simp [h12, succ_le_one]
+    simp [h12.symm, succ_le_one]
   · simp only [if_neg hji, simulateQ_bind, bind_assoc]
     have hsucc : succ S q i ℓ z (graphTab S g) =
         1 - (1 - attemptProbNodes S (graphTab S g) (newNodes S i j) C) ^ q := by
@@ -828,7 +827,7 @@ theorem forge_stage (q T : ℕ) (h12 : msg₁ P ≠ msg₂ P) (z : S.graph.Assig
     simp only [simulateQ_pure, pure_bind]
     rw [sim_verify_true S g j η₂ _ _ hidx (forged_nodeEqs S i j z _ ξ' hm hg)
       (forged_root S i z _ ξ' hm)]
-    simp [h12]
+    simp [h12.symm]
 
 theorem probOutput_sampleAssignment (z : S.graph.Assignment) :
     Pr[= z | simulateQ (tableImpl P (decode S) g) S.graph.sampleAssignment] =
@@ -852,8 +851,8 @@ theorem sum_le_probOutput_table (q T : ℕ) (h12 : Attack.msg₁ P ≠ Attack.ms
               ENNReal.ofReal (succ S q i ℓ z (graphTab S g))) /
         (Fintype.card S.graph.Assignment : ℝ≥0∞) ≤
       Pr[= true | simulateQ (tableImpl P (decode S) g)
-        (experiment S (Attack.adversary S q T))] := by
-  simp only [experiment, Scheme.keygen, Graph.keygen, simulateQ_bind, simulateQ_pure, bind_assoc,
+        (weakExperiment S (Attack.adversary S q T))] := by
+  simp only [weakExperiment, Scheme.keygen, Graph.keygen, simulateQ_bind, simulateQ_pure, bind_assoc,
     pure_bind, Attack.adversary]
   rw [probOutput_bind_eq_tsum, tsum_fintype, ENNReal.div_eq_inv_mul, Finset.mul_sum]
   refine Finset.sum_le_sum fun z _ => ?_

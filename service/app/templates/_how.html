@@ -100,7 +100,9 @@ of its choice, and outputs a message and a signature. It wins if the pair verifi
 it received. Let <code>B</code> bound the compressions spent in the whole experiment on every run, key
 generation, signing and the final verification included. The scheme is <em>secure</em> when every attacker wins with probability
 below <code>B / 2<sup>127</sup></code>: a forgery costs about <code>2<sup>127</sup></code> compressions per
-unit of success probability. This is <code>Scheme.Secure</code> in the statement.</p>
+unit of success probability. This is <code>Scheme.Secure</code> in the statement, strong unforgeability. The
+<em>weak</em> form, <code>Scheme.WeaklySecure</code>, counts only forgeries on a message other than the signed
+one; every secure scheme is weakly secure.</p>
 <figure class="fig">{{ figs.experiment|safe }}
 <figcaption>The forgery experiment. Every query to <code>H</code>, by either party, counts towards
 <code>B</code>; the attacker's other computation is unbounded.</figcaption></figure>
@@ -109,8 +111,8 @@ unit of success probability. This is <code>Scheme.Secure</code> in the statement
 <p>Between the two records lies the answer: the least worst-case verification cost of a secure scheme with
 these parameters. The <strong>upper track</strong> attacks it from above: a scheme, a proof that it is
 secure, and a proof that every signature verifies within the claimed cost. Smaller wins. The
-<strong>lower track</strong> attacks it from below: a proof that every secure scheme has a signature at least
-that expensive. Larger wins. Both are Lean theorems about the same pinned statement,
+<strong>lower track</strong> attacks it from below: a proof that every weakly secure scheme, and so every
+secure one, has a signature at least that expensive. Larger wins. Both are Lean theorems about the same pinned statement,
 <code>formal/OptimalOTS/Statement.lean</code>, checked by the kernel.</p>
 <figure class="fig">{{ figs.interval|safe }}</figure>
 

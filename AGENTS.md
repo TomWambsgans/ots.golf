@@ -33,6 +33,10 @@ theorem OptimalOTS.Challenge.Lower.candidate :
     VerificationLowerBound paperParams <claim> := ...
 ```
 
+`VerificationLowerBound` quantifies over `WeaklySecure` schemes (forgeries on a new message only),
+a larger class than the `Secure` schemes of the upper track, so a lower bound also covers malleable
+schemes. The attacker of a lower-bound proof must therefore forge on a message other than the signed one.
+
 **Upper track** (`formal/Submissions/Upper/`, smaller is better; a record needs claim ≤ record − 1):
 
 ```lean

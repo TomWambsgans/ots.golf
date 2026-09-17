@@ -9,13 +9,17 @@ has a signature whose verification costs at least 25 compressions.
 
 `formal/OptimalOTS/Statement.lean` is the complete statement, in one file and generic in the numerical
 parameters. It defines the random oracle with per-block query costs, computation graphs,
-disclosure sets, key generation, signing, verification, the one-signature forgery experiment,
-`Scheme.Secure`, and
+disclosure sets, key generation, signing, verification, the one-signature forgery experiment in its
+strong form (`experiment`, `Scheme.Secure`) and its weak form (`weakExperiment`,
+`Scheme.WeaklySecure`: the forged message must differ from the signed one), and
 
 ```lean
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
+  ∀ S : Scheme P, S.WeaklySecure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 ```
+
+The hypothesis is the weak one on purpose: the bound then covers every scheme, malleable ones
+included, and the attack qualifies because it forges on the fixed message `msg₂ ≠ msg₁`.
 
 together with the parameters `paperParams` of the paper. `formal/Submissions/Lower/Solution.lean` proves
 `verificationLowerBound_paper : VerificationLowerBound paperParams 25`.
