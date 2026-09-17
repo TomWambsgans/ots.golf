@@ -11,7 +11,7 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
 
 `Submissions/Lower/Solution.lean` now proves `VerificationLowerBound paperParams 18`.
 The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
-and `Quot.sound`. The official verifier accepted claim 18 in 89.5 seconds. The earlier bound of 2
+and `Quot.sound`. The final official verifier run accepted claim 18 in 117.5 seconds. The earlier bound of 2
 was officially verified before the replacement was developed.
 
 ## Proof

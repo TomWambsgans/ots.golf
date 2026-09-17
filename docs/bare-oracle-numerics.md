@@ -1,7 +1,7 @@
 # Bare-oracle lower-bound numerical investigation
 
-These are conditional attack calculations, not a proof of a bare-oracle lower
-bound. The proposed fresh-weight construction and information inequalities in
+The entropy calculations below are conditional; the final section checks the exact arithmetic
+of the officially verified pattern attack at 18. The proposed fresh-weight construction and information inequalities in
 the handoff were refuted during the mathematical audit: hidden earlier duplicate
 queries can put the charged weight outside the reconstructed/target set. These
 numbers therefore do not justify the proposed attack. Valid replacement
@@ -110,7 +110,7 @@ counting product 103.652830396, estimated success 0.056586715, and cost ratio
 
 ## Tool changes
 
-`tools/tune_lower_bound.py` accepts `--s-star`, explicitly labels all output as
+In entropy mode, `tools/tune_lower_bound.py` accepts `--s-star`, explicitly labels output as
 conditional exploration, validates parameter ranges, reports exact Bell numbers,
 and checks simple integer-point counting and cost inequalities with fractions.
 `--no-search` reports only those points. Exponential differences use `expm1` to

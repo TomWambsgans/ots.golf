@@ -71,8 +71,9 @@ found separately in `docs/bare-oracle-construction-analysis.md`.
 
 ## A different route: repeated reconstruction patterns
 
-There is a simpler entropy-free route to a possible lower bound of 18. It is not yet a
-certificate and needs the complete probability and cost formalization.
+The following records the initial entropy-free proposal for a lower bound of 18. Its independent
+index-oracle argument was subsequently replaced by the direct cache argument in the next section,
+and that complete replacement is now formalized and officially verified.
 
 Assume all verification costs are at most 17. Let `E_i` be the reconstructed hash nodes,
 including the root, and `V_i = E_i \ {root}`. Since the index and root each cost at least
@@ -150,6 +151,8 @@ The verifier repeats already cached queries and accepts. The messages differ, so
 The whole pathwise budget is `B=1024+2^21+2^122+34` (two index queries beyond the search,
 and two reconstructions of cost at most 16). Exact arithmetic gives `B/2^127 < 1/25 < 9/200`.
 
-This settles the probability argument on paper without the adaptive coupling gap mentioned
-in the initial exploration above. The Lean formalization of the full attack is in progress;
-these calculations alone are not an exported certificate.
+This settles the probability argument without the adaptive coupling gap mentioned in the initial
+exploration above. The full attack is now formalized in `Submissions/Lower/PatternAttack.lean`
+and `PatternAssembly.lean`; `Solution.lean` exports `VerificationLowerBound paperParams 18`.
+The final official lower verifier accepted claim 18 in 117.5 seconds, with only the three
+allowed axioms. See [bare-oracle-lower-report.md](bare-oracle-lower-report.md) for the final checks.

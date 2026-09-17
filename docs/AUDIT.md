@@ -4,7 +4,7 @@ Scope: `formal/OptimalOTS/Statement.lean`, its VCVio cost/oracle definitions, an
 submission certificates. Updated 2026-09-17 for the bare single-oracle branch.
 The contract exposes only bit strings as oracle queries. The verified baselines
 are lower 18 and upper 106. The official lower verifier accepted claim 18 in
-89.5 seconds on this branch. The lower proof uses repeated reconstruction
+117.5 seconds in the final run on this branch. The lower proof uses repeated reconstruction
 patterns; it does not transfer the former labeled-model entropy argument.
 
 ## What is trusted

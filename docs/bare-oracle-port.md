@@ -288,4 +288,24 @@ part of the replacement. The current file map is in `lower-bound-proof.md`.
 The proposed fresh-weight steps were settled by counterexamples, not proved. Bounds 19 through 24
 remain open here. The equality-pattern method alone stops at 18, because allowing sixteen nonroot
 hash nodes gives more possible patterns than the `2^115` indices. No condition on schemes was added.
-Final full-project checks and upper regression are next.
+
+### Final verification and report
+
+The final `lake build OptimalOTS Submissions` passed after removal of the obsolete modules.
+Contract pin and both submission-policy checks passed. The official pipelines were rerun on the
+final submission roots, concurrently:
+
+```
+verified: track=lower claim=18 commit=worktree in 117.5s
+verified: track=upper claim=106 commit=worktree in 165.6s
+```
+
+The paper compiled to nine pages with no warnings or overfull boxes. The tune tool reconfirmed
+the exact pattern inequalities at 18 and the failure of this counting estimate at 19; its entropy
+mode retains the conditional 24/25 investigation. All project descriptions now state the proved
+18/106 bounds. The preceding entries record intermediate states, not outstanding work.
+
+The complete outcome, mathematical limitations, verifier log paths, local milestones, and changed
+file list are in [bare-oracle-lower-report.md](bare-oracle-lower-report.md).
+`Statement.lean`, `Weak.lean`, and `Submissions/Upper/` are unchanged from the handoff commit.
+All work remained local on `bare-oracle`; nothing was pushed or deployed.
