@@ -1,11 +1,11 @@
 import Submissions.Lower.Semantics
 
 /-!
-# The cost of the attack experiment
+# Pathwise compression costs
 
-With `q` construction attempts and `T` nonce trials, the whole experiment (key generation,
-signing, the attack and final verification) costs at most `K + L + T + (q + 2) v + 2` on every
-execution path, where `v` bounds the reconstruction cost of every disclosure set.
+Cost bounds for sampling, graph evaluation, signing and verification. These lemmas account
+for every oracle call, including repeated inputs. `PatternAttack.cost_experiment` combines
+these bounds for the full forgery experiment.
 -/
 
 open OracleSpec OracleComp ENNReal

@@ -4,7 +4,7 @@ import Submissions.DisclosureLower.AveragedCounting
 import Submissions.DisclosureLower.PatternGoods
 import Submissions.DisclosureLower.PatternHelpers
 
-/-! Average every reconstruction-pattern class to obtain a 9801/280000 forgery probability. -/
+/-! Average all reconstruction-pattern classes to lower-bound forgery success by 9801/280000. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 noncomputable section

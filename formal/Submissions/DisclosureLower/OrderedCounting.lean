@@ -1,12 +1,12 @@
 import Mathlib
 
-/-! Counting ordered set families by their first missing element. -/
+/-! Count finite set families using the largest element of each directed difference. -/
 noncomputable section
 open scoped Classical
 namespace OptimalOTS.DisclosureCounting
 variable {ι α : Type*} [DecidableEq ι] [LinearOrder α]
 
-/-- A largest difference must occur in the other member's boundary. -/
+/-- The largest element of `A i \ A j`, when it exists, belongs to `B j`. -/
 def Witnesses (F : Finset ι) (A B : ι → Finset α) : Prop :=
   ∀ i ∈ F, ∀ j ∈ F, ∀ v ∈ A i \ A j,
     (∀ w ∈ A i \ A j, w ≤ v) → v ∈ B j

@@ -4,7 +4,7 @@ import Submissions.DisclosureLower.PatternSearch
 import Submissions.DisclosureLower.CostCore
 import Submissions.DisclosureLower.PatternHelpers
 
-/-! An entropy-free forgery attack using equal reconstruction patterns. -/
+/-! A forgery attack using equal reconstruction patterns. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 noncomputable section

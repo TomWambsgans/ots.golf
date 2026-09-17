@@ -1,7 +1,8 @@
 import Submissions.GenericLower.ZeroQuery
 import OptimalOTS.AlgorithmWeak
 
-/-! A generic lower bound: correct, available secure schemes cannot verify at zero oracle cost. -/
+/-! Under the paper's resource and availability limits, no correct, weakly secure algorithm
+can verify every input at zero query cost. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 noncomputable section
@@ -14,8 +15,10 @@ variable {P : Params} (S : AlgorithmScheme P)
 def rejection (pk : PublicKey P) (m : Message P) (σ : S.Signature) : ℝ≥0∞ :=
   Pr[= false | freeRun P (S.verify pk m σ)]
 
+/-- Some signature is accepted with probability one under the cache-free simulator. -/
 def Good (pk : PublicKey P) (m : Message P) : Prop := ∃ σ, rejection S pk m σ = 0
 
+/-- Public, noncomputable signature selection; deterministic computation is free in this model. -/
 def selected [Nonempty S.Signature] (pk : PublicKey P) (m : Message P) : S.Signature :=
   if h : Good S pk m then h.choose else Classical.choice inferInstance
 
@@ -94,7 +97,8 @@ theorem good_mass {ε : ℝ≥0∞} (hc : S.Correct) (hz : S.VerifyCostAtMost 0)
   simp only [E_const, expectedValue_add] at h
   exact h.trans (add_le_add (failure_expanded S ha m) le_rfl)
 
-/-- Ignore the signed message and select a perfectly accepted signature using public data only. -/
+/-- Ignore the requested signature and use public data to select a forgery on `m₁`.
+For a good public key it is accepted with probability one. -/
 def adversary [Nonempty S.Signature] (m₀ m₁ : Message P) : S.Adversary where
   State := PublicKey P
   choose pk := pure (m₀, pk)
@@ -147,6 +151,8 @@ theorem attack_ge_good [Nonempty S.Signature] (m₀ m₁ : Message P) (hm : m₀
   · simp [hg, selected_accepts S _ _ hg]
   · simp [hg]
 
+/-- Zero-cost verification permits a fresh-message forgery with success at least one half,
+contradicting security when `(K + T) / 2 ^ P.securityBits < 1 / 2`. -/
 theorem no_zero_verifier (hc : S.Correct) (ha : S.SigningFailureAtMost (1 / 2))
     {K T : ℕ} (hk : S.KeygenCostAtMost K) (hs : S.SignCostAtMost T)
     (m₀ m₁ : Message P) (hm : m₀ ≠ m₁)
@@ -170,8 +176,8 @@ theorem paper_attack_gap :
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_div, paperParams]
 
-/-- At least one compression is necessary for every correct, available generic scheme.
-Any signing-failure allowance at most one half is covered; the attacker forges a fresh message. -/
+/-- Every admissible, weakly secure algorithm under the paper limits needs a verification budget
+of at least one compression, for any signing-failure allowance at most one half. -/
 theorem paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits ε 1 := by
   intro S hA hS v hv
@@ -182,7 +188,7 @@ theorem paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
   exact no_zero_verifier S hA.correct ha hA.keygenCost hA.signCost
     (0 : Message paperParams) (1 : Message paperParams) (by decide) paper_attack_gap hS hv
 
-/-- The checked generic lower certificate at the deliberately weak availability threshold. -/
+/-- The generic lower certificate with signing failure at most one half. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1 :=
   paper_lowerBound_one le_rfl

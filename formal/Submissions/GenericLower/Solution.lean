@@ -2,7 +2,7 @@ import Submissions.GenericLower.Proof
 
 namespace OptimalOTS.Challenge.GenericLower
 
-/-- Every correct, available, weakly secure oracle algorithm needs a verification compression. -/
+/-- No admissible, weakly secure algorithm under the paper limits has a verification budget below one. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1 :=
   OptimalOTS.GenericLower.candidate

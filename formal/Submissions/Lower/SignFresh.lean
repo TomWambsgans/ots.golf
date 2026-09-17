@@ -16,6 +16,8 @@ def reward (G : Finset ℕ) : Option (Nonce P × Fin P.numSets) → ℝ≥0∞
   | none => 0
   | some p => if p.2.val ∈ G then 1 else 0
 
+/-- For `0 < numSets ≤ 2^idxBits`, the probability of returning a fixed valid index
+within `k` independent uniform index trials, stopping at the first valid index. -/
 def rate (P : Params) (k : ℕ) : ℝ :=
   (1 - (1 - (P.numSets : ℝ) / 2 ^ P.idxBits) ^ k) / P.numSets
 

@@ -1,7 +1,8 @@
 import OptimalOTS.Disclosure
 
-/-! Rendered by the verifier with the submission's claim. In addition to strong security
-and cost, the scheme must satisfy the partial-disclosure framework's origin bound. -/
+/-! Historical partial-disclosure upper reference, closed to new public submissions.
+Rendered with the reference claim. The scheme proves strong security, verification cost and
+the historical limit of 46 hash origins; this is not a whole-word or generic upper certificate. -/
 
 namespace OptimalOTS.Challenge.DisclosureUpper
 

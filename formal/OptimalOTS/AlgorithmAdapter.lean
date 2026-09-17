@@ -1,6 +1,9 @@
 import OptimalOTS.Algorithm
 
-/-! Exact embedding of every DAG scheme into the generic algorithm interface. -/
+/-!
+Every DAG scheme defines a generic oracle algorithm with the same wire data and oracle programs.
+The embedding preserves and reflects strong security; it does not establish generic admissibility.
+-/
 
 open OracleSpec OracleComp ENNReal
 noncomputable section
@@ -59,7 +62,7 @@ def fromDAGAdversary (A : Adversary P) : S.toAlgorithm.Adversary where
   choose := A.choose
   forge := A.forge
 
-/-- Equality of oracle programs, stronger than just equality of success probabilities. -/
+/-- The adapter preserves the entire forgery experiment, including every party's queries. -/
 theorem experiment_eq (A : S.toAlgorithm.Adversary) :
     S.toAlgorithm.experiment A = experiment S (toDAGAdversary S A) := by
   simp only [AlgorithmScheme.experiment, experiment, Scheme.toAlgorithm, toDAGAdversary]

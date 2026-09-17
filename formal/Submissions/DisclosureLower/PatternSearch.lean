@@ -3,7 +3,7 @@ import Submissions.DisclosureLower.Index
 import Submissions.DisclosureLower.CostCore
 import Submissions.DisclosureLower.SignFresh
 
-/-! Fixed, distinct nonce trials against a set of target indices. -/
+/-! Consecutive nonce trials, with exact success bounds when the nonce does not wrap. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 noncomputable section
@@ -11,7 +11,7 @@ open scoped Classical
 
 namespace OptimalOTS.PatternSearch
 
-/-- Try nonces `start` through `start+k-1`, stopping at the first target index. -/
+/-- Try `k` consecutive nonces from `start`, modulo the nonce space, until a target is hit. -/
 def search (P : Params) (G : Finset ℕ) (m : Message P) :
     ℕ → ℕ → OracleComp (Spec P) (Option (Nonce P × ℕ))
   | 0, _ => pure none
@@ -181,8 +181,7 @@ theorem success_eq {P : Params} (hidx : P.idxBits ≤ P.hashBits)
     cases p.1 <;> simp
   rw [heq, expectedValue_const (by simp)]
 
-/-- The reciprocal Bernoulli bound gives a comfortable exact probability at
-`T=2^122`: eight target indices are hit with probability at least `1/9`. -/
+/-- With `2^122` fresh trials, at least eight target indices give success at least `1/9`. -/
 theorem paper_success_ge (G : Finset ℕ) (hG : ∀ j ∈ G, j < 2 ^ 128)
     (hcard : 8 ≤ G.card) (m : Message paperParams) (c : Cache paperParams)
     (hc : BareLower.FreshMessage c m) :

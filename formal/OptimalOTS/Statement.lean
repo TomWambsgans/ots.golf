@@ -6,32 +6,25 @@ import VCVio.OracleComp.ProbComp
 import VCVio.EvalDist.BitVec
 
 /-!
-# Verification cost of hash-based one-time signatures: the statement
+# The DAG signature contract
 
-This file is the contract of both tracks; nothing here is proof-related.
+A scheme is a public computation graph with secret sources, deterministic nodes and hash nodes.
+A signature discloses a cut of the graph; verification reconstructs the root and checks its
+public-key bits. All parties share one random oracle on bit strings, without implicit labels
+or domain separation. Uniform sampling and deterministic computation are free; every hash query
+is charged for its complete input, including repeated queries.
 
-```
-upper track:  S : Scheme paperParams,   S.Secure,   ∀ i, S.verifyCost i ≤ c
-lower track:  VerificationLowerBound paperParams c :=
-                ∀ S : Scheme paperParams, S.WeaklySecure → ∃ i, c ≤ S.verifyCost i
-```
+For parameters `P`, the two DAG cost statements are:
 
-In words: with the parameters of the paper (a 128-bit public key, at most 5248 revealed bits per
-signature, 127 bits of security), an upper-track certificate is a graph-based one-time signature
-scheme, strongly unforgeable, all of whose signatures verify within `c` compressions; a lower-track
-certificate shows that every such scheme, even one that is only existentially unforgeable, has a
-signature whose verification costs at least `c` compressions. Strong security implies weak
-security (every win of `weakExperiment` is a win of `experiment`, at the same cost; proved in
-`OptimalOTS/Weak.lean`), so the two tracks bound the same number from both sides.
+* Upper bound: a scheme `S` satisfies `S.Secure` and `∀ i, S.verifyCost i ≤ c`.
+* Lower bound: every `S` satisfying `S.WeaklySecure` has an index `i` with `c ≤ S.verifyCost i`.
 
-The file is organized as follows.
+Strong security implies weak security (`OptimalOTS.Weak`), so the lower bound also applies to
+strongly secure schemes. The generic algorithm interface and the whole-word restriction are
+defined in separate modules; both use the oracle and cost model defined here.
 
-1. `Params`: the numerical parameters.
-2. The random oracle and the cost of a query (one compression per started 512-bit block).
-3. Computation graphs: secret sources, deterministic nodes and hash nodes.
-4. Schemes: disclosure sets, key generation, signing, verification, and the verification cost.
-5. Security: the one-signature forgery experiment and `Scheme.Secure`.
-6. The lower-bound statement and the parameters of the paper.
+The sections below define parameters, oracle semantics, graphs, schemes, security and the lower
+bound. `paperParams` fixes the competition's numerical parameters.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -44,21 +37,21 @@ namespace OptimalOTS
 
 /-! ## 1. Parameters -/
 
-/-- The numerical parameters. -/
+/-- Lengths, resource limits and security target. Lengths are measured in bits; query costs in
+compressions. This structure imposes no parameter inequalities; `paperParams` fixes their values. -/
 structure Params where
   /-- Output length of the random oracle. -/
   hashBits : ℕ
-  /-- A query on `k` input bits costs `⌈k / blockBits⌉` compressions (and at least one). Nothing
-  else is charged: a per-key public parameter can be absorbed once, in a block of its own, and the
-  chaining state reused by every later query (an observation of Justin Drake). -/
+  /-- Input bits per compression block. For positive `blockBits`, hashing `k` bits costs
+  `max 1 ⌈k / blockBits⌉`; explicit prefixes are charged on every query. -/
   blockBits : ℕ
-  /-- Length of the public key: a prefix of the root hash. -/
+  /-- Public-key length: the low bits of the root hash at `paperParams`. -/
   pkBits : ℕ
   /-- Length of messages. -/
   msgBits : ℕ
   /-- Length of signing nonces. -/
   nonceBits : ℕ
-  /-- Number of bits of `H(m ‖ η)` read as the disclosure index. -/
+  /-- Number of low bits of `H(m ‖ η)` read as the disclosure index. -/
   idxBits : ℕ
   /-- Maximal number of revealed bits in a signature, excluding the nonce. -/
   maxRevealBits : ℕ
@@ -68,14 +61,15 @@ structure Params where
   numSets : ℕ
   /-- Maximal number of nonces tried by the signer. -/
   trialLimit : ℕ
-  /-- Forging with total cost `B` must succeed with probability `< B / 2 ^ securityBits`. -/
+  /-- Security requires forgery probability `< B / 2 ^ securityBits` for every pathwise
+  budget `B` covering the entire experiment, including the honest parties. -/
   securityBits : ℕ
 
 /-! ## 2. The random oracle and the cost of a query -/
 
-/-- A random-oracle query: a bit string of any length. There is one oracle and nothing else: no
-labels, no tweaks, no domain separation. A scheme that wants its queries kept apart, from one another
-or from the index query, arranges it in the strings it hashes and pays for their bits. -/
+/-- A bit string of any length, used as a random-oracle input. There are no implicit labels or
+tweaks: equal strings share an answer, including across graph and index queries. Explicit prefixes
+are part of the input and incur their full query cost. -/
 abbrev Query := Σ k : ℕ, BitVec k
 
 /-- The random oracle: an independent uniform `hashBits`-bit answer for every query. -/
@@ -164,14 +158,14 @@ structure Graph (P : Params) where
   len : Fin size → ℕ
   /-- The kind of each node. -/
   kind : (v : Fin size) → NodeKind P.hashBits size len v
-  /-- The root; a prefix of its value is the public key. -/
+  /-- The root; its value is resized to `pkBits` to obtain the public key. -/
   root : Fin size
   root_isHash : (kind root).IsHash
 
 /-- The bits of `x`, least significant first. -/
 def toBits {n : ℕ} (x : BitVec n) : List Bool := List.ofFn fun i : Fin n => x.getLsbD i
 
-/-- Read `n` bits, least significant first. -/
+/-- Interpret the list least significant bit first, truncating or zero-extending to `n` bits. -/
 def ofBits (n : ℕ) (l : List Bool) : BitVec n :=
   BitVec.ofNat n (l.foldr (fun b acc => b.toNat + 2 * acc) 0)
 
@@ -254,7 +248,8 @@ def encode (A : Finset (Fin G.size)) (x : G.Assignment) : List Bool :=
 def offset (A : Finset (Fin G.size)) (v : Fin G.size) : ℕ :=
   ∑ w ∈ A.filter (· < v), G.len w
 
-/-- Parse a revealed bit string into values on `A`. -/
+/-- Read each node's value at its offset in the disclosure string. Reconstruction uses these
+values only on `A`; values outside `A` need not have a meaningful decoding. -/
 def decode (A : Finset (Fin G.size)) (l : List Bool) : G.Assignment :=
   fun v => ofBits (G.len v) ((l.drop (G.offset A v)).take (G.len v))
 
@@ -292,7 +287,7 @@ namespace Scheme
 
 variable {P : Params} (S : Scheme P)
 
-/-- The public key: a prefix of the root value. -/
+/-- Resize the root value to `pkBits`: truncation keeps the low bits; extension pads with zeros. -/
 def publicKey (x : S.graph.Assignment) : PublicKey P := (x S.graph.root).setWidth P.pkBits
 
 /-- Key generation; the secret key is the value of every node. -/
@@ -317,11 +312,12 @@ def signLoop (x : S.graph.Assignment) (m : Message P) :
     else
       pure none
 
-/-- Signing: try uniformly random fresh nonces until one selects a valid index. -/
+/-- Try at most `trialLimit` distinct uniform nonces; return `none` if none selects a valid index. -/
 def sign (x : S.graph.Assignment) (m : Message P) : OracleComp (Spec P) (Option (Signature P)) :=
   S.signLoop x m P.trialLimit ∅
 
-/-- Verification: recompute the index, reconstruct the root, and compare with the public key. -/
+/-- Reject invalid indices or payload lengths; otherwise reconstruct the root and compare its
+public-key bits with `pk`. -/
 def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (Spec P) Bool := do
   let i ← index P m σ.1
   if hi : i < P.numSets then
@@ -334,7 +330,8 @@ def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (S
   else
     return false
 
-/-- Query cost of verifying a signature at index `i`: the index query, plus reconstruction. -/
+/-- Verification cost at a valid index and payload length: the index query plus reconstruction.
+The cost depends on the disclosure set, not on the supplied values or the final verdict. -/
 def verifyCost (i : Fin P.numSets) : ℕ := idxCost P + S.graph.reconstructCost (S.sets i)
 
 end Scheme
@@ -350,8 +347,8 @@ structure Adversary (P : Params) where
   /-- Given the signature (`none` if signing failed), output a forgery. -/
   forge : State → Option (Signature P) → OracleComp (Spec P) (Message P × Signature P)
 
-/-- The forgery experiment, including every party's oracle queries. The attacker wins if the
-verifier accepts its output and it differs from the pair returned by the signer. -/
+/-- Strong-forgery experiment. The attacker wins when its pair is accepted and differs from the
+signed pair; after signing failure, any accepted pair wins. All parties share one oracle table. -/
 def experiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec P) Bool := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
@@ -360,15 +357,14 @@ def experiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec 
   let ok ← S.verify pk m₂ σ₂
   return ok && decide (σ₁.map (fun s => (m₁, s)) ≠ some (m₂, σ₂))
 
-/-- Security: an attacker whose whole experiment costs at most `B` on every execution path forges
-with probability below `B / 2 ^ securityBits`. -/
+/-- Strong unforgeability: for every attacker and pathwise budget `B` for the entire experiment,
+the probability of an accepted fresh pair is strictly below `B / 2 ^ securityBits`. -/
 def Scheme.Secure {P : Params} (S : Scheme P) : Prop :=
   ∀ (A : Adversary P) (B : ℕ), CostAtMost P (experiment S A) B →
     probTrue P (experiment S A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
 
-/-- The forgery experiment of existential unforgeability: the same run, but the attacker wins only
-if the verifier accepts its output on a message other than the signed one (or signing failed, so
-that no signature was issued at all). Every win here is a win of `experiment`. -/
+/-- Weak-forgery experiment. The attacker must produce an accepted signature on a different
+message; after signing failure, any accepted pair wins. Every weak win is also a strong win. -/
 def weakExperiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec P) Bool := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
@@ -377,13 +373,13 @@ def weakExperiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (S
   let ok ← S.verify pk m₂ σ₂
   return ok && (σ₁.isNone || decide (m₂ ≠ m₁))
 
-/-- Weak security: the bound of `Secure`, against forgeries on a new message only. It is the
-hypothesis of the lower track, which makes a lower bound cover malleable schemes as well. -/
+/-- Existential unforgeability with the same strict, total-experiment bound as `Secure`.
+The lower bound assumes this weaker notion, so it also covers schemes with malleable signatures. -/
 def Scheme.WeaklySecure {P : Params} (S : Scheme P) : Prop :=
   ∀ (A : Adversary P) (B : ℕ), CostAtMost P (weakExperiment S A) B →
     probTrue P (weakExperiment S A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
 
-/-! ## 6. The statement -/
+/-! ## 6. The lower bound and paper parameters -/
 
 /-- Every weakly secure scheme with parameters `P`, hence every secure one, has a signature index
 whose verification costs at least `c` compressions. -/

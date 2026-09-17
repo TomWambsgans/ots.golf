@@ -4,10 +4,9 @@ import Submissions.Upper.Main
 /-!
 # The verified forest under the generic algorithm interface
 
-This integration certificate preserves the existing 106-compression construction and its exact
-127-bit strong-unforgeability experiment. It is not a generic submission challenge: correctness
-and a pinned signing-failure allowance must be certified before that separate contract migration.
-No file in either submission root is changed by this adapter.
+The DAG forest retains its 106-compression verification bound and 127-bit strong security.
+This certificate also establishes size and honest-party cost bounds. Generic admission still
+requires correctness and signing-availability proofs, and a pinned generic upper challenge.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -53,7 +52,7 @@ theorem signature_size : scheme.SignatureSizeAtMost AlgorithmScheme.paperLimits.
 theorem rejects_oversized : scheme.RejectsOversized AlgorithmScheme.paperLimits.signatureBits :=
   AlgorithmAdapter.rejectsOversized Forest.forestScheme
 
-/-- A single audited declaration collects the security, cost and size preservation results. -/
+/-- Security, cost, and size bounds for the adapter. This does not assert `Admissible`. -/
 theorem certificate : scheme.Secure ∧ scheme.VerifyCostAtMost 106 ∧
     scheme.KeygenCostAtMost 1024 ∧ scheme.SignCostAtMost (2 ^ 21) ∧
     scheme.SignatureSizeAtMost 5504 ∧ scheme.RejectsOversized 5504 :=

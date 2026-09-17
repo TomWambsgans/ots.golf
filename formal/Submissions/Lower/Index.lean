@@ -1,7 +1,7 @@
 import Submissions.Lower.Expectation
 
-/-! The signing loop and its support, copied from the bare-oracle upper proof.
-No tagging or separation hypothesis on the scheme is used. -/
+/-! The signing loop, its returned index and the cache entries it creates.
+All queries use the bare oracle; freshness is a property of the cache. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 
@@ -19,7 +19,7 @@ theorem costAtMost_query_bind_iff (P : Params) {α : Type} (t : (Spec P).Domain)
   rw [isQueryBound_query_bind_iff]
 
 
-/-! ## Lemmas shared with the lower-bound proof (copied: submissions may not import each other) -/
+/-! ## Index extraction and finite sums -/
 
 namespace Analysis
 

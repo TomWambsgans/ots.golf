@@ -11,7 +11,7 @@ namespace AlgorithmScheme
 
 variable {P : Params}
 
-/-- The same generic experiment, counting only fresh-message forgeries (or failed signing). -/
+/-- An accepted forgery wins if signing failed or the forged message differs from the signed one. -/
 def weakExperiment (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec P) Bool := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
@@ -20,15 +20,19 @@ def weakExperiment (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec 
   let ok ← S.verify pk m₂ σ₂
   return ok && (σ₁.isNone || decide (m₂ ≠ m₁))
 
-/-- Weak security has the same total-experiment cost accounting and security exponent. -/
+/-- Weak unforgeability: success is strictly below `B / 2 ^ P.securityBits` for every
+pathwise budget `B` of the whole experiment. -/
 def WeaklySecure (S : AlgorithmScheme P) : Prop :=
   ∀ (A : S.Adversary) (B : ℕ), CostAtMost P (S.weakExperiment A) B →
     probTrue P (S.weakExperiment A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
 
 namespace SecurityBridge
 
-abbrev Outcome (S : AlgorithmScheme P) := Message P × Option S.Signature × Message P × S.Signature × Bool
+/-- Signed message, signing result, forged message, forged signature, and verification result. -/
+abbrev Outcome (S : AlgorithmScheme P) :=
+  Message P × Option S.Signature × Message P × S.Signature × Bool
 
+/-- The execution shared by strong and weak security; only their winning conditions differ. -/
 def experimentRun (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec P) (Outcome S) := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
@@ -91,8 +95,8 @@ theorem Secure.weaklySecure {S : AlgorithmScheme P} (h : S.Secure) : S.WeaklySec
 
 end AlgorithmScheme
 
-/-- A universal lower bound for arbitrary algorithms under explicit resource and availability limits.
-It rules out every pathwise verification budget below `c`, including all rejecting inputs. -/
+/-- Every pathwise verification budget for an admissible, weakly secure algorithm is at least `c`.
+The budget must cover all public keys, messages, and signatures, including rejecting inputs. -/
 def AlgorithmVerificationLowerBound (P : Params) (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞)
     (c : ℕ) : Prop :=
   ∀ S : AlgorithmScheme P, S.Admissible L ε → S.WeaklySecure →

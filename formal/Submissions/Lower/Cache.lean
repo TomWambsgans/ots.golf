@@ -9,7 +9,7 @@ bare-oracle lower-bound analysis:
 * `extend c f` overlays the cache `f` under the cache `c` (entries of `c` take priority);
 * `Hits c f` says that some point cached in `f` is also cached in `c`;
 * the one-step run lemmas of `oracleImpl P`;
-* runs only grow the cache (`le_of_mem_support_run`).
+* runs only grow the cache (`sub_of_mem_support_run`).
 -/
 
 open OracleSpec OracleComp ENNReal

@@ -1,10 +1,7 @@
 import OptimalOTS.AlgorithmAdapter
 
-/-! Structural cost bounds for the DAG-to-algorithm adapter.
-
-These generic lemmas are derived from the verified lower proof, under an isolated namespace
-so this module can be used with either submission root without importing either one.
--/
+/-! Pathwise query-cost bounds for the DAG-to-algorithm adapter.
+The bounds cover every oracle-answer path; private randomness costs zero. -/
 
 open OracleSpec OracleComp ENNReal
 
@@ -68,7 +65,6 @@ theorem costAtMost_hash {k : ℕ} (u : BitVec k) {b : ℕ} (hb : blockCost P k �
   unfold CostAtMost hash
   rw [isQueryBound_query_iff]
   exact hb
-
 
 theorem CostAtMost.bind_le {oa : OracleComp (Spec P) α} {ob : α → OracleComp (Spec P) β}
     {b₁ b₂ b : ℕ} (h₁ : CostAtMost P oa b₁) (h₂ : ∀ x, CostAtMost P (ob x) b₂)

@@ -36,9 +36,11 @@ namespace Scheme
 
 variable {P : Params} (S : Scheme P)
 
+/-- Hash nodes reconstructed at index `i`, excluding the root common to every pattern. -/
 def hashPattern (i : Fin P.numSets) : Finset (Fin S.graph.size) :=
   (S.graph.evalHash (S.sets i)).erase S.graph.root
 
+/-- All indices with the same reconstruction pattern as `i`, including `i` itself. -/
 def samePattern (i : Fin P.numSets) : Finset (Fin P.numSets) :=
   Finset.univ.filter fun j => S.hashPattern j = S.hashPattern i
 

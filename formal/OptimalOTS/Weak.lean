@@ -3,14 +3,13 @@ import OptimalOTS.Statement
 /-!
 # Strong security implies weak security
 
-`Scheme.Secure` asks that no accepted pair differ from the signer's; `Scheme.WeaklySecure` only
-that no accepted pair carry a new message. The two experiments are the same run followed by two
-winning conditions, and the weak condition implies the strong one, so the costs coincide and the
-weak success probability is the smaller one: `Scheme.Secure.weaklySecure`.
+The strong and weak experiments make the same oracle calls and differ only in their winning
+conditions. A weak win is a strong win: an accepted forgery must use a new message when signing
+succeeds; after signing failure, any accepted pair wins in both experiments.
 
-The upper track certifies `Secure` schemes and the lower track bounds `WeaklySecure` ones, so this
-theorem is what makes the two records bound the same number. It is not part of the contract: no
-submission needs it, and none may import it.
+`Scheme.Secure.weaklySecure` preserves the pathwise budget and security bound. Consequently,
+`VerificationLowerBound.of_secure` applies a weak-security lower bound to any strongly secure
+DAG scheme. This bridge is a derived theorem, outside the protected submission imports.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -23,8 +22,8 @@ namespace OptimalOTS
 
 variable {P : Params}
 
-/-- What a run of the forgery experiment produces, before anyone decides who won: the signed
-message, the signature (`none` if signing failed), the attacker's pair, the verifier's verdict. -/
+/-- Experiment outcome: signing request, optional signature, forged message and signature,
+and the verifier's verdict. -/
 abbrev Outcome (P : Params) := Message P × Option (Signature P) × Message P × Signature P × Bool
 
 /-- The run shared by `experiment` and `weakExperiment`. -/
@@ -54,7 +53,7 @@ theorem weakExperiment_eq_map (S : Scheme P) (A : Adversary P) :
   simp only [weakExperiment, experimentRun, weakWin, map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp]
 
-/-- A forgery on a new message is a forgery. -/
+/-- Every accepted weak forgery also satisfies the strong winning condition. -/
 theorem strongWin_of_weakWin (r : Outcome P) (h : weakWin r = true) : strongWin r = true := by
   obtain ⟨m₁, σ₁, m₂, σ₂, ok⟩ := r
   simp only [weakWin, strongWin, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at h ⊢
@@ -70,11 +69,13 @@ theorem strongWin_of_weakWin (r : Outcome P) (h : weakWin r = true) : strongWin 
       simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at heq
       exact hne heq.1.symm
 
+/-- Changing the winning condition preserves the exact pathwise query budget. -/
 theorem costAtMost_experiment_iff (S : Scheme P) (A : Adversary P) (B : ℕ) :
     CostAtMost P (experiment S A) B ↔ CostAtMost P (weakExperiment S A) B := by
   unfold CostAtMost
   rw [experiment_eq_map, weakExperiment_eq_map, isQueryBound_map_iff, isQueryBound_map_iff]
 
+/-- The weak success probability is at most the strong success probability. -/
 theorem probTrue_weakExperiment_le (S : Scheme P) (A : Adversary P) :
     probTrue P (weakExperiment S A) ≤ probTrue P (experiment S A) := by
   unfold probTrue
@@ -83,7 +84,7 @@ theorem probTrue_weakExperiment_le (S : Scheme P) (A : Adversary P) :
     probEvent_map]
   exact probEvent_mono'' fun r h => strongWin_of_weakWin r h
 
-/-- **Strong unforgeability implies existential unforgeability**, with the same bound. -/
+/-- Strong unforgeability implies existential unforgeability with the same security bound. -/
 theorem Scheme.Secure.weaklySecure {S : Scheme P} (h : S.Secure) : S.WeaklySecure := fun A B hB =>
   lt_of_le_of_lt (probTrue_weakExperiment_le S A) (h A B ((costAtMost_experiment_iff S A B).2 hB))
 

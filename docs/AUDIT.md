@@ -6,6 +6,8 @@ and whole-word DAG **93**. The two historical upper references remain **106**; g
 admission is still pending correctness and signing availability. This document distinguishes
 mathematical scope from operational deployment. See [production-readiness.md](production-readiness.md)
 for the service and verifier audit, tests, and remaining environment checks.
+The [final Lean statement review](lean-statement-review.md) covers every project-owned Lean file
+and records the subsequent editorial corrections without changing the mathematical declarations.
 
 ## What is trusted
 

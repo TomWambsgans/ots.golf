@@ -2,7 +2,7 @@ import OptimalOTS.Disclosure
 import Submissions.DisclosureLower.Patterns
 import Submissions.DisclosureLower.OrderedCounting
 
-/-! Hash origins contain every first missing hash in a reconstruction pattern. -/
+/-! The largest hash node in a directed pattern difference is a disclosed origin. -/
 noncomputable section
 open scoped Classical
 namespace OptimalOTS
@@ -101,7 +101,7 @@ theorem max_difference_disclosed (i j : Fin P.numSets) (v : Fin S.graph.size)
         fun h => hgj (Finset.mem_of_mem_erase h)⟩
     exact (not_lt_of_ge (hmax g hgp) hvg).elim
 
-/-- The declared provenance budget bounds all reconstruction patterns by one binomial. -/
+/-- At most 41 disclosed origins and cost at most 92 give at most `choose 131 41` patterns. -/
 theorem card_hashPattern_image_le_disclosure (S : Scheme paperParams)
     (hdis : S.DisclosureBound 41) (hcost : ∀ i, S.verifyCost i ≤ 92) :
     (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41 := by

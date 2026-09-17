@@ -1,11 +1,13 @@
 import OptimalOTS.AlgorithmWeak
 
-/-! The generic lower contract fixes perfect correctness, signing success at least one half,
-127-bit fresh-message security, and the paper size and resource limits. -/
+/-! The generic lower contract fixes perfect correctness, signing success at least one half
+for every public-key-dependent message choice, 127-bit fresh-message security, and the paper
+size and resource limits. -/
 
 namespace OptimalOTS.Challenge.GenericLower
 
-/-- Every admissible weakly secure oracle algorithm has worst-case verification cost at least this. -/
+/-- Every pathwise verification budget of an admissible weakly secure oracle algorithm is at least
+`{{CLAIM}}` compressions. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) {{CLAIM}} := sorry
 

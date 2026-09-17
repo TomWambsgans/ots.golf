@@ -8,6 +8,7 @@ open scoped Classical
 
 namespace OptimalOTS.AveragedSearch
 
+/-- A lower bound on hitting one of `k` indices in `2^122` fresh 128-bit index trials. -/
 def hitRate (k : ℕ) : ℝ≥0∞ := (k : ℝ≥0∞) / (64 + k)
 
 theorem paper_success_ge (G : Finset ℕ) (hG : ∀ j ∈ G, j < 2 ^ 128)

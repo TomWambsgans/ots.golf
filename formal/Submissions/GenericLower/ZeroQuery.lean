@@ -14,6 +14,7 @@ abbrev run (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (c : Cache P) 
     ProbComp (α × Cache P) := (simulateQ (oracleImpl P) oa).run c
 abbrev E {α : Type} (p : ProbComp α) (f : α → ℝ≥0∞) := expectedValue p f
 
+/-- Keep private randomness and replace every hash answer by zero. -/
 def freeImpl (P : Params) : QueryImpl (Spec P) ProbComp :=
   HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp) +
     (show QueryImpl (hashSpec P) ProbComp from fun _ => pure (0 : BitVec P.hashBits))
@@ -34,6 +35,7 @@ theorem run_map (P : Params) {α β : Type} (oa : OracleComp (Spec P) α)
     run P (f <$> oa) c = (fun p => (f p.1, p.2)) <$> run P oa c := by
   simp only [run, simulateQ_map, StateT.run_map]
 
+/-- A zero-cost program never hashes, so its output is independent of the unchanged cache. -/
 theorem run_zero (P : Params) {α : Type} (oa : OracleComp (Spec P) α)
     (h : CostAtMost P oa 0) (c : Cache P) :
     run P oa c = (fun x => (x, c)) <$> freeRun P oa := by
