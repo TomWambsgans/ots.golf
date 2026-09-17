@@ -28,17 +28,15 @@
   <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compressions</span>{% else %}–{% endif %}</a></td>
   <td class="r lb-gain">
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
-    {%- elif kind == 'other' %}<span class="muted">not a record</span>
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
   </td>
   <td class="r lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
 </tr>
 {%- endmacro %}
 
-{% macro lbrows(frontier, others, in_flight, cfg) -%}
+{% macro lbrows(frontier, in_flight, cfg) -%}
 {# frontier is newest first; the gain of a record is measured against the record before it #}
 {% for s in frontier %}{{ lbrow(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record') }}{% endfor %}
-{% for s in others %}{{ lbrow(s, none, none, 'other') }}{% endfor %}
 {% for s in in_flight %}{{ lbrow(s, none, none, 'pending') }}{% endfor %}
-{% if not frontier and not others and not in_flight %}<tr><td colspan="4" class="muted lb-empty">No verified submission yet.</td></tr>{% endif %}
+{% if not frontier and not in_flight %}<tr><td colspan="4" class="muted lb-empty">No verified submission yet.</td></tr>{% endif %}
 {%- endmacro %}

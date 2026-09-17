@@ -1,4 +1,4 @@
-"""Leaderboard queries: the current record, the record frontier, the other verified submissions."""
+"""Leaderboard queries: the current record, the record frontier, the in-flight submissions."""
 from __future__ import annotations
 
 from sqlalchemy import func, select
@@ -21,11 +21,6 @@ def current_record(session: Session, slug: str) -> Submission | None:
 def frontier(session: Session, slug: str) -> list[Submission]:
     return list(session.scalars(_verified(slug).where(Submission.is_record.is_(True))
                                 .order_by(Submission.record_at.desc())))
-
-
-def others(session: Session, slug: str) -> list[Submission]:
-    return list(session.scalars(_verified(slug).where(Submission.is_record.is_(False))
-                                .order_by(Submission.finished_at.desc())))
 
 
 def in_flight(session: Session, slug: str | None = None) -> list[Submission]:

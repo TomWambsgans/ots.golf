@@ -105,7 +105,6 @@ async def webhook(request: Request, session: Session = Depends(get_session)):
 def home(request: Request, session: Session = Depends(get_session)):
     iv = records.interval(session)
     boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"]),
-                          "others": records.others(session, t["slug"]),
                           "in_flight": records.in_flight(session, t["slug"]),
                           "solvers": records.solver_count(session, t["slug"]),
                           "state": records.track_state(session, t)} for t in contract.tracks()}

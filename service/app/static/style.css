@@ -89,8 +89,8 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .lb-table tr:last-child td { border-bottom: 0; }
 .lb-row:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .lb-row.current td { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-.lb-row.other td, .lb-row.pending td { color: var(--muted); }
-.lb-row.other a, .lb-row.pending a { color: inherit; }
+.lb-row.pending td { color: var(--muted); }
+.lb-row.pending a { color: inherit; }
 .lb-solver { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .lb-rank { display: inline-block; width: 22px; flex: none; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--accent-ink); }
 .lb-avatar { display: inline-block; width: 20px; height: 20px; flex: none; }
