@@ -16,53 +16,30 @@
 {% endfor %}
 {%- endmacro %}
 
-{% macro records(frontier, cfg) -%}
-{# frontier is newest first; the gain of a record is measured against the record before it #}
-{% for s in frontier %}
-{% set prev = frontier[loop.index] if loop.index < frontier|length else none %}
-<tr>
-  <td class="rank">{{ '%02d'|format(loop.index) }}</td>
-  <td>
-    {% if s.user.avatar_url %}<img class="avatar-sm" src="{{ s.user.avatar_url }}" alt="">{% endif %}
-    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} <span class="muted">and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}</span>{% endif %}
-    {% if s.baseline %}<span class="tag">baseline</span>{% endif %}
-    {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
-  </td>
-  <td class="muted nowrap">{{ s.record_at|date }}</td>
-  <td class="num"><a href="/submissions/{{ s.id }}">{{ s.claim }} compressions</a></td>
-  <td class="num gain">{% if prev %}{% set d = s.claim - prev.claim %}{{ '+' if d > 0 else '' }}{{ d }} ({{ '%+.1f'|format(100 * d / prev.claim) }}%){% else %}<span class="muted">first record</span>{% endif %}</td>
-</tr>
-{% else %}
-<tr><td colspan="5" class="muted">No verified record yet.</td></tr>
-{% endfor %}
+{% macro card(s, rank, prev, kind) -%}
+{% set d = (s.claim - prev.claim) if (prev and s.claim is not none and prev.claim is not none) else none %}
+<li class="lb-row {{ kind }}{% if rank == 1 %} current{% endif %}" data-score="{{ s.claim if s.claim is not none else '' }}" data-gain="{{ d if d is not none else '' }}" data-date="{{ ((s.record_at or s.finished_at or s.created_at)|date) }}">
+  <div class="lb-who">
+    <span class="lb-avatar">{% if s.user.avatar_url %}<img src="{{ s.user.avatar_url }}" alt="">{% else %}<span class="lb-avatar-blank"></span>{% endif %}{% if rank %}<span class="lb-rank" aria-label="Rank {{ rank }}">{{ '%02d'|format(rank) }}</span>{% endif %}</span>
+    <span class="lb-name">
+      <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} <span class="muted">and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}</span>{% endif %}{% if s.baseline %} <span class="tag">baseline</span>{% endif %}
+      {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
+    </span>
+  </div>
+  <div class="lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</div>
+  <div class="lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compressions</span>{% else %}–{% endif %}</a></div>
+  <div class="lb-gain">
+    {% if kind == 'record' %}{% if d is not none %}<strong>{{ '+' if d > 0 else '' }}{{ d }}</strong> <span class="muted">({{ '%+.1f'|format(100 * d / prev.claim) }}%)</span>{% else %}<span class="muted">first record</span>{% endif %}
+    {% elif kind == 'other' %}<span class="muted">verified, not a record</span>
+    {% else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif %}
+  </div>
+</li>
 {%- endmacro %}
 
-{% macro board(frontier, others, in_flight, cfg) -%}
-{{ records(frontier, cfg) }}
-{% for s in others %}
-<tr class="other">
-  <td class="rank">–</td>
-  <td>
-    {% if s.user.avatar_url %}<img class="avatar-sm" src="{{ s.user.avatar_url }}" alt="">{% endif %}
-    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} <span class="muted">and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}</span>{% endif %}
-    {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
-  </td>
-  <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
-  <td class="num"><a href="/submissions/{{ s.id }}">{{ s.claim }} compressions</a></td>
-  <td class="num gain"><span class="muted">verified, not a record</span></td>
-</tr>
-{% endfor %}
-{% for s in in_flight %}
-<tr class="other">
-  <td class="rank">…</td>
-  <td>
-    {% if s.user.avatar_url %}<img class="avatar-sm" src="{{ s.user.avatar_url }}" alt="">{% endif %}
-    <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
-    {% if s.assisted_by %}<div class="muted model">{{ s.assisted_by }}</div>{% endif %}
-  </td>
-  <td class="muted nowrap">{{ s.created_at|date }}</td>
-  <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} compressions{% else %}–{% endif %}</a></td>
-  <td class="num gain"><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
-</tr>
-{% endfor %}
+{% macro cards(frontier, others, in_flight, cfg) -%}
+{# frontier is newest first; the gain of a record is measured against the record before it #}
+{% for s in frontier %}{{ card(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record') }}{% endfor %}
+{% for s in others %}{{ card(s, none, none, 'other') }}{% endfor %}
+{% for s in in_flight %}{{ card(s, none, none, 'pending') }}{% endfor %}
+{% if not frontier and not others and not in_flight %}<li class="lb-empty muted">No verified submission yet.</li>{% endif %}
 {%- endmacro %}
