@@ -34,6 +34,15 @@ def framework_tracks(slug: str) -> dict[str, dict]:
     return {t["kind"]: t for t in tracks() if t["framework"] == slug}
 
 
+def generic_upper_candidate() -> dict:
+    """AlgorithmForest.cost is checked at 106; generic admissibility remains unproved.
+
+    This is a reference candidate, not a record inherited from either DAG upper track.
+    """
+    return {"claim": 106, "status": "candidate", "framework": "generic",
+            "title": "Generic algorithms", "proof": "formal/OptimalOTS/AlgorithmForest.lean"}
+
+
 def contract_id() -> str:
     cfg = load()
     pin = settings.repo_root / cfg["contract"]["pin_file"]

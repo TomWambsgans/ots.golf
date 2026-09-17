@@ -2,8 +2,8 @@
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> Generic algorithms, DAGs and partial disclosures have separate frameworks. Each active
-> framework has lower and upper tracks checked by the Lean kernel through leanprover/comparator.
+> Lower bounds have three frameworks: generic algorithms, DAGs and partial disclosures.
+> There is one upper track, for fully generic algorithms. Certificates are checked by the Lean kernel.
 
 Oracle model: one random oracle on bare bit strings, with no labels, tweaks or separation
 condition. Equal strings share an answer across all uses. Cost: one compression per started
@@ -25,15 +25,23 @@ Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but
 are not yet admitted: correctness and signing availability remain to be proved. See
 docs/generic-upper.md. No generic lower record is claimed.
 
+The site plots three lower series and one generic upper candidate. Generic lower is explicitly
+pending outside the numeric compression axis; it is not a claim of zero. The generic upper adapter
+has checked cost/security proofs at 106, but is not an admitted record until the remaining
+admissibility proofs and challenge are complete. Framework filters affect only lower leaderboards.
+Rules show certified lower baselines. Local Satoshi/Vitalik demo records are marked illustrative.
+Legacy DAG upper roots and their historical rows remain references, not generic records; the public
+queue rejects new submissions to those upper roots.
+
 - Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
 - Rules and the exact exported declarations: AGENTS.md
 - Machine-readable tracks, limits and protected files: challenges.json
 - The contract: formal/OptimalOTS/Statement.lean (audit notes in docs/AUDIT.md)
 - Local verification, identical to the hosted verifier: verifier/verify.py
 - Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
-- Upper track root: formal/Submissions/Upper (module prefix Submissions.Upper)
+- Legacy DAG upper reference root: formal/Submissions/Upper (module prefix Submissions.Upper)
 - Partial-disclosure lower root: formal/Submissions/DisclosureLower (claim 80)
-- Partial-disclosure upper root: formal/Submissions/DisclosureUpper (claim 106)
+- Legacy partial-disclosure upper reference root: formal/Submissions/DisclosureUpper (claim 106)
 - Partial-disclosure contract: formal/OptimalOTS/Disclosure.lean
 
 The one submission channel: a pull request against the contract repository changing only one

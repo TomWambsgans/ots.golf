@@ -76,15 +76,29 @@ Local logs:
 arithmetic at 80; the same estimate fails at 81. This numerical tool is not a certificate.
 The full proof, rather than the search, establishes 80. No optimality claim for that bound is made.
 
-The unrestricted DAG records remain 18 and 106. The generic algorithm framework remains at its
+The unrestricted DAG certificates remain 18 and 106; the upper certificate is now a reference proof. The generic algorithm framework remains at its
 documented foundation stage until correctness and signing availability are certified. The site's
-three framework views keep these scopes separate; the local demo board retains its invented
+combined chart and framework-specific rankings keep these scopes separate; the local demo board retains its invented
 Satoshi/Vitalik submissions with claims relative to each framework's baselines.
 
-The formal milestone is local commit `84c5fd2` on `main`. Six service regression tests pass
+The formal milestone is local commit `84c5fd2` on `main`. Eleven service regression tests pass
 with `cd service && .venv/bin/python -m unittest discover -s tests -v`, covering independent
-records and charts, the generic foundation page, demo refresh preservation, submission links,
-rules and pull-request root matching. Localhost serves all three framework views successfully;
-the demo boards show 20–101 for DAGs and 82–101 for partial disclosures. These invented
-demo claims are separate from the kernel-verified baselines reported above. The commit hook
+record attribution, the combined chart, lower leaderboard filters, pending generic status, the single
+generic upper candidate, demo refresh preservation, solver and submission links, certified lower
+rule baselines, public rejection of legacy upper submissions, and pull-request root matching.
+Localhost serves the combined view and all three lower filters successfully; demo lower records
+are 20 for DAGs and 82 for partial disclosures. The old 101-cost upper demo rows remain in historical
+pages only. These invented claims are separate from the kernel-verified baselines. The commit hook
 refreshes localhost and adapts demo claims automatically.
+
+The website has three lower-bound frameworks and one fully generic upper track. The chart shows
+three lower series, with generic lower in a pending lane outside the compression axis, plus a single
+106-cost generic adapter candidate. The candidate is not an admitted upper record: correctness and
+signing availability remain to be proved. Lower framework filters do not split the upper track.
+Legacy DAG upper certificates remain locally verifiable and their historical pages remain accessible;
+the public queue rejects new submissions to those legacy upper roots. No existing demo rows are removed.
+
+Browser checks in headless Firefox passed for direction switches, per-table sorting, keyboard chart
+tooltips, filtered deep links, rule expansion, and a narrow layout with horizontally scrollable charts
+and tables. This website update changes no Lean statements, submission roots, verifier settings or
+contract pins.

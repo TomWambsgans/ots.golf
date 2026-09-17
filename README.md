@@ -7,7 +7,7 @@ Foundation, Yukon and zkSecurity; [proximity-prize/proximity-prize](https://gith
 and [zk.golf](https://zk.golf) (zkSecurity; [zksecurity/zk-golf-challenges](https://github.com/zksecurity/zk-golf-challenges)).
 The leaderboard and the progress chart follow better.codes' design.
 
-The model is a public computation graph of secret sources, deterministic nodes and hash nodes.
+The DAG model is a public computation graph of secret sources, deterministic nodes and hash nodes.
 Signatures reveal node values selected by hashing the message with a nonce; the verifier recomputes
 the root and compares its low 128 bits with the public key. Every party uses one random oracle on
 bit strings. Repeated strings receive the same answer, even across node and index queries. The
@@ -23,7 +23,7 @@ With a 128-bit public key, signatures of at most 5504 bits and 127-bit security,
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
 | Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 18 (Lean-verified) | c ≥ record + 1 |
-| Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | c ≤ record − 1 |
+| Upper reference | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | Legacy certificate |
 
 The verified lower bound 18 counts sets of hash nodes recomputed during verification. If every
 signature cost at most 17, many indices would share such a set, allowing an attacker to convert
@@ -39,15 +39,23 @@ Every ranked claim is a theorem about its pinned contract, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
 
 A generic oracle-algorithm interface and an exact adapter for the 106-cost forest are available
-as a [foundation for a future upper track](docs/generic-upper.md). Generic submissions are not yet admitted.
+as the [foundation for the single generic upper track](docs/generic-upper.md). Generic submissions
+are not yet admitted: correctness and signing availability remain to be proved.
 
 The **partial-disclosure framework** adds one restriction to the DAG model: a signature's payload may
 derive from at most **46 distinct hash outputs**. Arbitrary fragments, deterministic mixtures and
 Reed–Solomon encodings are allowed; multiple pieces of one digest count once. The 5248-bit payload,
 256-bit nonce and 127-bit security requirements remain. Its `disclosure-lower` and `disclosure-upper`
-tracks have separately verified baselines **80 and 106**; their bounds do not change the unrestricted DAG lower record.
-See [the definition and proof status](docs/partial-disclosures.md). The site lets you select generic
-algorithms, DAGs or partial disclosures without mixing their records.
+certificates establish **80 and 106**; the latter is retained as a reference proof, while 80 is the
+partial-disclosure lower baseline. See [the definition and proof status](docs/partial-disclosures.md).
+
+The site has **three lower-bound frameworks and one fully generic upper track**. The chart compares
+all three lower series and the single 106-cost generic adapter candidate. Generic lower remains
+pending outside the numeric axis; the upper candidate awaits admission proofs. Lower leaderboards
+are grouped and filtered by framework. There are no separate DAG or partial-disclosure upper
+leaderboards, and the public queue rejects new submissions to those legacy upper roots. Existing
+proofs and historical pages remain available as references. Local demo lower records are explicitly
+separate from the certified baselines.
 
 ## Layout
 

@@ -6,8 +6,9 @@ The wrapped forest retains the exact 127-bit strong-unforgeability experiment, v
 compressions, and produces signatures of at most 5504 bits.
 
 This is the first step toward generic upper submissions. The pinned contract, challenge stubs,
-submission import policy, and both submission roots are unchanged. The existing leaderboard
-continues to certify DAG schemes with bounds 18 and 106.
+submission import policy, and both submission roots are unchanged. At that milestone the leaderboard certified DAG schemes with bounds 18 and 106. The later website
+structure has three lower-bound classes and only this generic upper track. It labels the 106-cost
+adapter as a candidate pending admission; the old DAG upper certificates remain local references.
 
 A later, separate [partial-disclosure framework](partial-disclosures.md) adds DAG schemes with
 at most 46 disclosed hash origins and certified bounds 80 and 106. It does not complete the

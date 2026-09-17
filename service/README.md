@@ -16,8 +16,18 @@ earlier demo rows and removes baseline entries from the preview board.
 Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
 records progress from 19 to 20 and from 105 to 101.
 Partial-disclosure tracks have their own demo rows, with the same offsets from their own baselines.
-Framework selection is `/?framework=dag` (the default), `/?framework=disclosure`, or
-`/?framework=generic`. Generic algorithms show their foundation status, without a leaderboard.
+The homepage compares three **lower-bound** frameworks in cards and a shared chart. DAG and
+partial-disclosure lower bounds have numeric records; generic lower occupies a pending lane
+outside the compression axis. The leaderboard defaults to all lower frameworks, grouped by class.
+Filter it with `/?framework=dag`, `/?framework=disclosure`, or `/?framework=generic`.
+
+There is one **upper** track: fully generic algorithms. Its checked 106-cost adapter is shown as a
+candidate while correctness, signing availability and the generic challenge remain unfinished.
+There are no separate DAG or partial-disclosure upper leaderboards. `#lower` and `#upper` select
+the direction; framework filters apply only to lower bounds. Legacy DAG upper histories remain
+accessible as reference pages, and their demo rows are preserved, without becoming generic records.
+The public queue rejects new submissions to legacy upper roots. Rules show certified lower
+baselines independently of the illustrative local leaderboard.
 
 After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
 demo claims to the current baselines and reload the running site, including its cached commit.
@@ -60,7 +70,8 @@ Attribution comes from the pull request: the author, plus optional `Assisted by:
 On localhost there is no GitHub, so `python -m app.queue` queues a local commit the way the
 webhook would. For a baseline-only preview with demo data disabled, use
 `.venv/bin/python -m app.queue lower --baseline` (and the same command for `upper`).
-The partial-disclosure track slugs are `disclosure-lower` and `disclosure-upper`.
+The admitted partial-disclosure slug is `disclosure-lower`. The legacy `upper` and
+`disclosure-upper` slugs remain available for local reference verification, not public upper admission.
 
 Run the framework and demo-preservation checks with
 `.venv/bin/python -m unittest discover -s tests -v`. They use an isolated SQLite database.

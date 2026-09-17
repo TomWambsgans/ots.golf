@@ -1,0 +1,88 @@
+(function () {
+  'use strict';
+  var svg = document.querySelector('svg.record-chart');
+  var tip = document.getElementById('tooltip');
+  if (svg && tip) {
+    var points = JSON.parse(document.getElementById('chart-points').textContent);
+    var cross = svg.querySelector('.crosshair');
+    function hideTip() { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); }
+    function showPoint(point) {
+      cross.setAttribute('x1', point.x); cross.setAttribute('x2', point.x);
+      cross.setAttribute('visibility', 'visible');
+      tip.textContent = '';
+      var head = document.createElement('strong');
+      head.textContent = point.track + ' · ' + point.claim + ' compressions';
+      tip.appendChild(head); tip.appendChild(document.createElement('br'));
+      tip.appendChild(document.createTextNode(point.login + ' · ' + point.date + (point.demo ? ' · demo' : '')));
+      tip.hidden = false;
+      var bounds = svg.getBoundingClientRect(), box = svg.viewBox.baseVal;
+      var container = tip.parentElement.getBoundingClientRect();
+      var x = bounds.left - container.left + point.x / box.width * bounds.width;
+      var y = bounds.top - container.top + point.y / box.height * bounds.height;
+      tip.style.left = Math.max(4, Math.min(x + 12, container.width - tip.offsetWidth - 8)) + 'px';
+      tip.style.top = Math.max(4, y - tip.offsetHeight - 12) + 'px';
+    }
+    svg.addEventListener('pointermove', function (event) {
+      if (!points.length || event.pointerType === 'touch') return;
+      var p = svg.createSVGPoint(); p.x = event.clientX; p.y = event.clientY;
+      var mouse = p.matrixTransform(svg.getScreenCTM().inverse()), best, distance = Infinity;
+      points.forEach(function (point) {
+        var d = Math.hypot(point.x - mouse.x, point.y - mouse.y);
+        if (d < distance) { distance = d; best = point; }
+      });
+      if (distance < 45) showPoint(best); else hideTip();
+    });
+    svg.addEventListener('pointerleave', hideTip);
+    svg.querySelectorAll('.chart-record').forEach(function (link) {
+      link.addEventListener('focus', function () { showPoint(points[+link.dataset.point]); });
+      link.addEventListener('blur', hideTip);
+      link.addEventListener('keydown', function (event) { if (event.key === 'Escape') hideTip(); });
+      link.addEventListener('pointerdown', function (event) {
+        if (event.pointerType === 'touch') showPoint(points[+link.dataset.point]);
+      });
+    });
+  }
+
+  var buttons = document.querySelectorAll('.seg-btn');
+  var panels = document.querySelectorAll('.board-track');
+  function show(kind, updateUrl) {
+    buttons.forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.track === kind)); });
+    panels.forEach(function (panel) { panel.hidden = panel.dataset.track !== kind; });
+    document.querySelectorAll('.lower-only').forEach(function (element) { element.hidden = kind !== 'lower'; });
+    document.querySelectorAll('.board-filters a').forEach(function (link) {
+      var url = new URL(link.href); url.hash = 'lower'; link.href = url.href;
+    });
+    if (updateUrl) history.replaceState(null, '', location.pathname + location.search + '#' + kind);
+  }
+  buttons.forEach(function (button) { button.addEventListener('click', function () { show(button.dataset.track, true); }); });
+  function fromHash() {
+    show(location.hash === '#upper' ? 'upper' : 'lower', false);
+    if (location.hash === '#upper' || location.hash === '#lower') document.getElementById('board-title').scrollIntoView();
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+
+  document.querySelectorAll('.lb-table').forEach(function (table) {
+    var body = table.querySelector('tbody');
+    table.querySelectorAll('.sort-btn').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var key = button.dataset.key, direction = button.dataset.dir;
+        if (button.getAttribute('aria-pressed') === 'true') {
+          direction = direction === 'asc' ? 'desc' : 'asc'; button.dataset.dir = direction;
+        }
+        table.querySelectorAll('.sort-btn').forEach(function (other) {
+          other.setAttribute('aria-pressed', String(other === button));
+          other.parentNode.setAttribute('aria-sort', other === button ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+        });
+        var rows = Array.prototype.slice.call(body.querySelectorAll('tr.lb-row'));
+        rows.sort(function (a, b) {
+          var va = a.dataset[key], vb = b.dataset[key];
+          if (va === '' && vb === '') return 0; if (va === '') return 1; if (vb === '') return -1;
+          if (key !== 'date') { va = parseFloat(va); vb = parseFloat(vb); }
+          return (va < vb ? -1 : va > vb ? 1 : 0) * (direction === 'asc' ? 1 : -1);
+        });
+        rows.forEach(function (row) { body.appendChild(row); });
+      });
+    });
+  });
+})();

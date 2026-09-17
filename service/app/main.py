@@ -49,10 +49,9 @@ def _startup() -> None:
 
 
 def static_version() -> str:
-    """A short content hash of the stylesheet, appended to its URL so that a deployment never leaves
-    visitors with a cached copy of the previous one."""
-    css = APP_DIR / "static" / "style.css"
-    return hashlib.sha256(css.read_bytes()).hexdigest()[:10] if css.is_file() else "0"
+    """Invalidate the stylesheet and dashboard script together when either changes."""
+    assets = [APP_DIR / "static" / name for name in ("style.css", "dashboard.js")]
+    return hashlib.sha256(b"".join(p.read_bytes() for p in assets if p.is_file())).hexdigest()[:10]
 
 
 def render(request: Request, name: str, **ctx) -> HTMLResponse:
@@ -60,6 +59,9 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                contract_id=contract.contract_id(), contract_commit=contract.trusted_commit(),
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
+    ctx.setdefault("generic_upper", contract.generic_upper_candidate())
+    ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.framework(t["framework"])["title"]}
+                                    for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -67,8 +69,12 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
 
 def queue_submission(session: Session, user: User, track: str, repo: str, commit: str, description: str | None,
                      co_authors: list[str], assisted_by: str | None, pr_number: int | None, pr_url: str | None) -> Submission:
-    if contract.track(track) is None:
+    track_config = contract.track(track)
+    if track_config is None:
         raise HTTPException(400, f"unknown track {track!r}")
+    if track_config["kind"] == "upper" and track_config["framework"] != "generic":
+        raise HTTPException(400, "Upper submissions require the generic algorithm framework, whose admission "
+                            "proofs are still pending. DAG upper roots are retained as reference certificates.")
     commit = commit.strip().lower()
     if not github.SHA_RE.match(commit):
         raise HTTPException(400, "commit must be a hex commit hash")
@@ -165,20 +171,24 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
 # --- pages ------------------------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, framework: str = "dag", session: Session = Depends(get_session)):
-    selected = contract.framework(framework)
-    if selected is None:
+def home(request: Request, framework: str = "all", session: Session = Depends(get_session)):
+    if framework != "all" and contract.framework(framework) is None:
         raise HTTPException(404, "unknown framework")
-    pair = contract.framework_tracks(framework)
-    iv = records.interval(session, framework)
-    boards = {kind: {"cfg": t, "frontier": records.frontier(session, t["slug"]),
-                          "in_flight": records.in_flight(session, t["slug"]),
-                          "solvers": records.solver_count(session, t["slug"]),
-                          "state": records.track_state(session, t)} for kind, t in pair.items()}
-    chart = charts.record_chart({kind: records.curve(session, t["slug"]) for kind, t in pair.items()},
-                                {kind: t["baseline"] for kind, t in pair.items()}, utcnow()) if pair else None
-    return render(request, "home.html", framework=selected, interval=iv, boards=boards,
-                  chart=chart, art=scheme_art.svg())
+    models = records.overview(session)
+    series = []
+    for model in models:
+        board = model["boards"].get("lower")
+        series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
+                       "framework": model["slug"], "kind": "lower", "label": f'{model["title"]} lower',
+                       "baseline": board["cfg"]["baseline"] if board else None,
+                       "points": board["curve"] if board else []})
+    upper = contract.generic_upper_candidate()
+    series.append({"slug": "generic-upper", "framework": "generic", "kind": "upper",
+                   "label": "Generic upper candidate", "baseline": upper["claim"],
+                   "status": "candidate", "points": []})
+    demo = any(b["state"]["record_demo"] for model in models for b in model["boards"].values())
+    return render(request, "home.html", models=models, selected_framework=framework,
+                  demo=demo, chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())
 
 
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)
@@ -214,10 +224,10 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 
 # One line per section of AGENTS.md, shown while the section is folded.
 RULE_BLURBS = {
-    "Layout": "One Lean project, three frameworks, one submission root per active track.",
-    "Frameworks": "Generic algorithms, DAGs and partial disclosures have separate scopes and records.",
-    "What a submission exports": "The exact declarations in the track's rendered stub, including the "
-                                 "origin-bound proof for partial-disclosure upper submissions.",
+    "Layout": "One Lean project, three lower-bound classes and one generic upper track.",
+    "Frameworks": "Lower records stay within their class; upper constructions use arbitrary oracle algorithms.",
+    "What a submission exports": "Exact declarations for admitted lower tracks and preserved upper reference "
+                                 "certificates. Generic upper admission is pending.",
     "Rules for the submission root": "Flat Lean files and a claim.txt; imports limited to Mathlib, VCVio and the "
                                      "track's contract; only the three standard axioms.",
     "Check locally before submitting": "The pipeline of the hosted verifier runs on your machine.",
@@ -245,9 +255,10 @@ def rules(request: Request, session: Session = Depends(get_session)):
     body = "## " + sections[1] if len(sections) == 2 else text
     html = markdown.markdown(body, extensions=["tables", "fenced_code", "toc"],
                              extension_configs={"toc": {"baselevel": 2}})
-    iv = records.interval(session)
-    return render(request, "rules.html", sections=rule_sections(html), cfg=contract.load(), iv=iv,
-                  figs=figures.all_figures(iv["lower"]["record_claim"], iv["upper"]["record_claim"]))
+    baselines = {f["slug"]: {kind: t["baseline"] for kind, t in contract.framework_tracks(f["slug"]).items()}
+                 for f in contract.frameworks()}
+    return render(request, "rules.html", sections=rule_sections(html), cfg=contract.load(), baselines=baselines,
+                  figs=figures.static())
 
 
 @app.get("/llms.txt", response_class=PlainTextResponse)

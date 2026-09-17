@@ -1,4 +1,4 @@
-{# The model in seven lines. Each line is a <details>: the summary is the rule, always visible; the
+{# The DAG models. Each line is a <details>: the summary is the rule, always visible; the
    body is the explanation with its figure, one click away. Figures come from app/figures.py. #}
 <section class="how-it-works rules-list">
 
@@ -49,7 +49,7 @@ randomness cost nothing, and the attacker's other computation is unbounded.</p>
 </details>
 
 <details id="graph">
-<summary><span class="lead">A scheme is a graph.</span> Secret random sources, free deterministic nodes of any
+<summary><span class="lead">In the DAG frameworks, a scheme is a graph.</span> Secret random sources, free deterministic nodes of any
 shape, and hash nodes. The low 128 bits of the root hash are the public key.</summary>
 <div class="more prose">
 <p>The graph is fixed, public, finite, directed and acyclic. Each node holds a bit string of a fixed
@@ -79,7 +79,7 @@ graphs, and so is anything else built from a hash function whose signatures cons
 </details>
 
 <details id="cut">
-<summary><span class="lead">A signature is a cut.</span> Hashing the message with a nonce selects one of
+<summary><span class="lead">A DAG signature is a cut.</span> Hashing the message with a nonce selects one of
 2<sup>115</sup> disclosure sets. The signature is the nonce and the values of that set, at most 5504 bits.</summary>
 <div class="more prose">
 <p>A scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
@@ -131,9 +131,13 @@ when tracing origins, even if its function ignores that parent.</p>
 <p>The disclosure sets must still cut every secret-source-to-root path, and verification reconstructs
 the graph forwards from the disclosed nodes. The rule allows encodings expressible in that model;
 it does not add arbitrary decoding from a chosen subset of symbols.</p>
-<p>An upper submission proves both 127-bit security and the 46-origin condition. A lower submission
-proves its bound for every weakly secure DAG scheme satisfying that condition. Its bound does not
-change the unrestricted DAG record.</p>
+<p>A lower submission proves its bound for every weakly secure DAG scheme satisfying the 46-origin
+condition. Its bound does not change the unrestricted DAG record. Upper submissions use the fully
+generic interface and do not have this restriction.</p>
+<p>The certified lower baseline is <strong>{{ baselines.disclosure.lower }} compressions</strong>.
+The lower proof counts possible sets of reconstructed hashes under the 46-origin restriction and
+turns too many repeated patterns into a forgery. The reference upper certificate uses the existing forest,
+with a separate proof that it has at most 41 disclosed hash origins.</p>
 </div>
 </details>
 
@@ -155,20 +159,19 @@ one; every secure scheme is weakly secure.</p>
 </details>
 
 <details id="tracks">
-<summary><span class="lead">Two tracks per active framework.</span> Upper: a scheme with Lean proofs of its security and its score;
-smaller wins. Lower: a Lean proof that no secure scheme scores less; larger wins.</summary>
+<summary><span class="lead">Lower frameworks, one generic upper.</span> Prove a limit for a chosen class, or
+construct an arbitrary oracle algorithm. Each lower class keeps its own record.</summary>
 <div class="more prose">
-<p>Between the two records lies the answer: the least worst-case verification cost of a secure scheme with
-these parameters. An upper-track certificate is a scheme, a proof that it is secure, and a proof that every
-signature verifies within the claimed cost. A lower-track certificate proves that every weakly secure
-scheme, and so every secure one, has a signature at least that expensive. Both are theorems about the same
-pinned contract, checked by the Lean kernel. The partial-disclosure framework additionally uses
-<code>formal/OptimalOTS/Disclosure.lean</code> to restrict the scheme class.</p>
-<p>The unrestricted DAG baselines are 18 compressions for the lower track and 106 for the upper track.
-The lower proof shows that cheaper verification would force many indices to recompute the same hash
-nodes, letting an attacker convert a signature and forge on a different message. A stronger bound in
-the partial-disclosure class does not improve the unrestricted DAG bound.</p>
-<figure class="fig">{{ figs.interval|safe }}<figcaption>Unrestricted DAG records.</figcaption></figure>
+<p>A DAG lower certificate proves that every weakly secure scheme in the DAG contract has a signature
+at least as expensive as the claim. The partial-disclosure theorem restricts that quantifier to schemes
+with at most 46 hash origins per payload. Their certified lower baselines are {{ baselines.dag.lower }}
+and {{ baselines.disclosure.lower }} compressions. Generic lower submissions remain in preparation.</p>
+<p>The single upper track uses arbitrary oracle algorithms and the same 127-bit security target.
+Its {{ generic_upper.claim }}-cost adapter candidate has security and cost proofs, with correctness and
+signing availability still pending. A generic construction need not belong to either DAG class, so its
+cost need not sit above either restricted lower record.</p>
+<p>The <a href="/#dash-title">comparison chart</a> shows all three lower series and the single generic
+upper candidate. Each point retains its theorem's scope.</p>
 </div>
 </details>
 

@@ -41,6 +41,7 @@ def track_state(session: Session, t: dict) -> dict:
         "slug": t["slug"], "title": t["title"], "direction": t["direction"], "baseline": t["baseline"],
         "record_claim": rec.claim if rec else t["baseline"],
         "record_verified": rec is not None,
+        "record_demo": bool(rec and rec.detail_dict.get("demo")),
         "record_submission_id": rec.id if rec else None,
         "record_setter": rec.user.login if rec else None,
         "record_at": rec.record_at.isoformat() + "Z" if rec and rec.record_at else None,
@@ -63,4 +64,21 @@ def curve(session: Session, slug: str) -> list[dict]:
     """Every record of a track in the order it was set: the step curve of the record over time."""
     recs = list(session.scalars(_verified(slug).where(Submission.is_record.is_(True))
                                 .order_by(Submission.record_at.asc())))
-    return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login} for s in recs]
+    return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login,
+             "demo": bool(s.detail_dict.get("demo"))} for s in recs]
+
+
+def overview(session: Session) -> list[dict]:
+    """The three lower-bound classes; upper constructions use the generic interface only."""
+    result = []
+    for framework in contract.frameworks():
+        boards = {}
+        for kind, track in contract.framework_tracks(framework["slug"]).items():
+            if kind != "lower":
+                continue
+            boards[kind] = {"cfg": track, "state": track_state(session, track),
+                            "frontier": frontier(session, track["slug"]),
+                            "in_flight": in_flight(session, track["slug"]),
+                            "curve": curve(session, track["slug"])}
+        result.append({**framework, "boards": boards})
+    return result

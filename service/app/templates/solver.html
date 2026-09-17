@@ -1,9 +1,11 @@
 {% extends "base.html" %}
-{% from "_submission_rows.html" import rows %}
+{% from "_submission_rows.html" import rows with context %}
 {% block title %}{{ solver.login }} · ots.golf{% endblock %}
 {% block content %}
 <h1>{% if solver.avatar_url %}<img class="avatar" src="{{ solver.avatar_url }}" alt="">{% endif %}{{ solver.login }}</h1>
 {% if solver.github_id %}<p><a href="https://github.com/{{ solver.login }}">github.com/{{ solver.login }}</a></p>{% endif %}
-<table><thead><tr><th>Claim</th><th>Track</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
+<p class="muted">Claims belong to the named framework. Scores from different classes are not one ranking.</p>
+<div class="board-scroll"><table><thead><tr><th>Claim</th><th>Framework / track</th><th>Solver</th><th>Assisted by</th><th>Status</th><th>When</th></tr></thead>
 <tbody>{{ rows(subs, show_track=True) }}</tbody></table>
+</div>
 {% endblock %}
