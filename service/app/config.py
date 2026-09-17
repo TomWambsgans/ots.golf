@@ -2,25 +2,11 @@
 from __future__ import annotations
 
 import os
-import secrets
 from dataclasses import dataclass
 from pathlib import Path
 
 SERVICE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_REPO_ROOT = SERVICE_DIR.parent
-
-
-def _secret(data_dir: Path) -> str:
-    env = os.environ.get("OTS_SECRET_KEY")
-    if env:
-        return env
-    p = data_dir / "secret_key"
-    if p.is_file():
-        return p.read_text().strip()
-    s = secrets.token_urlsafe(48)
-    p.write_text(s)
-    os.chmod(p, 0o600)
-    return s
 
 
 @dataclass
@@ -34,14 +20,12 @@ class Settings:
     queue_cap: int = int(os.environ.get("OTS_QUEUE_CAP", "20"))
     max_inflight_per_user: int = int(os.environ.get("OTS_MAX_INFLIGHT_PER_USER", "2"))
     database_url: str = ""
-    secret_key: str = ""
 
     def __post_init__(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         (self.data_dir / "logs").mkdir(exist_ok=True)
         (self.data_dir / "work").mkdir(exist_ok=True)
         self.database_url = os.environ.get("OTS_DATABASE_URL", f"sqlite:///{self.data_dir / 'ots.db'}")
-        self.secret_key = _secret(self.data_dir)
 
 
 settings = Settings()

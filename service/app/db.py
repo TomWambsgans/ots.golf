@@ -1,4 +1,4 @@
-"""Database: users, API tokens, submissions. SQLite on localhost, Postgres on the server."""
+"""Database: users and submissions, in SQLite (WAL) under the data directory."""
 from __future__ import annotations
 
 import json
@@ -9,9 +9,6 @@ from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Te
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 from .config import settings
-
-STATUSES = ("pending", "verifying", "verified", "rejected", "policy_rejected", "timeout", "failed", "cancelled")
-TERMINAL = {"verified", "rejected", "policy_rejected", "timeout", "failed", "cancelled"}
 
 
 def utcnow() -> datetime:
@@ -79,22 +76,6 @@ class Submission(Base):
         if self.source_repo.startswith("https://github.com/"):
             return f"{self.source_repo.removesuffix('.git')}/commit/{self.commit}"
         return None
-
-    def public_dict(self) -> dict:
-        return {
-            "id": self.id, "track": self.track, "status": self.status, "claim": self.claim,
-            "is_record": self.is_record, "baseline": self.baseline,
-            "submitter": self.user.login if self.user else None, "co_authors": self.co_authors_list,
-            "assisted_by": self.assisted_by, "description": self.description,
-            "source_repo": self.source_repo, "commit": self.commit, "commit_url": self.commit_url,
-            "pr_url": self.pr_url, "created_at": _iso(self.created_at), "started_at": _iso(self.started_at),
-            "finished_at": _iso(self.finished_at), "duration_s": self.duration_s,
-            "failure": self.detail_dict.get("failure"),
-        }
-
-
-def _iso(dt: datetime | None) -> str | None:
-    return dt.replace(tzinfo=timezone.utc).isoformat() if dt else None
 
 
 is_sqlite = settings.database_url.startswith("sqlite")

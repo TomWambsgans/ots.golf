@@ -60,14 +60,16 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
 
 
 def promote(session, sub: Submission) -> None:
+    """A record strictly beats every other verified claim of its track, and the contract's baseline:
+    without the second condition a board whose baselines were never queued would crown anything."""
     t = contract.track(sub.track)
-    rec = records.current_record(session, sub.track)
-    record_claim = rec.claim if rec and rec.id != sub.id else None
-    if rec and rec.id == sub.id:
-        # this submission is already the best verified one; is it strictly better than the previous record?
-        prev = [s for s in records.frontier(session, sub.track) if s.id != sub.id]
-        record_claim = prev[0].claim if prev else None
-    if contract.improves(t["direction"], sub.claim, record_claim):
+    order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
+    best = session.scalars(select(Submission).where(Submission.track == sub.track, Submission.status == "verified",
+                                                    Submission.id != sub.id, Submission.claim.is_not(None))
+                           .order_by(order).limit(1)).first()
+    beats_others = contract.improves(t["direction"], sub.claim, best.claim if best else None)
+    beats_baseline = sub.baseline or contract.improves(t["direction"], sub.claim, t["baseline"])
+    if beats_others and beats_baseline:
         sub.is_record = True
         sub.record_at = utcnow()
 
@@ -85,8 +87,9 @@ def report(sub: Submission) -> None:
         failure = (sub.detail_dict.get("failure") or {}).get("message", "")
         what = f"{sub.status}: {failure}"[:140] if failure else sub.status
         github.post_status(settings.contract_repo, sub.commit, "failure" if sub.status != "failed" else "error", what, url)
+        quoted = failure[:600].replace("```", "'''")            # compiler output is text, never markdown
         github.post_comment(settings.contract_repo, sub.pr_number,
-                            f"**ots.golf verifier:** `{sub.status}`. {failure}\n\nDetails: {url}")
+                            f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}")
 
 
 def process(sub_id: str) -> None:
@@ -98,7 +101,8 @@ def process(sub_id: str) -> None:
     try:
         result, log_path = run_pipeline(sub)
     except Exception:  # noqa: BLE001 - the worker must survive anything the pipeline throws
-        result, log_path = {"status": "failed", "reason": traceback.format_exc()[-2000:]}, None
+        _log(traceback.format_exc())                          # for the operator, not for the page
+        result, log_path = {"status": "failed", "reason": "internal error in the verifier; the operator has the trace"}, None
     with SessionLocal() as session:
         sub = session.get(Submission, sub_id)
         sub.status = result["status"] if result["status"] in ("verified", "rejected", "policy_rejected", "timeout") else "failed"

@@ -7,6 +7,7 @@ repository baselines and their `ots-golf` user are removed from the board (re-qu
 `python -m app.queue <track> --baseline` when needed).
 
     .venv/bin/python seed_demo.py           # add (idempotent: removes its previous rows first)
+    .venv/bin/python seed_demo.py --force   # the same against a database that is not the local one
     .venv/bin/python seed_demo.py --remove  # remove the phony rows only
 """
 from __future__ import annotations
@@ -100,6 +101,11 @@ def add(session) -> int:
 
 
 def main() -> None:
+    from app.config import SERVICE_DIR, settings
+    local = settings.database_url == f"sqlite:///{(SERVICE_DIR / 'data').resolve() / 'ots.db'}"
+    if not local and "--force" not in sys.argv:
+        sys.exit(f"refusing: {settings.database_url} is not the local development database.\n"
+                 "This script DELETES the verified baselines and inserts invented records; pass --force to do that anyway.")
     Base.metadata.create_all(engine)
     with SessionLocal() as session:
         n = remove(session)

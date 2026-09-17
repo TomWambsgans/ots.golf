@@ -1,6 +1,6 @@
 """Queue a commit for verification the way the webhook would (localhost / baselines).
 
-    .venv/bin/python -m app.queue lower [--repo PATH_OR_URL] [--commit HEAD] [--login ots-golf] [--baseline]
+    .venv/bin/python -m app.queue lower [--repo PATH_OR_URL] [--commit HEAD] [--login ots.golf] [--baseline]
 
 Without --repo it queues the contract repository's own submission root, which is how a track's
 baseline becomes a real verified entry rather than a configured number.
@@ -21,7 +21,7 @@ def main() -> int:
     ap.add_argument("track")
     ap.add_argument("--repo", default=str(settings.repo_root))
     ap.add_argument("--commit", default="HEAD")
-    ap.add_argument("--login", default="ots-golf")
+    ap.add_argument("--login", default="ots.golf")   # a dot: no GitHub account can claim it
     ap.add_argument("--baseline", action="store_true")
     ap.add_argument("--description", default=None)
     a = ap.parse_args()

@@ -1,11 +1,12 @@
 [Unit]
-Description=ots.golf site and API
+Description=ots.golf site and webhook
 After=network.target
 
 [Service]
 User=ots
 WorkingDirectory=/srv/ots/repo/service
-EnvironmentFile=/etc/ots/env
+EnvironmentFile=/etc/ots/public.env
+EnvironmentFile=/etc/ots/secrets.env
 Environment=OTS_REPO_ROOT=/srv/ots/repo
 ExecStart=/srv/ots/repo/service/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers
 Restart=always
@@ -13,6 +14,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ReadWritePaths=/srv/ots/data
 PrivateTmp=true
+MemoryMax=1G
 
 [Install]
 WantedBy=multi-user.target

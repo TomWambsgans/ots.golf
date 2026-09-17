@@ -5,11 +5,13 @@ After=network.target
 [Service]
 User=ots
 WorkingDirectory=/srv/ots/repo/service
-EnvironmentFile=/etc/ots/env
+EnvironmentFile=/etc/ots/public.env
+EnvironmentFile=/etc/ots/secrets.env
 Environment=OTS_REPO_ROOT=/srv/ots/repo
 Environment=PATH=/srv/ots/.elan/bin:/usr/local/bin:/usr/bin:/bin
-# The worker itself is light; the sandboxed comparator run is a transient systemd-run scope with
-# the contract's memory cap (verifier/verify.py). This unit's own cap is a backstop.
+# The worker itself is light. The sandboxed comparator run is a transient service of the ots user's
+# manager, in another cgroup: its memory and time limits are set by verifier/verify.py, not here.
+NoNewPrivileges=true
 MemoryMax=28G
 ExecStart=/srv/ots/repo/service/.venv/bin/python -m app.worker
 Restart=always

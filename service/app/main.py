@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
 from pathlib import Path
 
+import httpx
 import markdown
+import nh3
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -16,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from . import auth, charts, contract, figures, github, records, scheme_art
 from .config import settings
-from .db import Submission, User, get_session, init_db, utcnow
+from .db import SessionLocal, Submission, User, get_session, init_db, utcnow
 
 APP_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None)
@@ -25,7 +27,19 @@ templates = Jinja2Templates(directory=APP_DIR / "templates")
 templates.env.filters["dt"] = lambda d: d.strftime("%Y-%m-%d %H:%M UTC") if d else ""
 templates.env.filters["date"] = lambda d: d.strftime("%Y-%m-%d") if d else ""
 templates.env.filters["short"] = lambda s: (s or "")[:10]
-templates.env.filters["md"] = lambda s: markdown.markdown(s or "", extensions=["tables", "fenced_code"])
+MD_TAGS = {"p", "br", "hr", "strong", "em", "del", "code", "pre", "blockquote", "ul", "ol", "li", "a",
+           "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead", "tbody", "tr", "th", "td"}
+
+
+def safe_markdown(text: str | None) -> str:
+    """Markdown written by strangers (a pull request body): rendered, then reduced to plain formatting
+    tags and http(s)/mailto links. python-markdown passes raw HTML through, so this is what stands
+    between a pull request and a script on the site."""
+    html = markdown.markdown(text or "", extensions=["tables", "fenced_code"])
+    return nh3.clean(html, tags=MD_TAGS, attributes={"a": {"href"}}, url_schemes={"http", "https", "mailto"})
+
+
+templates.env.filters["md"] = safe_markdown
 
 
 @app.on_event("startup")
@@ -63,7 +77,8 @@ def queue_submission(session: Session, user: User, track: str, repo: str, commit
         raise HTTPException(429, "the verification queue is full")
     dup = session.scalars(select(Submission).where(Submission.track == track, Submission.commit == commit,
                                                    Submission.source_repo == repo,
-                                                   Submission.status.in_(("pending", "verifying", "verified")))).first()
+                                                   Submission.status.in_(("pending", "verifying", "verified", "rejected",
+                                                                          "policy_rejected", "timeout")))).first()
     if dup:
         raise HTTPException(409, f"this commit is already submitted: {dup.id}")
     sub = Submission(track=track, user_id=user.id, source_repo=repo, commit=commit,
@@ -74,35 +89,72 @@ def queue_submission(session: Session, user: User, track: str, repo: str, commit
     return sub
 
 
+MAX_WEBHOOK_BYTES = 2 * 1024 * 1024
+
+
 @app.post("/webhooks/github")
-async def webhook(request: Request, session: Session = Depends(get_session)):
-    body = await request.body()
+async def webhook(request: Request):
+    try:
+        declared = int(request.headers.get("content-length") or 0)
+    except ValueError:
+        raise HTTPException(400, "bad content-length")
+    if declared > MAX_WEBHOOK_BYTES:
+        raise HTTPException(413, "payload too large")
+    body = b""
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > MAX_WEBHOOK_BYTES:
+            raise HTTPException(413, "payload too large")
     if not github.verify_signature(body, request.headers.get("x-hub-signature-256")):
         raise HTTPException(401, "bad signature")
     if request.headers.get("x-github-event") != "pull_request":
         return {"ignored": True}
-    ev = json.loads(body)
-    if ev.get("action") not in ("opened", "synchronize", "reopened"):
+    try:
+        ev = json.loads(body)
+        action, number = ev["action"], int(ev["pull_request"]["number"])
+        owner_repo, head_sha = ev["repository"]["full_name"], ev["pull_request"]["head"]["sha"]
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(400, "malformed event")
+    if action not in ("opened", "synchronize", "reopened"):
         return {"ignored": True}
-    pr = ev["pull_request"]
-    owner_repo = ev["repository"]["full_name"]
-    slug, outside = github.pr_track(owner_repo, pr["number"])
+    if settings.contract_repo and owner_repo.lower() != settings.contract_repo.lower():
+        return {"ignored": True, "reason": "not the contract repository"}
+    return await run_in_threadpool(handle_pull_request, owner_repo, number, head_sha)   # GitHub calls block
+
+
+def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
+    """The event only says where to look. Author, head and changed files are read from GitHub's API,
+    and the head must still be the event's commit before and after the files are listed, so the
+    commit that gets the verdict is the commit whose files were checked."""
+    try:
+        pr = github.get_pr(owner_repo, number)
+        slug, outside = github.pr_track(owner_repo, number)
+        pr_after = github.get_pr(owner_repo, number)
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, f"GitHub API: {exc}")
+    if pr.get("state") != "open" or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha:
+        return {"queued": False, "reason": "the pull request moved on; its newer event is the one that counts"}
     if slug is None or outside:
-        github.post_comment(owner_repo, pr["number"],
+        github.post_comment(owner_repo, number,
                             "**ots.golf verifier:** a submission changes exactly one submission root and nothing else. "
                             + (f"Files outside a root: `{'`, `'.join(outside[:10])}`." if outside
                                else "This pull request does not change a single submission root."))
         return {"queued": False}
+    head_repo = pr["head"].get("repo")
+    login = (pr.get("user") or {}).get("login") or ""
+    if head_repo is None or not github.LOGIN_RE.match(login):
+        return {"queued": False, "reason": "the head repository is gone or the author is not a GitHub account"}
     fields = github.parse_pr_body(pr.get("body") or "")
-    submitter = auth.get_or_create_user(session, pr["user"]["login"], github_id=pr["user"]["id"],
-                                        avatar_url=pr["user"].get("avatar_url"))
-    try:
-        sub = queue_submission(session, submitter, slug, pr["head"]["repo"]["clone_url"], pr["head"]["sha"],
-                               fields["description"], fields["co_authors"], fields["assisted_by"],
-                               pr["number"], pr["html_url"])
-    except HTTPException as exc:
-        github.post_comment(owner_repo, pr["number"], f"**ots.golf verifier:** not queued: {exc.detail}")
-        return {"queued": False, "reason": exc.detail}
+    with SessionLocal() as session:
+        submitter = auth.get_or_create_user(session, login, github_id=pr["user"]["id"],
+                                            avatar_url=pr["user"].get("avatar_url"))
+        try:
+            sub = queue_submission(session, submitter, slug, head_repo["clone_url"], head_sha,
+                                   fields["description"], fields["co_authors"], fields["assisted_by"],
+                                   number, pr["html_url"])
+        except HTTPException as exc:
+            github.post_comment(owner_repo, number, f"**ots.golf verifier:** not queued: {exc.detail}")
+            return {"queued": False, "reason": exc.detail}
     github.post_status(owner_repo, sub.commit, "pending", "queued for verification",
                        f"{settings.base_url}/submissions/{sub.id}")
     return {"queued": True, "id": sub.id}
@@ -138,7 +190,7 @@ def submission_log(sub_id: str, session: Session = Depends(get_session)):
     if sub is None:
         raise HTTPException(404)
     if sub.log_path and Path(sub.log_path).is_file():
-        return Path(sub.log_path).read_text(errors="replace")
+        return FileResponse(sub.log_path, media_type="text/plain; charset=utf-8")   # streamed, never loaded
     return "(no log yet)"
 
 
@@ -155,8 +207,8 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 @app.get("/rules", response_class=HTMLResponse)
 def rules(request: Request, session: Session = Depends(get_session)):
     text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
-    # The page has its own title and introduction: drop the file's H1 and opening paragraph, and
-    # demote its sections under the page's "Submission rules" heading.
+    # The page has its own title: drop the file's H1 and opening paragraph, and demote its sections
+    # under the page's "Submission rules" heading.
     sections = text.split("\n## ", 1)
     body = "## " + sections[1] if len(sections) == 2 else text
     html = markdown.markdown(body, extensions=["tables", "fenced_code", "toc"],

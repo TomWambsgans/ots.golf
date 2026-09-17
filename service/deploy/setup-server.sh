@@ -5,7 +5,7 @@
 #
 # What it does: creates the unprivileged user `ots`, installs elan, Go (for landrun), uv and Caddy,
 # clones the contract repository, builds the verification tools and the warm Lean build, installs
-# the two systemd units (web, worker) and the Caddy site. Secrets go in /etc/ots/env afterwards.
+# the two systemd units (web, worker) and the Caddy site. Secrets go in /etc/ots/secrets.env.
 set -euo pipefail
 
 : "${OTS_REPO_URL:?set OTS_REPO_URL}"
@@ -27,16 +27,22 @@ apt-get update && apt-get install -y caddy
 
 id -u ots >/dev/null 2>&1 || useradd --system --create-home --home-dir "${OTS_HOME}" --shell /bin/bash ots
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
+# Two environment files. The secrets are root-only: systemd reads them as root for the two units, and
+# untrusted Lean code, which runs as `ots` with read access to the filesystem, must never see them.
 mkdir -p /etc/ots
-[[ -f /etc/ots/env ]] || cat > /etc/ots/env <<ENV
+[[ -f /etc/ots/public.env ]] || cat > /etc/ots/public.env <<ENV
 OTS_BASE_URL=https://${OTS_DOMAIN}
-OTS_CONTRACT_REPO=$(echo "${OTS_REPO_URL}" | sed -E 's#https://github.com/([^/]+/[^/.]+).*#\1#')
-GITHUB_WEBHOOK_SECRET=change-me
-GITHUB_TOKEN=
+OTS_CONTRACT_REPO=$(echo "${OTS_REPO_URL}" | sed -E 's#^https://github.com/##; s#(\.git)?/?$##')
 OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
 ENV
-chown root:ots /etc/ots/env && chmod 640 /etc/ots/env   # the services and the ots user read it
+[[ -f /etc/ots/secrets.env ]] || ( umask 077; cat > /etc/ots/secrets.env <<ENV
+GITHUB_WEBHOOK_SECRET=$(openssl rand -hex 32)
+GITHUB_TOKEN=
+ENV
+)
+chown root:root /etc/ots/public.env /etc/ots/secrets.env
+chmod 644 /etc/ots/public.env && chmod 600 /etc/ots/secrets.env
 
 sudo -u ots -H bash -euo pipefail <<USER
 cd "${OTS_HOME}"
@@ -46,9 +52,9 @@ export PATH="\$HOME/.elan/bin:\$HOME/.local/bin:/usr/local/go/bin:\$PATH"
 [[ -d repo/.git ]] || git clone "${OTS_REPO_URL}" repo
 cd repo
 verifier/setup_tools.sh
-( cd formal && lake exe cache get && lake build && lake build Submissions )   # contract + both baselines
+( cd formal && lake exe cache get && lake build )   # the contract only: submissions are compiled in the sandbox, never here
 python3 verifier/pin_contract.py check
-( cd service && uv sync )
+( cd service && uv sync --locked )
 USER
 
 install -m 644 "${OTS_HOME}/repo/service/deploy/ots-web.service" /etc/systemd/system/
@@ -61,4 +67,4 @@ sed -i "s/^MemoryMax=.*/MemoryMax=${cap}G/" /etc/systemd/system/ots-worker.servi
 sed "s/{{DOMAIN}}/${OTS_DOMAIN}/" "${OTS_HOME}/repo/service/deploy/Caddyfile" > /etc/caddy/Caddyfile
 systemctl daemon-reload
 systemctl enable --now ots-web ots-worker caddy
-echo "done. Edit /etc/ots/env (webhook secret, GitHub token), then: systemctl restart ots-web ots-worker"
+echo "done. Put the GitHub token in /etc/ots/secrets.env (the webhook secret in it was generated), then: systemctl restart ots-web ots-worker"

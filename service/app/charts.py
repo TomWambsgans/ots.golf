@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
-from html import escape
 
 W, H = 960, 340
 ML, MR, MT, MB = 48, 160, 30, 40
@@ -86,8 +85,5 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
                    f'{label} {last["claim"]}</text>')
     out.append('<line class="crosshair" x1="0" x2="0" y1="0" y2="0" visibility="hidden"/>')
     out.append("</svg>")
-    return {"svg": "\n".join(out), "points": json.dumps(points), "y_range": (y_lo, y_hi)}
-
-
-def esc(s: str) -> str:
-    return escape(s, quote=True)
+    # "<" never appears raw inside the page's <script> block
+    return {"svg": "\n".join(out), "points": json.dumps(points).replace("<", "\\u003c")}

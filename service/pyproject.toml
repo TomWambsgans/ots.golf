@@ -1,7 +1,7 @@
 [project]
 name = "ots-golf-service"
 version = "0.1.0"
-description = "ots.golf: hosted verifier, API and site"
+description = "ots.golf: the site, the webhook and the verification worker"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",
@@ -9,9 +9,8 @@ dependencies = [
   "sqlalchemy>=2.0",
   "jinja2>=3.1",
   "httpx>=0.27",
-  "itsdangerous>=2.1",
-  "python-multipart>=0.0.9",
   "markdown>=3.6",
+  "nh3>=0.2.18",
 ]
 
 [tool.uv]
