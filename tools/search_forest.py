@@ -8,7 +8,9 @@ hash cost of everything strictly above it. The family of a cost c is the set of 
 at most 41 nodes (41 · 128 = 5248 revealed bits). We want the least c whose family has at least
 2^115 cuts, within a key-generation budget of 1024 compressions.
 
-    tools/search_forest.py [--overhead 192] [--max-levels 3] [--max-branch 10] [--digest-chains 3]
+    tools/search_forest.py [--overhead 192] [--max-levels 3] [--max-branch 10] [--digest-chains 0]
+
+The search reported in the paper: --max-levels 4 --max-branch 41 --digest-chains 3. Needs numpy.
 
 Cost of one hash query on `bits` input bits: ceil((bits + overhead) / 512), at least 1.
 Counts are computed as 2-variable polynomials (cost, nodes) in float64 and the winner is recounted

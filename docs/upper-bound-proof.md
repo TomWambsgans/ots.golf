@@ -14,17 +14,18 @@ theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 109
 ## Why flat
 
 The contract charges `⌈(k + 192) / 512⌉` compressions for a hash on `k` input bits. A chain hash (128 bits)
-still costs one compression, but a ternary grouping hash (384 bits) now costs two and the message index
-two, while a single root over all 41 chain ends (5248 bits) costs eleven. An exhaustive search over
-forests (`tools/search_forest.py`: chains of one length under up to four grouping levels with
-branching factors up to 41, optional digest chains) finds nothing below 109 compressions, and the flat
+costs one compression, a ternary grouping hash (384 bits) two, the message index two, and a single
+root over all 41 chain ends (5248 bits) eleven. An exhaustive search over forests
+(`tools/search_forest.py --max-levels 4 --max-branch 41 --digest-chains 3`: chains of one length under
+up to four grouping levels with branching factors up to 41, optional digest chains) finds nothing
+below 109 compressions, and the flat
 scheme reaches it: `11` for the root, `96` chain hashes, `2` for the index. Its disclosure sets are
 the position vectors `t : Fin 41 → Fin 21` with `∑ (20 - t k) = 96`, exactly `41` revealed values
 (5248 bits) each, and there are `comp 41 96 = 44630212576611386423061846738781106 > 2^115` of them.
 Two distinct vectors of equal sum are incomparable, which is the only property of the family the
 security proof uses.
 
-## The proof (paper Section 8.3, reorganized for formalization)
+## The proof (paper Section 7.3, reorganized for formalization)
 
 Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^21`, `N = B - 831` (budget after key generation).
 `ξ : G.Rec` ranges uniformly over records (sources + hash outputs); `c₀ ξ` is the cache after

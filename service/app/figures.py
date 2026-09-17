@@ -198,7 +198,7 @@ def generic_graph() -> Dag:
     """A small graph that is a real DAG, not a tree: values of many widths (64 to 768 bits), a
     source and a truncated value each feeding two nodes, deterministic nodes of one, two and three
     parents (a selection of bits, an arbitrary function, concatenations), hash nodes over inputs of
-    128, 384, 512 and 768 bits, costing one or two compressions each."""
+    64 to 768 bits, costing one or two compressions each."""
     H = HASH_BITS
     nodes = {
         "s1": Node("src", (), 128, 80, 340, "128 b", "b"),
@@ -320,7 +320,7 @@ def dag() -> str:
         ("src", "secret source", ["uniformly random bits, any length"]),
         ("det", "deterministic node", ["any public function of any parents,", "any output length; costs nothing"]),
         ("hash", "hash node", ["H(label, input), 256-bit output;", "any input length, at (|input| + 192) / 512", "compressions rounded up (the blue numbers)"]),
-        ("root", "root", ["the one hash node without children;", "public key = its first 128 bits"]),
+        ("root", "root", ["the designated hash node;", "public key = its first 128 bits"]),
     ]
     y = Y
     for kind, title, details in entries:
@@ -501,7 +501,7 @@ def cost_ruler() -> str:
         ("chain step: a 128-bit value", 128),
         ("a 256-bit digest", 256),
         ("index query H(enc, m ‖ η), 512 bits", 512),
-        ("root of the record: 41 × 128 bits", 41 * 128),
+        ("root of the baseline: 41 × 128 bits", 41 * 128),
     ]
     b = ['<defs><pattern id="hatch" class="hatch" width="6" height="6" patternUnits="userSpaceOnUse" '
          'patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6"/></pattern></defs>']
@@ -535,7 +535,7 @@ def cost_ruler() -> str:
     return svg("cost", 800, 200, "".join(b),
                "Four hash inputs laid against 512-bit blocks, each preceded by 192 overhead bits: a 128-bit "
                "chain step and a 256-bit digest cost one compression, the 512-bit index query two, the "
-               "record's 5248-bit root eleven.")
+               "baseline's 5248-bit root eleven.")
 
 
 def experiment() -> str:

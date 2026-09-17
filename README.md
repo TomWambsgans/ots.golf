@@ -1,7 +1,7 @@
 # ots.golf
 
 How cheap can verifying a hash-based one-time signature be? This repository is the contract, the
-verifier and the baselines of **ots.golf**, a competition on that number, modeled on
+verifier, the baselines and the site of **[ots.golf](https://ots.golf)**, a competition on that number, modeled on
 [better.codes](https://better.codes) (the Proximity Prize, by the Proximity Prize team, the Ethereum
 Foundation, Yukon and zkSecurity; [proximity-prize/proximity-prize](https://github.com/proximity-prize/proximity-prize))
 and [zk.golf](https://zk.golf) (zkSecurity; [zksecurity/zk-golf-challenges](https://github.com/zksecurity/zk-golf-challenges)).
@@ -30,14 +30,16 @@ the Lean kernel with [leanprover/comparator](https://github.com/leanprover/compa
 - `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
 - `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
   scripts and agents.
+- `service/` — the site and the hosted verifier (`service/README.md`; deployment in `service/deploy/`).
 - `paper/` — the paper. `docs/` — the proof maps of both baselines and the statement audit.
+- `tools/` — the searches and numeric certificates behind the two baselines.
 
 ## Build and verify locally
 
 ```sh
 verifier/setup_tools.sh                        # comparator + lean4export on this toolchain
-cd formal && lake exe cache get && lake build   # Mathlib, VCVio, contract, baselines
+cd formal && lake exe cache get && lake build OptimalOTS Submissions   # Mathlib, VCVio, contract, baselines
 cd .. && python3 verifier/verify.py lower --source .
 ```
 
-See `AGENTS.md` for the rules and `PLAN.md` for the roadmap. License: Apache 2.0.
+See `AGENTS.md` for the rules. License: Apache 2.0.

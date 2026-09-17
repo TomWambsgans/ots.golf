@@ -43,14 +43,17 @@ The files in `formal/Submissions/Lower/` follow the paper.
 | `Counting.lean`, `CountingFactor.lean` | Lemma 4, the counting bound |
 | `Ranks.lean`, `TailBound.lean`, `RankIntegral.lean`, `AvgSucc.lean` | the weight at each rank and the averaged construction success |
 | `Repetition.lean`, `Numerics*.lean` | Appendices A and B |
-| `Assembly.lean` | the success probability of the attack exceeds 11/200 |
+| `Assembly.lean` | the success probability of the attack exceeds 3/32 |
 
 ## Building
 
 ```sh
 cd formal
 lake exe cache get
-lake build
+lake build OptimalOTS Submissions.Lower.Solution
 ```
+
+The operating point and its numeric certificate come from `tools/tune_lower_bound.py` and
+`tools/gen_lower_numerics.py`.
 
 VCVio and its dependencies compile from source on the first build.

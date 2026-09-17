@@ -6,10 +6,14 @@ the source of truth; the site is its human-readable view.
 ```sh
 cd service
 uv sync                                   # deps into .venv
-.venv/bin/uvicorn app.main:app --reload --port 8000   # the site + API
+.venv/bin/uvicorn app.main:app --reload --port 8000   # the site and the webhook
 .venv/bin/python -m app.worker            # the verifier (one submission at a time)
-.venv/bin/python -m app.seed lower        # queue the lower baseline as the first submission
+.venv/bin/python -m app.queue lower --baseline   # queue the lower baseline (same for upper)
 ```
+
+`./run-local.sh` starts the site and the worker together. `seed_demo.py` fills the LOCAL database with
+invented leaderboard rows for development; it deletes the baselines and refuses any other database
+unless forced.
 
 Prerequisites: `verifier/setup_tools.sh` has run and `formal/` has been built once (the worker
 clones that warm build for every verification).
@@ -20,8 +24,8 @@ clones that warm build for every verification).
 |---|---|---|
 | `OTS_REPO_ROOT` | the parent of `service/` | the trusted checkout of the contract |
 | `OTS_DATA_DIR` | `service/data` | database, logs, work directories |
-| `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | any SQLAlchemy URL (Postgres on the server) |
-| `OTS_BASE_URL` | `http://localhost:8000` | public URL, used in links and OAuth |
+| `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | any SQLAlchemy URL; SQLite by default, also on the server |
+| `OTS_BASE_URL` | `http://localhost:8000` | public URL, used in links |
 | `GITHUB_WEBHOOK_SECRET` | | verifies `/webhooks/github` |
 | `GITHUB_TOKEN` | | posts commit statuses and PR comments |
 | `OTS_CONTRACT_REPO` | | `owner/name` of the public contract repository |

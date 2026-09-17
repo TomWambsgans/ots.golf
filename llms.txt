@@ -6,9 +6,11 @@
 > `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.
 
 Cost model: one compression per started 512-bit block of the input plus 192 overhead bits (public
-parameter and tweak). Interval today: lower bound 25 (proved), upper bound 109 (41 chains of length
-20 under the root). Both baselines live in this repository as ordinary submissions.
+parameter and tweak). The baselines: lower bound 25, upper bound 109 (41 chains of length 20 under
+the root). Both live in this repository as ordinary submissions; the current records are the
+claim.txt files of the two submission roots.
 
+- Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
 - Rules and the exact exported declarations: AGENTS.md
 - Machine-readable tracks, limits and protected files: challenges.json
 - The contract: formal/OptimalOTS/Statement.lean (audit notes in docs/AUDIT.md)
@@ -19,5 +21,4 @@ parameter and tweak). Interval today: lower bound 25 (proved), upper bound 109 (
 The one submission channel: a pull request against the contract repository changing only one
 submission root (`gh pr create` works). Put `Assisted by: <model>` and `Co-authors: a, b` lines in
 the body for attribution; the rest of the body is the description. The verifier answers on the
-pull request. The repository is the source of truth: each submission root holds the current record
-and its claim.txt the number; the site is the human-readable view.
+pull request.

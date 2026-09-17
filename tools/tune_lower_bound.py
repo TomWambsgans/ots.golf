@@ -69,11 +69,11 @@ def main() -> int:
     ap.add_argument("--claims", default="25,24,23")
     a_ = ap.parse_args()
     print(f"index hash = {a_.idx} compression(s)")
-    # sanity: the paper's point (idx 1, c = 25: a = 22, v = 23, K = 100, q = 5·2^113, T = 3·2^121)
+    # sanity: the point of the earlier cost model, without overhead bits (idx 1, c = 25: a = 22, v = 23, K = 100, q = 5·2^113, T = 3·2^121)
     q0, T0 = 5 * 2 ** 113, 3 * 2 ** 121
-    print(f"paper's point (idx 1): d_min(22,100) = {d_min(22, 100):.2f} <= log(e q ln q) = {construction_threshold(q0):.2f} "
-          f"(paper: d0 = 123); success = {success(22, 100, q0, T0, 123):.5f} (paper > 0.055); "
-          f"cost/2^127 = {cost(1, 23, q0, T0) / 2 ** 127:.5f} (paper < 0.054)")
+    print(f"earlier point (idx 1): d_min(22,100) = {d_min(22, 100):.2f} <= log(e q ln q) = {construction_threshold(q0):.2f} "
+          f"(then: d0 = 123); success = {success(22, 100, q0, T0, 123):.5f} (then > 0.055); "
+          f"cost/2^127 = {cost(1, 23, q0, T0) / 2 ** 127:.5f} (then < 0.054)")
     for c in map(int, a_.claims.split(",")):
         v = c - 1 - a_.idx
         a = v - 1

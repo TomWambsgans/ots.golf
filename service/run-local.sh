@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the site and the worker for local development (dev login enabled).
+# Start the site and the worker for local development.
 set -euo pipefail
 cd "$(dirname "$0")"
 

@@ -53,7 +53,8 @@ description.
 2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, and sibling files of the same root
    as `Submissions.<Track>.<File>`. Nothing else: not `OptimalOTS`, not the stubs, not the other
    track.
-3. **Claim.** `claim.txt` holds one non-negative integer, with at most one trailing newline. It is
+3. **Claim.** `claim.txt` holds one non-negative integer without leading zeros, at most 1,000,000,
+   with at most one trailing newline. It is
    rendered into the statement the kernel checks, so it cannot lie.
 4. **Axioms.** The exported declarations may depend only on `propext`, `Quot.sound` and
    `Classical.choice`. `native_decide` adds `Lean.ofReduceBool` and is refused; so is `sorry`.
@@ -67,14 +68,14 @@ description.
 
 ```sh
 verifier/setup_tools.sh                        # once
-cd formal && lake exe cache get && lake build  # once
+cd formal && lake exe cache get && lake build OptimalOTS Submissions  # once
 cd ..
 python3 verifier/check_submission.py lower     # policy checks
 python3 verifier/verify.py lower --source .    # the full pipeline
 ```
 
-`setup_tools.sh` installs comparator and lean4export (and landrun on Linux); `lake build` fetches
-Mathlib and builds VCVio, the contract and the baselines. `check_submission.py` runs the policy
+`setup_tools.sh` installs comparator and lean4export (and landrun on Linux); the `lake build` line
+fetches Mathlib and builds VCVio, the contract and the two baselines. `check_submission.py` runs the policy
 checks: flat root, imports, sizes, claim. `verify.py` copies the trusted tree, lays your submission
 root over it, attaches a fresh clone of the warm `.lake`, renders the stub, and runs comparator
 under the contract's limits; on macOS it runs unsandboxed, for development only. A `verified`
@@ -97,4 +98,4 @@ Co-authors: alice, bob
 
 The rest of the body is the public description. A verified claim that strictly beats the record is
 merged, and the merge is the promotion: the submission root in the repository is always the current
-record. Other verified submissions are listed by date, and their pull requests are closed.
+record. Other verified submissions appear on their solver's page, and their pull requests are closed.

@@ -15,8 +15,8 @@ a message of its choice, must not be able to produce any other pair that verifie
 tree holds many one-time keys, and every verification pays for the one-time part. That cost is what this
 competition minimises.</p>
 <p>A <em>hash-based</em> one-time signature uses nothing but a hash function. Lamport hashes secret
-strings and reveals one per message bit; Winternitz replaces each pair of secrets by a hash chain and reveals
-the value at the position the message dictates. Both follow one pattern: key generation runs a fixed
+strings and reveals one per message bit; Winternitz replaces the secrets of a group of message bits by one
+hash chain and reveals the value at the position the message dictates. Both follow one pattern: key generation runs a fixed
 computation on secret random inputs, a signature reveals a few intermediate values, and the verifier
 recomputes the final hash and compares it with the public key.</p>
 <figure class="fig">{{ figs.classics|safe }}
@@ -34,8 +34,8 @@ an input <code>u</code> costs</p>
 that call is the unit of work in software, in hardware and in a SNARK circuit. The 192 extra bits are what a
 deployed tweakable hash prepends to every input, a 128-bit public parameter and a 64-bit tweak, and the
 model charges for them without representing them: its labels play the tweak's role. So a chain step over
-128 bits costs one compression, the index hash over message and nonce costs two, and the root of the record
-scheme, over 41 chain ends, costs eleven.</p>
+128 bits costs one compression, the index hash over message and nonce costs two, and the root of the
+baseline scheme, over 41 chain ends, costs eleven.</p>
 <p>Everything else is free, for everyone: concatenating, splitting, comparing, drawing randomness. Only
 queries to <code>H</code> count, and nothing else bounds the attacker's computation.</p>
 <figure class="fig">{{ figs.cost|safe }}
@@ -54,8 +54,7 @@ any length: concatenate, select bits, split, combine, look up a table, anything 
 <code>H(label, parent)</code>, 256 bits, at cost <code>c</code> of the parent's length. The parent may be a
 concatenation of many values, so a hash node absorbs inputs of any size, at a price.</li>
 </ul>
-<p>A value may feed any number of nodes. Exactly one hash node has no children, the <em>root</em>, and every
-node has a path to it. Key generation samples the sources, evaluates the graph in order, within 1024
+<p>A value may feed any number of nodes. One hash node is designated the <em>root</em>. Key generation samples the sources, evaluates the graph in order, within 1024
 compressions, keeps every value as the secret key, and publishes the first 128 bits of the root as
 <code>pk</code>.</p>
 <figure class="fig">{{ figs.bits|safe }}
@@ -65,19 +64,17 @@ upwards. Deterministic nodes split, select, reuse and concatenate slices for fre
 128 bits of the root are the public key.</figcaption></figure>
 <figure class="fig">{{ figs.dag|safe }}
 <figcaption>A small graph with every freedom of the model. It is not a tree: two values feed two nodes
-each, and three deterministic nodes gather two or three values of different widths. Every hash node carries
-its cost.</figcaption></figure>
-<p>Lamport, Winternitz, chains under trees, forests of chains: every hash-based one-time signature in the
-literature is such a graph, and so is anything else built from a hash function whose signatures consist of
-node values.</p>
+each, and three deterministic nodes gather two or three values. Every hash node carries its cost.</figcaption></figure>
+<p>Lamport, Winternitz, chains under trees: the hash-based one-time signatures of the literature are such
+graphs, and so is anything else built from a hash function whose signatures consist of node values.</p>
 
 <h2 id="cut">4. Signing reveals a cut</h2>
 <p>Besides the graph, a scheme fixes <code>M = 2<sup>115</sup></code> <em>disclosure sets</em>
 <code>A<sub>0</sub>, …, A<sub>M−1</sub></code>. Each is a <em>cut</em>: a set of nodes that excludes the
 root and meets every path from a secret source to the root. To sign <code>m</code>, the signer draws a
 256-bit nonce <code>η</code>, reads the index <code>i</code> from the first 128 bits of
-<code>H(enc, m ‖ η)</code>, and draws again while <code>i ≥ M</code>, at most <code>2<sup>21</sup></code>
-times. The signature is <code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order:
+<code>H(enc, m ‖ η)</code>, and tries fresh nonces until <code>i &lt; M</code>: about <code>2<sup>13</sup></code>
+trials on average and at most <code>2<sup>21</sup></code>, after which signing fails. The signature is <code>η</code> followed by the values of <code>A<sub>i</sub></code> in a fixed order:
 at most 5248 bits of values, so at most 5504 bits in all. The message chooses what is revealed; the signer
 computes nothing new.</p>
 <figure class="fig">{{ figs.cut|safe }}
@@ -86,22 +83,22 @@ revealed value, the root stays hidden, and the number beside each recomputed has
 cost.</figcaption></figure>
 
 <h2 id="cost">5. Verification and the score</h2>
-<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, two compressions, checks the
-length of the revealed string, splits it into the values of <code>A<sub>i</sub></code>, evaluates every node
+<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, two compressions, rejects if
+<code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of <code>A<sub>i</sub></code>, evaluates every node
 between the cut and the root, and accepts if the first 128 bits of the recomputed root equal
 <code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it evaluates, the signature of index
 <code>i</code> costs</p>
 <p class="formula">C<sub>i</sub> = 2 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
 <p>and the <strong>score of a scheme is max<sub>i</sub> C<sub>i</sub></strong>, its most expensive
-signature. The signature in the figure costs 2 + 8 = 10. In the record scheme, 41 chains of 20 hashed
-together into the root, every signature recomputes 96 chain hashes and the 11-compression root:
+signature. The signature in the figure costs 2 + 8 = 10. In the baseline scheme, 41 chains of length 20
+hashed together into the root, every signature recomputes 96 chain hashes and the 11-compression root:
 2 + 96 + 11 = 109.</p>
 
 <h2 id="security">6. Security</h2>
 <p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature on a message
 of its choice, and outputs a message and a signature. It wins if the pair verifies and differs from the one
-it received. Let <code>B</code> be the compressions spent in the whole experiment, key generation, signing
-and the final verification included. The scheme is <em>secure</em> when every attacker wins with probability
+it received. Let <code>B</code> bound the compressions spent in the whole experiment on every run, key
+generation, signing and the final verification included. The scheme is <em>secure</em> when every attacker wins with probability
 below <code>B / 2<sup>127</sup></code>: a forgery costs about <code>2<sup>127</sup></code> compressions per
 unit of success probability. This is <code>Scheme.Secure</code> in the statement.</p>
 <figure class="fig">{{ figs.experiment|safe }}

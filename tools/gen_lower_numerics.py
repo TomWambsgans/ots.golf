@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate the numeric certificate of the lower-bound proof for an operating point.
 
-    tools/gen_lower_numerics.py [--a 21] [--K 800] [--qexp 110] [--T5 5] [--Texp 120] [--d0 116] [--idx 2] [--v 22]
+    tools/gen_lower_numerics.py [--a 21] [--K 500] [--Kp 450] [--qexp 110] [--Tmul 5] [--Texp 120] [--d0 113]
+                                [--idx 2] [--v 22] [--slack 105] [--lean]
 
 Prints: rTab (upper bounds on z_ℓ^(1/a) scaled by 2^20), cc (rational lower bound on exp(-T/N)),
 the slack exponent, the rational success sum, the cost ratio, and a suggested threshold X with

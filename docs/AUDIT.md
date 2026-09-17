@@ -52,7 +52,7 @@ and needs no trust.
 | Verification: recompute idx, check length, reconstruct, compare 128-bit prefix | `Scheme.verify`, `publicKey` | |
 | Forgery: accepted pair ≠ the signer's pair; any accepted pair if signing failed | `experiment` | strong unforgeability, as in the paper |
 | Security: cost ≤ B on every execution ⇒ Pr[Forge] < B/2^127 | `CostAtMost`, `Scheme.Secure` | F5 |
-| Parameters table | `paperParams` | all eleven values match |
+| Parameters table | `paperParams` | all twelve values match |
 | Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline (re-tuned for the two-compression index) |
 
 ## Findings
@@ -63,8 +63,9 @@ and needs no trust.
 - **F2 (info).** A hash node's parent may have output length 0; the paper requires a positive
   length. Such a node costs one compression and is publicly computable, so it changes neither security
   nor cost. Kept.
-- **F3 (info).** The index is the low 128 bits of the hash (`setWidth`); the paper says "the first
-  128 bits". Any fixed 128 bits are equivalent. Kept.
+- **F3 (info).** The index and the public key are the low 128 bits of their hash (`setWidth` in
+  `index` and `publicKey`); the paper says "the first 128 bits". Any fixed 128 bits are equivalent.
+  Kept.
 - **F4 (info).** `sampleAssignment` samples a value for every node; only the sources' values are
   used. Sampling is free. Kept.
 - **F5 (info).** `Secure` quantifies over every budget `B` for which `CostAtMost` holds. The bound

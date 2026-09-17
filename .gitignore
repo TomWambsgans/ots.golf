@@ -5,4 +5,3 @@ formal/OptimalOTS/Challenge/Lower.lean
 formal/OptimalOTS/Challenge/Upper.lean
 # verifier tools and scratch
 verifier/.tools/
-verifier/.work/
