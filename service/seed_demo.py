@@ -9,6 +9,7 @@ repository baselines and their `ots-golf` user are removed from the board (re-qu
     .venv/bin/python seed_demo.py           # add (idempotent: removes its previous rows first)
     .venv/bin/python seed_demo.py --force   # the same against a database that is not the local one
     .venv/bin/python seed_demo.py --remove  # remove the phony rows only
+    .venv/bin/python seed_demo.py --refresh # adapt existing demo claims to current baselines
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from urllib.parse import quote
 
 from sqlalchemy import select
 
+from app import contract
 from app.db import Base, Submission, User, engine, SessionLocal, utcnow
 
 DEMO = {"demo": True}
@@ -31,19 +33,38 @@ PEOPLE = [
     ("vitalik-buterin", "Vitalik Buterin", "#6d5ce7", "VB"),
 ]
 
-# track, login, claim, hours ago, status, is_record, assisted_by, co_authors
+# track, login, improvement over baseline, hours ago, status, is_record, assisted_by, co_authors
 # (only finished rows: the worker would try to verify anything pending)
 ROWS = [
-    ("upper", "satoshi-nakamoto", 105, 6 * 24 + 5, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 104, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 103, 3 * 24 + 2, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 104, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
-    ("upper", "vitalik-buterin", 101, 26, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 102, 10, "verified", False, "GPT-2", []),
-    ("lower", "vitalik-buterin", 26, 5 * 24 + 3, "verified", True, "LLaMA 7B", []),
-    ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "GPT-2", []),
-    ("lower", "vitalik-buterin", 26, 22, "verified", False, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 1, 6 * 24 + 5, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-buterin", 2, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 3, 3 * 24 + 2, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-buterin", 2, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
+    ("upper", "vitalik-buterin", 5, 26, "verified", True, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 4, 10, "verified", False, "GPT-2", []),
+    ("lower", "vitalik-buterin", 1, 5 * 24 + 3, "verified", True, "LLaMA 7B", []),
+    ("lower", "satoshi-nakamoto", 2, 2 * 24 + 1, "verified", True, "GPT-2", []),
+    ("lower", "vitalik-buterin", 1, 22, "verified", False, "LLaMA 7B", []),
 ]
+
+
+def demo_claim(track: str, improvement: int) -> int:
+    cfg = contract.track(track)
+    return cfg["baseline"] + (improvement if cfg["direction"] == "+" else -improvement)
+
+
+def refresh(session) -> int:
+    """Update demo numbers in place, preserving dates, links and real submissions."""
+    changed = 0
+    for sub in session.scalars(select(Submission)):
+        detail = sub.detail_dict
+        if detail.get("demo") and "improvement" in detail:
+            claim = demo_claim(sub.track, detail["improvement"])
+            if sub.claim != claim:
+                sub.claim = claim
+                changed += 1
+    session.commit()
+    return changed
 
 
 def avatar(initials: str, colour: str) -> str:
@@ -84,7 +105,8 @@ def add(session) -> int:
     if bot is not None and not bot.submissions:
         session.delete(bot)
 
-    for track, login, claim, hours_ago, status, is_record, assisted, coauthors in ROWS:
+    for track, login, improvement, hours_ago, status, is_record, assisted, coauthors in ROWS:
+        claim = demo_claim(track, improvement)
         t = NOW - timedelta(hours=hours_ago)
         commit = hashlib.sha1(f"{track}{login}{claim}{hours_ago}".encode()).hexdigest()
         sub = Submission(track=track, user_id=users[login].id, claim=claim if status == "verified" else None,
@@ -94,7 +116,8 @@ def add(session) -> int:
                          description="Demo data for local development; this submission does not exist.",
                          created_at=t - timedelta(minutes=4), started_at=t - timedelta(minutes=3),
                          finished_at=t if status == "verified" else None,
-                         duration_s=150.0 if status == "verified" else None, detail=json.dumps(DEMO))
+                         duration_s=150.0 if status == "verified" else None,
+                         detail=json.dumps({**DEMO, "improvement": improvement}))
         session.add(sub)
     session.commit()
     return len(ROWS)
@@ -108,6 +131,9 @@ def main() -> None:
                  "This script DELETES the verified baselines and inserts invented records; pass --force to do that anyway.")
     Base.metadata.create_all(engine)
     with SessionLocal() as session:
+        if "--refresh" in sys.argv:
+            print(f"updated {refresh(session)} demo claims from the current baselines")
+            return
         n = remove(session)
         if "--remove" in sys.argv:
             print(f"removed {n} phony submissions")

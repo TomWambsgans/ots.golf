@@ -13,6 +13,14 @@ uv sync                                   # deps into .venv
 with the invented Satoshi Nakamoto and Vitalik Buterin submissions. Preserve this demo board when
 refreshing localhost; it is the preferred development view. Seeding is repeatable: it replaces
 earlier demo rows and removes baseline entries from the preview board.
+Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
+records progress from 19 to 20 and from 105 to 101.
+
+After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
+demo claims to the current baselines and reload the running site, including its cached commit.
+It preserves submission links and dates. To install this hook in another checkout, run from the
+repository root: `install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"`.
+The same refresh can be run manually with `bash service/refresh-local.sh` from the repository root.
 
 Use `OTS_DEMO_DATA=0 ./run-local.sh` to skip seeding. To also remove existing demo rows, run
 `.venv/bin/python seed_demo.py --remove` first. `seed_demo.py` only accepts the default local
