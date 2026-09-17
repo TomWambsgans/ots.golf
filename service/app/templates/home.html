@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_submission_rows.html" import cards %}
+{% from "_submission_rows.html" import lbrows %}
 {% block content %}
 <section class="hero">
   <div class="hero-text">
@@ -53,54 +53,72 @@
 <section class="boards" aria-labelledby="board-title">
 <div class="board-panel">
   <div class="board-head">
-    <h2 id="board-title">Leaderboard</h2>
-    <div class="seg" role="group" aria-label="Leaderboard track">
-      <button type="button" class="seg-btn" data-track="upper" aria-pressed="true"><span class="swatch s2"></span>Upper bound</button>
-      <button type="button" class="seg-btn" data-track="lower" aria-pressed="false"><span class="swatch s1"></span>Lower bound</button>
+    <div class="board-head-left">
+      <div class="board-title-row">
+        <h2 id="board-title">Leaderboard</h2>
+        <div class="seg" role="group" aria-label="Leaderboard track">
+          <button type="button" class="seg-btn" data-track="upper" aria-pressed="true">Upper bound</button>
+          <button type="button" class="seg-btn" data-track="lower" aria-pressed="false">Lower bound</button>
+        </div>
+      </div>
+      {% for slug in ['upper', 'lower'] %}{% set b = boards[slug] %}
+      <p class="board-stats tk" data-track="{{ slug }}"{% if slug != 'upper' %} hidden{% endif %}>{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.solvers }} solver{{ 's' if b.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>
+      {% endfor %}
     </div>
+    {% for slug in ['upper', 'lower'] %}{% set b = boards[slug] %}
+    <div class="board-current tk" data-track="{{ slug }}"{% if slug != 'upper' %} hidden{% endif %}>
+      <p class="tick-label">current {{ b.cfg.title|lower }}</p>
+      <p class="board-big"><span class="swatch {{ 's2' if slug == 'upper' else 's1' }}"></span>{{ b.state.record_claim }} <span class="lb-unit">compressions</span></p>
+    </div>
+    {% endfor %}
   </div>
   {% for slug in ['upper', 'lower'] %}
   {% set b = boards[slug] %}
   <div class="board" data-track="{{ slug }}"{% if slug != 'upper' %} hidden{% endif %}>
-    <div class="board-meta">
-      <p class="board-stats muted">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.solvers }} solver{{ 's' if b.solvers != 1 }} · current {{ b.cfg.title|lower }} <strong>{{ b.state.record_claim }} compressions</strong> · {{ 'a scheme, smaller is better' if b.cfg.direction == '-' else 'a proof, larger is better' }}{% if b.in_flight %} · {{ b.in_flight|length }} in verification{% endif %}</p>
-      <div class="lb-sort" role="group" aria-label="Sort">
-        <button type="button" class="sort-btn" data-key="score" data-dir="{{ 'asc' if b.cfg.direction == '-' else 'desc' }}" aria-pressed="true">Score <span class="arr">↕</span></button>
-        <button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button>
-        <button type="button" class="sort-btn" data-key="date" data-dir="desc" aria-pressed="false">Date <span class="arr">↕</span></button>
-      </div>
-    </div>
     <div class="board-scroll">
-      <ol class="lb">{{ cards(b.frontier, b.others, b.in_flight, b.cfg) }}</ol>
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th class="l">Solver</th>
+            <th class="r" aria-sort="{{ 'ascending' if b.cfg.direction == '-' else 'descending' }}"><button type="button" class="sort-btn" data-key="score" data-dir="{{ 'asc' if b.cfg.direction == '-' else 'desc' }}" aria-pressed="true">Score <span class="arr">↕</span></button></th>
+            <th class="r" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
+            <th class="r" aria-sort="none"><button type="button" class="sort-btn" data-key="date" data-dir="desc" aria-pressed="false">Date <span class="arr">↕</span></button></th>
+          </tr>
+        </thead>
+        <tbody>{{ lbrows(b.frontier, b.others, b.in_flight, b.cfg) }}</tbody>
+      </table>
     </div>
   </div>
   {% endfor %}
 </div>
 <script>
 (function () {
-  var btns = document.querySelectorAll('.seg-btn'), boards = document.querySelectorAll('.board[data-track]');
+  var btns = document.querySelectorAll('.seg-btn'), parts = document.querySelectorAll('.board[data-track], .tk[data-track]');
   function show(track) {
     btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.track === track)); });
-    boards.forEach(function (b) { b.hidden = b.dataset.track !== track; });
+    parts.forEach(function (b) { b.hidden = b.dataset.track !== track; });
     try { history.replaceState(null, '', track === 'upper' ? location.pathname : '#lower'); } catch (e) {}
   }
   btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.track); }); });
   if (location.hash === '#lower') show('lower');
-  boards.forEach(function (board) {
-    var list = board.querySelector('ol.lb');
+  document.querySelectorAll('.board[data-track]').forEach(function (board) {
+    var body = board.querySelector('tbody');
     board.querySelectorAll('.sort-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var key = btn.dataset.key, dir = btn.dataset.dir;
         if (btn.getAttribute('aria-pressed') === 'true') { dir = dir === 'asc' ? 'desc' : 'asc'; btn.dataset.dir = dir; }
-        board.querySelectorAll('.sort-btn').forEach(function (o) { o.setAttribute('aria-pressed', String(o === btn)); });
-        var rows = Array.prototype.slice.call(list.querySelectorAll('li.lb-row'));
+        board.querySelectorAll('.sort-btn').forEach(function (o) {
+          o.setAttribute('aria-pressed', String(o === btn));
+          o.parentNode.setAttribute('aria-sort', o === btn ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
+        });
+        var rows = Array.prototype.slice.call(body.querySelectorAll('tr.lb-row'));
         rows.sort(function (a, b) {
           var va = a.dataset[key], vb = b.dataset[key];
           if (va === '' && vb === '') return 0; if (va === '') return 1; if (vb === '') return -1;
           if (key !== 'date') { va = parseFloat(va); vb = parseFloat(vb); }
           return (va < vb ? -1 : va > vb ? 1 : 0) * (dir === 'asc' ? 1 : -1);
         });
-        rows.forEach(function (r) { list.appendChild(r); });
+        rows.forEach(function (r) { body.appendChild(r); });
       });
     });
   });
