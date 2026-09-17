@@ -63,7 +63,8 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 14px; vertical-align: top; }
-thead th { border-top: 0; color: var(--ink-2); font-weight: 500; font-size: 13px; }
+thead th { border-top: 0; color: var(--ink-2); font-weight: 500; font-size: 13px; white-space: nowrap; }
+.nowrap { white-space: nowrap; }
 td.num, th.num { font-variant-numeric: tabular-nums; font-weight: 600; }
 .tag { display: inline-block; font-size: 11px; padding: 0 6px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink-2); margin-left: 4px; vertical-align: middle; }
 .status { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }

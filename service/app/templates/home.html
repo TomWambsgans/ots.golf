@@ -30,8 +30,8 @@
     <div class="meter-track">
       <div class="meter-fill left" style="width: {{ '%.2f'|format(meter.left * 100) }}%"></div>
       <div class="meter-fill right" style="width: {{ '%.2f'|format(meter.right * 100) }}%"></div>
-      <div class="meter-mark lo" style="left: {{ '%.2f'|format(meter.left * 100) }}%"><span>{{ interval.lower.record_claim }}</span></div>
-      <div class="meter-mark hi" style="right: {{ '%.2f'|format(meter.right * 100) }}%"><span>{{ interval.upper.record_claim }}</span></div>
+      {% if meter.left > 0 %}<div class="meter-mark lo" style="left: {{ '%.2f'|format(meter.left * 100) }}%"><span>{{ interval.lower.record_claim }}</span></div>{% endif %}
+      {% if meter.right > 0 %}<div class="meter-mark hi" style="right: {{ '%.2f'|format(meter.right * 100) }}%"><span>{{ interval.upper.record_claim }}</span></div>{% endif %}
     </div>
     <div class="meter-ends"><span>{{ boards.lower.cfg.baseline }}</span><span class="muted">hash units per verification, worst case</span><span>{{ boards.upper.cfg.baseline }}</span></div>
   </div>

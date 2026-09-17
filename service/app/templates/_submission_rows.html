@@ -9,7 +9,7 @@
   </td>
   <td class="muted">{{ s.assisted_by or '' }}</td>
   <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
-  <td class="muted">{{ (s.finished_at or s.created_at)|dt }}</td>
+  <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
 </tr>
 {% else %}
 <tr><td colspan="{{ 6 if show_track else 5 }}" class="muted">Nothing yet.</td></tr>

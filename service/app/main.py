@@ -22,6 +22,7 @@ app = FastAPI(title="ots.golf", version="0.1.0", docs_url="/api/v1/docs", openap
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 templates.env.filters["dt"] = lambda d: d.strftime("%Y-%m-%d %H:%M UTC") if d else ""
+templates.env.filters["date"] = lambda d: d.strftime("%Y-%m-%d") if d else ""
 templates.env.filters["short"] = lambda s: (s or "")[:10]
 templates.env.filters["md"] = lambda s: markdown.markdown(s or "", extensions=["tables", "fenced_code"])
 
