@@ -237,3 +237,27 @@ prospective route to 18, not a verified lower bound.
 - Root: certificate, attack integration, remaining probability/cost modules, project documentation.
 
 No upper-track file is being edited. No push, deployment, or main-branch operation is authorized.
+
+### Second milestone: checked components for the replacement
+
+The two counterexample notes are complete, with exact probabilities. The construction example
+has `E[-log2 p] = 1 - 2^-256` but proposed target weight zero. The information example has
+outside weight 256 with probability one, zero disclosure, and `Bell(1)=1`.
+
+The following bare-model modules now build independently:
+`Semantics`, `Encoding`, `Patterns`, `Cache`, `CacheFresh`, `Expectation`, `Index`, `CostCore`,
+and `KeygenSupport`. Records in `Semantics` are only algebraic objects; there is no assertion
+that independently uniform node outputs have the bare-oracle law. `KeygenSupport` instead proves
+that actual key-generation outputs satisfy their node equations in the final cache.
+`Patterns` proves the exact binomial count and that at most one quarter of indices have fewer
+than eight matching patterns, assuming all costs at most 17.
+
+`CacheFresh` bounds the number of cached message prefixes by the number of cached strings,
+and proves that a cost-bounded run adds at most its cost in cached strings. This permits direct
+analysis from a fresh random message after key generation and another after signing; no hypothesis
+on scheme labels or tagging is introduced. Signing/search probability and final assembly remain.
+
+The numerical investigation confirms conditional feasibility of 24 at the old simple operating
+point, even with budget 5313, but cannot repair the false lemmas. It also corrects the Bell rounding:
+`Bell(22)>2^52`, so even the proposed (false) Bell inequality would need budget 5310 rather than 5309.
+The tune tool now marks this analysis as conditional and accepts `--s-star`.
