@@ -242,28 +242,39 @@ theorem child_gv_groupOf (l : Fin 7) (a : Fin 3) : child (gv (groupOf l a)) = so
   simp only [groupOf]
   omega
 
-/-- Every coordinate a node reads is the node itself, its hash node, or the hash node of one of
-its parents. -/
+/-- Every coordinate a node reads is the node itself, its hash node, the hash node of one of
+its parents, or (for the first input of a chain, which reads a source) its parent. -/
 theorem mem_deps_cases' {s n : Name} (h : s ∈ deps n) :
-    s = n ∨ hashOf n = some s ∨ ∃ m, hashOf m = some s ∧ child m = some n := by
+    s = n ∨ hashOf n = some s ∨ (∃ m, hashOf m = some s ∧ child m = some n) ∨
+      (child s = some n ∧ n.len ≠ 128) := by
   cases n with
   | src k => simp only [deps, Finset.mem_singleton] at h; exact Or.inl h
+  | ci k t =>
+    by_cases ht : t.val = 0
+    · rw [deps_ci_zero k t ht, Finset.mem_singleton] at h
+      subst h
+      exact Or.inr (Or.inr (Or.inr ⟨child_src_ci k t ht, by simp [Name.len]⟩))
+    · rw [deps_ci_succ k t ht, Finset.mem_singleton] at h
+      subst h
+      exact Or.inr (Or.inr (Or.inl ⟨cv k ⟨t.val - 1, by omega⟩, rfl, child_cv_ci k t ht⟩))
   | ch k t => simp only [deps, Finset.mem_singleton] at h; exact Or.inl h
   | cv k t => simp only [deps, Finset.mem_singleton] at h; subst h; exact Or.inr (Or.inl rfl)
   | gc j =>
     simp only [deps, Finset.mem_insert, Finset.mem_singleton] at h
-    rcases h with rfl | rfl | rfl <;> exact Or.inr (Or.inr ⟨cv _ 13, rfl, child_cv_chainOf _ _⟩)
+    rcases h with rfl | rfl | rfl <;>
+      exact Or.inr (Or.inr (Or.inl ⟨cv _ 13, rfl, child_cv_chainOf _ _⟩))
   | gh j => simp only [deps, Finset.mem_singleton] at h; exact Or.inl h
   | gv j => simp only [deps, Finset.mem_singleton] at h; subst h; exact Or.inr (Or.inl rfl)
   | ec l =>
     simp only [deps, Finset.mem_insert, Finset.mem_singleton] at h
-    rcases h with rfl | rfl | rfl <;> exact Or.inr (Or.inr ⟨gv _, rfl, child_gv_groupOf _ _⟩)
+    rcases h with rfl | rfl | rfl <;>
+      exact Or.inr (Or.inr (Or.inl ⟨gv _, rfl, child_gv_groupOf _ _⟩))
   | eh l => simp only [deps, Finset.mem_singleton] at h; exact Or.inl h
   | ev l => simp only [deps, Finset.mem_singleton] at h; subst h; exact Or.inr (Or.inl rfl)
   | rc =>
     simp only [deps, Finset.mem_image, Finset.mem_univ, true_and] at h
     obtain ⟨l, rfl⟩ := h
-    exact Or.inr (Or.inr ⟨ev l, rfl, rfl⟩)
+    exact Or.inr (Or.inr (Or.inl ⟨ev l, rfl, rfl⟩))
   | rh => simp only [deps, Finset.mem_singleton] at h; exact Or.inl h
 
 /-- The child of a value node is not a 128-bit node. -/
@@ -279,7 +290,7 @@ theorem not_mem_deps_of_hiddenCoord {A : Finset Name} (hA : IsCut A) {s n : Name
     (hs : HiddenCoord A s) (hn : Evaluated A n ∨ n ∈ A) : s ∉ deps n := by
   intro hd
   obtain ⟨hsE, hsA, hsH⟩ := hs
-  rcases mem_deps_cases' hd with rfl | hh | ⟨m, hm, hc⟩
+  rcases mem_deps_cases' hd with rfl | hh | ⟨m, hm, hc⟩ | ⟨hc, hl⟩
   · rcases hn with hn | hn
     · exact hsE hn
     · exact hsA hn
@@ -292,6 +303,9 @@ theorem not_mem_deps_of_hiddenCoord {A : Finset Name} (hA : IsCut A) {s n : Name
       · exact hsH m hmA hm
       · exact hsE (evaluated_of_child_res hcs hsA (evaluated_of_child_res hc hmA hn))
     · exact len_child_of_hashOf hm hc (hA.values n hn)
+  · rcases hn with hn | hn
+    · exact hsE (evaluated_of_child_res hc hsA hn)
+    · exact hl (hA.values n hn)
 
 theorem hiddenCoord_ne_rh {A : Finset Name} {s : Name} (hs : HiddenCoord A s) : s ≠ rh := by
   rintro rfl
@@ -481,7 +495,7 @@ theorem hits_charge_A (pk : BitVec 128) (q : Query) :
       rw [kc_isSome_iff]
       constructor
       · rintro ⟨h', p', hp', e⟩
-        obtain rfl := pointOf_inj_left e
+        obtain rfl := pointOf_inj_left hp hp' e
         rw [hp] at hp'
         obtain rfl := Option.some.inj hp'
         exact (pointOf_inj_input e).symm
@@ -514,7 +528,7 @@ theorem hits_charge_B {A : Finset Name} (hA : IsCut A) (d : Data) (q : Query) :
       rw [fHid_isSome_some_iff]
       constructor
       · rintro ⟨h', p', hp', _, e⟩
-        obtain rfl := pointOf_inj_left e
+        obtain rfl := pointOf_inj_left hp hp' e
         rw [hp] at hp'
         obtain rfl := Option.some.inj hp'
         exact (pointOf_inj_input e).symm

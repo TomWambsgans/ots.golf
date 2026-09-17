@@ -131,3 +131,69 @@ inside the strings it hashes.
   is not 128), hence `yv y p = detVal p y` (`yv_det`) and `tagNat_detVal` applies.
 * Lemmas about enc-labelled points (`kc_enc`, `fExp_enc`, `fHid_enc`, `spr_cacheQuery_enc`) are restated for
   `encQuery paperParams u` with `u : EncInput paperParams`.
+
+## `Values.lean` (done, building; it now also imports `SignIdx`)
+
+Changed statements (names kept):
+```lean
+theorem val_gc ξ j : val ξ (gc j) = tw (gh j) ++ cat3 (trunc (ξ.2 (ch (chainOf j 0) 13).fin)) (…1…) (…2…)
+theorem val_ec ξ l : val ξ (ec l) = tw (eh l) ++ cat3 (trunc (ξ.2 (gh (groupOf l 0)).fin)) (…) (…)
+theorem val_rc ξ : val ξ rc = tw rh ++ cat7 fun l => trunc (ξ.2 (eh l).fin)
+def hashParent   -- ch k t ↦ some (ci k t); gh ↦ gc; eh ↦ ec; rh ↦ rc
+def pointOf (ξ : Rec) (_h p : Name) : Query := ⟨p.len, val ξ p⟩
+theorem pointOf_inj_left (hp : hashParent h = some p) (hp' : hashParent h' = some p')
+    (e : pointOf ξ h p = pointOf ξ' h' p') : h = h'
+theorem kc_enc (ξ) (u : EncInput paperParams) : kc ξ (encQuery paperParams u) = none
+theorem fExp_enc (A?) (ξ) (u : EncInput paperParams) : fExp A? ξ (encQuery paperParams u) = none
+theorem fHid_enc (A?) (ξ) (u : EncInput paperParams) : fHid A? ξ (encQuery paperParams u) = none
+def Spr c ξ := ∃ h p, hashParent h = some p ∧ ∃ u : BitVec p.len, u ≠ val ξ p ∧ tagNat ⟨p.len, u⟩ = h.idx ∧
+    ∃ w, c ⟨p.len, u⟩ = some w ∧ trunc w = trunc (ξ.2 h.fin)
+  -- destructuring pattern is now ⟨h, p, hp, u, hu, htag, w, hw, ht⟩ (one more component)
+theorem spr_cacheQuery_enc c ξ (u : EncInput paperParams) w : Spr (c.cacheQuery (encQuery paperParams u) w) ξ ↔ Spr c ξ
+def deps  -- new case: | ci k t => if h : t.val = 0 then {src k} else {ch k ⟨t.val - 1, _⟩}
+```
+Added: `trunc_eq_self`, `trunc_injective_of_len (hw : w = 128)`, `val_ci`, `val_ci_zero`, `val_ci_succ`,
+`cost_ne_zero_of_hashParent`, `hashParent_inj`, `len_hashParent_cases` (144 ∨ 400 ∨ 912),
+`len_hashParent_ne_enc`, `pointOf_fst`, `tagNat_val`, `tagNat_pointOf`, `pointOf_ne_encQuery`,
+`mk_ne_encQuery (hp) (u' : BitVec p.len) u : (⟨p.len, u'⟩ : Query) ≠ encQuery paperParams u`,
+`tagOf`, `tagOf_eq_some_of_tagNat`, `graph_kind_hashParent`, `graph_kind_eq_hash`,
+`val_eq_detVal (hp) ξ : val ξ p = detVal p (graph.evalRec ξ)`,
+`tagNat_detVal_of_hashParent (hp) (x : Asg) : tagNat ⟨p.len, detVal p x⟩ = h.idx`,
+`def tagging : graph.Tagging`, `tagging_tag`, `tagging_tag_pointOf`, `deps_ci`, `deps_ci_zero`,
+`deps_ci_succ`, `child_src_ci`, `child_cv_ci`, `val_updSrc_src_of_ne`, `trunc_tw_append`,
+`trunc_of_tw_append_eq`, `trunc_of_tw_eq`, `trunc_of_tw_cat3_eq`, `trunc_of_tw_cat7_eq`.
+
+Known downstream breakages reported by the Values port:
+* `Resample.lean` ≈247 `mem_deps_cases'` is FALSE for `n = ci k 0` (`deps = {src k}`, and `src k` is neither
+  `n` nor a `hashOf` target): it needs a fourth alternative such as `child s = some n`; in
+  `not_mem_deps_of_hiddenCoord` that case closes with `evaluated_of_child_res` when `n` is evaluated and with
+  `n.len = 144 ≠ 128` when `n ∈ A`. `Resample.lean:484,517`: `pointOf_inj_left hp hp' e`.
+* `Events.lean:114-125`: `val_gc'`/`val_ec'`/`val_rc'` need the `tw _ ++` prefix; peel a chain input with
+  `tw_append_inj`/`append_inj` then `trunc_injective_of_len (Name.len_prev k t)`; `Events.lean:139`: three-field
+  `.hash`; `Events.lean:319`: `child (cv k t) = some (ci k ⟨t+1,_⟩)`; chains now alternate `ci → ch → cv`.
+* `Assembly.lean:96` `(fun u => kc_enc ξ u)`; `:127` and `Potentials.lean:270` `spr_cacheQuery_enc c ξ u w'`;
+  `Assembly.lean:230` `E_run_keygen forestScheme tagging g'`; `Potentials.lean:409,476` `fun ξ => kc_enc ξ u₀`,
+  `:445` `fun ξ => fHid_enc (some Ac) ξ u₀`; `StageB.lean:83` `rw [hqe, kc_enc]` (do not unfold `encQuery`),
+  `:135,147` `fun u => fExp_enc A? ξ u`.
+* Tactic pitfalls: `NodeKind.hash.injEq` does not fire in `simp only` on `graph.kind h.fin = .hash q hq hl`
+  (use `NodeKind.hash.inj hk`); `rw [trunc_trunc]` fails on widths only defeq to 128 (use `congrArg`); a stale
+  pre-tweak `cat3`/`cat7` shape against a `tw _ ++ cat3 …` goal shows up as a `whnf` TIMEOUT, not a type error;
+  pass `(n := 128)` etc. explicitly to `tagNat_tw_append`, `append_inj`, `trunc_of_tw_append_eq`.
+
+## `Resample.lean` and `Events.lean` (done, building)
+
+* `Resample.lean`: every statement used downstream is unchanged (`hits_charge_A`, `hits_charge_B`, `fiberA`,
+  `fiberB`, `Data`, `dataOf`, …). Only `mem_deps_cases'` (internal) gained a fourth disjunct.
+* `Events.lean`: RENAMED its general lemma to
+  `bv_append_inj {n m} {x x' : BitVec n} {y y' : BitVec m} (h : x ++ y = x' ++ y') : x = x' ∧ y = y'`
+  (the name `append_inj` now belongs to the 16-bit tweak lemma of Names.lean). `StageB.lean:203` must use
+  `bv_append_inj hu` (there `m₂ ++ σ₂.1 = m₁ ++ η` joins two 256-bit halves).
+  Unchanged statements: `yv`, `yv_mem`, `yv_det`, `yv_cv`, `yv_gv`, `yv_ev`, `yv_of_hashOf`, `hash_step`, `up`,
+  `events_none`, `events_ne`, `events_same` (conclusions `Spr d ξ ∨ Cache.Hits d (kc ξ)`,
+  `Spr d ξ ∨ Cache.Hits d (fHid (some A) ξ)`, `Spr d ξ`), `encode_congr`, `trunc_cast_eq`.
+  Changed: `graph_kind_hash (hp) : ∃ hlt hl, graph.kind h.fin = .hash p.fin hlt hl`;
+  `recon_evaluated` hash clause binds `p hp hl`; `yv_hash … : ∃ w, d ⟨p.len, yv y p⟩ = some w ∧ …`;
+  `val_gc'`/`val_ec'`/`val_rc'`/`yv_gc`/`yv_ec`/`yv_rc` carry the `tw _ ++` prefix.
+  Added: `cost_hashParent`, `hashParent_ne_src`, `yv_ci`, `yv_ci_ne`, `evaluated_hashParent`,
+  `yv_hashParent`, `tagNat_yv`.
+  Tactic note: `rw [detVal_gc]` fails on `y : graph.Assignment` (only defeq to `Asg`); use `show … = _`.

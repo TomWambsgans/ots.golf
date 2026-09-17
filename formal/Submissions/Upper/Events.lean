@@ -49,7 +49,9 @@ theorem cast_injective {n m : ℕ} (h : n = m) {x y : BitVec n} (e : x.cast h = 
     x = y := by
   subst h; simpa using e
 
-theorem append_inj {n m : ℕ} {x x' : BitVec n} {y y' : BitVec m} (h : x ++ y = x' ++ y') :
+/-- Both halves of a concatenation are determined by it (any widths; `append_inj` of `Names.lean`
+is the special case of a 16-bit tweak). -/
+theorem bv_append_inj {n m : ℕ} {x x' : BitVec n} {y y' : BitVec m} (h : x ++ y = x' ++ y') :
     x = x' ∧ y = y' := by
   have key : ∀ i, (x ++ y).getLsbD i = (x' ++ y').getLsbD i := fun i => by rw [h]
   simp only [BitVec.getLsbD_append] at key
@@ -67,18 +69,18 @@ theorem append_inj {n m : ℕ} {x x' : BitVec n} {y y' : BitVec m} (h : x ++ y =
 theorem cat3_inj {a b c a' b' c' : BitVec 128} (h : cat3 a b c = cat3 a' b' c') :
     a = a' ∧ b = b' ∧ c = c' := by
   unfold cat3 at h
-  obtain ⟨h12, h3⟩ := append_inj (cast_injective _ h)
-  obtain ⟨h1, h2⟩ := append_inj h12
+  obtain ⟨h12, h3⟩ := bv_append_inj (cast_injective _ h)
+  obtain ⟨h1, h2⟩ := bv_append_inj h12
   exact ⟨h1, h2, h3⟩
 
 theorem cat7_inj {a b : Fin 7 → BitVec 128} (h : cat7 a = cat7 b) : a = b := by
   unfold cat7 at h
-  obtain ⟨h0123456, h6⟩ := append_inj (cast_injective _ h)
-  obtain ⟨h012345, h5⟩ := append_inj h0123456
-  obtain ⟨h01234, h4⟩ := append_inj h012345
-  obtain ⟨h0123, h3⟩ := append_inj h01234
-  obtain ⟨h012, h2⟩ := append_inj h0123
-  obtain ⟨h0, h1⟩ := append_inj h012
+  obtain ⟨h0123456, h6⟩ := bv_append_inj (cast_injective _ h)
+  obtain ⟨h012345, h5⟩ := bv_append_inj h0123456
+  obtain ⟨h01234, h4⟩ := bv_append_inj h012345
+  obtain ⟨h0123, h3⟩ := bv_append_inj h01234
+  obtain ⟨h012, h2⟩ := bv_append_inj h0123
+  obtain ⟨h0, h1⟩ := bv_append_inj h012
   funext l
   fin_cases l <;> assumption
 
@@ -98,6 +100,14 @@ theorem hashParent_cases {h p : Name} (hp : hashParent h = some p) :
   · exact Or.inr ⟨ev _, rfl⟩
   · exact Or.inl rfl
 
+/-- The input of a hash node is a deterministic node. -/
+theorem cost_hashParent {h p : Name} (hp : hashParent h = some p) : p.cost = 0 := by
+  cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp <;> rfl
+
+theorem hashParent_ne_src {h p : Name} (hp : hashParent h = some p) (k : Fin 63) : p ≠ src k := by
+  cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp <;>
+    exact fun e => nomatch e
+
 theorem hashParent_of_hashOf {v h : Name} (hh : hashOf v = some h) : ∃ p, hashParent h = some p := by
   cases v <;> simp only [hashOf, Option.some.injEq, reduceCtorEq] at hh <;> subst hh <;>
     exact ⟨_, rfl⟩
@@ -112,18 +122,18 @@ theorem prev_succ (k : Fin 63) (t : Fin 14) (ht : t.val < 13) :
   simp [prev]
 
 theorem val_gc' (ξ : Rec) (j : Fin 21) :
-    val ξ (gc j) = cat3 (val ξ (cv (chainOf j 0) 13)) (val ξ (cv (chainOf j 1) 13))
+    val ξ (gc j) = tw (gh j) ++ cat3 (val ξ (cv (chainOf j 0) 13)) (val ξ (cv (chainOf j 1) 13))
       (val ξ (cv (chainOf j 2) 13)) := by
   rw [val_gc, val_cv, val_cv, val_cv]
 
 theorem val_ec' (ξ : Rec) (l : Fin 7) :
-    val ξ (ec l) = cat3 (val ξ (gv (groupOf l 0))) (val ξ (gv (groupOf l 1)))
+    val ξ (ec l) = tw (eh l) ++ cat3 (val ξ (gv (groupOf l 0))) (val ξ (gv (groupOf l 1)))
       (val ξ (gv (groupOf l 2))) := by
   rw [val_ec, val_gv, val_gv, val_gv]
 
-theorem val_rc' (ξ : Rec) : val ξ rc = cat7 fun l => val ξ (ev l) := by
+theorem val_rc' (ξ : Rec) : val ξ rc = tw rh ++ cat7 fun l => val ξ (ev l) := by
   rw [val_rc]
-  exact congrArg cat7 (funext fun l => (val_ev ξ l).symm)
+  exact congrArg (fun a => tw rh ++ cat7 a) (funext fun l => (val_ev ξ l).symm)
 
 theorem val_of_hashOf (ξ : Rec) {v h : Name} (hh : hashOf v = some h) :
     trunc (val ξ v) = trunc (ξ.2 h.fin) := by
@@ -136,7 +146,7 @@ theorem val_of_hashOf (ξ : Rec) {v h : Name} (hh : hashOf v = some h) :
 
 theorem graph_kind_hash {h p : Name} (hp : hashParent h = some p) :
     ∃ (hlt : p.fin < h.fin) (hl : graph.len h.fin = paperParams.hashBits),
-      graph.kind h.fin = .hash p.fin hlt h.idx hl := by
+      graph.kind h.fin = .hash p.fin hlt hl := by
   rw [graph_kind_fin]
   cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp <;>
     exact ⟨_, _, rfl⟩
@@ -165,8 +175,8 @@ theorem yv_mem (hy : graph.ReconEqs d (fins A) given y) {n : Name} (hn : n ∈ A
 
 theorem recon_evaluated (hy : graph.ReconEqs d (fins A) given y) {n : Name}
     (he : Evaluated A n) :
-    (∀ p hp τ hl, graph.kind n.fin = .hash p hp τ hl →
-        ∃ w, d (.node τ, ⟨graph.len p, y p⟩) = some w ∧ y n.fin = w.cast hl.symm) ∧
+    (∀ p hp hl, graph.kind n.fin = .hash p hp hl →
+        ∃ w, d ⟨graph.len p, y p⟩ = some w ∧ y n.fin = w.cast hl.symm) ∧
       (∀ ps hlt f hf, graph.kind n.fin = .det ps hlt f hf → y n.fin = f y) ∧
       (graph.kind n.fin = .source → y n.fin = 0) :=
   (hy n.fin).2.2 (fun h => he.1 ((mem_fins A n).mp h)) ((visited_iff A n).mpr he.2)
@@ -174,9 +184,9 @@ theorem recon_evaluated (hy : graph.ReconEqs d (fins A) given y) {n : Name}
 /-- The hash equation at an evaluated hash node. -/
 theorem yv_hash (hy : graph.ReconEqs d (fins A) given y) {h p : Name}
     (hp : hashParent h = some p) (he : Evaluated A h) :
-    ∃ w, d (.node h.idx, ⟨p.len, yv y p⟩) = some w ∧ trunc w = trunc (yv y h) := by
+    ∃ w, d ⟨p.len, yv y p⟩ = some w ∧ trunc w = trunc (yv y h) := by
   obtain ⟨hlt, hl, hk⟩ := graph_kind_hash hp
-  obtain ⟨w, hw, hyw⟩ := (recon_evaluated hy he).1 _ _ _ _ hk
+  obtain ⟨w, hw, hyw⟩ := (recon_evaluated hy he).1 _ _ _ hk
   refine ⟨w, ?_, ?_⟩
   · rw [sigma_cast (graph_len_fin p) (y p.fin)] at hw
     exact hw
@@ -213,27 +223,38 @@ theorem yv_ev (hy : graph.ReconEqs d (fins A) given y) {l : Fin 7}
   unfold yv
   rw [trunc_cast_eq]
 
+/-- The input of a chain hash: its tweak, then the value before it. -/
+theorem yv_ci (hy : graph.ReconEqs d (fins A) given y) {k : Fin 63} {t : Fin 14}
+    (he : Evaluated A (ci k t)) : yv y (ci k t) = tw (ch k t) ++ trunc (yv y (prev k t)) := by
+  rw [yv_det hy he rfl (by simp)]
+  show tw (ch k t) ++ trunc (y (prev k t).fin) = _
+  unfold yv
+  rw [trunc_cast_eq]
+
 theorem yv_gc (hy : graph.ReconEqs d (fins A) given y) {j : Fin 21}
     (he : Evaluated A (gc j)) :
-    yv y (gc j) = cat3 (yv y (cv (chainOf j 0) 13)) (yv y (cv (chainOf j 1) 13))
+    yv y (gc j) = tw (gh j) ++ cat3 (yv y (cv (chainOf j 0) 13)) (yv y (cv (chainOf j 1) 13))
       (yv y (cv (chainOf j 2) 13)) := by
   rw [yv_det hy he rfl (by simp)]
-  show cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  show tw (gh j) ++ cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  refine congrArg (fun a => tw (gh j) ++ a) ?_
   congr 1 <;> exact trunc_eq_cast (graph_len_fin _) _
 
 theorem yv_ec (hy : graph.ReconEqs d (fins A) given y) {l : Fin 7}
     (he : Evaluated A (ec l)) :
-    yv y (ec l) = cat3 (yv y (gv (groupOf l 0))) (yv y (gv (groupOf l 1)))
+    yv y (ec l) = tw (eh l) ++ cat3 (yv y (gv (groupOf l 0))) (yv y (gv (groupOf l 1)))
       (yv y (gv (groupOf l 2))) := by
   rw [yv_det hy he rfl (by simp)]
-  show cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  show tw (eh l) ++ cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  refine congrArg (fun a => tw (eh l) ++ a) ?_
   congr 1 <;> exact trunc_eq_cast (graph_len_fin _) _
 
 theorem yv_rc (hy : graph.ReconEqs d (fins A) given y) (he : Evaluated A rc) :
-    yv y rc = cat7 fun l => yv y (ev l) := by
+    yv y rc = tw rh ++ cat7 fun l => yv y (ev l) := by
   rw [yv_det hy he rfl (by simp)]
-  show cat7 (fun l => trunc (y (ev l).fin)) = _
-  exact congrArg cat7 (funext fun l => trunc_eq_cast (graph_len_fin (ev l)) _)
+  show tw rh ++ cat7 (fun l => trunc (y (ev l).fin)) = _
+  exact congrArg (fun a => tw rh ++ cat7 a)
+    (funext fun l => trunc_eq_cast (graph_len_fin (ev l)) _)
 
 theorem yv_of_hashOf (hy : graph.ReconEqs d (fins A) given y) {v h : Name}
     (hh : hashOf v = some h) (he : Evaluated A v) : trunc (yv y v) = trunc (yv y h) := by
@@ -241,6 +262,38 @@ theorem yv_of_hashOf (hy : graph.ReconEqs d (fins A) given y) {v h : Name}
   · rw [yv_cv hy he]; exact trunc_128 _
   · rw [yv_gv hy he]; exact trunc_128 _
   · rw [yv_ev hy he]; exact trunc_128 _
+
+/-- A forged chain input differs from the honest one as soon as the value before it does. -/
+theorem yv_ci_ne (hy : graph.ReconEqs d (fins A) given y) {k : Fin 63} {t : Fin 14}
+    (he : Evaluated A (ci k t)) {ξ : Rec} (hne : yv y (prev k t) ≠ val ξ (prev k t)) :
+    yv y (ci k t) ≠ val ξ (ci k t) := by
+  intro heq
+  rw [yv_ci hy he, val_ci] at heq
+  exact hne (trunc_injective_of_len (Name.len_prev k t) (tw_append_inj (n := 128) heq).2)
+
+/-- The input of an evaluated hash node is evaluated: it is not in the cut (its length is not
+128), and everything above it is the hash node or above the hash node. -/
+theorem evaluated_hashParent (hA : IsCut A) {h p : Name} (hp : hashParent h = some p)
+    (he : Evaluated A h) : Evaluated A p := by
+  refine ⟨fun hm => ?_, fun m hm => ?_⟩
+  · have h128 := hA.values p hm
+    rcases len_hashParent_cases hp with e | e | e <;> omega
+  · rw [above_of_child (child_hashParent hp)] at hm
+    rcases hm with rfl | hm
+    · exact he.1
+    · exact he.2 m hm
+
+/-- The forged input of an evaluated hash node is its deterministic function of the forged
+assignment. -/
+theorem yv_hashParent (hA : IsCut A) (hy : graph.ReconEqs d (fins A) given y) {h p : Name}
+    (hp : hashParent h = some p) (he : Evaluated A h) : yv y p = detVal p y :=
+  yv_det hy (evaluated_hashParent hA hp he) (cost_hashParent hp) (hashParent_ne_src hp)
+
+/-- The forged input of an evaluated hash node carries the tweak of that node. -/
+theorem tagNat_yv (hA : IsCut A) (hy : graph.ReconEqs d (fins A) given y) {h p : Name}
+    (hp : hashParent h = some p) (he : Evaluated A h) : tagNat ⟨p.len, yv y p⟩ = h.idx := by
+  rw [yv_hashParent hA hy hp he]
+  exact tagNat_detVal_of_hashParent hp y
 
 end Recon
 
@@ -259,7 +312,7 @@ theorem hash_step {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperPa
   have hhE : Evaluated A h := ⟨hhA, fun m hm => hv m (Above.step hch hm)⟩
   obtain ⟨w, hd, hw⟩ := yv_hash hy hhp hhE
   by_cases hsp : trunc w = trunc (ξ.2 h.fin)
-  · exact ⟨h, v, hhp, yv y v, hne, w, hd, hsp⟩
+  · exact ⟨h, v, hhp, yv y v, hne, tagNat_yv hA hy hhp hhE, w, hd, hsp⟩
   · rcases hashParent_cases hhp with rfl | ⟨v', hv'⟩
     · exfalso
       apply hsp
@@ -293,7 +346,13 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
       fun v' hlt => ih (height v') (by omega) v' rfl
     cases v with
     | src k =>
-      exact hash_step hA hy hacc (h := ch k 0) rfl rfl hv hne ih'
+      have hch : child (src k) = some (ci k 0) := rfl
+      have hcE : Evaluated A (ci k 0) :=
+        ⟨hv _ (Above.child hch), fun m hm => hv m (Above.step hch hm)⟩
+      refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
+      exact yv_ci_ne hy hcE hne
+    | ci k t =>
+      exact hash_step hA hy hacc (h := ch k t) rfl rfl hv hne ih'
     | cv k t =>
       by_cases ht : t.val = 13
       · have ht' : t = 13 := Fin.ext ht
@@ -304,7 +363,7 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
         refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
         intro heq
         rw [yv_gc hy hcE, val_gc'] at heq
-        obtain ⟨h0, h1, h2⟩ := cat3_inj heq
+        obtain ⟨h0, h1, h2⟩ := cat3_inj (append_inj (n := 384) heq).2
         have hk : (k : ℕ) % 3 = 0 ∨ (k : ℕ) % 3 = 1 ∨ (k : ℕ) % 3 = 2 := by omega
         rcases hk with hk | hk | hk
         · have e : chainOf ⟨k / 3, by omega⟩ 0 = k := Fin.ext (by simp [chainOf]; omega)
@@ -316,11 +375,13 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
         · have e : chainOf ⟨k / 3, by omega⟩ 2 = k := Fin.ext (by simp [chainOf]; omega)
           rw [e] at h2
           exact hne h2
-      · have hch : child (cv k t) = some (ch k ⟨t.val + 1, by omega⟩) := by simp [Name.child, ht]
-        have hhp : hashParent (ch k ⟨t.val + 1, by omega⟩) = some (cv k t) := by
-          simp only [hashParent, Option.some.injEq]
-          exact prev_succ k t (by omega)
-        exact hash_step hA hy hacc hch hhp hv hne ih'
+      · have hch : child (cv k t) = some (ci k ⟨t.val + 1, by omega⟩) := by simp [Name.child, ht]
+        have hcE : Evaluated A (ci k ⟨t.val + 1, by omega⟩) :=
+          ⟨hv _ (Above.child hch), fun m hm => hv m (Above.step hch hm)⟩
+        refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
+        refine yv_ci_ne hy hcE ?_
+        rw [prev_succ k t (by omega)]
+        exact hne
     | gc j =>
       exact hash_step hA hy hacc (h := gh j) rfl rfl hv hne ih'
     | gv j =>
@@ -330,7 +391,7 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
       refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
       intro heq
       rw [yv_ec hy hcE, val_ec'] at heq
-      obtain ⟨h0, h1, h2⟩ := cat3_inj heq
+      obtain ⟨h0, h1, h2⟩ := cat3_inj (append_inj (n := 384) heq).2
       have hj : (j : ℕ) % 3 = 0 ∨ (j : ℕ) % 3 = 1 ∨ (j : ℕ) % 3 = 2 := by omega
       rcases hj with hj | hj | hj
       · have e : groupOf ⟨j / 3, by omega⟩ 0 = j := Fin.ext (by simp [groupOf]; omega)
@@ -351,7 +412,7 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
       refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
       intro heq
       rw [yv_rc hy hcE, val_rc'] at heq
-      exact hne (congrFun (cat7_inj heq) l)
+      exact hne (congrFun (cat7_inj (append_inj (n := 896) heq).2) l)
     | rc =>
       exact hash_step hA hy hacc (h := rh) rfl rfl hv hne ih'
     | ch k t => exact absurd hvh (by simp [Name.cost])
@@ -369,7 +430,7 @@ theorem events_none {A' : Finset Name} (hA' : IsCut A') {ξ : Rec} {d : Cache pa
   obtain ⟨w, hd, -⟩ := yv_hash hy (p := rc) rfl hrE
   by_cases hne : yv y rc = val ξ rc
   · right
-    refine ⟨(.node rh.idx, ⟨rc.len, yv y rc⟩), ?_, by rw [hd]; rfl⟩
+    refine ⟨⟨rc.len, yv y rc⟩, ?_, by rw [hd]; rfl⟩
     rw [kc_isSome_iff]
     exact ⟨rh, rc, rfl, by rw [hne]; rfl⟩
   · left
@@ -413,11 +474,11 @@ theorem events_ne {A A' : Finset Name} (hA : IsCut A) (hA' : IsCut A')
       rw [hw, ← yv_of_hashOf hy hh hvE, hvne, val_of_hashOf ξ hh]
     by_cases hpne : yv y p = val ξ p
     · right
-      refine ⟨(.node h.idx, ⟨p.len, yv y p⟩), ?_, by rw [hd]; rfl⟩
+      refine ⟨⟨p.len, yv y p⟩, ?_, by rw [hd]; rfl⟩
       rw [fHid_isSome_some_iff]
       exact ⟨h, p, hhp, hA.not_evaluated_hashOf hvA hh, by rw [hpne]; rfl⟩
     · left
-      exact ⟨h, p, hhp, yv y p, hpne, w, hd, htr⟩
+      exact ⟨h, p, hhp, yv y p, hpne, tagNat_yv hA' hy hhp hhE, w, hd, htr⟩
   · left
     exact up hA' hy hacc hvE.2 (cost_of_hashOf hh) hvne
 
