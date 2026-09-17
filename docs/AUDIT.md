@@ -1,11 +1,11 @@
 # Audit of the bare-oracle contract
 
-Scope: `formal/OptimalOTS/Statement.lean`, its VCVio cost/oracle definitions, and the
-submission certificates. Updated 2026-09-17 for the bare single-oracle branch.
-The contract exposes only bit strings as oracle queries. The verified baselines
-are lower 18 and upper 106. The official lower verifier accepted claim 18 in
-117.5 seconds in the final run on this branch. The lower proof uses repeated reconstruction
-patterns; it does not transfer the former labeled-model entropy argument.
+Scope: the pinned DAG, generic-algorithm and whole-word contracts, their oracle/cost semantics,
+and the submission certificates. The lower bounds are generic **1**, unrestricted DAG **18**,
+and whole-word DAG **93**. The two historical upper references remain **106**; generic upper
+admission is still pending correctness and signing availability. This document distinguishes
+mathematical scope from operational deployment. See [production-readiness.md](production-readiness.md)
+for the service and verifier audit, tests, and remaining environment checks.
 
 ## What is trusted
 
@@ -57,7 +57,29 @@ record coordinates. No graph separation hypothesis is part of the contract.
 The lower certificate therefore applies to every secure scheme and also to
 schemes permitting malleability of a signature on the signed message.
 
-## Certificate status and open proof work
+## Generic and whole-word contracts
+
+`Algorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
+perfect correctness, signing availability, pathwise resource limits and oversized-signature rejection.
+`AlgorithmWeak.lean` pins the fresh-message experiment and the generic lower statement. The lower
+challenge fixes signing failure at most one half for every public-key-dependent message choice.
+Availability is averaged over honest key generation and signing; it does not promise availability
+after arbitrary adversarial oracle preprocessing. The verified lower bound of 1 rules out zero-query
+verification for this entire admissible class. No graph or mandatory index query is assumed.
+
+`WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, 256-bit hashes,
+fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
+grouped values and empty inputs are allowed. The definitions enforce exact lengths and functions;
+no arbitrary transformations or constant words can enter through deterministic nodes. Cuts disclose
+complete values. The 41-origin property is derived from the 5,248-bit payload budget and is not an
+additional assumption. The resulting certificate proves 93, using the same weak-security experiment.
+There is no checked whole-word upper construction.
+
+`formal/scripts/check-axioms.lean` now imports every protected model module, rejects declared axioms
+throughout those modules, and audits 46 declarations fixing the meaning of all five certificates.
+It supplements each submission's axiom guard and the official comparator; it does not replace either.
+
+## DAG certificate status and open proof work
 
 The lower certificate proves 18 for every weakly secure scheme. Under the contrary
 assumption that every verification costs at most 17, each reconstruction uses at
@@ -107,11 +129,11 @@ prove 19. Conditional numerical searches do not establish a stronger bound.
   used. Sampling is free.
 - Index and public-key truncation use the low bits, matching `setWidth`.
 - The adversary's other computation and private randomness are unbounded and free.
-- The secure upper certificate establishes non-vacuity of both security classes.
+- The secure DAG upper certificate establishes non-vacuity of the DAG strong and weak security
+  classes. It does not establish generic admissibility or a whole-word upper construction.
 
 ## Contract changes and verification
 
-Protected files are pinned by `verifier/protected.sha256`. Changes to the oracle
-model or baseline metadata require re-pinning and official verification of both
-tracks. The bare-oracle branch is a contract revision in development; these
-notes do not claim a production deployment or leaderboard promotion.
+Protected files are pinned by `verifier/protected.sha256`. Changes to protected model definitions or track metadata require re-pinning and official
+verification of all affected certificates. The service audit does not alter any of these models or
+claims. Local checks do not constitute deployment or a public leaderboard promotion.

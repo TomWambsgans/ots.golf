@@ -9,13 +9,14 @@
 <link rel="stylesheet" href="/static/style.css?v={{ static_v }}">
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <header class="top">
   <a class="brand" href="/">ots<span>.golf</span></a>
-  <nav>
+  <nav aria-label="Main navigation">
     <a href="/rules">Rules</a>
   </nav>
 </header>
-<main>
+<main id="main-content" tabindex="-1">
 {% block content %}{% endblock %}
 </main>
 {#

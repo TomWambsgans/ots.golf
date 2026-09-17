@@ -97,7 +97,7 @@
       answer. A deterministic node either selects the fixed low or high 128-bit half of a hash
       node, or concatenates earlier node values. Those values may contain several whole words.</p>
       <p>Concatenation may reorder or repeat values, and may be empty. No other deterministic
-      operation is allowed: no smaller bit fragments, XOR or encoding.
+      operation is allowed: no smaller bit fragments, XOR, encoding or nonempty constant nodes.
       Sharing between nodes remains unrestricted.</p>
       <p>A signature discloses complete node values, which may group several words. The total
       payload is at most 41 words. Hashing <code>n</code> words costs
@@ -165,15 +165,5 @@
     </div>
   </details>
 </section>
-<script>
-(function () {
-  function openTarget() {
-    var el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    while (el && el.tagName !== 'DETAILS') el = el.parentElement;
-    if (el) { el.open = true; el.scrollIntoView(); }
-  }
-  window.addEventListener('hashchange', openTarget);
-  openTarget();
-})();
-</script>
+<script src="/static/rules.js?v={{ static_v }}" defer></script>
 {% endblock %}

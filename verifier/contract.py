@@ -6,8 +6,8 @@ import json
 import re
 from pathlib import Path
 
-CLAIM_RE = re.compile(r"^(0|[1-9][0-9]*)\n?$")
-LEAN_FILE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*\.lean$")
+CLAIM_RE = re.compile(rb"(?:0|[1-9][0-9]*)\n?")
+LEAN_FILE_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*\.lean")
 
 
 class ContractError(Exception):
@@ -39,11 +39,16 @@ def track(cfg: dict, slug: str) -> dict:
 def read_claim(path: Path, max_claim: int) -> int:
     """The claim file holds one canonical non-negative integer and at most one trailing newline."""
     try:
-        text = path.read_text(encoding="utf-8")
+        # Read bytes: text-mode universal newlines would silently admit CRLF. Bound the
+        # read before integer conversion, including for Python's large-integer guard.
+        with path.open("rb") as stream:
+            text = stream.read(len(str(max_claim)) + 2)
     except OSError as exc:
         raise ContractError(f"cannot read {path}: {exc}") from exc
-    if not CLAIM_RE.match(text):
+    if not CLAIM_RE.fullmatch(text):
         raise ContractError(f"{path}: expected a canonical integer followed by at most one newline")
+    if len(text.rstrip(b"\n")) > len(str(max_claim)):
+        raise ContractError(f"{path}: claim exceeds max_claim {max_claim}")
     value = int(text.strip())
     if value > max_claim:
         raise ContractError(f"{path}: claim {value} exceeds max_claim {max_claim}")

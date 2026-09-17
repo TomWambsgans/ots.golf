@@ -1,90 +1,104 @@
-# ots.golf service
+# Website and hosted verifier
 
-The hosted verifier and the site, in one FastAPI app plus one worker process. The repository is
-the source of truth; the site is its human-readable view.
+The FastAPI website accepts pull requests and reports their results. A separate worker checks
+proofs against the trusted checkout. The repository defines the contract; the website displays it.
+
+## Local development
 
 ```sh
 cd service
-uv sync                                   # deps into .venv
-./run-local.sh                            # demo board, site, webhook and verifier worker
+uv sync --frozen
+./run-local.sh
 ```
 
-`./run-local.sh` starts the site and the worker together and, by default, seeds the local preview
-with the invented Satoshi Nakamoto and Vitalik Buterin submissions. Preserve this demo board when
-refreshing localhost; it is the preferred development view. Seeding is repeatable: it replaces
-earlier demo rows and removes baseline entries from the preview board.
-Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
-records progress from 19 to 20 and from 105 to 101.
-Whole-word lower has its own demo rows, with the same offsets from its contract claim.
-The homepage compares three open **lower-bound** frameworks in cards and a shared chart. Generic
-lower, DAG lower and whole-word lower all use their pinned track metadata and normal
-leaderboards. Generic lower shows 1 as an ordinary Vitalik demo submission, assuming correctness and signing
-success at least one half for every public-key-dependent message selection. It has no invented
-demo improvements beyond the checked claim. Its zero-offset seed tracks the contract claim and
-survives refreshes without duplicate entries or changed dates. The website presents submissions
-and their solvers without a separate baseline label. The leaderboard defaults to all lower frameworks, grouped by class.
-Filter it with `/?framework=dag`, `/?framework=disclosure`, or `/?framework=generic`.
+Open `http://localhost:8000`. Startup refreshes the fictional Satoshi Nakamoto and Vitalik Buterin
+submissions, preserving their IDs and dates. The page labels this as demo data. Claims follow the
+contract through the offsets in `seed_demo.py`; generic lower has a zero-offset Vitalik submission.
+Real submissions are left alone. Set `OTS_DEMO_DATA=0` to skip this refresh.
 
-There is one **upper** track: fully generic algorithms. Its checked 106-cost adapter is shown as a
-candidate while correctness, signing availability and the generic challenge remain unfinished.
-There are no separate DAG or whole-word upper leaderboards. `#lower` and `#upper` select
-the direction; framework filters apply only to lower bounds. Legacy DAG upper histories remain
-accessible as reference pages, and their demo rows are preserved, without becoming generic records.
-The `disclosure-upper` track remains **Historical partial disclosures**, using the track's
-`historical_framework_title` metadata. Its 16-bit tweaks are outside the Whole words grammar.
-The public queue rejects new submissions to legacy upper roots. Rules describe the requirements
-without scores, candidate results or leaderboard history.
-The rules include diagrams of a disclosed cut and whole-word hashing: split a 256-bit digest into
-two 128-bit words, then concatenate any number of whole words for the next hash. The 5,248-bit
-payload fits at most 41 words. Expandable sections retain the exact graph, generic admissibility,
-allowed word operations, signature-format and submission requirements. The old `disclosure` URL
-and `disclosure-lower` verifier slug now select Whole words.
+After every local commit, refresh localhost and check the rendered page. This checkout's
+`post-commit` hook runs `service/refresh-local.sh`, which refreshes demo claims and reloads the
+web process, including its cached commit. Install the hook in another checkout with:
 
-After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
-demo claims to the current baselines and reload the running site, including its cached commit.
-It preserves submission links and dates, adds demo rows for newly introduced tracks, and leaves real
-submissions and baseline rows untouched. To install this hook in another checkout, run from the
-repository root: `install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"`.
-The same refresh can be run manually with `bash service/refresh-local.sh` from the repository root.
-When proof or admission status changes, update the site, metadata and rules together, then refresh
-localhost and check the rendered pages as part of that change.
+```sh
+install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"
+```
 
-Use `OTS_DEMO_DATA=0 ./run-local.sh` to skip seeding. To also remove existing demo rows, run
-`.venv/bin/python seed_demo.py --remove` first. `seed_demo.py` only accepts the default local
-database unless explicitly forced; the deployed services do not run the local startup script.
+Run that command from the repository root. For a manual refresh, use
+`bash service/refresh-local.sh`. Restart `run-local.sh` after changing worker code: the worker does
+not hot-reload. The startup script removes GitHub credentials from the worker's environment.
 
-Prerequisites: `verifier/setup_tools.sh` has run and `formal/` has been built once (the worker
-clones that warm build for every verification).
+`seed_demo.py --remove` removes fictional rows. Plain `seed_demo.py` replaces them and removes
+local certificate initialization rows; use `--refresh` for routine updates. The script refuses
+production mode and non-loopback site URLs, even with `--force`, and normally accepts only the
+default local database. Do not use fictional data in production.
 
-## Configuration (environment)
+## Tracks and presentation
 
-| Variable | Default | Meaning |
+The homepage has three lower frameworks: generic algorithms, DAGs and whole words. Their
+leaderboards are independent. `/?framework=generic|dag|disclosure` filters the lower tables;
+`#lower` and `#upper` select the direction. Scores appear as attributed submissions, without a
+special baseline presentation. Rules explain the contract without current scores or proof history.
+
+The only upper track is fully generic algorithms. Its security-preserving adapter remains a
+candidate until correctness, signing availability and the generic challenge are complete.
+Legacy `upper` and `disclosure-upper` certificates remain accessible as historical references,
+including their demo rows; they are not generic upper records. The latter belongs to Historical
+partial disclosures, not Whole words. New public submissions to both legacy roots are rejected.
+
+Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
+rules and documentation together, then refresh and inspect localhost.
+
+## Admission and records
+
+A public pull request must change exactly one admitted submission root. The authenticated webhook
+checks the repository, files and current head; the worker verifies that exact commit on the trusted
+tree. A verified improvement becomes a record only after GitHub's API confirms that the verified
+head was merged. Merges received before verification are remembered. The service never merges PRs.
+
+The web process sends commit statuses and result comments from a durable outbox. A reporting outage
+retries delivery without repeating the proof. Attribution comes from the PR author, optional
+`Assisted by:` and `Co-authors:` lines, and the remaining description.
+
+For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
+use `.venv/bin/python -m app.queue lower`, substituting `generic-lower` or `disclosure-lower` as
+needed. `--baseline` initializes a checked certificate locally; it does not bypass verification.
+The two legacy upper slugs also work for local reference checks. Only one worker may use a data
+directory; lock files enforce this across processes on the same host.
+
+## Configuration
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `OTS_REPO_ROOT` | the parent of `service/` | the trusted checkout of the contract |
-| `OTS_DATA_DIR` | `service/data` | database, logs, work directories |
-| `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | any SQLAlchemy URL; SQLite by default, also on the server |
-| `OTS_BASE_URL` | `http://localhost:8000` | public URL, used in links |
-| `GITHUB_WEBHOOK_SECRET` | | verifies `/webhooks/github` |
-| `GITHUB_TOKEN` | | posts commit statuses and PR comments |
-| `OTS_CONTRACT_REPO` | | `owner/name` of the public contract repository |
-| `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending + verifying per user |
-| `OTS_QUEUE_CAP` | `20` | pending overall |
+| `OTS_ENV` | `development` | `development` or `production` |
+| `OTS_ROLE` | `web` | `web` or `worker` |
+| `OTS_REPO_ROOT` | checkout root | trusted contract checkout |
+| `OTS_DATA_DIR` | `service/data` | SQLite database, logs and process locks |
+| `OTS_WORK_DIR` | `<data>/work` | disposable verification jobs; dedicated bounded mount on Linux |
+| `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | database connection; deployment uses SQLite |
+| `OTS_BASE_URL` | `http://localhost:8000` | site origin, without a path |
+| `OTS_CONTRACT_REPO` | empty | `owner/name`; required for public admission |
+| `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
+| `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
+| `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
+| `OTS_QUEUE_CAP` | `20` | pending jobs overall |
 
-## The one way in
+Production web startup requires HTTPS, a repository, a token and a webhook secret of at least
+32 characters. Production workers refuse GitHub credentials. Deploy the web and worker under
+different Unix identities, sharing only the state group. See [deployment](deploy/README.md) for
+storage, isolation, backups and mandatory launch checks. Local macOS verification is unsandboxed.
 
-A pull request against the contract repository that changes exactly one submission root. The
-webhook queues its head commit; the worker fetches it, keeps only the submission root, verifies
-it on the trusted tree with `verifier/verify.py`, and reports back as a commit status and a
-comment. Verified and strictly better than the record: merge it, the merge is the promotion.
+## Checks
 
-Attribution comes from the pull request: the author, plus optional `Assisted by: <model>` and
-`Co-authors: a, b` lines in its body; the rest of the body is the description.
+```sh
+.venv/bin/python -m unittest discover -s tests -v
+cd ..
+python3 service/browser_check.py --output-dir /tmp/ots-ui
+python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
+```
 
-On localhost there is no GitHub, so `python -m app.queue` queues a local commit the way the
-webhook would. For a baseline-only preview with demo data disabled, use
-`.venv/bin/python -m app.queue lower --baseline` (and the same command for `upper`).
-The other admitted lower slugs are `generic-lower` and `disclosure-lower`. The legacy `upper` and
-`disclosure-upper` slugs remain available for local reference verification, not public upper admission.
-
-Run the framework and demo-preservation checks with
-`.venv/bin/python -m unittest discover -s tests -v`. They use an isolated SQLite database.
+Service tests use isolated databases. The optional browser check uses Firefox against the seeded
+localhost preview and exercises desktop/mobile layouts, both color schemes, keyboard controls,
+filters, tooltips, reduced motion and error pages. See [numerical tool setup](../tools/README.md)
+for NumPy and the repository runner; add `--official` to run all five certificate pipelines.
+The [production review](../docs/production-readiness.md) records results and remaining launch gates.

@@ -22,6 +22,8 @@ def render(root: Path, slug: str, claim: int | None) -> tuple[Path, int]:
     t = track(cfg, slug)
     if claim is None:
         claim = read_claim(root / t["submission_root"] / "claim.txt", cfg["limits"]["max_claim"])
+    if not 0 <= claim <= cfg["limits"]["max_claim"]:
+        raise ContractError(f"claim must be between 0 and {cfg['limits']['max_claim']}")
     template = (root / t["challenge_template"]).read_text(encoding="utf-8")
     if "{{CLAIM}}" not in template:
         raise ContractError(f"{t['challenge_template']} has no {{{{CLAIM}}}} placeholder")

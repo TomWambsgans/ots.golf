@@ -4,5 +4,11 @@ formal/.lake/
 formal/OptimalOTS/Challenge/Lower.lean
 formal/OptimalOTS/Challenge/Upper.lean
 formal/OptimalOTS/Challenge/GenericLower.lean
+formal/OptimalOTS/Challenge/DisclosureLower.lean
+formal/OptimalOTS/Challenge/DisclosureUpper.lean
 # verifier tools and scratch
 verifier/.tools/
+
+# Local Python bytecode and isolated research environments
+__pycache__/
+.venv-tools/

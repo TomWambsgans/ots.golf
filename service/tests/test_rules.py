@@ -22,7 +22,7 @@ class RulesTests(unittest.TestCase):
     def rules_body(self):
         response = self.client.get('/rules')
         self.assertEqual(response.status_code, 200)
-        return re.search(r'<main>(.*?)</main>', response.text, re.S).group(1)
+        return re.search(r'<main\b[^>]*>(.*?)</main>', response.text, re.S).group(1)
 
     def test_rules_do_not_publish_scores_or_candidate_history(self):
         config = copy.deepcopy(contract.load())

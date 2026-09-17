@@ -15,11 +15,12 @@ def _verified(slug: str):
 def current_record(session: Session, slug: str) -> Submission | None:
     t = contract.track(slug)
     order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
-    return session.scalars(_verified(slug).order_by(order, Submission.finished_at.asc()).limit(1)).first()
+    return session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None))
+                           .order_by(order, Submission.finished_at.asc()).limit(1)).first()
 
 
 def frontier(session: Session, slug: str) -> list[Submission]:
-    return list(session.scalars(_verified(slug).where(Submission.is_record.is_(True))
+    return list(session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None))
                                 .order_by(Submission.record_at.desc())))
 
 
@@ -62,7 +63,8 @@ def interval(session: Session, framework: str = "dag") -> dict:
 
 def curve(session: Session, slug: str) -> list[dict]:
     """Every record of a track in the order it was set: the step curve of the record over time."""
-    recs = list(session.scalars(_verified(slug).where(Submission.is_record.is_(True))
+    recs = list(session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None),
+                                                   Submission.record_at.is_not(None))
                                 .order_by(Submission.record_at.asc())))
     return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login,
              "demo": bool(s.detail_dict.get("demo"))} for s in recs]

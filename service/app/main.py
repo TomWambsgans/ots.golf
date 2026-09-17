@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import json
+import logging
+from contextlib import suppress
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -15,13 +19,41 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
-from .db import SessionLocal, Submission, User, get_session, init_db, utcnow
+from .db import SessionLocal, Submission, User, get_session, init_db, local_lock, schedule_report, utcnow
 
 APP_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None)
+@asynccontextmanager
+async def lifespan(_app):
+    if settings.environment == "production" and settings.role != "web":
+        raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
+    init_db()
+    task = None
+    if settings.github_token and settings.contract_repo:
+        async def report_loop():
+            from .worker import retry_reports
+            while True:
+                try:
+                    await run_in_threadpool(retry_reports)
+                except Exception:
+                    logging.getLogger(__name__).exception("GitHub outbox delivery failed; retrying")
+                await asyncio.sleep(3)
+        task = asyncio.create_task(report_loop())
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+
+app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None,
+              lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 templates.env.filters["dt"] = lambda d: d.strftime("%Y-%m-%d %H:%M UTC") if d else ""
@@ -42,14 +74,23 @@ def safe_markdown(text: str | None) -> str:
 templates.env.filters["md"] = safe_markdown
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' https: data:; base-uri 'self'; object-src 'none'; "
+        "frame-ancestors 'none'; form-action 'self'"
+    )
+    return response
 
 
 def static_version() -> str:
     """Invalidate the stylesheet and dashboard script together when either changes."""
-    assets = [APP_DIR / "static" / name for name in ("style.css", "dashboard.js")]
+    assets = sorted(p for p in (APP_DIR / "static").iterdir() if p.suffix in {".css", ".js"})
     return hashlib.sha256(b"".join(p.read_bytes() for p in assets if p.is_file())).hexdigest()[:10]
 
 
@@ -64,10 +105,52 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
     return templates.TemplateResponse(request, name, ctx)
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    if request.method in {"GET", "HEAD"} and "text/html" in request.headers.get("accept", ""):
+        message = "This page could not be found." if exc.status_code == 404 else "This request could not be completed."
+        response = render(request, "error.html", status_code=exc.status_code, message=message)
+        response.status_code = exc.status_code
+        response.headers.update(exc.headers or {})
+        return response
+    from fastapi.exception_handlers import http_exception_handler
+    return await http_exception_handler(request, exc)
+
+
+@app.exception_handler(Exception)
+async def internal_error(request: Request, _exc: Exception):
+    if request.method in {"GET", "HEAD"} and "text/html" in request.headers.get("accept", ""):
+        response = render(request, "error.html", status_code=500,
+                          message="This page is temporarily unavailable. Please try again shortly.")
+        response.status_code = 500
+        return response
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"detail": "internal server error"}, status_code=500)
+
+
+@app.get("/healthz", include_in_schema=False)
+def health(session: Session = Depends(get_session)):
+    try:
+        session.execute(select(1))
+    except SQLAlchemyError:
+        raise HTTPException(503, "database unavailable") from None
+    return {"status": "ok"}
+
+
 # --- the one way in: a pull request -----------------------------------------------------------
 
 def queue_submission(session: Session, user: User, track: str, repo: str, commit: str, description: str | None,
                      co_authors: list[str], assisted_by: str | None, pr_number: int | None, pr_url: str | None) -> Submission:
+    # The hosted service uses one host and a shared data directory. Serialize the admission check
+    # and insertion so simultaneous webhook deliveries cannot bypass duplicate or queue limits.
+    with local_lock("admission"):
+        return _queue_submission(session, user, track, repo, commit, description, co_authors,
+                                 assisted_by, pr_number, pr_url)
+
+
+def _queue_submission(session: Session, user: User, track: str, repo: str, commit: str,
+                      description: str | None, co_authors: list[str], assisted_by: str | None,
+                      pr_number: int | None, pr_url: str | None) -> Submission:
     track_config = contract.track(track)
     if track_config is None:
         raise HTTPException(400, f"unknown track {track!r}")
@@ -75,8 +158,8 @@ def queue_submission(session: Session, user: User, track: str, repo: str, commit
         raise HTTPException(400, "Upper submissions require the generic algorithm framework, whose admission "
                             "proofs are still pending. DAG upper roots are retained as reference certificates.")
     commit = commit.strip().lower()
-    if not github.SHA_RE.match(commit):
-        raise HTTPException(400, "commit must be a hex commit hash")
+    if not github.SHA_RE.fullmatch(commit):
+        raise HTTPException(400, "commit must be a full 40-character hex commit hash")
     mine = [s for s in records.in_flight(session) if s.user_id == user.id]
     if len(mine) >= settings.max_inflight_per_user:
         raise HTTPException(429, f"{user.login} already has {len(mine)} submissions in flight")
@@ -92,6 +175,7 @@ def queue_submission(session: Session, user: User, track: str, repo: str, commit
                      description=(description or "").strip() or None, co_authors=json.dumps(co_authors),
                      assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
     session.add(sub)
+    schedule_report(session, sub)
     session.commit()
     return sub
 
@@ -104,6 +188,8 @@ async def webhook(request: Request):
     try:
         declared = int(request.headers.get("content-length") or 0)
     except ValueError:
+        raise HTTPException(400, "bad content-length")
+    if declared < 0:
         raise HTTPException(400, "bad content-length")
     if declared > MAX_WEBHOOK_BYTES:
         raise HTTPException(413, "payload too large")
@@ -118,14 +204,22 @@ async def webhook(request: Request):
         return {"ignored": True}
     try:
         ev = json.loads(body)
-        action, number = ev["action"], int(ev["pull_request"]["number"])
+        action, number = ev["action"], ev["pull_request"]["number"]
         owner_repo, head_sha = ev["repository"]["full_name"], ev["pull_request"]["head"]["sha"]
+        if (not isinstance(action, str) or type(number) is not int or number <= 0
+                or not isinstance(owner_repo, str) or not github.REPO_RE.fullmatch(owner_repo)
+                or not isinstance(head_sha, str) or not github.SHA_RE.fullmatch(head_sha)):
+            raise ValueError
     except (ValueError, KeyError, TypeError):
         raise HTTPException(400, "malformed event")
-    if action not in ("opened", "synchronize", "reopened"):
+    if action not in ("opened", "synchronize", "reopened", "closed"):
         return {"ignored": True}
-    if settings.contract_repo and owner_repo.lower() != settings.contract_repo.lower():
+    if not settings.contract_repo:
+        raise HTTPException(503, "GitHub submission admission is not configured")
+    if owner_repo.lower() != settings.contract_repo.lower():
         return {"ignored": True, "reason": "not the contract repository"}
+    if action == "closed":
+        return await run_in_threadpool(handle_merged_pull_request, owner_repo, number, head_sha)
     return await run_in_threadpool(handle_pull_request, owner_repo, number, head_sha)   # GitHub calls block
 
 
@@ -135,24 +229,24 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
     commit that gets the verdict is the commit whose files were checked."""
     try:
         pr = github.get_pr(owner_repo, number)
-        slug, outside = github.pr_track(owner_repo, number)
+        slug, outside = github.pr_track(owner_repo, number, expected_files=pr.get("changed_files"))
         pr_after = github.get_pr(owner_repo, number)
     except httpx.HTTPError as exc:
         raise HTTPException(502, f"GitHub API: {exc}")
-    if pr.get("state") != "open" or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha:
+    if (pr.get("state") != "open" or pr_after.get("state") != "open"
+            or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha):
         return {"queued": False, "reason": "the pull request moved on; its newer event is the one that counts"}
     if slug is None or outside:
         github.post_comment(owner_repo, number,
-                            "**ots.golf verifier:** a submission changes exactly one submission root and nothing else. "
-                            + (f"Files outside a root: `{'`, `'.join(outside[:10])}`." if outside
-                               else "This pull request does not change a single submission root."))
+                            "**ots.golf verifier:** not queued. A submission must change exactly one "
+                            "submission root and no files outside it. Check this pull request's Files changed tab.")
         return {"queued": False}
     head_repo = pr["head"].get("repo")
     login = (pr.get("user") or {}).get("login") or ""
-    if head_repo is None or not github.LOGIN_RE.match(login):
+    if head_repo is None or not github.LOGIN_RE.fullmatch(login):
         return {"queued": False, "reason": "the head repository is gone or the author is not a GitHub account"}
     fields = github.parse_pr_body(pr.get("body") or "")
-    with SessionLocal() as session:
+    with local_lock("users"), SessionLocal() as session:
         submitter = auth.get_or_create_user(session, login, github_id=pr["user"]["id"],
                                             avatar_url=pr["user"].get("avatar_url"))
         try:
@@ -162,9 +256,35 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
         except HTTPException as exc:
             github.post_comment(owner_repo, number, f"**ots.golf verifier:** not queued: {exc.detail}")
             return {"queued": False, "reason": exc.detail}
-    github.post_status(owner_repo, sub.commit, "pending", "queued for verification",
-                       f"{settings.base_url}/submissions/{sub.id}")
+    # The web process delivers the durable status/comment outbox, including retries after outages.
     return {"queued": True, "id": sub.id}
+
+
+def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
+    """A verified proof becomes a record only after GitHub confirms this exact head was merged."""
+    try:
+        pr = github.get_pr(owner_repo, number)
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, f"GitHub API: {exc}") from exc
+    if not pr.get("merged") or pr.get("state") != "closed" or pr["head"]["sha"] != head_sha:
+        return {"promoted": False, "reason": "this head was not merged"}
+    head_repo = pr["head"].get("repo")
+    from .worker import promote
+    with local_lock("results"), SessionLocal() as session:
+        query = select(Submission).where(Submission.pr_number == number, Submission.commit == head_sha)
+        if head_repo is not None:
+            query = query.where(Submission.source_repo == head_repo["clone_url"])
+        submissions = list(session.scalars(query))
+        for sub in submissions:
+            detail = sub.detail_dict
+            detail["merge"] = {"head": head_sha, "repository": owner_repo, "number": number,
+                               "merged_at": pr.get("merged_at")}
+            sub.detail = json.dumps(detail)
+            if sub.status == "verified":
+                promote(session, sub)
+            schedule_report(session, sub)
+        session.commit()
+        return {"promoted": any(sub.is_record for sub in submissions)}
 
 
 # --- pages ------------------------------------------------------------------------------------

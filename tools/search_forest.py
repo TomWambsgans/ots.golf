@@ -12,7 +12,9 @@ at most 41 nodes (41 · 128 = 5248 revealed bits). We want the least c whose fam
 
 The search reported in the paper: --max-levels 4 --max-branch 41 --digest-chains 3. Needs numpy.
 
-Cost of one hash query on `bits` input bits: ceil((bits + overhead) / 512), at least 1.
+Cost of a graph hash on `bits` input bits: ceil((bits + overhead) / 512), at least 1.
+The overhead represents explicit node tweaks. The separate 512-bit message-and-nonce query
+has no node tweak and always costs one compression. This search counts cuts, not security.
 Counts are computed as 2-variable polynomials (cost, nodes) in float64 and the winner is recounted
 exactly with Python integers.
 """
@@ -146,7 +148,7 @@ def exact_count(L, branches, digests, oh, cost):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--overhead", type=int, default=0, help="bits charged per query besides the input (the contract charges none)")
+    ap.add_argument("--overhead", type=int, default=0, help="explicit tweak bits per graph hash; the index query is unchanged")
     ap.add_argument("--max-levels", type=int, default=3)
     ap.add_argument("--max-branch", type=int, default=10)
     ap.add_argument("--min-branch", type=int, default=2)
@@ -157,18 +159,34 @@ def main():
     ap.add_argument("--check", default=None, help="evaluate one shape: L,b1,b2,...[;m1,m2,...] e.g. 14,3,3,7")
     a = ap.parse_args()
     oh = a.overhead
-    idx = blocks(INDEX_BITS, oh)
-    lo, hi = map(int, a.lengths.split("-"))
+    idx = blocks(INDEX_BITS, 0)
+    if oh < 0 or a.cmax < 1 or a.max_levels < 1 or a.digest_chains < 0 or a.top < 1:
+        ap.error("require overhead and digest-chains >= 0, and cmax, max-levels and top >= 1")
+    if not 1 <= a.min_branch <= a.max_branch:
+        ap.error("require 1 <= min-branch <= max-branch")
+    try:
+        lo, hi = map(int, a.lengths.split("-"))
+        if not 0 <= lo <= hi:
+            raise ValueError
+    except ValueError:
+        ap.error("--lengths must be a non-negative range, for example 4-24")
 
     if a.check:
-        spec, _, ds = a.check.partition(";")
-        nums = [int(x) for x in spec.split(",")]
-        L, branches = nums[0], tuple(nums[1:])
-        digests = tuple(int(x) for x in ds.split(",")) if ds else (0,) * (len(branches) - 1)
+        try:
+            spec, _, ds = a.check.partition(";")
+            nums = [int(x) for x in spec.split(",")]
+            L, branches = nums[0], tuple(nums[1:])
+            digests = tuple(int(x) for x in ds.split(",")) if ds else (0,) * (len(branches) - 1)
+            if (L < 0 or not branches or any(b < 1 for b in branches)
+                    or len(digests) != len(branches) - 1 or any(m < 0 for m in digests)):
+                raise ValueError
+        except ValueError:
+            ap.error("--check requires L,b1,... with L >= 0, positive branches and one digest length per nonroot level")
         poly, keygen = shape_poly(L, branches, digests, oh, a.cmax)
         c, fam = best_cost(poly)
+        count_display = f"~{fam:.4g}" if fam is not None else "fewer than 2^115"
         print(f"shape L={L} branches={branches} digests={digests} overhead={oh}: keygen {keygen}, "
-              f"family cost {c} (~{fam:.4g} cuts), verify {c + idx if c is not None else None}")
+              f"family cost {c} ({count_display} cuts), verify {c + idx if c is not None else None}")
         if c is not None:
             print("exact count at that cost:", exact_count(L, branches, digests, oh, c))
         return

@@ -7,6 +7,10 @@ may declare an axiom.
 -/
 import Lean
 import OptimalOTS.Statement
+import OptimalOTS.Disclosure
+import OptimalOTS.WholeWords
+import OptimalOTS.Algorithm
+import OptimalOTS.AlgorithmWeak
 
 open Lean
 
@@ -19,7 +23,25 @@ def contractDecls : List Name :=
    ``OptimalOTS.CostAtMost, ``OptimalOTS.queryCost, ``OptimalOTS.blockCost, ``OptimalOTS.idxCost,
    ``OptimalOTS.oracleImpl, ``OptimalOTS.Scheme.keygen, ``OptimalOTS.Scheme.sign,
    ``OptimalOTS.Scheme.verify, ``OptimalOTS.index,
-   ``OptimalOTS.VerificationLowerBound]
+   ``OptimalOTS.Scheme.WeaklySecure, ``OptimalOTS.weakExperiment,
+   ``OptimalOTS.VerificationLowerBound,
+   ``OptimalOTS.Graph.HashOrigin, ``OptimalOTS.Graph.hashOrigins,
+   ``OptimalOTS.Graph.disclosureOrigins, ``OptimalOTS.Scheme.DisclosureBound,
+   ``OptimalOTS.DisclosureVerificationLowerBound,
+   ``OptimalOTS.Graph.WholeWords, ``OptimalOTS.Scheme.WholeWords,
+   ``OptimalOTS.WholeWordVerificationLowerBound,
+   ``OptimalOTS.AlgorithmScheme, ``OptimalOTS.AlgorithmScheme.Adversary,
+   ``OptimalOTS.AlgorithmScheme.Limits, ``OptimalOTS.AlgorithmScheme.paperLimits,
+   ``OptimalOTS.AlgorithmScheme.Admissible, ``OptimalOTS.AlgorithmScheme.Correct,
+   ``OptimalOTS.AlgorithmScheme.SigningFailureAtMost,
+   ``OptimalOTS.AlgorithmScheme.SignatureSizeAtMost,
+   ``OptimalOTS.AlgorithmScheme.RejectsOversized,
+   ``OptimalOTS.AlgorithmScheme.KeygenCostAtMost,
+   ``OptimalOTS.AlgorithmScheme.SignCostAtMost,
+   ``OptimalOTS.AlgorithmScheme.VerifyCostAtMost,
+   ``OptimalOTS.AlgorithmScheme.experiment, ``OptimalOTS.AlgorithmScheme.Secure,
+   ``OptimalOTS.AlgorithmScheme.weakExperiment, ``OptimalOTS.AlgorithmScheme.WeaklySecure,
+   ``OptimalOTS.AlgorithmVerificationLowerBound]
 
 def whitelist : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 

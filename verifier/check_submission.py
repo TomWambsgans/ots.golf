@@ -46,12 +46,14 @@ def strip_comments(text: str) -> str:
 def header_imports(text: str) -> tuple[list[str], str | None]:
     """The module header: `import` lines up to the first other command. Returns (imports, error)."""
     imports = []
-    for line in strip_comments(text).splitlines():
+    for line in strip_comments(text.removeprefix("\ufeff")).splitlines():
         s = line.strip()
         if not s:
             continue
-        if s == "prelude" or s.startswith("prelude "):
+        if re.match(r"^prelude\b", s):
             return imports, "`prelude` is not allowed"
+        if re.match(r"^module\b|^(?:(?:public|private|meta)\s+)+import\b", s):
+            return imports, "use ordinary `import` lines; alternate module headers are not allowed"
         m = re.match(r"^import\s+(\S+)\s*$", s)
         if m:
             imports.append(m.group(1))
@@ -71,10 +73,12 @@ def check(root: Path, slug: str) -> dict:
     files: list[str] = []
     total = 0
 
-    if not sub.is_dir():
+    if sub.is_symlink() or not sub.is_dir():
         return {"ok": False, "track": slug, "errors": [f"missing submission root {t['submission_root']}"]}
 
-    entries = sorted(p for p in sub.iterdir() if p.name != ".DS_Store")
+    entries = sorted(sub.iterdir())
+    if len(entries) > lim["max_files"]:
+        return {"ok": False, "track": slug, "errors": [f"more than {lim['max_files']} entries in the submission root"]}
     for p in entries:
         rel = f"{t['submission_root']}/{p.name}"
         if p.is_dir():
@@ -83,13 +87,14 @@ def check(root: Path, slug: str) -> dict:
         if not p.is_file() or p.is_symlink():
             errors.append(f"{rel}: not a regular file")
             continue
-        if not (LEAN_FILE_RE.match(p.name) or p.name in OTHER_ALLOWED):
+        if not (LEAN_FILE_RE.fullmatch(p.name) or p.name in OTHER_ALLOWED):
             errors.append(f"{rel}: only `.lean` files (identifier names), claim.txt and README.md are admitted")
             continue
         size = p.stat().st_size
         total += size
         if size > lim["max_file_bytes"]:
             errors.append(f"{rel}: {size} bytes exceeds max_file_bytes {lim['max_file_bytes']}")
+            continue
         files.append(p.name)
 
     if len(files) > lim["max_files"]:
@@ -113,14 +118,19 @@ def check(root: Path, slug: str) -> dict:
     for name in files:
         if not name.endswith(".lean"):
             continue
-        text = (sub / name).read_text(encoding="utf-8", errors="replace")
+        try:
+            text = (sub / name).read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"{name}: cannot read UTF-8 source: {exc}")
+            continue
         imports, err = header_imports(text)
         if err:
             errors.append(f"{name}: {err}")
         for imp in imports:
-            if any(imp == pre or imp.startswith(pre + ".") for pre in prefixes if pre != "OptimalOTS.Statement"):
-                continue
-            if imp == "OptimalOTS.Statement":
+            # Library namespaces admit submodules; protected contract modules are exact
+            # imports, not a license to import arbitrary OptimalOTS descendants.
+            if any(imp == pre or (pre in {"Mathlib", "VCVio"} and imp.startswith(pre + "."))
+                   for pre in prefixes):
                 continue
             if imp.startswith(t["module_prefix"] + "."):
                 leaf = imp[len(t["module_prefix"]) + 1:]

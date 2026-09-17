@@ -6,10 +6,10 @@ cd "$(dirname "$0")"
 # The local preview includes the Satoshi/Vitalik demo board by default.
 # seed_demo.py refuses databases outside the default local data directory.
 if [[ "${OTS_DEMO_DATA:-1}" == "1" ]]; then
-  .venv/bin/python seed_demo.py
+  .venv/bin/python seed_demo.py --refresh
 fi
 
-.venv/bin/python -m app.worker &
+env -u GITHUB_TOKEN -u GITHUB_WEBHOOK_SECRET OTS_ROLE=worker .venv/bin/python -m app.worker &
 worker=$!
-trap 'kill $worker' EXIT
+trap 'kill "$worker" 2>/dev/null || true; wait "$worker" 2>/dev/null || true' EXIT
 .venv/bin/uvicorn app.main:app --port "${PORT:-8000}" --reload

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import fcntl
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, create_engine, event
@@ -60,15 +62,17 @@ class Submission(Base):
     @property
     def co_authors_list(self) -> list[str]:
         try:
-            return list(json.loads(self.co_authors or "[]"))
-        except ValueError:
+            value = json.loads(self.co_authors or "[]")
+            return [name for name in value if isinstance(name, str)] if isinstance(value, list) else []
+        except (ValueError, TypeError):
             return []
 
     @property
     def detail_dict(self) -> dict:
         try:
-            return dict(json.loads(self.detail or "{}"))
-        except ValueError:
+            value = json.loads(self.detail or "{}")
+            return value if isinstance(value, dict) else {}
+        except (ValueError, TypeError):
             return {}
 
     @property
@@ -76,6 +80,27 @@ class Submission(Base):
         if self.source_repo.startswith("https://github.com/"):
             return f"{self.source_repo.removesuffix('.git')}/commit/{self.commit}"
         return None
+
+
+class GithubReport(Base):
+    """Durable result outbox. A failed GitHub request must not lose a proof's verdict."""
+    __tablename__ = "github_reports"
+    submission_id: Mapped[str] = mapped_column(ForeignKey("submissions.id", ondelete="CASCADE"), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
+def schedule_report(session, sub: Submission) -> None:
+    if sub.pr_number is None:
+        return
+    session.flush()
+    report = session.get(GithubReport, sub.id)
+    if report is None:
+        session.add(GithubReport(submission_id=sub.id))
+    else:
+        report.version += 1
+        report.next_attempt = utcnow()
 
 
 is_sqlite = settings.database_url.startswith("sqlite")
@@ -86,13 +111,30 @@ if is_sqlite:
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA journal_mode=WAL")
         cur.execute("PRAGMA busy_timeout=5000")
+        cur.execute("PRAGMA foreign_keys=ON")
         cur.close()
 
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 
+@contextmanager
+def local_lock(name: str, *, blocking: bool = True):
+    """Serialize one-host service work across threads and processes.
+
+    Keep the lock file in place: unlinking a locked inode would let another worker bypass it.
+    Locks are released automatically when a process dies.
+    """
+    with (settings.data_dir / f"{name}.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
 def init_db() -> None:
-    Base.metadata.create_all(engine)
+    with local_lock("schema"):
+        Base.metadata.create_all(engine)
 
 
 def get_session():

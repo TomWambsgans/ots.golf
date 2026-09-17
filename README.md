@@ -1,85 +1,76 @@
 # ots.golf
 
-How cheap can verifying a hash-based one-time signature be? This repository is the contract, the
-verifier, the baselines and the site of **[ots.golf](https://ots.golf)**, a competition on that number, modeled on
-[better.codes](https://better.codes) (the Proximity Prize, by the Proximity Prize team, the Ethereum
-Foundation, Yukon and zkSecurity; [proximity-prize/proximity-prize](https://github.com/proximity-prize/proximity-prize))
-and [zk.golf](https://zk.golf) (zkSecurity; [zksecurity/zk-golf-challenges](https://github.com/zksecurity/zk-golf-challenges)).
-The leaderboard and the progress chart follow better.codes' design.
+How cheaply can a hash-based one-time signature be verified?
 
-The DAG model is a public computation graph of secret sources, deterministic nodes and hash nodes.
-Signatures reveal node values selected by hashing the message with a nonce; the verifier recomputes
-the root and compares its low 128 bits with the public key. Every party uses one random oracle on
-bit strings. Repeated strings receive the same answer, even across node and index queries. The
-contract provides no labels, tweaks or separation condition.
+ots.golf compares **three lower-bound classes** and admits upper constructions through a
+**single generic algorithm interface**. A submission is a Lean proof about a pinned contract.
+The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
+contract's random-oracle experiment.
 
-Hashing costs one compression per started 512-bit block of the actual input, at least one.
-Deterministic computation and private randomness are free. The 512-bit message-and-nonce index
-costs one compression. The upper baseline includes a 16-bit tweak in every node's input and pays
-for it: chain inputs have 144 bits, three-digest inputs 400 bits, and the root input 912 bits.
-With a 128-bit public key, signatures of at most 5504 bits and 127-bit security, the unrestricted
-**DAG framework** has these baselines:
+| Lower framework | Admitted schemes | Checked lower bound |
+|---|---|---:|
+| Generic algorithms | Arbitrary oracle programs with correctness, availability and resource guarantees | 1 |
+| DAGs | Fixed computation graphs, arbitrary deterministic operations and disclosure cuts | 18 |
+| Whole words | DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
 
-| Track | Certificate | Baseline | Record needs |
-|---|---|---|---|
-| Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 18 (Lean-verified) | c ≥ record + 1 |
-| Upper reference | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | Legacy certificate |
+These bounds apply to different classes. The whole-word result does not establish 93 for
+arbitrary DAGs or generic algorithms. The whole-word track retains its earlier
+`disclosure-lower` identifier for URL and submission-root compatibility.
 
-The verified lower bound 18 counts sets of hash nodes recomputed during verification. If every
-signature cost at most 17, many indices would share such a set, allowing an attacker to convert
-an observed signature and forge on a different message. The proof applies to every weakly secure
-scheme, including schemes whose hash inputs coincide.
+The generic upper interface has a checked **106-compression candidate** with security, size
+and cost proofs. Its correctness and signing-availability proofs are still required before
+upper submissions open. The original DAG and historical partial-disclosure upper certificates
+remain locally verifiable references; neither is an admitted generic upper record.
 
-Unrestricted DAG bounds above 18 remain open. The former labeled-model bound 25 and the proposed fresh-weight
-transfer do not establish a bare-oracle bound; see
-[`docs/bare-oracle-port.md`](docs/bare-oracle-port.md) and the
-[conditional numerical investigation](docs/bare-oracle-numerics.md).
+## Model
 
-Every ranked claim is a theorem about its pinned contract, checked by
-the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
+All parties share one random oracle on bit strings. A new input gets an independent uniform
+256-bit answer; equal inputs always receive the same answer. There are no implicit labels,
+tweaks or domain separation. Every call costs one compression per started 512-bit input block,
+with a minimum of one. Computation and private randomness are free.
 
-A generic oracle-algorithm interface and an exact adapter for the 106-cost forest are available
-as the [foundation for the single generic upper track](docs/generic-upper.md). Generic upper submissions
-are not yet admitted: correctness and signing availability remain to be proved.
+DAG signatures contain a 256-bit nonce and at most 5,248 bits of disclosed node values.
+The message-and-nonce hash selects a cut; verification reconstructs the root and compares its
+low 128 bits with the public key. Whole-word DAGs add only their operation restriction.
+Generic algorithms have no mandatory graph, nonce or disclosure pattern.
 
-The **whole-word framework** restricts DAGs to independent 128-bit secrets, 256-bit hash
-outputs, selecting either fixed 128-bit output half, and concatenation. Inputs may concatenate
-any number of whole words; signatures disclose complete values. The 5248-bit payload, 256-bit
-nonce and 127-bit security requirements remain. Its `disclosure-lower` certificate proves
-**93**, deriving the 41-word limit from the payload budget rather than imposing an origin cap.
-See [the definition and proof](docs/whole-words.md). The historical partial-disclosure upper
-certificate remains a separate reference and is not claimed to satisfy this new syntax.
+The lower certificates cover weak unforgeability: a forgery must use a new message, or signing
+must have failed. Upper certificates require strong unforgeability. Both count the cost of the
+complete security experiment, including honest key generation, signing and final verification.
 
-The site has **three lower-bound frameworks and one fully generic upper track**. The chart compares
-all three lower series and the single 106-cost generic adapter candidate. A [Lean-checked generic
-lower bound of 1](docs/generic-lower.md) covers every correct, weakly secure algorithm whose signing
-succeeds with probability at least one half. The `generic-lower` track is open, with a pinned
-challenge and a normal submission root. The generic upper candidate awaits correctness and
-availability proofs. Lower leaderboards
-are grouped and filtered by framework. There are no separate DAG or whole-word upper
-leaderboards, and the public queue rejects new submissions to those legacy upper roots. Existing
-proofs and historical pages remain available as references. Local demo lower records are explicitly
-separate from the certified baselines.
-
-## Layout
-
-- `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), `OptimalOTS/Weak.lean`
-  (strong security implies the weak security the lower track assumes), the challenge stubs, and
-  `Submissions/{Lower,GenericLower,DisclosureLower}/` (lower submission roots) and
-  `Submissions/{Upper,DisclosureUpper}/` (legacy upper reference roots).
-- `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
-- `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
-  scripts and agents.
-- `service/` — the site and the hosted verifier (`service/README.md`; deployment in `service/deploy/`).
-- `paper/` — the paper. `docs/` — the proof maps of both baselines and the statement audit.
-- `tools/` — the searches behind the two baselines: forest shapes and the lower bound's operating point.
-
-## Build and verify locally
+## Work locally
 
 ```sh
-verifier/setup_tools.sh                        # comparator + lean4export on this toolchain
-cd formal && lake exe cache get && lake build OptimalOTS Submissions   # Mathlib, VCVio, contract, baselines
-cd .. && python3 verifier/verify.py lower --source .
+verifier/setup_tools.sh
+cd formal
+lake exe cache get
+lake build OptimalOTS Submissions
+lake env lean scripts/check-axioms.lean
+cd ..
+python3 verifier/verify.py disclosure-lower --source .
 ```
 
-See `AGENTS.md` for the rules. License: Apache 2.0.
+Use `generic-lower` or `lower` for the other lower certificates, and `upper` or
+`disclosure-upper` for the historical references. macOS verification checks proofs but does
+not sandbox untrusted code. Hosted verification requires the Linux isolation described in
+[the deployment guide](service/deploy/README.md).
+
+For the website, run `uv sync --frozen` and `./run-local.sh` in `service/`.
+The local preview includes clearly marked fictional Satoshi/Vitalik submissions by default;
+these are separate from the checked results above. See [service development](service/README.md)
+and the [production review](docs/production-readiness.md) for checks and deployment gates.
+
+## Find the contract and proofs
+
+- [Submission rules](AGENTS.md), [track metadata](challenges.json) and [verifier](verifier/verify.py).
+- [DAG contract](formal/OptimalOTS/Statement.lean), [generic interface](formal/OptimalOTS/Algorithm.lean)
+  and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
+- [Generic lower proof](docs/generic-lower.md), [DAG lower proof](docs/lower-bound-proof.md)
+  and [whole-word lower proof](docs/whole-words.md).
+- [Generic upper status](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
+- `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
+- `formal/Submissions/{Upper,DisclosureUpper}/`: historical upper references.
+- `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
+
+The competition and chart were inspired by [better.codes](https://better.codes) and
+[zk.golf](https://zk.golf). License: Apache 2.0.

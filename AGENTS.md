@@ -149,8 +149,8 @@ cost; that challenge is not yet pinned or open for submission.
 4. **Axioms.** The exported declarations may depend only on `propext`, `Quot.sound` and
    `Classical.choice`. `native_decide` adds `Lean.ofReduceBool` and is refused; so is `sorry`.
 5. **Limits.** 200 files, 8 MiB per file, 16 MiB per root. Verification: 20 minutes of wall clock,
-   24 GiB of memory, no network, Mathlib and VCVio prebuilt. The baseline proofs verify in under
-   three minutes on 16 cores; a `decide` over large naturals is the usual way to blow the budget.
+   24 GiB of memory, no network, Mathlib and VCVio prebuilt. Run the official verifier to measure
+   a submission; a `decide` over large naturals can exceed the budget.
 6. **Toolchain.** Exactly `formal/lean-toolchain` and `formal/lake-manifest.json`. Both are
    protected.
 
@@ -167,12 +167,13 @@ python3 verifier/verify.py lower --source .    # the full pipeline
 Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks. The commands for `upper`
 and `disclosure-upper` still verify the preserved reference certificates locally.
 
-`setup_tools.sh` installs comparator and lean4export (and landrun on Linux); the `lake build` line
-fetches Mathlib and builds VCVio, the contract and the two baselines. `check_submission.py` runs the policy
+`setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
+Linux); the `lake build` line fetches Mathlib and builds VCVio, the contract and the certificates. `check_submission.py` runs the policy
 checks: flat root, imports, sizes, claim. `verify.py` copies the trusted tree, lays your submission
 root over it, attaches a fresh clone of the warm `.lake`, renders the stub, and runs comparator
-under the contract's limits; on macOS it runs unsandboxed, for development only. A `verified`
-result locally is what the hosted verifier will reproduce.
+under the contract's limits on Linux. Linux requires the isolated, bounded work storage and sandbox
+in `service/deploy/README.md`; unsupported hosts fail closed. macOS runs unsandboxed for trusted
+development only: its proof result does not certify production isolation or resource enforcement.
 
 ## Submitting
 
@@ -199,3 +200,8 @@ Whenever a proof, certified baseline or admission status changes, update the met
 rules and documentation in the same change. Keep lower and upper admission independent. Rules
 describe requirements without current scores. Commit locally and refresh localhost, preserving
 the demo rows; never push or deploy unless explicitly requested.
+
+Run `tools/check_repo.py` for repository checks and `service/browser_check.py` for the seeded local
+preview; setup and optional formal/official checks are documented in `tools/README.md`. Production
+launch requires the actual-host Linux isolation/resource checks and staging GitHub acceptance flow
+in `service/deploy/README.md`. Record evidence and limitations in `docs/production-readiness.md`.

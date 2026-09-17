@@ -169,7 +169,7 @@ class FrameworkTests(unittest.TestCase):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
         self.session.commit()
         html = self.client.get('/rules').text
-        body = re.search(r'<main>(.*?)</main>', html, re.S).group(1)
+        body = re.search(r'<main\b[^>]*>(.*?)</main>', html, re.S).group(1)
         self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|93|106)\b')
         self.assertFalse('framework-comparison' in body)
         self.assertTrue('whole 128-bit words' in body)
@@ -250,6 +250,30 @@ class FrameworkTests(unittest.TestCase):
             else:
                 self.assertEqual(sub.claim, old[sub.id][0])
         self.assertEqual(seed_demo.refresh(self.session), 0)
+
+    def test_fictional_submissions_are_disclosed_before_scores_and_not_called_verified(self):
+        seed_demo.refresh(self.session)
+        home = self.client.get('/').text
+        self.assertLess(home.index('Local demo leaderboard.'), home.index('class="framework-cards"'))
+        self.assertIn('They are not verified submissions.', home)
+        for sub in self.session.scalars(select(Submission)):
+            detail = self.client.get(f'/submissions/{sub.id}').text
+            self.assertIn('<span class="status">demo</span>', detail)
+            self.assertIn('has not been verified', detail)
+            self.assertNotIn('s-verified', detail)
+            self.assertNotIn(sub.commit_url, detail)
+        profile = self.client.get('/solvers/vitalik-buterin').text
+        self.assertNotIn('s-verified', profile)
+
+    def test_dashboard_uses_external_scripts_and_precise_sort_timestamps(self):
+        seed_demo.refresh(self.session)
+        html = self.client.get('/').text
+        self.assertIn('class="skip-link" href="#main-content"', html)
+        self.assertNotRegex(html, r'<script\s*>')
+        self.assertIn('/static/scheme-art.js?v=', html)
+        timestamps = re.findall(r'data-date="([^"]+)"', html)
+        self.assertTrue(timestamps)
+        self.assertTrue(all('T' in stamp for stamp in timestamps))
 
     def test_public_submission_queue_does_not_admit_legacy_upper_tracks(self):
         for track in ('upper', 'disclosure-upper'):

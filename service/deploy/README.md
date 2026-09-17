@@ -1,35 +1,164 @@
-# Deploying on a server
+# Deploying the verifier and website
 
-Target: one Linux box (Ubuntu 24.04, 8+ cores, 32 GB or more: the contract caps a verification at
-24 GiB). NVMe on a filesystem with reflinks, such as btrfs or xfs, makes each verification's clone of
-the warm build instant; on ext4 it is an 8 GB copy, which works but takes a minute.
+The target is one x86_64 Linux host running Ubuntu 24.04, with at least 8 cores and 32 GB RAM.
+Reserve space for the trusted warm Lean build and a separate bounded volume for job copies.
+Use the locked Python dependencies. The worker and all web processes must share one data directory;
+this deployment does not support workers on separate hosts.
 
-1. `OTS_REPO_URL=https://github.com/<org>/<repo> OTS_DOMAIN=ots.golf bash deploy/setup-server.sh`
-   as root. It creates the `ots` user, installs elan, Go, uv and Caddy, clones the repository, builds
-   comparator, lean4export and landrun, warms Mathlib, VCVio and the baselines, and installs the
-   `ots-web`, `ots-worker` and `caddy` units.
-2. `/etc/ots/secrets.env` (root only) already holds a generated webhook secret; add a fine-grained
-   GitHub token limited to this repository (commit statuses and pull requests, read and write, no
-   contents write), then `systemctl restart ots-web ots-worker`. Untrusted Lean code runs as the
-   `ots` user with read access to the filesystem, so this file must stay `root:root 0600`; the
-   non-secret settings live in `/etc/ots/public.env`.
-3. On GitHub, add a webhook on the contract repository: payload URL `https://<domain>/webhooks/github`,
-   content type JSON, the same secret, event "Pull requests".
-4. Queue the baselines once, with the services' settings:
+Untrusted work needs a **dedicated filesystem of at most 64 GiB**, separate from the operating system,
+trusted checkout, warm Lean cache, account homes and persistent website data. Memory and time limits
+do not prevent a submission from filling a disk. The verifier refuses unbounded or shared job storage.
+
+**A macOS proof check is not a production sandbox test.** Complete the Linux acceptance checks below
+on the actual host before connecting the public webhook. The installer deliberately leaves the
+services stopped.
+
+## Install and configure
+
+1. As root, run:
+
    ```sh
-   sudo -u ots -H bash -c 'set -a; . /etc/ots/public.env; set +a; cd /srv/ots/repo/service &&
-     OTS_REPO_ROOT=/srv/ots/repo .venv/bin/python -m app.queue lower --baseline &&
-     OTS_REPO_ROOT=/srv/ots/repo .venv/bin/python -m app.queue upper --baseline'
+   OTS_REPO_URL=https://github.com/<org>/<repo> OTS_DOMAIN=ots.golf bash service/deploy/setup-server.sh
    ```
-   Without the settings the command would write to a database of its own under `service/data`,
-   which the worker never reads.
 
-The sandbox chain is comparator → landrun (Landlock: read-only tree, writable `.lake` only, no
-network) inside a transient service of the `ots` user's manager (`systemd-run --user --wait`) that
-carries the contract's memory and time limits on the whole process tree, forbids unix sockets
-(comparator's documented requirement) and new privileges, and gets an environment with nothing but
-PATH, HOME and the tool paths; `loginctl enable-linger` keeps that manager available. The trusted tree is never compiled with
-a submission in place: each verification works on a copy.
+   The script installs the tools, warms the trusted Lean project, and installs Caddy and the two
+   systemd units. Review the downloaded elan, uv, Go and Caddy installers as part of host provisioning;
+   this bootstrap is not a hermetic operating-system image. The repository pins the proof tool commits
+   and the Python dependency lockfile.
 
-Backups: `data/ots.db` and `data/logs/` are the whole state; the machine is otherwise rebuildable
-from this script.
+2. Add a fine-grained repository token to `/etc/ots/secrets.env`: commit statuses and pull requests,
+   read and write, without contents write. The file already contains a generated webhook secret.
+   Keep it `root:root 0600`. Do not put credentials in `/etc/ots/public.env`, the checkout, Git
+   configuration, the `ots` account's home, or the verifier environment.
+
+   `ots-web` owns the website and GitHub reporting; only that service receives `secrets.env`.
+   The verifier runs as the different Unix user `ots`, with public settings only. Both use the
+   `ots-state` group for the SQLite database, logs and lock files. The data directory is setgid and
+   the services use `UMask=0007`. This separates the web process's credentials from submission code,
+   including reads of another process's environment. Production worker startup refuses GitHub
+   credentials. Do not run both services as the same user.
+
+3. Provision a dedicated ext4 or xfs volume at `/srv/ots-work`, at most 64 GiB, and persist its mount
+   through `/etc/fstab`. The installer creates only the mountpoint; it does not repartition or mount
+   disks. After mounting, give its root to `ots:ots-state` with mode `2770`. Loop-backed filesystems
+   are refused: checking their capacity does not establish reserved physical space on the host.
+   A bounded tmpfs is also supported, but its pages consume RAM; size it within the host memory
+   budget. Do not put the database, logs, trusted checkout or warm cache on this volume.
+
+   `OTS_WORK_DIR=/srv/ots-work` and `TMPDIR=/srv/ots-work` in `public.env` put both job directories and
+   temporary Git clones on the bounded volume. Each verification checks the mount, filesystem type,
+   capacity and separation; nested mounts in a job are refused. Confirm that a full work volume
+   fails a job while the website and database continue to work. Reflinks cannot cross filesystems,
+   so the warm build is copied onto this separate volume; allow enough disk and startup time.
+
+4. Inspect the installed units and validate Caddy:
+
+   ```sh
+   systemd-analyze verify /etc/systemd/system/ots-web.service /etc/systemd/system/ots-worker.service
+   caddy validate --config /etc/caddy/Caddyfile
+   ```
+
+   The units set `OTS_ENV=production` and their respective `OTS_ROLE=web|worker`. Production web
+   startup requires an HTTPS origin, repository, token and webhook secret of at least 32 characters.
+   The data/work paths, SQLite URL, domain and repository are in `/etc/ots/public.env`.
+
+## Linux acceptance checks
+
+Run these with the public webhook disconnected and the production configuration in place:
+
+1. As the verifier user, run the isolation probe, then every certificate:
+
+   ```sh
+   sudo -u ots -H bash -c 'set -a; . /etc/ots/public.env; set +a
+     export PATH="$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin"
+     cd /srv/ots/repo
+     python3 verifier/check_linux_sandbox.py &&
+     python3 verifier/verify.py generic-lower --source . &&
+     python3 verifier/verify.py lower --source . &&
+     python3 verifier/verify.py disclosure-lower --source . &&
+     python3 verifier/verify.py upper --source . &&
+     python3 verifier/verify.py disclosure-upper --source .'
+   ```
+
+   The probe must pass actual environment, `/proc`, filesystem, network, process-memory and signal
+   denial checks, including a running canary process and forbidden truncation/permission changes. The verifier requires Landlock ABI 3 or newer and systemd, private devices and shared memory, a
+   clean environment, masked `/proc` and `/sys`, read-only system mounts with only the job’s
+   `.lake` writable, and denied networking and cross-process control.
+   An in-service launcher checks that the kernel actually enforces these restrictions before starting
+   comparator. Unsupported isolation must reject the job; never remove
+   the checks to make a host pass. Also exercise the contract's memory limit and a timed-out malicious
+   test submission, and confirm the entire transient service and process group terminate.
+
+2. Start the services, still without a public webhook:
+
+   ```sh
+   systemctl start ots-web ots-worker caddy
+   curl --fail https://ots.golf/healthz
+   ```
+
+   Replace the example domain with yours. Check the journal and confirm different process owners.
+   From `ots`, a read of `/proc/<ots-web-pid>/environ` must fail. Inspect the worker environment as
+   root without printing secret values and confirm that neither GitHub credential variable is set.
+   Test the site on narrow and desktop screens, keyboard navigation and both light/dark schemes.
+
+3. Queue the three checked lower certificates as ordinary attributed submissions, using the same
+   database and a restrictive umask:
+
+   ```sh
+   sudo -u ots -H bash -c 'umask 0007; set -a; . /etc/ots/public.env; set +a
+     export OTS_ENV=production OTS_ROLE=worker OTS_REPO_ROOT=/srv/ots/repo
+     cd /srv/ots/repo/service
+     .venv/bin/python -m app.queue generic-lower --baseline &&
+     .venv/bin/python -m app.queue lower --baseline &&
+     .venv/bin/python -m app.queue disclosure-lower --baseline'
+   ```
+
+   Do not seed fictional localhost rows into production. The legacy upper roots are reference
+   certificates, not public upper leaderboards. Generic upper admission remains pending.
+
+4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
+   a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
+   Only an API-confirmed merge of the verified head may promote a PR to a record. Stop and restart
+   the worker during a job; it must retry the interrupted job once and refuse a concurrent worker.
+   Verify that result statuses/comments eventually arrive without rerunning the proof after a
+   reporting outage. These GitHub mutations are staging tests, never part of local repository tests.
+
+5. Connect GitHub's **Pull requests** webhook to `https://<domain>/webhooks/github`, with JSON content
+   and the configured secret. Keep `closed` events enabled: merged heads are promoted from these
+   events after GitHub's API confirms the merge. The service ignores other repositories and refuses
+   admission when the repository setting is missing.
+
+## Operations, upgrades and recovery
+
+`/healthz` checks the web process and database connection; it is not a certificate or worker-health
+signal. Monitor `journalctl -u ots-web -u ots-worker`, queue age, free disk space, verification failures
+and the `github_reports` outbox. Failed reports remain in that table and retry with backoff, up to an
+hour; subsequent updates edit the stored result comment. A crash after GitHub accepts a new comment
+but before its ID is committed can produce one duplicate comment on retry. Proof verification is not
+repeated for a reporting failure.
+
+The worker holds a process lock for the shared data directory. At startup it requeues interrupted
+`verifying` jobs, then processes one job at a time. Outer pipeline timeouts retain their logs and
+terminate the verifier process group; the verifier also cleans up its comparator group and Linux
+service. Keep one trusted checkout per worker and update it only while that worker is stopped.
+
+Before an upgrade, stop both services and back up the database with SQLite's backup API and the logs:
+copying `ots.db` alone while WAL writes are active is not a consistent backup. For example, after
+creating a protected backup directory, run `sqlite3 /srv/ots/data/ots.db '.backup /backup/ots.db'` as
+root and copy `data/logs/`. Keep the backup private. Restore into a staging data directory and run
+`PRAGMA integrity_check` before relying on it. The additive `github_reports` table is created at
+startup; existing submission IDs, dates and results are preserved.
+
+When upgrading from the earlier single-user setup, stop both services, create `ots-web` and
+`ots-state`, update both units, and make existing database, WAL/SHM, log and lock files group-writable
+by `ots-state`. Provision the bounded work mount and add `OTS_WORK_DIR`/`TMPDIR` to `public.env`;
+existing environment files are not overwritten by the installer. Never grant the group access to
+`secrets.env`. Audit historical real rows marked
+`is_record` against their merged PRs: earlier code promoted at verification time. No automatic rewrite
+is safe for those historical rows. Demo rows and explicit local certificate initialization retain
+their intentional status.
+
+Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
+merge event. A merge marker received before verification is stored and applied after a successful
+check. The service never merges PRs, updates the trusted checkout, or publishes a generic upper record
+automatically.

@@ -25,10 +25,14 @@ runs with its fake landrun shim: fine for development, NOT a sandbox.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import platform
+import re
+import signal
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -39,19 +43,23 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from contract import ContractError, load_challenges, read_claim, repo_root, track  # noqa: E402
+from contract import LEAN_FILE_RE, ContractError, load_challenges, repo_root, track  # noqa: E402
+from linux_storage import linux_work_preflight  # noqa: E402
 
 
 LOG_CAP = 4 * 1024 * 1024        # bytes of comparator output kept; the rest is read and dropped
+_BOUNDED_PROCESSES: set[subprocess.Popen] = set()
 
 
 class PolicyReject(Exception):
     """The submission is refused before anything of it is copied or compiled."""
 
 
-def run(cmd, **kw):
-    kw.setdefault("timeout", 600)
-    return subprocess.run(cmd, check=True, text=True, capture_output=True, **kw)
+def run(cmd, timeout: int = 600):
+    # Fetch progress and remote error messages are untrusted too. Bound their capture
+    # and register the whole process group for cancellation, just like blob reads.
+    output = bounded_output(cmd, LOG_CAP, timeout=timeout).decode("utf-8", errors="replace")
+    return subprocess.CompletedProcess(cmd, 0, stdout=output, stderr="")
 
 
 def tools_env(root: Path) -> dict:
@@ -63,43 +71,189 @@ def tools_env(root: Path) -> dict:
         if line.startswith("export ") and "=" in line:
             k, v = line[len("export "):].split("=", 1)
             env[k] = v.strip().strip('"')
+    for key in ("COMPARATOR_BIN", "COMPARATOR_LEAN4EXPORT", "COMPARATOR_LANDRUN"):
+        value = Path(env.get(key, ""))
+        if not value.is_absolute() or not value.is_file() or not os.access(value, os.X_OK):
+            raise ContractError(f"{key} must name an existing absolute executable; rerun verifier/setup_tools.sh")
     return env
 
 
-def export_submission(source: str, commit: str | None, rel_root: str, dest: Path, max_files: int = 200) -> str:
-    """Materialize <rel_root> from the source at the commit into dest; returns the commit."""
+def bounded_output(cmd: list[str], limit: int, timeout: int = 60) -> bytes:
+    """Read untrusted Git metadata/blobs without an unbounded capture or tar extraction."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+    _BOUNDED_PROCESSES.add(proc)
+    chunks: list[bytes] = []
+    exceeded = False
+
+    def read():
+        nonlocal exceeded
+        size = 0
+        for chunk in iter(lambda: proc.stdout.read(65536), b""):
+            size += len(chunk)
+            if size > limit:
+                exceeded = True
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                return
+            chunks.append(chunk)
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+        raise
+    finally:
+        reader.join(5)
+        proc.stdout.close()
+        _BOUNDED_PROCESSES.discard(proc)
+    if exceeded:
+        raise PolicyReject("submission metadata or file exceeds its size limit")
+    data = b"".join(chunks)
+    if proc.returncode:
+        raise subprocess.CalledProcessError(proc.returncode, cmd, stderr=data.decode(errors="replace"))
+    return data
+
+
+def valid_name(name: str) -> bool:
+    return bool(LEAN_FILE_RE.fullmatch(name)) or name in {"claim.txt", "README.md"}
+
+
+def export_submission(source: str, commit: str | None, rel_root: str, dest: Path,
+                      max_files: int = 200, max_file_bytes: int = 8 * 1024 * 1024,
+                      max_total_bytes: int = 16 * 1024 * 1024) -> str:
+    """Copy only flat, bounded regular files; never apply archive attributes or follow links."""
     dest.mkdir(parents=True)
+    out = dest / rel_root
+    out.mkdir(parents=True)
+
+    def check_sizes(entries):
+        if len(entries) > max_files:
+            raise PolicyReject(f"more than {max_files} files in {rel_root}")
+        if any(size > max_file_bytes for _, size in entries):
+            raise PolicyReject(f"a file in {rel_root} exceeds {max_file_bytes} bytes")
+        if sum(size for _, size in entries) > max_total_bytes:
+            raise PolicyReject(f"{rel_root} exceeds {max_total_bytes} bytes in total")
+        for name, _ in entries:
+            if not valid_name(name):
+                raise PolicyReject(f"{name!r}: only flat .lean files, claim.txt and README.md are allowed")
+
     if commit is None:
-        src = Path(source)
-        if not (src / rel_root).is_dir():
+        src = Path(source) / rel_root
+        if not src.is_dir():
             raise ContractError(f"{source} has no {rel_root}")
-        shutil.copytree(src / rel_root, dest / rel_root, symlinks=True)   # a link stays a link, and is refused
+        if src.is_symlink():
+            raise PolicyReject("submission root must not be a symlink")
+        entries = []
+        for path in src.iterdir():
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode):
+                raise PolicyReject(f"{path.name!r}: only regular files are allowed")
+            entries.append((path.name, info.st_size))
+            if len(entries) > max_files:
+                raise PolicyReject(f"more than {max_files} files in {rel_root}")
+        check_sizes(entries)
+        copied = 0
+        for name, _ in entries:
+            # O_NOFOLLOW + fstat closes the check/open race for final-component symlinks,
+            # FIFOs and devices. Bound the read again in case a local file grew.
+            fd = os.open(src / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "rb") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise PolicyReject(f"{name!r}: only regular files are allowed")
+                data = stream.read(max_file_bytes + 1)
+            copied += len(data)
+            if len(data) > max_file_bytes or copied > max_total_bytes:
+                raise PolicyReject("submission grew beyond its size limit while being copied")
+            (out / name).write_bytes(data)
         return "worktree"
-    with tempfile.TemporaryDirectory(prefix="ots-src-") as tmp:
+    if not commit or commit.startswith("-") or "\x00" in commit:
+        raise PolicyReject("invalid commit revision")
+    with tempfile.TemporaryDirectory(prefix="ots-src-", dir=dest.parent) as tmp:
         repo = Path(tmp) / "repo"
         if Path(source).is_dir():
             repo = Path(source)
         else:
-            run(["git", "clone", "--filter=blob:none", "--no-checkout", "--", source, str(repo)])
-            run(["git", "-C", str(repo), "fetch", "--depth=1", "origin", commit])
-        full = run(["git", "-C", str(repo), "rev-parse", "--verify", f"{commit}^{{commit}}"]).stdout.strip()
-        # Only regular files may leave the repository: a symlink would be followed by the copy below,
-        # outside any sandbox, and a submodule is somebody else's tree.
-        tree = run(["git", "-C", str(repo), "ls-tree", "-r", "-z", full, "--", rel_root]).stdout
-        entries = [e for e in tree.split("\0") if e]
-        if not entries:
+            run(["git", "init", "--quiet", str(repo)])
+            run(["git", "-C", str(repo), "remote", "add", "origin", source])
+            run(["git", "-C", str(repo), "fetch", "--filter=blob:none", "--depth=1", "--", "origin", commit])
+        full = run(["git", "-C", str(repo), "rev-parse", "--verify", "--end-of-options", f"{commit}^{{commit}}"]).stdout.strip()
+        if not re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", full):
+            raise ContractError("git did not resolve a canonical commit hash")
+        # Listing only this tree (not recursively) rejects a nested directory immediately.
+        # Reading blobs directly ignores attacker-controlled export-ignore/export-subst.
+        tree = bounded_output(["git", "-C", str(repo), "ls-tree", "-l", "-z", f"{full}:{rel_root}"],
+                              max_files * 4096)
+        blobs = []
+        for entry in filter(None, tree.split(b"\0")):
+            meta, raw_name = entry.split(b"\t", 1)
+            mode, kind, oid, size = meta.split()
+            name = raw_name.decode("utf-8", errors="replace")
+            if kind != b"blob" or mode not in (b"100644", b"100755"):
+                raise PolicyReject(f"{name!r}: only regular files are allowed")
+            blobs.append((name, int(size), oid.decode("ascii")))
+        if not blobs:
             raise PolicyReject(f"the commit has no {rel_root}")
-        if len(entries) > max_files:
-            raise PolicyReject(f"more than {max_files} files in {rel_root}")
-        for e in entries:
-            meta, name = e.split("\t", 1)
-            mode, kind = meta.split()[:2]
-            if kind != "blob" or mode not in ("100644", "100755"):
-                raise PolicyReject(f"{name}: only regular files are allowed (found {kind}, mode {mode})")
-        tar = subprocess.run(["git", "-C", str(repo), "archive", "--format=tar", full, rel_root],
-                             check=True, capture_output=True).stdout
-        subprocess.run(["tar", "-x", "-C", str(dest)], input=tar, check=True)
+        check_sizes([(name, size) for name, size, _ in blobs])
+        for name, size, oid in blobs:
+            data = bounded_output(["git", "-C", str(repo), "cat-file", "blob", oid], size)
+            if len(data) != size:
+                raise ContractError("git blob size changed unexpectedly")
+            (out / name).write_bytes(data)
         return full
+
+
+def linux_preflight(env: dict) -> None:
+    """Production verification must never fall back to the development shim."""
+    if os.geteuid() == 0:
+        raise ContractError("refusing to compile submissions as root")
+    if not shutil.which("systemd-run") or not shutil.which("systemctl"):
+        raise ContractError("Linux verification requires systemd-run and systemctl; refusing unsandboxed execution")
+    lsm = Path("/sys/kernel/security/lsm")
+    if not lsm.is_file() or "landlock" not in lsm.read_text().strip().split(","):
+        raise ContractError("Landlock is not enabled on this kernel: refusing to build untrusted code")
+    with Path(env["COMPARATOR_LANDRUN"]).open("rb") as stream:
+        if stream.read(4) != b"\x7fELF":
+            raise ContractError("Linux verification requires the compiled landrun binary, not a development shim")
+    if landlock_abi() < 3:
+        raise ContractError("Landlock ABI 3 or newer is required to protect read-only files from truncate()")
+
+
+def landlock_abi() -> int:
+    # Linux assigns landlock_create_ruleset syscall 444 on these supported ABIs.
+    # Querying VERSION with a null ruleset makes no changes to the calling process.
+    if platform.machine() not in {"x86_64", "aarch64", "riscv64"}:
+        raise ContractError("unsupported Linux architecture for the Landlock ABI preflight")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    return int(libc.syscall(ctypes.c_long(444), ctypes.c_void_p(), ctypes.c_size_t(0), ctypes.c_uint(1)))
+
+
+def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, unit: str) -> list[str]:
+    """Mandatory service isolation, shared with the on-host launch smoke test."""
+    props = [f"MemoryMax={limits['memory_bytes']}", "MemorySwapMax=0",
+             f"RuntimeMaxSec={limits['wall_clock_seconds']}", "KillMode=control-group",
+             "TasksMax=512", "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes",
+             # Comparator builds only beneath .lake (nanoda is disabled in every pinned
+             # config). A read-only mount also blocks chmod/xattr/utime metadata changes
+             # that Landlock's file-content permissions do not comprehensively cover.
+             "ProtectSystem=strict", f"ReadWritePaths={cwd / '.lake'}",
+             # Read-only /proc exposes other same-UID processes' environment and descriptors.
+             "InaccessiblePaths=/proc /sys", "PrivateDevices=yes", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
+             "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
+             "pidfd_getfd kill tkill tgkill pidfd_send_signal"]
+    launch = [sys.executable, str(HERE / "linux_exec.py")] + cmd
+    launch_env = {"OTS_VERIFIER_HOST_DEV": str(Path("/dev").stat().st_dev),
+                  "OTS_VERIFIER_HOST_SHM_DEV": (str(Path("/dev/shm").stat().st_dev)
+                                                if Path("/dev/shm").exists() else ""), **sandbox_env}
+    clean_cmd = ["/usr/bin/env", "-i"] + [f"{k}={v}" for k, v in launch_env.items()] + launch
+    return (["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet", f"--unit={unit}",
+             f"--working-directory={cwd}"]
+            + [x for p in props for x in ("-p", p)] + ["--"] + clean_cmd)
 
 
 def clone_tree(src: Path, dst: Path, ignore=None) -> None:
@@ -132,15 +286,46 @@ def main() -> int:
     lim = cfg["limits"]
     lean_root = cfg.get("lean_root", ".")
     warm_lake = (a.lake or trusted / lean_root / ".lake").resolve()
-    work = (a.work or Path(tempfile.mkdtemp(prefix="ots-verify-"))).resolve()
-    work.mkdir(parents=True, exist_ok=True)
+    work = (a.work or Path(tempfile.mkdtemp(prefix="ots-verify-"))).absolute()
+    if a.work:
+        # This directory is removed after successful runs; never adopt an existing path.
+        try:
+            work.mkdir(mode=0o700, parents=True, exist_ok=False)
+        except OSError as exc:
+            ap.error(f"--work must be a new directory: {exc}")
     project = work / "project"
     log_path = work / "verify.log"
     result = {"track": a.track, "source": a.source, "status": "failed", "work": str(work)}
-    t0 = time.time()
+    t0 = time.monotonic()
+    proc, unit, cenv = None, None, None
+
+    def stop_processes():
+        if unit:
+            try:
+                subprocess.run(["systemctl", "--user", "kill", "--signal=KILL", unit], env=cenv,
+                               capture_output=True, timeout=10)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        if proc is not None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        for child in tuple(_BOUNDED_PROCESSES):
+            try:
+                os.killpg(child.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+    def interrupted(signum, _frame):
+        stop_processes()
+        raise SystemExit(128 + signum)
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, interrupted)
 
     def finish(status, **extra):
-        result.update(status=status, duration_s=round(time.time() - t0, 1), log=str(log_path), **extra)
+        result.update(status=status, duration_s=round(time.monotonic() - t0, 1), log=str(log_path), **extra)
         if a.json:
             print(json.dumps(result, indent=2))
         else:
@@ -152,10 +337,14 @@ def main() -> int:
 
     try:
         env = tools_env(trusted)
+        if platform.system() == "Linux":
+            linux_preflight(env)
+            linux_work_preflight(work, trusted, warm_lake)
         # 1. submission root only
         staged = work / "staged"
         result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged,
-                                              max_files=lim["max_files"])
+                                              max_files=lim["max_files"], max_file_bytes=lim["max_file_bytes"],
+                                              max_total_bytes=lim["max_total_bytes"])
         # 2. the trusted tree, allowlisted: only what a verification needs, so the copy can never
         #    recurse into work directories, tool checkouts or unrelated files
         def skip(names_to_skip):
@@ -208,35 +397,21 @@ def main() -> int:
         lake = shutil.which("lake", path=path) or "lake"
         cmd = [lake, "env", env["COMPARATOR_BIN"], str(project / t["comparator_config"])]
         cenv, unit = dict(sandbox_env), None
-        if platform.system() == "Linux" and shutil.which("systemd-run"):
-            lsm = Path("/sys/kernel/security/lsm")
-            if not (lsm.is_file() and "landlock" in lsm.read_text()):
-                return finish("failed", reason="Landlock is not enabled on this kernel: refusing to build untrusted code")
+        if platform.system() == "Linux":
             # A transient user SERVICE, not a scope: only a service can carry RestrictAddressFamilies,
             # which comparator requires because Landlock cannot block unix sockets, and only a service
             # is killed as a whole cgroup when the time is up. Under a system service there is no
             # session environment; the user's manager (kept alive by `loginctl enable-linger`)
             # listens under /run/user/<uid>.
             unit = f"ots-verify-{uuid.uuid4().hex[:12]}"
-            props = [f"MemoryMax={lim['memory_bytes']}", "MemorySwapMax=0",
-                     f"RuntimeMaxSec={lim['wall_clock_seconds']}", "KillMode=control-group",
-                     "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes"]
-            cmd = (["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet", f"--unit={unit}",
-                    f"--working-directory={project / lean_root}"]
-                   + [x for p in props for x in ("-p", p)]
-                   + [x for k, v in sandbox_env.items() for x in ("-E", f"{k}={v}")] + ["--"] + cmd)
+            cmd = linux_command(cmd, project / lean_root, sandbox_env, lim, unit)
             runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
             cenv = {"PATH": path, "HOME": home, "XDG_RUNTIME_DIR": runtime,
                     "DBUS_SESSION_BUS_ADDRESS": os.environ.get("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")}
         elif "TMPDIR" in os.environ:
             cenv["TMPDIR"] = os.environ["TMPDIR"]
 
-        def stop_unit():
-            if unit:
-                subprocess.run(["systemctl", "--user", "kill", "--signal=KILL", unit], env=cenv,
-                               capture_output=True, timeout=30)
-
-        started = time.time()
+        started = time.monotonic()
         proc = subprocess.Popen(cmd, cwd=project / lean_root, env=cenv, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -255,17 +430,13 @@ def main() -> int:
         try:
             proc.wait(timeout=lim["wall_clock_seconds"] + 60)
         except subprocess.TimeoutExpired:
-            stop_unit()
-            try:
-                os.killpg(proc.pid, 9)
-            except OSError:
-                pass
+            stop_processes()
             proc.wait()
             reader.join(10)
             return finish("timeout", limit_s=lim["wall_clock_seconds"])
         reader.join(30)
-        if proc.returncode != 0 and time.time() - started >= lim["wall_clock_seconds"] - 1:
-            stop_unit()                               # RuntimeMaxSec already killed the tree
+        if proc.returncode != 0 and time.monotonic() - started >= lim["wall_clock_seconds"] - 1:
+            stop_processes()                           # RuntimeMaxSec already killed the tree
             return finish("timeout", limit_s=lim["wall_clock_seconds"])
         text = log_path.read_text(errors="replace")
         if proc.returncode == 0 and "Your solution is okay!" in text:
@@ -274,10 +445,13 @@ def main() -> int:
     except PolicyReject as exc:
         log_path.write_text(str(exc) + "\n")
         return finish("policy_rejected", errors=[str(exc)])
-    except (ContractError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+    except (ContractError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         detail = getattr(exc, "stderr", "") or str(exc)
         log_path.write_text(str(detail))
         return finish("failed", reason=str(detail)[-2000:])
+    finally:
+        # Includes exceptions while reading logs and interruption by the worker's timeout.
+        stop_processes()
 
 
 if __name__ == "__main__":

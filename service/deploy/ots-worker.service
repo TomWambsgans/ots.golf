@@ -4,10 +4,13 @@ After=network.target
 
 [Service]
 User=ots
+Group=ots-state
+UMask=0007
 WorkingDirectory=/srv/ots/repo/service
 EnvironmentFile=/etc/ots/public.env
-EnvironmentFile=/etc/ots/secrets.env
 Environment=OTS_REPO_ROOT=/srv/ots/repo
+Environment=OTS_ENV=production
+Environment=OTS_ROLE=worker
 Environment=PATH=/srv/ots/.elan/bin:/usr/local/bin:/usr/bin:/bin
 # The worker itself is light. The sandboxed comparator run is a transient service of the ots user's
 # manager, in another cgroup: its memory and time limits are set by verifier/verify.py, not here.
@@ -16,6 +19,8 @@ MemoryMax=28G
 ExecStart=/srv/ots/repo/service/.venv/bin/python -m app.worker
 Restart=always
 RestartSec=5
+TimeoutStopSec=60
+KillMode=control-group
 
 [Install]
 WantedBy=multi-user.target

@@ -5,6 +5,7 @@
   if (svg && tip) {
     var points = JSON.parse(document.getElementById('chart-points').textContent);
     var cross = svg.querySelector('.crosshair');
+    var plot = svg.closest('.chart-plot');
     function hideTip() { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); }
     function showPoint(point) {
       cross.setAttribute('x1', point.x); cross.setAttribute('x2', point.x);
@@ -33,10 +34,12 @@
       if (distance < 45) showPoint(best); else hideTip();
     });
     svg.addEventListener('pointerleave', hideTip);
+    plot.addEventListener('scroll', hideTip);
+    window.addEventListener('resize', hideTip);
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape') hideTip(); });
     svg.querySelectorAll('.chart-record').forEach(function (link) {
       link.addEventListener('focus', function () { showPoint(points[+link.dataset.point]); });
       link.addEventListener('blur', hideTip);
-      link.addEventListener('keydown', function (event) { if (event.key === 'Escape') hideTip(); });
       link.addEventListener('pointerdown', function (event) {
         if (event.pointerType === 'touch') showPoint(points[+link.dataset.point]);
       });

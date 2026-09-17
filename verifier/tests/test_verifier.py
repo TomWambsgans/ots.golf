@@ -1,0 +1,422 @@
+"""Regression tests for the pre-compilation trust boundary; no Lean or network needed."""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+VERIFIER = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(VERIFIER))
+from check_submission import check, header_imports
+from contract import ContractError, read_claim
+from render_challenge import render
+from linux_exec import isolation_check
+from linux_storage import MAX_WORK_BYTES, linux_work_preflight, mount_path
+from verify import PolicyReject, bounded_output, export_submission, linux_command, linux_preflight, run, tools_env
+
+
+class VerifierTests(unittest.TestCase):
+    def setUp(self):
+        self.env = patch.dict(os.environ, {"OTS_VERIFIER_HOST_DEV": "-1", "OTS_VERIFIER_HOST_SHM_DEV": ""})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.readonly_mounts = patch("linux_exec.os.statvfs", return_value=SimpleNamespace(f_flag=os.ST_RDONLY))
+        self.readonly_mounts.start()
+        self.addCleanup(self.readonly_mounts.stop)
+        self.tmp = tempfile.TemporaryDirectory(prefix="ots-policy-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.cfg = json.loads((VERIFIER.parent / "challenges.json").read_text())
+        (self.root / "challenges.json").write_text(json.dumps(self.cfg))
+        self.rel = "formal/Submissions/GenericLower"
+        self.sub = self.root / self.rel
+        self.sub.mkdir(parents=True)
+        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.AlgorithmWeak\n")
+        (self.sub / "claim.txt").write_bytes(b"1\n")
+
+    def export(self, **kwargs):
+        return export_submission(str(self.root), None, self.rel, self.root / "out", **kwargs)
+
+    def commit(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Verifier tests",
+                        "-c", "user.email=verifier@invalid.example", "-c", "commit.gpgsign=false",
+                        "commit", "-qm", "fixture"], check=True)
+
+    def export_commit(self, **kwargs):
+        return export_submission(str(self.root), "HEAD", self.rel, self.root / "out", **kwargs)
+
+    def test_valid_submission_and_export(self):
+        self.assertTrue(check(self.root, "generic-lower")["ok"])
+        self.assertEqual(self.export(), "worktree")
+        self.assertEqual((self.root / "out" / self.rel / "claim.txt").read_bytes(), b"1\n")
+
+    def test_canonical_claims(self):
+        claim = self.sub / "claim.txt"
+        for data in (b"0", b"1\n", b"1000000"):
+            with self.subTest(data=data):
+                claim.write_bytes(data)
+                self.assertEqual(read_claim(claim, 1000000), int(data))
+
+    def test_malformed_claims_are_rejections_not_crashes(self):
+        claim = self.sub / "claim.txt"
+        for data in (b"", b"01", b"-1", b"+1", b"1\n\n", b"1\r\n", b" 1", b"1 ",
+                     b"\xff", b"1000001", b"1" * 10000):
+            with self.subTest(data=data[:20]):
+                claim.write_bytes(data)
+                with self.assertRaises(ContractError):
+                    read_claim(claim, 1000000)
+                self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_render_rejects_out_of_range_explicit_claim(self):
+        for claim in (-1, 1000001):
+            with self.subTest(claim=claim), self.assertRaises(ContractError):
+                render(self.root, "generic-lower", claim)
+
+    def test_ordinary_import_header(self):
+        imports, error = header_imports("/- outer /- inner -/ -/\nimport Mathlib\n-- hi\nimport VCVio\nnamespace X")
+        self.assertEqual(imports, ["Mathlib", "VCVio"])
+        self.assertIsNone(error)
+
+    def test_header_bypasses_are_rejected(self):
+        for prefix in ("prelude", "module", "public import Mathlib", "private import Mathlib",
+                       "meta import Mathlib", "public meta import Mathlib", "module import Mathlib",
+                       "prelude\timport Mathlib", "import Mathlib OptimalOTS.WholeWords"):
+            with self.subTest(prefix=prefix):
+                (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.Upper.Solution\n")
+                self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_bom_does_not_hide_imports(self):
+        (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.Upper.Solution\n")
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_disallowed_and_missing_sibling_imports(self):
+        for module in ("OptimalOTS", "OptimalOTS.Statement.Extra", "Submissions.Upper.Solution",
+                       "OptimalOTS.Algorithm.Extra", "Submissions.GenericLower.Absent"):
+            with self.subTest(module=module):
+                (self.sub / "Solution.lean").write_text(f"import {module}\n")
+                self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_existing_sibling_import_is_allowed(self):
+        (self.sub / "Helper.lean").write_text("import Mathlib\n")
+        (self.sub / "Solution.lean").write_text("import Submissions.GenericLower.Helper\n")
+        self.assertTrue(check(self.root, "generic-lower")["ok"])
+
+    def test_invalid_utf8_source(self):
+        (self.sub / "Solution.lean").write_bytes(b"\xff")
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_filename_newline_is_rejected(self):
+        (self.sub / "Sneaky.lean\n").write_text("")
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_hidden_files_are_not_silently_ignored(self):
+        (self.sub / ".DS_Store").write_bytes(b"fixture")
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_directory_rejected_before_copy(self):
+        (self.sub / "nested").mkdir()
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_symlink_rejected_before_read(self):
+        (self.sub / "Secret.lean").symlink_to(self.root / "absent-secret")
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_fifo_rejected_without_blocking(self):
+        os.mkfifo(self.sub / "Pipe.lean")
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_root_symlink_is_rejected(self):
+        original = self.root / "original"
+        self.sub.rename(original)
+        self.sub.symlink_to(original, target_is_directory=True)
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        with self.assertRaises(PolicyReject):
+            self.export()
+
+    def test_per_file_limit_applies_before_copy(self):
+        with self.assertRaises(PolicyReject):
+            self.export(max_file_bytes=2)
+        self.assertFalse((self.root / "out" / self.rel / "Solution.lean").exists())
+
+    def test_total_limit_applies_before_copy(self):
+        with self.assertRaises(PolicyReject):
+            self.export(max_total_bytes=3)
+
+    def test_file_count_limit_applies_before_copy(self):
+        with self.assertRaises(PolicyReject):
+            self.export(max_files=1)
+
+    def test_git_export_is_byte_exact_despite_archive_attributes(self):
+        # Git archive would omit this claim and rewrite this source: neither is allowed.
+        (self.root / ".gitattributes").write_text(
+            f"{self.rel}/claim.txt export-ignore\n{self.rel}/Solution.lean export-subst\n")
+        source = b"import Mathlib\n-- $Format:%H$\n"
+        (self.sub / "Solution.lean").write_bytes(source)
+        self.commit()
+        result = self.export_commit()
+        self.assertRegex(result, r"^[a-f0-9]{40}$")
+        self.assertEqual((self.root / "out" / self.rel / "Solution.lean").read_bytes(), source)
+        self.assertEqual((self.root / "out" / self.rel / "claim.txt").read_bytes(), b"1\n")
+
+    def test_git_symlink_is_rejected(self):
+        (self.sub / "Secret.lean").symlink_to("/etc/passwd")
+        self.commit()
+        with self.assertRaises(PolicyReject):
+            self.export_commit()
+
+    def test_git_nested_tree_is_rejected(self):
+        (self.sub / "nested").mkdir()
+        (self.sub / "nested" / "Extra.lean").write_text("")
+        self.commit()
+        with self.assertRaises(PolicyReject):
+            self.export_commit()
+
+    def test_git_blob_size_is_checked_before_read(self):
+        self.commit()
+        with self.assertRaises(PolicyReject):
+            self.export_commit(max_file_bytes=2)
+
+    def test_git_commit_cannot_inject_an_option(self):
+        with self.assertRaises(PolicyReject):
+            export_submission(str(self.root), "--help", self.rel, self.root / "out")
+
+    def test_bounded_git_output(self):
+        with self.assertRaises(PolicyReject):
+            bounded_output([sys.executable, "-c", "print('x' * 100000)"], 1024)
+
+    def test_bounded_command_timeout(self):
+        with self.assertRaises(subprocess.TimeoutExpired):
+            bounded_output([sys.executable, "-c", "import time; time.sleep(5)"], 1024, timeout=0.05)
+
+    def test_fetch_helper_bounds_remote_progress(self):
+        with patch("verify.LOG_CAP", 1024), self.assertRaises(PolicyReject):
+            run([sys.executable, "-c", "import sys; sys.stderr.write('x' * 100000)"])
+
+    def test_fetch_helper_uses_registered_timeout(self):
+        with self.assertRaises(subprocess.TimeoutExpired):
+            run([sys.executable, "-c", "import time; time.sleep(5)"], timeout=0.05)
+
+    def test_linux_refuses_root(self):
+        with patch("verify.os.geteuid", return_value=0), self.assertRaisesRegex(ContractError, "root"):
+            linux_preflight({})
+
+    def test_linux_refuses_missing_systemd(self):
+        with patch("verify.os.geteuid", return_value=1000), patch("verify.shutil.which", return_value=None):
+            with self.assertRaisesRegex(ContractError, "unsandboxed"):
+                linux_preflight({})
+
+    def test_linux_refuses_missing_landlock(self):
+        with patch("verify.os.geteuid", return_value=1000), patch("verify.shutil.which", return_value="/bin/tool"), \
+             patch("verify.Path.is_file", return_value=False):
+            with self.assertRaisesRegex(ContractError, "Landlock"):
+                linux_preflight({})
+
+    def test_linux_refuses_fake_landrun(self):
+        fake = self.root / "fake.sh"
+        fake.write_text("#!/bin/sh\nexec \"$@\"\n")
+        with patch("verify.os.geteuid", return_value=1000), patch("verify.shutil.which", return_value="/bin/tool"), \
+             patch("verify.Path.is_file", return_value=True), patch("verify.Path.read_text", return_value="landlock,yama\n"):
+            with self.assertRaisesRegex(ContractError, "development shim"):
+                linux_preflight({"COMPARATOR_LANDRUN": str(fake)})
+
+    def test_linux_refuses_landlock_without_truncate_protection(self):
+        fake = self.root / "landrun"
+        fake.write_bytes(b"\x7fELFfixture")
+        with patch("verify.os.geteuid", return_value=1000), patch("verify.shutil.which", return_value="/bin/tool"), \
+             patch("verify.Path.is_file", return_value=True), patch("verify.Path.read_text", return_value="landlock\n"), \
+             patch("verify.landlock_abi", return_value=2):
+            with self.assertRaisesRegex(ContractError, "truncate"):
+                linux_preflight({"COMPARATOR_LANDRUN": str(fake)})
+
+    def test_tools_environment_requires_all_executables(self):
+        tools = self.root / "verifier" / ".tools"
+        tools.mkdir(parents=True)
+        (tools / "env.sh").write_text('export COMPARATOR_BIN="/bin/sh"\n')
+        with self.assertRaises(ContractError):
+            tools_env(self.root)
+
+    def test_linux_service_properties_cannot_silently_fall_back(self):
+        cmd = linux_command(["comparator", "config.json"], self.root, {"PATH": "/usr/bin", "HOME": "/empty"},
+                            {"memory_bytes": 1234, "wall_clock_seconds": 56}, "test-unit")
+        for required in ("MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group",
+                         "TasksMax=512", "InaccessiblePaths=/proc /sys", "PrivateDevices=yes", "PrivateIPC=yes",
+                         "ProtectSystem=strict", f"ReadWritePaths={self.root / '.lake'}",
+                         "SystemCallErrorNumber=EPERM",
+                         "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
+                         "pidfd_getfd kill tkill tgkill pidfd_send_signal",
+                         "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes"):
+            self.assertIn(required, cmd)
+        self.assertEqual(cmd[cmd.index("--"):][:3], ["--", "/usr/bin/env", "-i"])
+        self.assertEqual(cmd[-6:], ["PATH=/usr/bin", "HOME=/empty", sys.executable,
+                                   str(VERIFIER / "linux_exec.py"), "comparator", "config.json"])
+
+    def test_linux_launcher_refuses_readable_proc(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch("linux_exec.Path.read_bytes", return_value=b"secrets"):
+            with self.assertRaisesRegex(RuntimeError, "failed to hide"):
+                isolation_check()
+
+    def test_linux_launcher_refuses_permitted_sockets(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch("linux_exec.Path.read_bytes", side_effect=PermissionError), \
+             patch("linux_exec.Path.iterdir", side_effect=PermissionError), patch("linux_exec.socket.socket"):
+            with self.assertRaisesRegex(RuntimeError, "networking"):
+                isolation_check()
+
+    def test_linux_launcher_accepts_only_effective_isolation(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch("linux_exec.Path.read_bytes", side_effect=PermissionError), \
+             patch("linux_exec.Path.iterdir", side_effect=PermissionError), \
+             patch("linux_exec.socket.socket", side_effect=PermissionError), \
+             patch("linux_exec.os.kill", side_effect=PermissionError):
+            isolation_check()
+
+    def test_linux_launcher_refuses_permitted_signals(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch("linux_exec.Path.read_bytes", side_effect=PermissionError), \
+             patch("linux_exec.Path.iterdir", side_effect=PermissionError), \
+             patch("linux_exec.socket.socket", side_effect=PermissionError), patch("linux_exec.os.kill"):
+            with self.assertRaisesRegex(RuntimeError, "process signals"):
+                isolation_check()
+
+    def test_linux_launcher_refuses_shared_devices(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch.dict(os.environ, {"OTS_VERIFIER_HOST_DEV": str(Path("/dev").stat().st_dev)}):
+            with self.assertRaisesRegex(RuntimeError, "private devices"):
+                isolation_check()
+
+    def test_linux_launcher_refuses_writable_trusted_mounts(self):
+        with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
+             patch("linux_exec.os.statvfs", return_value=SimpleNamespace(f_flag=0)):
+            with self.assertRaisesRegex(RuntimeError, "read-only"):
+                isolation_check()
+
+
+class LinuxStorageTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="ots-storage-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        self.volume = self.root / "work"
+        self.work = self.volume / "job"
+        self.work.mkdir(parents=True)
+        self.trusted = self.root / "repo"
+        self.trusted.mkdir()
+        self.state = self.root / "data"
+        self.state.mkdir()
+        self.device = os.makedev(0, 2)
+        self.same_device = set()
+        self.fs = "ext4"
+        self.mount_root = "/"
+        self.extra_mounts = ""
+        self.capacity = 32 * 1024 ** 3
+        original_stat = Path.stat
+
+        def fake_stat(path, *args, **kwargs):
+            result = list(original_stat(path, *args, **kwargs))
+            result[2] = self.device if path.is_relative_to(self.volume) or path in self.same_device else os.makedev(0, 1)
+            return os.stat_result(result)
+
+        def mountinfo(_path, *args, **kwargs):
+            return (f"1 0 0:1 / / rw - ext4 /dev/root rw\n"
+                    f"2 1 0:2 {self.mount_root} {self.volume} rw - {self.fs} /dev/work rw\n" + self.extra_mounts)
+
+        for mocked in (patch.dict(os.environ, {"OTS_WORK_DIR": str(self.volume), "OTS_DATA_DIR": str(self.state)}),
+                       patch("linux_storage.Path.stat", fake_stat), patch("linux_storage.Path.read_text", mountinfo),
+                       patch("linux_storage.os.statvfs", side_effect=lambda _: SimpleNamespace(f_blocks=self.capacity // 4096, f_frsize=4096))):
+            mocked.start()
+            self.addCleanup(mocked.stop)
+
+    def test_bounded_dedicated_volume_is_allowed(self):
+        linux_work_preflight(self.work, self.trusted)
+
+    def test_missing_work_configuration_is_rejected(self):
+        with patch.dict(os.environ, {"OTS_WORK_DIR": ""}), self.assertRaisesRegex(ContractError, "OTS_WORK_DIR"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_unbounded_volume_is_rejected(self):
+        self.capacity = MAX_WORK_BYTES + 4096
+        with self.assertRaisesRegex(ContractError, "64 GiB"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_same_filesystem_as_persistent_state_is_rejected(self):
+        self.same_device.add(self.state)
+        with self.assertRaisesRegex(ContractError, "persistent data"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_same_filesystem_as_trusted_checkout_is_rejected(self):
+        self.same_device.add(self.trusted)
+        with self.assertRaisesRegex(ContractError, "trusted checkout"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_same_filesystem_as_system_root_is_rejected(self):
+        self.same_device.add(Path("/"))
+        with self.assertRaisesRegex(ContractError, "system"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_same_filesystem_as_home_is_rejected(self):
+        self.same_device.add(Path.home())
+        with self.assertRaisesRegex(ContractError, "home"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_same_filesystem_as_warm_cache_is_rejected(self):
+        cache = self.trusted / "cache"
+        cache.mkdir()
+        self.same_device.add(cache)
+        with self.assertRaisesRegex(ContractError, "cache"):
+            linux_work_preflight(self.work, self.trusted, cache)
+
+    def test_loop_backed_volume_is_rejected(self):
+        original_exists = Path.exists
+        with patch("linux_storage.Path.exists", lambda path: str(path) == "/sys/dev/block/0:2/loop" or original_exists(path)):
+            with self.assertRaisesRegex(ContractError, "loop-backed"):
+                linux_work_preflight(self.work, self.trusted)
+
+    def test_bounded_tmpfs_is_allowed(self):
+        self.fs = "tmpfs"
+        linux_work_preflight(self.work, self.trusted)
+
+    def test_work_outside_dedicated_volume_is_rejected(self):
+        with self.assertRaisesRegex(ContractError, "beneath"):
+            linux_work_preflight(self.trusted, self.trusted)
+
+    def test_shared_or_subvolume_filesystems_are_rejected(self):
+        self.fs = "btrfs"
+        with self.assertRaisesRegex(ContractError, "dedicated ext4"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_bind_subtree_is_rejected(self):
+        self.mount_root = "/elsewhere"
+        with self.assertRaisesRegex(ContractError, "bind-mounted"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_nested_mount_is_rejected(self):
+        self.extra_mounts = f"3 2 0:3 / {self.work}/escape rw - ext4 /dev/escape rw\n"
+        with self.assertRaisesRegex(ContractError, "nested mounts"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_not_a_mount_root_is_rejected(self):
+        with patch.dict(os.environ, {"OTS_WORK_DIR": str(self.work)}), self.assertRaises(ContractError):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_mountinfo_escapes_are_decoded(self):
+        self.assertEqual(mount_path(r"/some\040space/with\134backslash"), Path("/some space/with\\backslash"))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -11,7 +11,8 @@ from . import contract
 from .config import settings
 
 API = "https://api.github.com"
-SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
+SHA_RE = re.compile(r"[0-9a-f]{40}")
+REPO_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_.-]{1,100}")
 LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\[bot\])?$")     # what GitHub can issue
 
 
@@ -26,6 +27,7 @@ def _check(r: httpx.Response, what: str) -> None:
     """A verdict that never reaches the pull request must at least reach the log."""
     if r.status_code >= 300:
         print(f"[github] {what}: HTTP {r.status_code} {r.text[:200]}", flush=True)
+        r.raise_for_status()
 
 
 def _headers() -> dict:
@@ -44,10 +46,13 @@ def get_pr(owner_repo: str, number: int) -> dict:
         return r.json()
 
 
-def pr_track(owner_repo: str, number: int) -> tuple[str | None, list[str]]:
+def pr_track(owner_repo: str, number: int, *, expected_files: int | None = None) -> tuple[str | None, list[str]]:
     """The track whose root the PR changes, and the files outside any root (which disqualify it)."""
     roots = {t["submission_root"].rstrip("/") + "/": t["slug"] for t in contract.tracks()}
-    touched, outside = set(), []
+    touched, outside, count = set(), [], 0
+    # GitHub's pull-request files endpoint returns at most 3,000 files. Refuse a truncated list.
+    if expected_files is not None and not 0 <= expected_files <= 3000:
+        return None, ["file list exceeds GitHub's 3,000-file limit"]
     with httpx.Client(timeout=30) as client:
         page = 1
         while True:
@@ -55,16 +60,24 @@ def pr_track(owner_repo: str, number: int) -> tuple[str | None, list[str]]:
                            params={"per_page": 100, "page": page}, headers=_headers())
             r.raise_for_status()
             files = r.json()
+            count += len(files)
             for f in files:
-                name = f["filename"]
-                slug = next((s for root, s in roots.items() if name.startswith(root)), None)
-                if slug:
-                    touched.add(slug)
-                else:
-                    outside.append(name)
+                # A rename changes both paths, including a source outside the submitted root.
+                for name in {f["filename"], f.get("previous_filename", f["filename"])}:
+                    slug = next((s for root, s in roots.items() if name.startswith(root)), None)
+                    if slug:
+                        touched.add(slug)
+                    else:
+                        outside.append(name)
             if len(files) < 100:
                 break
+            if page == 30:
+                if expected_files != count:
+                    return None, ["GitHub returned an incomplete file list"]
+                break
             page += 1
+    if expected_files is not None and expected_files != count:
+        return None, ["GitHub returned an incomplete file list"]
     if len(touched) != 1:
         return None, outside
     return touched.pop(), outside
@@ -80,12 +93,20 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
     _check(r, f"status on {owner_repo}@{sha[:10]}")
 
 
-def post_comment(owner_repo: str, number: int, body: str) -> None:
+def post_comment(owner_repo: str, number: int, body: str) -> int | None:
     if not settings.github_token:
         return
     with httpx.Client(timeout=30) as client:
         r = client.post(f"{API}/repos/{owner_repo}/issues/{number}/comments", headers=_headers(), json={"body": body})
     _check(r, f"comment on {owner_repo}#{number}")
+    return r.json()["id"]
+
+
+def update_comment(owner_repo: str, comment_id: int, body: str) -> None:
+    with httpx.Client(timeout=30) as client:
+        r = client.patch(f"{API}/repos/{owner_repo}/issues/comments/{comment_id}",
+                         headers=_headers(), json={"body": body})
+    _check(r, f"update comment {comment_id} on {owner_repo}")
 
 
 # One line each; horizontal whitespace only, so an empty field never swallows the next line.

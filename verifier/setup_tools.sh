@@ -23,8 +23,8 @@ readonly landrun_rev="811cfff51ceaf3d9843708aa6d22e9b84ccac8b4"
 minor() { sed -E 's/^leanprover\/lean4:v([0-9]+\.[0-9]+)\..*$/\1/' "$1"; }
 
 if ! command -v elan >/dev/null 2>&1; then
-  curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-    | sh -s -- -y --default-toolchain none
+  echo "elan is required; install and verify it before bootstrapping the pinned verification tools" >&2
+  exit 1
 fi
 
 clone_at() {  # url rev dest
@@ -33,6 +33,9 @@ clone_at() {  # url rev dest
   fi
   git -C "$3" fetch --depth=1 origin "$2"
   git -C "$3" checkout --detach --force "$2"
+  # Old untracked source files must not become inputs to the pinned build. Ignored build
+  # caches remain, and Lake checks their source hashes before reusing them.
+  git -C "$3" clean -ffd
   [[ "$(git -C "$3" rev-parse HEAD)" == "$2" ]]
   [[ -z "$(git -C "$3" status --porcelain --untracked-files=no)" ]] || { echo "dirty checkout: $3" >&2; exit 1; }
 }

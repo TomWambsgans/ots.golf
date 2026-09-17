@@ -17,9 +17,10 @@ Always synchronize the site's admission status, baseline metadata, chart, leader
 whenever a proof or contract status changes. Refresh localhost and check the rendered pages as part
 of the same change; do not wait for a separate request to update the website.
 
-`./run-local.sh` seeds the demo board before starting the worker and web server; use this entry
+`./run-local.sh` refreshes the demo board without replacing rows before starting the worker and web server; use this entry
 point for local development. `OTS_DEMO_DATA=0` explicitly disables startup seeding.
-`seed_demo.py` refuses nonlocal databases by default. Never force it against production.
+`seed_demo.py` refuses production mode and non-loopback site URLs even with `--force`, and
+refuses nonlocal databases by default. Never force it against production.
 
 If reseeding an already running site, wait for any active baseline verification to finish before
 running `.venv/bin/python seed_demo.py`: the seed replaces baseline database rows.
@@ -62,3 +63,15 @@ Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`Disclosur
 the same baseline-relative demo offsets as DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.
+
+After editing worker code, restart the local worker as well as refreshing the web process;
+`uvicorn --reload` does not reload the worker. Keep one worker per data directory. Production web
+and worker run as different Unix users; only the web process receives GitHub credentials.
+Records require verification plus an API-confirmed merge of that exact head. Preserve reporting
+retries and merge-before-verification handling. Never bypass Linux isolation or bounded-storage
+checks to make a host pass. See `deploy/README.md` for the launch gates.
+
+Use `browser_check.py` for repeatable Firefox checks of the seeded local preview. Keep demo labels
+visible before scores and on submission/profile pages; fictional rows must not present kernel
+verification badges or fabricated commit links. A passing macOS proof check does not establish
+production sandbox safety.

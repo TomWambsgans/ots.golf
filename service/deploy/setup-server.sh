@@ -11,9 +11,19 @@ set -euo pipefail
 : "${OTS_REPO_URL:?set OTS_REPO_URL}"
 : "${OTS_DOMAIN:=localhost}"
 OTS_HOME=/srv/ots
+[[ "${EUID}" == 0 ]] || { echo 'run this installer as root' >&2; exit 1; }
+[[ "${OTS_REPO_URL}" =~ ^https://github\.com/[A-Za-z0-9-]+/[A-Za-z0-9_.-]+/?$ ]] || {
+  echo 'OTS_REPO_URL must be a GitHub HTTPS repository URL' >&2; exit 1;
+}
+[[ "${OTS_DOMAIN}" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || {
+  echo 'OTS_DOMAIN must be a hostname' >&2; exit 1;
+}
+mem_gb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
+(( mem_gb >= 30 )) || { echo 'at least 32 GB of installed RAM is required' >&2; exit 1; }
+[[ "$(uname -m)" == x86_64 ]] || { echo 'this installer currently supports x86_64 Linux only' >&2; exit 1; }
 
 apt-get update
-apt-get install -y git curl build-essential python3 debian-keyring debian-archive-keyring apt-transport-https
+apt-get install -y git curl build-essential python3 gnupg sudo openssl sqlite3 debian-keyring debian-archive-keyring apt-transport-https
 # Go, current release from go.dev (landrun needs 1.24+; Ubuntu's golang-go is older)
 if ! /usr/local/go/bin/go version >/dev/null 2>&1; then
   go_ver="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1)"
@@ -26,15 +36,22 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/
 apt-get update && apt-get install -y caddy
 
 id -u ots >/dev/null 2>&1 || useradd --system --create-home --home-dir "${OTS_HOME}" --shell /bin/bash ots
+getent group ots-state >/dev/null || groupadd --system ots-state
+usermod -aG ots-state ots
+id -u ots-web >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/ots-web --gid ots-state --shell /usr/sbin/nologin ots-web
+install -d -o ots -g ots-state -m 2770 "${OTS_HOME}/data" "${OTS_HOME}/data/logs" /srv/ots-work
+chmod o+x "${OTS_HOME}"
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
-# Two environment files. The secrets are root-only: systemd reads them as root for the two units, and
-# untrusted Lean code, which runs as `ots` with read access to the filesystem, must never see them.
+# Only ots-web receives secrets. The verifier's different Unix identity must never receive them,
+# including through /proc/<pid>/environ. The shared group grants database/log access, not credentials.
 mkdir -p /etc/ots
 [[ -f /etc/ots/public.env ]] || cat > /etc/ots/public.env <<ENV
 OTS_BASE_URL=https://${OTS_DOMAIN}
-OTS_CONTRACT_REPO=$(echo "${OTS_REPO_URL}" | sed -E 's#^https://github.com/##; s#(\.git)?/?$##')
+OTS_CONTRACT_REPO=$(echo "${OTS_REPO_URL}" | sed -E 's#^https://github.com/##; s#/$##; s#\.git$##')
 OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
+OTS_WORK_DIR=/srv/ots-work
+TMPDIR=/srv/ots-work
 ENV
 [[ -f /etc/ots/secrets.env ]] || ( umask 077; cat > /etc/ots/secrets.env <<ENV
 GITHUB_WEBHOOK_SECRET=$(openssl rand -hex 32)
@@ -61,10 +78,9 @@ install -m 644 "${OTS_HOME}/repo/service/deploy/ots-web.service" /etc/systemd/sy
 install -m 644 "${OTS_HOME}/repo/service/deploy/ots-worker.service" /etc/systemd/system/
 # the worker's memory backstop: 6 GB below the machine, at most the unit's 28G (the sandboxed run
 # itself is capped at the contract's 24 GiB by verify.py)
-mem_gb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
 cap=$(( mem_gb - 6 )); (( cap > 28 )) && cap=28
 sed -i "s/^MemoryMax=.*/MemoryMax=${cap}G/" /etc/systemd/system/ots-worker.service
 sed "s/{{DOMAIN}}/${OTS_DOMAIN}/" "${OTS_HOME}/repo/service/deploy/Caddyfile" > /etc/caddy/Caddyfile
 systemctl daemon-reload
-systemctl enable --now ots-web ots-worker caddy
-echo "done. Put the GitHub token in /etc/ots/secrets.env (the webhook secret in it was generated), then: systemctl restart ots-web ots-worker"
+systemctl enable ots-web ots-worker caddy
+echo "installed, not started. Mount bounded job storage at /srv/ots-work, configure /etc/ots/secrets.env and complete deploy/README.md's Linux acceptance checks before public admission."

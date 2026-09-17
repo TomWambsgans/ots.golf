@@ -17,7 +17,7 @@ import hashlib
 import json
 import sys
 from datetime import datetime, timedelta
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from sqlalchemy import select
 
@@ -145,6 +145,10 @@ def add(session) -> int:
 
 def main() -> None:
     from app.config import SERVICE_DIR, settings
+    if settings.environment != "development" or urlsplit(settings.base_url).hostname not in {
+        "localhost", "127.0.0.1", "::1"
+    }:
+        sys.exit("demo data is only available in development with a loopback base URL")
     local = settings.database_url == f"sqlite:///{(SERVICE_DIR / 'data').resolve() / 'ots.db'}"
     if not local and "--force" not in sys.argv:
         sys.exit(f"refusing: {settings.database_url} is not the local development database.\n"

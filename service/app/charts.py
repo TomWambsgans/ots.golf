@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timedelta
 from html import escape
 
@@ -10,10 +11,12 @@ ML, MR, MT = 48, 235, 30
 
 
 def _nice_ticks(lo: float, hi: float) -> list[int]:
-    span = max(hi - lo, 1)
-    step = 5 if span <= 40 else 10 if span <= 100 else 20 if span <= 250 else 50
-    start = int(lo // step) * step
-    return [v for v in range(start, int(hi) + step, step) if lo <= v <= hi]
+    # Keep the SVG small even at the maximum admissible claim (one million).
+    target = max((hi - lo) / 8, 1)
+    scale = 10 ** math.floor(math.log10(target))
+    step = next(n * scale for n in (1, 2, 5, 10) if n * scale >= target)
+    start = math.ceil(lo / step) * step
+    return list(range(start, math.floor(hi) + 1, step))
 
 
 def _time_ticks(t0: datetime, t1: datetime, n: int = 5) -> list[datetime]:
@@ -27,7 +30,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     pending = [s for s in series if s["baseline"] is None]
     bottom_margin = 100 if pending else 45
     all_t = [p["t"] for s in numeric for p in s["points"]]
-    t1 = now
+    t1 = max([now, *all_t])
     t0 = min(all_t) if all_t else now - timedelta(days=1)
     if t1 - t0 < timedelta(days=1):
         t0 = t1 - timedelta(days=1)
@@ -43,7 +46,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     def sy(v: float) -> float:
         return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
-    out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="img" '
+    out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" '
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
            '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and whole-word '
@@ -97,6 +100,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
             title = escape(f'{s["label"]}: {p["claim"]} {unit} · {p["login"]} · {point["date"]}'
                            + (' · demo' if point["demo"] else ''))
             out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{title}">'
+                       f'<circle class="hit-area" cx="{x:.1f}" cy="{y:.1f}" r="16"/>'
                        f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{title}</title></circle></a>')
             points.append(point)
         end_y, text_y = sy(last_claim), label_y[s["slug"]]
