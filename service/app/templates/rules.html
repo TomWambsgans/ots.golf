@@ -7,13 +7,29 @@
 </div>
 <p class="rules-hint muted">Each line is the rule. Click one for the explanation and its figure.</p>
 
-<h2 id="model">The model</h2>
+<h2 id="model">Three frameworks</h2>
+<section class="prose framework-rules">
+  <p>Each framework has its own records. All use the same bare random oracle and 127-bit security target.</p>
+  <ul>
+    <li><a href="/?framework=generic"><strong>Generic algorithms.</strong></a> Arbitrary oracle programs.
+    The interface and 106-cost adapter are a verified foundation; admission is pending correctness and signing availability.</li>
+    <li><a href="/?framework=dag"><strong>DAG.</strong></a> Fixed computation graphs with arbitrary sharing,
+    deterministic functions and disclosure cuts.</li>
+    <li><a href="/?framework=disclosure"><strong>Partial disclosures.</strong></a> The same DAG model, with at
+    most 46 hash origins across each signature's payload. See the rule below.</li>
+  </ul>
+  <p>A construction in a narrower class also gives an upper bound in a broader class once its admission
+  requirements are proved. A lower bound for a narrower class stays within that class.</p>
+</section>
+<h2>The DAG models</h2>
 {% include "_how.html" %}
 
 <h2 id="play">How to play</h2>
 <section class="how">
   <ol>
-    <li>Fork <a href="https://github.com/{{ settings.contract_repo or 'TomWambsgans/ots.golf' }}">the contract repository</a> and edit one submission root: <code>formal/Submissions/Lower/</code> or <code>formal/Submissions/Upper/</code>.</li>
+    <li>Fork <a href="https://github.com/{{ settings.contract_repo or 'TomWambsgans/ots.golf' }}">the contract repository</a> and edit one submission root:
+    <code>formal/Submissions/Lower/</code> or <code>Upper/</code> for DAG;
+    <code>formal/Submissions/DisclosureLower/</code> or <code>DisclosureUpper/</code> for partial disclosures.</li>
     <li>Export the track's declarations, put your claim in <code>claim.txt</code>, and check locally with <code>verifier/verify.py</code>.</li>
     <li>Open a pull request. The verifier answers on it. A verified claim that strictly beats the record is merged; the merge is the promotion.</li>
   </ol>

@@ -236,3 +236,13 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .rules-list .more .fig { max-width: 100%; }
 .rules-list details[open] > summary { color: var(--ink); }
 @media (max-width: 720px) { .rules-list summary { padding-left: 26px; } .rules-list .more { padding-left: 10px; } .rules-list summary::before { left: 6px; } }
+.framework-picker { margin: 22px 0 26px; }
+.framework-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.framework-tabs a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 5px; color: var(--muted); text-decoration: none; }
+.framework-tabs a:hover { color: var(--accent-ink); }
+.framework-tabs a[aria-current="page"] { color: var(--accent-ink); background: var(--accent-track); }
+.framework-status { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.framework-picker h2 { margin: 20px 0 7px; }
+.framework-picker p { max-width: 840px; margin: 7px 0; line-height: 1.6; }
+.framework-detail { color: var(--muted); font-size: 14px; }
+.foundation { margin: 32px 0 64px; max-width: 780px; }

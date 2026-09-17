@@ -68,7 +68,7 @@ def record_chart(curves: dict[str, list[dict]], baselines: dict[str, int], now: 
             y_last = sy(baselines[slug])
             out.append(f'<line class="line {cls} dashed" x1="{ML}" x2="{x_end:.1f}" y1="{y_last:.1f}" y2="{y_last:.1f}"/>')
             out.append(f'<text class="label {cls}" x="{x_end + 8:.1f}" y="{y_last + 4:.1f}">{label} {baselines[slug]}'
-                       f'<tspan class="muted" x="{x_end + 8:.1f}" dy="15">paper, unverified</tspan></text>')
+                       f'<tspan class="muted" x="{x_end + 8:.1f}" dy="15">contract baseline</tspan></text>')
             continue
         d = f"M{sx(pts[0]['t']):.1f},{sy(pts[0]['claim']):.1f}"
         for prev, nxt in zip(pts, pts[1:]):

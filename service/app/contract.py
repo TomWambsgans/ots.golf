@@ -21,6 +21,19 @@ def track(slug: str) -> dict | None:
     return next((t for t in tracks() if t["slug"] == slug), None)
 
 
+def frameworks() -> list[dict]:
+    return load()["frameworks"]
+
+
+def framework(slug: str) -> dict | None:
+    return next((f for f in frameworks() if f["slug"] == slug), None)
+
+
+def framework_tracks(slug: str) -> dict[str, dict]:
+    """The lower/upper pair for one model; a foundation has no admitted tracks."""
+    return {t["kind"]: t for t in tracks() if t["framework"] == slug}
+
+
 def contract_id() -> str:
     cfg = load()
     pin = settings.repo_root / cfg["contract"]["pin_file"]

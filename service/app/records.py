@@ -49,13 +49,12 @@ def track_state(session: Session, t: dict) -> dict:
     }
 
 
-def interval(session: Session) -> dict:
+def interval(session: Session, framework: str = "dag") -> dict:
     cfg = contract.load()
-    lower_t = contract.track("lower")
-    upper_t = contract.track("upper")
-    lo = track_state(session, lower_t)
-    up = track_state(session, upper_t)
-    return {"lower": lo, "upper": up,
+    pair = contract.framework_tracks(framework)
+    return {"framework": framework,
+            "lower": track_state(session, pair["lower"]) if "lower" in pair else None,
+            "upper": track_state(session, pair["upper"]) if "upper" in pair else None,
             "contract": {"version": cfg["contract"]["version"], "id": contract.contract_id(),
                          "commit": contract.trusted_commit()}}
 

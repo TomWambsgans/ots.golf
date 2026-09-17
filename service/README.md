@@ -15,10 +15,14 @@ refreshing localhost; it is the preferred development view. Seeding is repeatabl
 earlier demo rows and removes baseline entries from the preview board.
 Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
 records progress from 19 to 20 and from 105 to 101.
+Partial-disclosure tracks have their own demo rows, with the same offsets from their own baselines.
+Framework selection is `/?framework=dag` (the default), `/?framework=disclosure`, or
+`/?framework=generic`. Generic algorithms show their foundation status, without a leaderboard.
 
 After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
 demo claims to the current baselines and reload the running site, including its cached commit.
-It preserves submission links and dates. To install this hook in another checkout, run from the
+It preserves submission links and dates, adds demo rows for newly introduced tracks, and leaves real
+submissions and baseline rows untouched. To install this hook in another checkout, run from the
 repository root: `install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"`.
 The same refresh can be run manually with `bash service/refresh-local.sh` from the repository root.
 
@@ -56,3 +60,7 @@ Attribution comes from the pull request: the author, plus optional `Assisted by:
 On localhost there is no GitHub, so `python -m app.queue` queues a local commit the way the
 webhook would. For a baseline-only preview with demo data disabled, use
 `.venv/bin/python -m app.queue lower --baseline` (and the same command for `upper`).
+The partial-disclosure track slugs are `disclosure-lower` and `disclosure-upper`.
+
+Run the framework and demo-preservation checks with
+`.venv/bin/python -m unittest discover -s tests -v`. They use an isolated SQLite database.

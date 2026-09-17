@@ -18,3 +18,10 @@ If reseeding an already running site, wait for any active baseline verification 
 running `.venv/bin/python seed_demo.py`: the seed replaces baseline database rows.
 For ordinary updates, `bash refresh-local.sh` preserves submission IDs and dates and leaves
 real submissions alone, so it is safe while the worker is running.
+
+The homepage selects a framework with `?framework=dag|disclosure|generic`. Keep lower/upper records,
+charts and demo rows scoped to one framework. Generic algorithms have foundation status and no
+admitted leaderboard yet. Partial disclosures use `disclosure-lower` and `disclosure-upper`, with
+the same baseline-relative demo offsets as DAG tracks. `seed_demo.py --refresh` adds missing demo
+tracks while preserving all existing rows. Run the isolated checks with
+`.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.

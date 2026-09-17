@@ -115,6 +115,28 @@ two-compression root: 1 + 103 + 2 = 106.</p>
 </div>
 </details>
 
+<details id="partial-disclosures">
+<summary><span class="lead">Partial disclosures.</span> Reveal any pieces of seeds or of at most 46 hash
+outputs. The payload still fits in 5,248 bits, plus the 256-bit nonce.</summary>
+<div class="more prose">
+<p>This framework adds one condition to the DAG model. Trace each disclosed node backwards through
+deterministic operations, stopping at the first hash on each path. Across the whole payload, at most
+46 distinct hash nodes may be reached. Secret sources contribute no hash origin; a new hash replaces
+its inputs' origins with its own.</p>
+<p>Arbitrary fragments and deterministic encodings are allowed. If <code>d = H(seed)</code> and
+<code>c = ReedSolomon(d)</code>, revealing any chosen symbols of <code>c</code>, including parity
+symbols, counts one origin. Several slices of that digest still count once. Mixing two digests counts
+two origins, even if the encoded result is short. Every parent edge of a deterministic node counts
+when tracing origins, even if its function ignores that parent.</p>
+<p>The disclosure sets must still cut every secret-source-to-root path, and verification reconstructs
+the graph forwards from the disclosed nodes. The rule allows encodings expressible in that model;
+it does not add arbitrary decoding from a chosen subset of symbols.</p>
+<p>An upper submission proves both 127-bit security and the 46-origin condition. A lower submission
+proves its bound for every weakly secure DAG scheme satisfying that condition. Its bound does not
+change the unrestricted DAG record.</p>
+</div>
+</details>
+
 <details id="security">
 <summary><span class="lead">Security.</span> One signature on a message of the attacker's choice, then a
 forgery. An attacker spending <code>B</code> compressions must win with probability below
@@ -133,19 +155,20 @@ one; every secure scheme is weakly secure.</p>
 </details>
 
 <details id="tracks">
-<summary><span class="lead">Two tracks.</span> Upper: a scheme with Lean proofs of its security and its score;
+<summary><span class="lead">Two tracks per active framework.</span> Upper: a scheme with Lean proofs of its security and its score;
 smaller wins. Lower: a Lean proof that no secure scheme scores less; larger wins.</summary>
 <div class="more prose">
 <p>Between the two records lies the answer: the least worst-case verification cost of a secure scheme with
 these parameters. An upper-track certificate is a scheme, a proof that it is secure, and a proof that every
 signature verifies within the claimed cost. A lower-track certificate proves that every weakly secure
 scheme, and so every secure one, has a signature at least that expensive. Both are theorems about the same
-pinned statement, <code>formal/OptimalOTS/Statement.lean</code>, checked by the Lean kernel.</p>
-<p>The verified bare-oracle baselines are 18 compressions for the lower track and 106 for the upper
-track. The lower proof shows that cheaper verification would force many indices to recompute the same
-hash nodes, letting an attacker convert a signature and forge on a different message. Bounds above 18
-remain open.</p>
-<figure class="fig">{{ figs.interval|safe }}</figure>
+pinned contract, checked by the Lean kernel. The partial-disclosure framework additionally uses
+<code>formal/OptimalOTS/Disclosure.lean</code> to restrict the scheme class.</p>
+<p>The unrestricted DAG baselines are 18 compressions for the lower track and 106 for the upper track.
+The lower proof shows that cheaper verification would force many indices to recompute the same hash
+nodes, letting an attacker convert a signature and forge on a different message. A stronger bound in
+the partial-disclosure class does not improve the unrestricted DAG bound.</p>
+<figure class="fig">{{ figs.interval|safe }}<figcaption>Unrestricted DAG records.</figcaption></figure>
 </div>
 </details>
 

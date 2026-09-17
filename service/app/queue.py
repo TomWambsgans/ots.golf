@@ -37,7 +37,7 @@ def main() -> int:
     with SessionLocal() as session:
         user = get_or_create_user(session, a.login, name="ots.golf (baseline)" if a.baseline else None)
         desc = a.description or (f"Baseline of the {t['title'].lower()} track: the paper's "
-                                 f"{'proof' if a.track == 'lower' else 'scheme'} as shipped in the contract repository."
+                                 f"{'proof' if t['direction'] == '+' else 'scheme'} as shipped in the contract repository."
                                  if a.baseline else None)
         sub = Submission(track=a.track, user_id=user.id, source_repo=a.repo, commit=sha, baseline=a.baseline,
                          description=desc)

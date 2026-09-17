@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Submission {{ sub.id[:8] }} · ots.golf{% endblock %}
 {% block content %}
+<p class="muted"><a href="/?framework={{ framework.slug }}">{{ framework.title }}</a></p>
 <h1>{{ t.title }} submission <span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span></h1>
 <dl class="facts">
   <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} compressions{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}{% if sub.baseline %} <span class="tag">baseline</span>{% endif %}</dd>

@@ -75,8 +75,39 @@
 })();
 </script>
 
+<section class="framework-picker" aria-label="Framework">
+  <nav class="framework-tabs" aria-label="Choose a framework">
+    {% for f in frameworks %}
+    <a href="/?framework={{ f.slug }}"{% if f.slug == framework.slug %} aria-current="page"{% endif %}>{{ f.title }}{% if f.status == 'foundation' %}<span class="framework-status">foundation</span>{% endif %}</a>
+    {% endfor %}
+  </nav>
+  <h2>{{ framework.title }}</h2>
+  <p>{{ framework.description }}</p>
+  {% if framework.slug == 'disclosure' %}
+  <p class="framework-detail">Reveal any pieces of seeds or of up to <strong>46 hash outputs</strong>, within
+  the 5,248-bit payload budget. Slices and Reed–Solomon symbols from one digest count once; combining
+  multiple digests counts each. Verification follows the DAG's fixed disclosure cuts.
+  <a href="/rules#partial-disclosures">How the restriction works</a>.</p>
+  {% elif framework.slug == 'dag' %}
+  <p class="framework-detail">The unrestricted DAG model. Its records cover every permitted DAG scheme;
+  the partial-disclosure lower bound applies only to that narrower class.</p>
+  {% endif %}
+</section>
+
+{% if framework.status == 'foundation' %}
+<section class="foundation prose">
+  <h2>Generic submissions are being prepared</h2>
+  <p>Key generation, signing and verification can be arbitrary programs using the same single random
+  oracle. The interface has no required graph, disclosure cut or message-index schedule.</p>
+  <p>The existing 106-cost construction has a Lean-checked adapter preserving its security experiment
+  and 127-bit security. Admission still requires the remaining correctness and signing-availability
+  proofs. There is no generic leaderboard or certified generic lower bound yet.</p>
+  <p>Each framework has its own optimum. A lower bound for DAGs or partial disclosures does not establish
+  a lower bound for arbitrary algorithms.</p>
+</section>
+{% else %}
 <section class="dashboard" aria-labelledby="dash-title">
-  <h2 id="dash-title" class="visually-hidden">Records over time</h2>
+  <h2 id="dash-title" class="visually-hidden">{{ framework.title }} records over time</h2>
   <div class="tiles">
     <div class="tile">
       <div class="label"><span class="swatch s1"></span>Lower bound <span class="muted">(larger is better)</span></div>
@@ -167,7 +198,7 @@
   function show(track) {
     btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.track === track)); });
     parts.forEach(function (b) { b.hidden = b.dataset.track !== track; });
-    try { history.replaceState(null, '', track === 'upper' ? location.pathname : '#lower'); } catch (e) {}
+    try { history.replaceState(null, '', location.pathname + location.search + (track === 'upper' ? '' : '#lower')); } catch (e) {}
   }
   btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.track); }); });
   if (location.hash === '#lower') show('lower');
@@ -195,5 +226,6 @@
 })();
 </script>
 </section>
+{% endif %}
 
 {% endblock %}

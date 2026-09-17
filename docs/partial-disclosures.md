@@ -53,19 +53,24 @@ proves the stronger origin bound 41. Neither original submission root was edited
 
 The candidate axiom guard accepts only `propext`, `Classical.choice`, and `Quot.sound`.
 `lake build OptimalOTS Submissions` passes (8890 jobs), including the existing generic adapter.
-All four submission-policy checks pass. The official comparator accepted both new tracks:
+All four submission-policy checks pass. The official comparator accepted both new tracks and
+both original tracks:
 
 | Track | Claim | Result | Time |
 |---|---:|---|---:|
 | disclosure-lower | 80 | verified | 113.3 s |
 | disclosure-upper | 106 | verified | 172.3 s |
+| lower | 18 | verified | 96.8 s |
+| upper | 106 | verified | 153.4 s |
 
 Commands: `python3 verifier/verify.py <track> --source . --keep`.
 Contract pin: `269b181fdbfbb44b529e664ab403b7268cfb5e3ef07c79ef4b51e27d8ca18266`.
 Local logs:
 
-- Lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-g2xf0era/verify.log`.
-- Upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-hqlgjeg8/verify.log`.
+- Disclosure lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-g2xf0era/verify.log`.
+- Disclosure upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-hqlgjeg8/verify.log`.
+- Original lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-ed7pb0__/verify.log`.
+- Original upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-3tb6vucu/verify.log`.
 
 `tools/tune_lower_bound.py --method disclosure --claims 80,81` independently confirms the exact
 arithmetic at 80; the same estimate fails at 81. This numerical tool is not a certificate.
@@ -75,3 +80,11 @@ The unrestricted DAG records remain 18 and 106. The generic algorithm framework 
 documented foundation stage until correctness and signing availability are certified. The site's
 three framework views keep these scopes separate; the local demo board retains its invented
 Satoshi/Vitalik submissions with claims relative to each framework's baselines.
+
+The formal milestone is local commit `84c5fd2` on `main`. Six service regression tests pass
+with `cd service && .venv/bin/python -m unittest discover -s tests -v`, covering independent
+records and charts, the generic foundation page, demo refresh preservation, submission links,
+rules and pull-request root matching. Localhost serves all three framework views successfully;
+the demo boards show 20–101 for DAGs and 82–101 for partial disclosures. These invented
+demo claims are separate from the kernel-verified baselines reported above. The commit hook
+refreshes localhost and adapts demo claims automatically.

@@ -59,6 +59,7 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
     ctx.update(request=request, settings=settings, contract_version=contract.load()["contract"]["version"],
                contract_id=contract.contract_id(), contract_commit=contract.trusted_commit(),
                static_v=static_version())
+    ctx.setdefault("frameworks", contract.frameworks())
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -164,15 +165,20 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
 # --- pages ------------------------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, session: Session = Depends(get_session)):
-    iv = records.interval(session)
-    boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"]),
+def home(request: Request, framework: str = "dag", session: Session = Depends(get_session)):
+    selected = contract.framework(framework)
+    if selected is None:
+        raise HTTPException(404, "unknown framework")
+    pair = contract.framework_tracks(framework)
+    iv = records.interval(session, framework)
+    boards = {kind: {"cfg": t, "frontier": records.frontier(session, t["slug"]),
                           "in_flight": records.in_flight(session, t["slug"]),
                           "solvers": records.solver_count(session, t["slug"]),
-                          "state": records.track_state(session, t)} for t in contract.tracks()}
-    chart = charts.record_chart({t["slug"]: records.curve(session, t["slug"]) for t in contract.tracks()},
-                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow())
-    return render(request, "home.html", interval=iv, boards=boards, chart=chart, art=scheme_art.svg())
+                          "state": records.track_state(session, t)} for kind, t in pair.items()}
+    chart = charts.record_chart({kind: records.curve(session, t["slug"]) for kind, t in pair.items()},
+                                {kind: t["baseline"] for kind, t in pair.items()}, utcnow()) if pair else None
+    return render(request, "home.html", framework=selected, interval=iv, boards=boards,
+                  chart=chart, art=scheme_art.svg())
 
 
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)
@@ -180,7 +186,8 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
     sub = session.get(Submission, sub_id)
     if sub is None:
         raise HTTPException(404)
-    return render(request, "submission.html", sub=sub, t=contract.track(sub.track),
+    t = contract.track(sub.track)
+    return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
                   queue_position=next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None))
 
 
@@ -207,11 +214,12 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
 
 # One line per section of AGENTS.md, shown while the section is folded.
 RULE_BLURBS = {
-    "Layout": "One Lean project, one contract file, one submission root per track.",
-    "What a submission exports": "One theorem for the lower track; a scheme and two theorems for the upper "
-                                 "track, under the exact names of the rendered stub.",
+    "Layout": "One Lean project, three frameworks, one submission root per active track.",
+    "Frameworks": "Generic algorithms, DAGs and partial disclosures have separate scopes and records.",
+    "What a submission exports": "The exact declarations in the track's rendered stub, including the "
+                                 "origin-bound proof for partial-disclosure upper submissions.",
     "Rules for the submission root": "Flat Lean files and a claim.txt; imports limited to Mathlib, VCVio and the "
-                                     "statement; only the three standard axioms.",
+                                     "track's contract; only the three standard axioms.",
     "Check locally before submitting": "The pipeline of the hosted verifier runs on your machine.",
     "Submitting": "One pull request that changes only your track's submission root. The verifier answers on it.",
 }
