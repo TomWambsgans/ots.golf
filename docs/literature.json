@@ -7,7 +7,7 @@
       "url": "https://github.com/leanEthereum/leanVM/blob/main/doc/xmss/main.tex",
       "upper": 111,
       "lower": 0,
-      "note": "The one-time signature under leanVM's XMSS: 42 chains of 128 bits with 3-bit chunks (7 steps each) and target sum 195, so 42·7 − 195 = 99 chain steps to verify; the leaf hash of the 42 chain ends (5376 bits) costs 11 blocks; the message encoding 1. The Merkle path (32 more) belongs to the many-time layer and is not counted. The spec counts 133 hash calls per full verification. Its signature reveals 5376 bits, above this track's 5248-bit budget. Lower bound: none was known (0)."
+      "note": "The one-time signature under leanVM's XMSS: 42 chains of 128 bits with 3-bit chunks (7 steps each) and target sum 195, so 42·7 − 195 = 99 chain steps to verify; the leaf hash of the 42 chain ends (5376 bits) costs 11 blocks; the message encoding 1. The Merkle path (32 more) belongs to the many-time layer and is not counted. Lower bound: none was known (0)."
     },
     {
       "date": "2026-09-16",
