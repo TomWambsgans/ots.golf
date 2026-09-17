@@ -215,6 +215,23 @@ table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 table.params { max-width: 78ch; }
 table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 
+/* Small explanatory diagrams use the page palette and remain readable on narrow screens. */
+.rules-diagram { margin: 22px 0 28px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.rules-diagram-scroll { overflow-x: auto; }
+.rules-diagram-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rules-diagram svg { display: block; width: 100%; min-width: 640px; }
+.rules-diagram figcaption { color: var(--ink-2); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+.rules-diagram marker path { fill: var(--ink-2); }
+.diagram-edges, .diagram-bracket { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+.diagram-node { fill: var(--page); stroke: var(--ink-2); stroke-width: 1.5; }
+.diagram-hidden { stroke: var(--muted); }
+.diagram-cut { fill: var(--accent-track); fill-opacity: .45; stroke: var(--accent); stroke-dasharray: 4 4; }
+.diagram-reveal { fill: var(--accent-track); stroke: var(--accent); stroke-width: 2; }
+.diagram-heading, .diagram-note { fill: var(--ink-2); font: 13px system-ui, sans-serif; }
+.diagram-heading { font-weight: 600; }
+.diagram-text { fill: var(--ink); font: 15px system-ui, sans-serif; }
+.diagram-emphasis { fill: var(--accent-ink); font: 600 15px system-ui, sans-serif; }
+
 /* rules page: each rule is a line that unfolds into its explanation */
 .rules-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .rules-head h1 { margin-bottom: 4px; }

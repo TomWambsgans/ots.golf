@@ -1,0 +1,37 @@
+<figure class="rules-diagram">
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="DAG reconstruction diagram; scroll horizontally on small screens">
+    <svg viewBox="0 0 760 235" role="img" aria-labelledby="cut-figure-title cut-figure-desc">
+      <title id="cut-figure-title">Reveal a cut, then recompute the root</title>
+      <desc id="cut-figure-desc">Two secret sources are hashed to x and y. The signature reveals x and y,
+      cutting both paths to the root. The verifier concatenates them, hashes the result, and compares
+      its low 128 bits with the public key. It does not need either secret source.</desc>
+      <defs><marker id="cut-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <text class="diagram-heading" x="110" y="25" text-anchor="middle">Key generation</text>
+      <text class="diagram-heading" x="263" y="25" text-anchor="middle">Reveal</text>
+      <text class="diagram-heading" x="530" y="25" text-anchor="middle">Recompute and compare</text>
+      <rect class="diagram-cut" x="210" y="47" width="106" height="165" rx="9"/>
+      <g class="diagram-edges" marker-end="url(#cut-arrow)">
+        <path d="M72 92 H115"/><path d="M169 92 H230"/>
+        <path d="M72 176 H115"/><path d="M169 176 H230"/>
+        <path d="M296 92 H317 V134 H340"/><path d="M296 176 H317 V134 H340"/>
+        <path d="M422 134 H474"/><path d="M532 134 H614"/>
+      </g>
+      <g class="diagram-node diagram-hidden"><circle cx="50" cy="92" r="22"/><circle cx="50" cy="176" r="22"/>
+        <rect x="115" y="72" width="54" height="40" rx="6"/><rect x="115" y="156" width="54" height="40" rx="6"/></g>
+      <g class="diagram-node diagram-reveal"><rect x="230" y="72" width="66" height="40" rx="6"/><rect x="230" y="156" width="66" height="40" rx="6"/></g>
+      <g class="diagram-node"><rect x="340" y="112" width="82" height="44" rx="6"/><rect x="474" y="112" width="58" height="44" rx="6"/><rect x="614" y="112" width="128" height="44" rx="6"/></g>
+      <g class="diagram-text" text-anchor="middle">
+        <text x="50" y="97">s₁</text><text x="50" y="181">s₂</text>
+        <text x="142" y="97">H</text><text x="142" y="181">H</text>
+        <text x="263" y="97">x</text><text x="263" y="181">y</text>
+        <text x="381" y="139">x ‖ y</text><text x="503" y="139">H</text><text x="678" y="139">equals pk?</text>
+      </g>
+      <text class="diagram-note" x="263" y="229" text-anchor="middle">signature payload</text>
+      <text class="diagram-note" x="503" y="180" text-anchor="middle">root hash</text>
+      <text class="diagram-note" x="575" y="103" text-anchor="middle">low 128 bits</text>
+    </svg>
+  </div>
+  <figcaption>Blue boxes show the disclosed outputs x = H(s₁) and y = H(s₂).
+  Every secret-to-root path meets one, so verification starts there.
+  This illustrates one cut; the separate message-and-nonce query is omitted.</figcaption>
+</figure>

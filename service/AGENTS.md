@@ -47,6 +47,11 @@ claim, with no invented improvement beyond it. The card, chart point, leaderboar
 and solver profile must all refer to this same row.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
+Keep all key admissibility, cost, security and submission requirements available on the rules page;
+use expandable details and diagrams to keep the overview readable. Explain partial disclosures
+through their declared dependencies and the cut requirement, not blanket claims about named encodings.
+A decoder is permitted as a declared downstream deterministic node; mathematical recoverability
+alone does not replace a valid cut. Preserve the cut-reconstruction and shared-origin diagrams.
 Partial-disclosure lower
 uses `disclosure-lower` with the same baseline-relative demo offsets as DAG lower.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with

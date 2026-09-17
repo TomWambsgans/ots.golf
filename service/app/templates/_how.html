@@ -1,15 +1,16 @@
 {# Shared model, independent of scores and of the lower framework chosen. #}
 <section class="prose">
   <h2 id="hash">One oracle, one cost</h2>
-  <p>The only cryptographic primitive is a random oracle. Each new input bit string gets an
+  <p>All parties share one random oracle, the only cryptographic primitive. Each new input bit string gets an
   independent, uniform 256-bit answer; repeated inputs get the same answer. There are no built-in
   labels or domain separation.</p>
   <p id="cost">A query costs one <strong>compression</strong> per started 512-bit input block,
-  with a minimum of one. Any distinguishing bits count as input. Deterministic computation and
-  randomness are free. We measure worst-case verification cost.</p>
+  with a minimum of one, even for a repeated query. Any distinguishing bits count as input.
+  Deterministic computation and randomness are free for every party, including the attacker.
+  All cost limits are worst-case, over every execution path.</p>
 
   <h2 id="security">127-bit security</h2>
-  <p>An attacker sees the public key, requests one signature on a chosen message, then attempts a
+  <p>An attacker sees the public key, may query the oracle, requests one signature on a chosen message, then attempts a
   forgery. If the whole experiment costs at most <code>B</code> compressions on every run, success
   must have probability strictly below <code>B / 2<sup>127</sup></code>. This includes key generation,
   signing, the attacker's queries and final verification.</p>

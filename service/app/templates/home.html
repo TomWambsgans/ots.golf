@@ -94,7 +94,8 @@
       {% elif model.slug == 'dag' %}
       <p>A fixed computation graph. Reveal a cut; recompute the public key.</p>
       {% else %}
-      <p>A DAG whose payload draws on at most <strong>{{ model.origin_limit }} hash outputs</strong>. Partial bits and Reed–Solomon symbols are allowed.</p>
+      <p>A DAG whose disclosed values trace back through deterministic operations to at most
+      <strong>{{ model.origin_limit }} distinct hash nodes</strong>. They must form a cut for forward reconstruction.</p>
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Lower <span aria-hidden="true">↑</span></dt>

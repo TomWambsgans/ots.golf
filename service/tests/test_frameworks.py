@@ -167,7 +167,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/rules').text
         body = re.search(r'<main>(.*?)</main>', html, re.S).group(1)
-        self.assertNotRegex(body, r'\b(?:18|80|106)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|106)\b')
         self.assertFalse('framework-comparison' in body)
         self.assertTrue('Reed–Solomon' in body)
         self.assertTrue('id="generic-algorithms"' in body)

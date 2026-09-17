@@ -30,24 +30,75 @@
   reveals a <em>cut</em>: node values meeting every source-to-root path, excluding the root.
   Verification reconstructs the root forwards.</p>
 
+  {% include "_rules_cut_diagram.html" %}
+
   <h3 id="partial-disclosures">3. Partial disclosures</h3>
   <p>DAGs with at most <strong>46 distinct hash origins</strong> per signature payload. Trace disclosed
   values backwards through deterministic nodes, stopping at hashes; count distinct hash nodes reached.
   Sources count zero; every declared parent edge counts.</p>
-  <p>Fragments and encodings, including Reed–Solomon symbols, are allowed. Fragments of one hash node
-  count once; values from two hash nodes count twice, even if equal. The cut and forward reconstruction rules still
-  apply, without arbitrary decoding from selected symbols.</p>
+  <p>Several disclosed values derived from the same hash node count once across the whole payload.
+  Two hash nodes count twice, even if their values are equal. Hashing starts a new origin;
+  earlier hashes behind it are not counted.</p>
+
+  {% include "_rules_origins_diagram.html" %}
 </section>
 
 <section class="rules-list">
+  <details id="generic-admissibility">
+    <summary><span class="lead">Generic admissibility.</span> Representation, correctness, availability and cost.</summary>
+    <div class="more prose">
+      <p>The scheme supplies an injective bit-string encoding of its signatures: different signatures
+      must have different encodings. Every signature the signer can return fits in 5,504 bits;
+      the verifier always rejects oversized encodings.</p>
+      <p>Honest signing and verification share the same oracle. A returned signature is rejected with
+      probability zero. For each message-selection rule based on the public key, signing succeeds
+      with probability at least 1/2, averaged over honest key generation and signing. This is not
+      a per-key guarantee or an availability guarantee after adversarial oracle queries.</p>
+      <p>Key generation, signing and verification obey their cost bounds on every execution path.
+      Signing is bounded for every secret key and message; verification for every public key,
+      message and signature, including rejection. A lower claim rules out every smaller such
+      verification budget. Private randomness and adaptive oracle queries are permitted.</p>
+    </div>
+  </details>
+  <details id="dag-model">
+    <summary><span class="lead">Exact DAG model.</span> Fixed dependencies; stored values; forward evaluation.</summary>
+    <div class="more prose">
+      <p>The finite graph, node lengths and deterministic functions are public and fixed. Sources are
+      independent uniform bit strings of arbitrary fixed lengths. A deterministic node uses only its
+      declared parents; a hash node hashes one parent's entire bit string. Concatenation or encoding
+      is a deterministic operation. Parents precede children, and sharing is unrestricted.</p>
+      <p>Key generation evaluates every node once and stores all values as the secret key. Signing
+      reveals stored values. To reconstruct, walk backwards from the root along every declared
+      parent edge, stopping at disclosed nodes; then evaluate the required nodes forwards, once each.
+      No undisclosed source may remain on a required path, and the root itself cannot be disclosed.</p>
+    </div>
+  </details>
   <details id="cut">
     <summary><span class="lead">DAG signature format.</span> A message-and-nonce hash selects the cut.</summary>
     <div class="more prose">
-      <p>The low 128 bits of <code>H(message ‖ nonce)</code> select one of
-      <code>2<sup>115</sup></code> fixed cuts. Signing tries at most <code>2<sup>21</sup></code>
-      fresh 256-bit nonces for an in-range index, otherwise it fails. The signature contains the
-      nonce and at most 5,248 payload bits. Verification pays for the index query and reconstructed
-      hashes; its cost is maximized over all cuts.</p>
+      <p>The scheme supplies <code>2<sup>115</sup></code> indexed cuts; cuts may repeat. Read the low
+      128 bits of <code>H(message ‖ nonce)</code> as an integer; it is valid when below
+      <code>2<sup>115</sup></code>. Signing tries up to <code>2<sup>21</sup></code> uniformly sampled
+      256-bit nonces without replacement and stops at the first valid index, otherwise it fails.</p>
+      <p>The signature contains the nonce followed by the cut's node values, in node order,
+      totaling at most 5,248 payload bits. Verification rejects an invalid index or a payload
+      of the wrong length. Otherwise it reconstructs the root and compares its low 128 bits
+      with the public key.</p>
+      <p>Verification costs one compression for the message-and-nonce query plus the costs of all
+      reconstructed hash nodes. The score is the maximum over every indexed cut, even a cut that
+      is unlikely to be selected.</p>
+    </div>
+  </details>
+  <details id="encodings">
+    <summary><span class="lead">Encoded disclosures.</span> Encoding does not replace the cut requirement.</summary>
+    <div class="more prose">
+      <p>A Reed–Solomon encoder can be a public deterministic node. Coordinate nodes derived from
+      one digest have one hash origin; a coordinate depending on two digest nodes has two.
+      Count every declared dependency, even if the function ignores it.</p>
+      <p>The disclosed coordinate nodes must still form a valid cut. Verification follows the
+      declared graph: being able to recover an omitted value mathematically does not replace
+      that requirement. A decoder is permitted as a downstream deterministic node whose parents
+      supply its inputs.</p>
     </div>
   </details>
 </section>
@@ -80,12 +131,32 @@
   <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code>.
   Verification has {{ cfg.limits.wall_clock_seconds // 60 }} minutes and
   {{ cfg.limits.memory_bytes // 1073741824 }} GiB. The
-  <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic contract</a>,
+  <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
+  <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
   <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
   <a href="{{ source }}formal/OptimalOTS/Disclosure.lean">disclosure condition</a> and
   <a href="{{ source }}challenges.json">verifier configuration</a> define the exact requirements.</p>
   <p class="muted" id="legacy-certificates">Legacy DAG upper certificates remain available as
   references. Their submission roots are closed.</p>
+</section>
+<section class="rules-list">
+  <details id="submission-format">
+    <summary><span class="lead">Submission format.</span> Files, imports and the pinned toolchain.</summary>
+    <div class="more prose">
+      <p>Use one flat root: identifier-named <code>.lean</code> files, <code>claim.txt</code>, and an
+      optional <code>README.md</code>. <code>Solution.lean</code> is required. The claim is a
+      non-negative integer without leading zeros, at most {{ cfg.limits.max_claim|int }}, with at
+      most one trailing newline. The verifier inserts it into the exact theorem statement.</p>
+      <p>Import only Mathlib, VCVio, your track's permitted contract modules and sibling files.
+      Protected definitions cannot be changed by a submission. Use the pinned Lean toolchain and
+      dependency manifest. Limits: {{ cfg.limits.max_files }} files,
+      {{ cfg.limits.max_file_bytes // 1048576 }} MiB per file and
+      {{ cfg.limits.max_total_bytes // 1048576 }} MiB total. Verification runs without network access.</p>
+      <p><code>native_decide</code> introduces an unpermitted axiom. The exported declarations must
+      match the rendered challenge exactly; a numerical search alone is not a proof. See the
+      <a href="{{ source }}AGENTS.md#rules-for-the-submission-root">full submission specification</a>.</p>
+    </div>
+  </details>
 </section>
 <script>
 (function () {

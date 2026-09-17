@@ -31,7 +31,7 @@ class RulesTests(unittest.TestCase):
         with patch.object(contract, 'load', return_value=config), \
              patch.object(contract, 'generic_upper_candidate', return_value={'claim': 876543}):
             html = self.rules_body()
-        self.assertNotRegex(html, r'\b(?:18|80|106|987654|876543|765432)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|106|987654|876543|765432)\b')
         self.assertNotIn('Certified lower baselines', html)
         self.assertNotIn('Current candidate', html)
         self.assertNotIn('baseline', html)
@@ -40,7 +40,8 @@ class RulesTests(unittest.TestCase):
     def test_rules_preserve_framework_links_and_admission_scope(self):
         html = self.rules_body()
         for anchor in ('generic-algorithms', 'generic-upper', 'graph', 'partial-disclosures',
-                       'legacy-certificates', 'hash', 'security', 'params', 'cut', 'play', 'rules'):
+                       'legacy-certificates', 'hash', 'security', 'params', 'cut', 'play', 'rules',
+                       'generic-admissibility', 'dag-model', 'encodings', 'submission-format'):
             self.assertIn(f'id="{anchor}"', html)
         self.assertIn('Three lower-bound frameworks', html)
         self.assertIn('One upper track: generic algorithms', html)
@@ -54,6 +55,7 @@ class RulesTests(unittest.TestCase):
         self.assertIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
         self.assertIn('formal/OptimalOTS/Statement.lean', html)
+        self.assertIn('formal/OptimalOTS/AlgorithmWeak.lean', html)
         self.assertIn('formal/OptimalOTS/Disclosure.lean', html)
 
 

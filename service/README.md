@@ -32,6 +32,8 @@ the direction; framework filters apply only to lower bounds. Legacy DAG upper hi
 accessible as reference pages, and their demo rows are preserved, without becoming generic records.
 The public queue rejects new submissions to legacy upper roots. Rules describe the requirements
 without scores, candidate results or leaderboard history.
+The rules include diagrams of a disclosed cut and shared hash origins. Expandable sections retain
+the exact graph, generic admissibility, encoding, signature-format and submission requirements.
 
 After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
 demo claims to the current baselines and reload the running site, including its cached commit.

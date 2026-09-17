@@ -1,0 +1,24 @@
+<figure class="rules-diagram">
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="Hash origin counting diagram; scroll horizontally on small screens">
+    <svg viewBox="0 0 760 185" role="img" aria-labelledby="origins-figure-title origins-figure-desc">
+      <title id="origins-figure-title">Two disclosed symbols can share one hash origin</title>
+      <desc id="origins-figure-desc">A hash digest d feeds a fixed deterministic encoding E. Two disclosed
+      coordinates of E(d) both trace backwards to the same hash node, so together they count as one
+      hash origin. This counts origins only; a valid disclosure must also be a cut of the full graph.</desc>
+      <defs><marker id="origins-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <g class="diagram-edges" marker-end="url(#origins-arrow)">
+        <path d="M160 90 H220"/><path d="M380 90 H407 V53 H445"/><path d="M380 90 H407 V127 H445"/>
+      </g>
+      <g class="diagram-node"><rect x="18" y="63" width="142" height="54" rx="7"/><rect x="220" y="63" width="160" height="54" rx="7"/></g>
+      <g class="diagram-node diagram-reveal"><rect x="445" y="31" width="113" height="44" rx="6"/><rect x="445" y="105" width="113" height="44" rx="6"/></g>
+      <g class="diagram-text" text-anchor="middle"><text x="89" y="96">d = H(seed)</text><text x="300" y="96">encoding E(d)</text><text x="501" y="59">symbol a</text><text x="501" y="133">symbol b</text></g>
+      <path class="diagram-bracket" d="M575 31 H587 V149 H575 M587 90 H610"/>
+      <text class="diagram-emphasis" x="678" y="96" text-anchor="middle">1 hash origin</text>
+      <text class="diagram-note" x="89" y="145" text-anchor="middle">stop here</text>
+      <text class="diagram-note" x="300" y="145" text-anchor="middle">public, deterministic</text>
+      <text class="diagram-note" x="501" y="177" text-anchor="middle">disclosed values</text>
+    </svg>
+  </div>
+  <figcaption>Follow both disclosed symbols backwards through the encoding: they reach the same
+  hash node. Counting one origin does not by itself make these symbols a valid cut.</figcaption>
+</figure>

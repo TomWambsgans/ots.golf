@@ -91,6 +91,8 @@ detail page and solver profile link to the same persistent row. Website copy has
 labels. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
 the one-half signing-success threshold and all three submission roots, without current scores.
 The top navigation contains only the logo and Rules.
+The rules keep scores out of the overview, illustrate cuts and shared hash origins, and preserve
+the exact admissibility, encoding, DAG and submission requirements in expandable sections.
 
 All 15 service tests pass, covering the generic lower queue and pull-request root mapping,
 score-independent rules, framework isolation, Vitalik's linked generic submission and preservation of demo rows. A proof or admission
