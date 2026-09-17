@@ -74,7 +74,34 @@ Official pipeline: `python3 verifier/verify.py disclosure-lower --source . --kee
 The complete library builds (8899 jobs), and the official verifier accepted all three lower
 certificates: whole words 93 in 134.6 s, unrestricted DAG 18 in 140.0 s, and generic 1 in 94.2 s.
 The contract pin is `911b12369700ac94c668101279c4aa31868f572f7916f14b97198819f49a1b93`.
-The two preserved legacy upper certificates are also being checked for the final report.
+The two preserved legacy upper certificates also passed. Every official run used
+`python3 verifier/verify.py <track> --source . --keep` on the final formal files.
+On macOS the official pipeline runs unsandboxed for development; its comparator and Lean
+kernel still perform the pinned statement and axiom checks.
+
+| Track | Class | Claim | Official result | Time |
+|---|---|---:|---|---:|
+| `disclosure-lower` | Whole-word DAGs | 93 | verified | 134.6 s |
+| `generic-lower` | Generic algorithms | 1 | verified | 94.2 s |
+| `lower` | Unrestricted DAGs | 18 | verified | 140.0 s |
+| `upper` | Legacy DAG upper reference | 106 | verified | 184.2 s |
+| `disclosure-upper` | Historical partial-disclosure upper reference | 106 | verified | 183.7 s |
+
+Retained official logs, under
+`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/`:
+
+- Whole-word lower: `ots-verify-erc_aaq3/verify.log`.
+- Generic lower: `ots-verify-_rh5_3n4/verify.log`.
+- DAG lower: `ots-verify-lcfhsboz/verify.log`.
+- Legacy DAG upper: `ots-verify-sbotyjsh/verify.log`.
+- Historical partial-disclosure upper: `ots-verify-9lkaciam/verify.log`.
+
+Implementation milestone: local commit `8d05b71` on `main`. The protected generic/DAG definitions,
+`Submissions/GenericLower`, `Submissions/Lower`, and `Submissions/Upper` are unchanged. Changes are
+confined to the new whole-word contract, the third lower challenge and proof, associated metadata,
+arithmetic tooling, documentation and website. Nothing was pushed or deployed. The post-commit
+hook refreshed localhost, and a live page check confirmed the commit, three lower series,
+whole-word rules and preserved Satoshi/Vitalik rows.
 
 All 18 service tests pass. Firefox checks passed for three lower series, the single generic
 upper candidate, lower-framework filters, sorting, keyboard tooltips, rules expansion, both

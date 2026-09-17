@@ -336,3 +336,10 @@ from 9/10 to 99/100 gives a success probability strictly above the complete expe
 fails for this estimate. See [whole-words.md](whole-words.md) for the complete argument and
 final verification report. The historical partial-disclosure upper proof remains a reference;
 its 16-bit tweaks are not silently admitted into the new whole-word syntax.
+
+Final checks passed for all five pinned certificates: whole-word lower 93, generic lower 1,
+unrestricted DAG lower 18, and both historical upper references at 106. Full library build,
+18 service tests and browser checks passed. Local implementation milestone `8d05b71` updates
+framework 3 and its website only; the generic and unrestricted DAG contracts and submission
+roots are unchanged. Localhost was refreshed and checked after the commit. Verification times,
+retained logs and the updated contract pin are in [whole-words.md](whole-words.md).
