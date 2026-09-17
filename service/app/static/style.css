@@ -64,7 +64,7 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .meter-ends { display: flex; justify-content: space-between; margin-top: 28px; font-size: 13px; color: var(--ink-2); }
 
 /* boards */
-.boards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.boards { display: grid; grid-template-columns: 1fr; gap: 28px; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 14px; vertical-align: top; }
 thead th { border-top: 0; color: var(--ink-2); font-weight: 500; font-size: 13px; white-space: nowrap; }
@@ -86,7 +86,7 @@ pre.why { white-space: pre-wrap; margin: 0; }
 table.kv th { width: 200px; color: var(--ink-2); font-weight: 500; }
 .how ol { max-width: 78ch; }
 .avatar { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 8px; }
-@media (max-width: 720px) { .tiles, .boards { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .tiles { grid-template-columns: 1fr; } }
 
 /* record chart: two series, fixed colors; light/dark steps from the validated palette */
 :root { --series-1: #2a78d6; --series-2: #eb6834; }
