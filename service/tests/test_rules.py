@@ -29,7 +29,6 @@ class RulesTests(unittest.TestCase):
         for track in config['tracks']:
             track['baseline'] = 987654
         with patch.object(contract, 'load', return_value=config), \
-             patch.object(contract, 'generic_lower_certificate', return_value={'claim': 765432}), \
              patch.object(contract, 'generic_upper_candidate', return_value={'claim': 876543}):
             html = self.rules_body()
         self.assertNotRegex(html, r'\b(?:18|80|106|987654|876543|765432)\b')
@@ -47,8 +46,11 @@ class RulesTests(unittest.TestCase):
         self.assertIn('One upper track: generic algorithms', html)
         self.assertIn('Reed–Solomon', html)
         self.assertIn('46 distinct hash origins', html)
-        self.assertIn('<strong>Open:</strong> DAG lower and partial-disclosure lower.', html)
-        self.assertIn('<strong>Pending:</strong> generic lower and upper', html)
+        self.assertIn('<strong>Open:</strong> generic lower, DAG lower and partial-disclosure lower.', html)
+        self.assertIn('<strong>Pending:</strong> generic upper', html)
+        self.assertIn('This availability threshold is fixed for generic lower submissions.', html)
+        self.assertIn('at least <strong>1/2</strong>', html)
+        self.assertIn('formal/Submissions/GenericLower/', html)
         self.assertIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
         self.assertIn('formal/OptimalOTS/Statement.lean', html)

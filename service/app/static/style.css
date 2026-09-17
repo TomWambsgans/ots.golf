@@ -282,7 +282,6 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .record-chart .chart-series .connector { fill: none; stroke-width: 1; opacity: .6; }
 .record-chart .chart-series.upper .line { stroke-dasharray: 8 5; }
 .record-chart .chart-series .line.baseline { stroke-dasharray: 3 5; opacity: .5; }
-.record-chart .chart-series[data-status="foundation"] .line.baseline { stroke-dasharray: none; opacity: .85; }
 .record-chart .chart-series .mark { fill: var(--framework-color); }
 .record-chart .chart-series.upper .mark { fill: var(--surface); stroke: var(--framework-color); }
 .record-chart .chart-series .label { font-size: 12px; }

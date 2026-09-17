@@ -39,13 +39,15 @@ class FrameworkTests(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
-    def test_framework_pairs_and_foundation(self):
+    def test_frameworks_have_three_pinned_lower_tracks(self):
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("dag").items()},
                          {"lower": "lower", "upper": "upper"})
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("disclosure").items()},
                          {"lower": "disclosure-lower", "upper": "disclosure-upper"})
-        self.assertEqual(contract.framework_tracks("generic"), {})
-        self.assertIsNone(records.interval(self.session, "generic")["lower"])
+        self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("generic").items()},
+                         {"lower": "generic-lower"})
+        self.assertEqual(records.interval(self.session, "generic")["lower"]["baseline"], 1)
+        self.assertEqual(contract.framework("generic")["status"], "active")
 
     def chart(self, html):
         return json.loads(re.search(r'<script id="chart-points" type="application/json">(.*?)</script>',
@@ -74,27 +76,32 @@ class FrameworkTests(unittest.TestCase):
                         if t['kind'] == 'lower' and (framework == 'all' or t['framework'] == framework)}
             self.assertEqual(tables, expected)
         html = self.client.get('/').text
-        self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 2)
+        self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 3)
         self.assertEqual(len(re.findall(r'<article class="framework-card ', html)), 3)
 
-    def test_three_lower_series_with_checked_generic_foundation(self):
+    def test_generic_lower_is_certified_and_uses_normal_leaderboard(self):
         response = self.client.get("/?framework=generic")
         self.assertEqual(response.status_code, 200)
         svg = self.chart_svg(response.text)
         lower = svg.findall("./g[@data-kind='lower']")
         self.assertEqual({s.get('data-series') for s in lower}, {'generic-lower', 'lower', 'disclosure-lower'})
         generic = svg.find("./g[@data-series='generic-lower']")
-        self.assertEqual(generic.get('data-status'), 'foundation')
+        self.assertEqual(generic.get('data-status'), 'certified')
         self.assertEqual(generic.find("text[@class='label']").text, 'Generic algorithms lower 1')
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertEqual(self.chart(response.text), [])
         axis_y = float(svg.find("./line[@class='axis']").get('y1'))
         bound_y = float(re.search(r'M[\d.]+,([\d.]+)', generic.find('path').get('d')).group(1))
         self.assertLess(bound_y, axis_y)
-        self.assertIn('correct signing succeeds at least half the time', generic.find('path/title').text)
-        self.assertIn('Proved lower bound: 1 compression.', response.text)
-        self.assertIn('Admission pending', response.text)
-        self.assertNotIn('<table class="lb-table"', response.text)
+        self.assertIn('contract baseline', generic.find('path/title').text)
+        self.assertIn('Honest signatures verify; signing succeeds at least half the time.', response.text)
+        self.assertIn('<table class="lb-table" data-track="generic-lower">', response.text)
+        self.assertIn('0 records, 0 solvers · baseline 1', response.text)
+        lower_panel = re.search(r'<div class="board-track" data-track="lower">(.*?)'
+                                r'<div class="board-track" data-track="upper"', response.text, re.S).group(1)
+        self.assertNotIn('pending', lower_panel.lower())
+        self.assertNotIn('foundation', lower_panel.lower())
+        self.assertEqual(svg.findall("./g[@data-kind='lower'][@data-status='pending']"), [])
         self.assertEqual(self.client.get("/?framework=unknown").status_code, 404)
 
     def test_single_generic_upper_is_a_candidate_not_an_inherited_record(self):
@@ -114,7 +121,7 @@ class FrameworkTests(unittest.TestCase):
     def test_baselines_render_without_records(self):
         html = self.client.get('/').text
         svg = self.chart_svg(html)
-        for slug, baseline in [('lower', 18), ('disclosure-lower', 80)]:
+        for slug, baseline in [('generic-lower', 1), ('lower', 18), ('disclosure-lower', 80)]:
             group = svg.find(f"./g[@data-series='{slug}']")
             self.assertEqual(group.get('data-status'), 'certified')
             self.assertTrue(str(baseline) in group.find('path/title').text)
@@ -149,6 +156,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), len(seed_demo.ROWS) + 1)
+        self.assertFalse(any(s.track == "generic-lower" for s in now))
         self.assertEqual(self.session.get(Submission, real.id).claim, 18)
         self.assertTrue(self.session.get(Submission, real.id).baseline)
         for sub in now:
@@ -182,6 +190,23 @@ class FrameworkTests(unittest.TestCase):
             self.assertTrue('generic algorithm framework' in caught.exception.detail)
         self.assertEqual(list(self.session.scalars(select(Submission))), [])
 
+    def test_public_submission_queue_admits_generic_lower_and_preserves_scope(self):
+        user = User(login="generic-solver")
+        self.session.add(user)
+        self.session.commit()
+        sub = queue_submission(self.session, user, "generic-lower", "local", "a" * 40,
+                               "Generic lower proof", [], None, None, None)
+        self.assertEqual(sub.track, "generic-lower")
+        self.assertEqual(sub.status, "pending")
+        self.assertEqual(sub.user_id, user.id)
+        html = self.client.get("/?framework=generic").text
+        self.assertIn(f'href="/submissions/{sub.id}"', html)
+        self.assertIn("1 in verification", html)
+        with self.assertRaises(HTTPException) as caught:
+            queue_submission(self.session, user, "generic-upper", "local", "b" * 40,
+                             None, [], None, None, None)
+        self.assertEqual(caught.exception.status_code, 400)
+
     def test_webhook_root_mapping_includes_new_tracks_and_rejects_mixed_roots(self):
         with patch("app.github.httpx.Client") as client:
             response = client.return_value.__enter__.return_value.get.return_value
@@ -189,6 +214,8 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(github.pr_track("local/repo", 1), ("disclosure-lower", []))
             response.json.return_value += [{"filename": "formal/Submissions/Lower/Solution.lean"}]
             self.assertEqual(github.pr_track("local/repo", 1), (None, []))
+            response.json.return_value = [{"filename": "formal/Submissions/GenericLower/Solution.lean"}]
+            self.assertEqual(github.pr_track("local/repo", 1), ("generic-lower", []))
 
 
 if __name__ == "__main__":

@@ -26,7 +26,11 @@
     "formal/OptimalOTS/Challenge/DisclosureLower.lean.in",
     "verifier/comparator-disclosure-upper.json",
     "formal/OptimalOTS/Challenge/DisclosureUpper.lean.in",
-    "formal/OptimalOTS/Disclosure.lean"
+    "formal/OptimalOTS/Disclosure.lean",
+    "formal/OptimalOTS/Algorithm.lean",
+    "formal/OptimalOTS/AlgorithmWeak.lean",
+    "formal/OptimalOTS/Challenge/GenericLower.lean.in",
+    "verifier/comparator-generic-lower.json"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -118,6 +122,32 @@
         "OptimalOTS.Statement",
         "OptimalOTS.Disclosure"
       ]
+    },
+    {
+      "slug": "generic-lower",
+      "title": "Lower bound",
+      "framework": "generic",
+      "kind": "lower",
+      "direction": "+",
+      "baseline": 1,
+      "submission_root": "formal/Submissions/GenericLower",
+      "module_prefix": "Submissions.GenericLower",
+      "solution_module": "Submissions.GenericLower.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/GenericLower.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/GenericLower.lean",
+      "challenge_module": "OptimalOTS.Challenge.GenericLower",
+      "comparator_config": "verifier/comparator-generic-lower.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement",
+        "OptimalOTS.Algorithm",
+        "OptimalOTS.AlgorithmWeak"
+      ],
+      "signing_failure_allowance": {
+        "numerator": 1,
+        "denominator": 2
+      }
     }
   ],
   "lean_root": "formal",
@@ -125,8 +155,9 @@
     {
       "slug": "generic",
       "title": "Generic algorithms",
-      "status": "foundation",
-      "description": "Any oracle algorithm. The 106-cost adapter is Lean checked; generic admission awaits correctness and signing-availability proofs."
+      "status": "active",
+      "description": "Arbitrary oracle algorithms with perfect correctness, signing success at least one half and the fixed size, resource and security requirements.",
+      "lower_track": "generic-lower"
     },
     {
       "slug": "dag",

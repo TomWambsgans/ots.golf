@@ -27,7 +27,7 @@
     {% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% endif %}
     {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
   </td>
-  <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compressions</span>{% else %}–{% endif %}</a></td>
+  <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compression{{ '' if s.claim == 1 else 's' }}</span>{% else %}–{% endif %}</a></td>
   <td class="r lb-gain">
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
@@ -40,5 +40,5 @@
 {# frontier is newest first; the gain of a record is measured against the record before it #}
 {% for s in frontier %}{{ lbrow(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record') }}{% endfor %}
 {% for s in in_flight %}{{ lbrow(s, none, none, 'pending') }}{% endfor %}
-{% if not frontier and not in_flight %}<tr><td colspan="4" class="muted lb-empty">No verified submission yet.</td></tr>{% endif %}
+{% if not frontier and not in_flight %}<tr><td colspan="4" class="muted lb-empty">No improvements beyond the certified baseline yet.</td></tr>{% endif %}
 {%- endmacro %}

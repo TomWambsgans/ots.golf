@@ -15,7 +15,6 @@ require VCVio from git
 @[default_target] lean_lib OptimalOTS where
   globs := #[.submodules `OptimalOTS]
 
-/-- The submission roots. `Submissions.Lower.*` and `Submissions.Upper.*` are the only
-modules a submission may add or edit. -/
+/-- A submission may add or edit only the root assigned to its track in `challenges.json`. -/
 lean_lib Submissions where
   globs := #[.submodules `Submissions]

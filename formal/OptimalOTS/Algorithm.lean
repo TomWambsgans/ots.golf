@@ -3,13 +3,14 @@ import OptimalOTS.Statement
 /-!
 # Generic oracle algorithms for one-time signatures
 
-This is a foundation for a future upper-track contract, not a change to the current challenge.
+This interface defines the generic lower track and the foundation for a future upper-track contract.
 The algorithms share exactly the existing bare oracle and cost model. There is no graph,
 disclosure family, mandatory nonce, or mandatory index query. A scheme supplies its signature
 representation and an injective serialization; the size bounds below count the serialized bits.
 
 `Secure` alone is not an admissibility condition. Correctness, signing availability, output size,
-and honest-party cost bounds must also be required before opening generic submissions.
+and honest-party cost bounds are required by the generic lower track and must also be required
+before opening generic upper submissions. The lower challenge pins signing failure at one half.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -109,8 +110,8 @@ def paperLimits : Limits where
   keygenCost := 1024
   signCost := 2 ^ 21
 
-/-- Conditions a future generic challenge must require in addition to the security theorem.
-The signing-failure allowance is explicit and must be pinned by that future contract. -/
+/-- Generic admissibility, required in addition to security. The lower challenge pins the explicit
+signing-failure allowance at one half; stricter future upper allowances are covered by that class. -/
 structure Admissible (S : AlgorithmScheme P) (L : Limits) (ε : ℝ≥0∞) : Prop where
   failure_lt_one : ε < 1
   correct : S.Correct

@@ -9,6 +9,9 @@ never preserve stale absolute claims when a baseline changes.
 Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
 `refresh-local.sh`: it adjusts existing demo claims and triggers the running server to reload.
 Verify the rendered homepage after a commit; do not push or deploy as part of a local refresh.
+Always synchronize the site's admission status, baseline metadata, chart, leaderboards and rules
+whenever a proof or contract status changes. Refresh localhost and check the rendered pages as part
+of the same change; do not wait for a separate request to update the website.
 
 `./run-local.sh` seeds the demo board before starting the worker and web server; use this entry
 point for local development. `OTS_DEMO_DATA=0` explicitly disables startup seeding.
@@ -19,11 +22,13 @@ running `.venv/bin/python seed_demo.py`: the seed replaces baseline database row
 For ordinary updates, `bash refresh-local.sh` preserves submission IDs and dates and leaves
 real submissions alone, so it is safe while the worker is running.
 
-The three frameworks apply only to lower bounds. The homepage plots three lower series. Generic
-lower shows the checked theorem at 1, with its assumption that correct signing succeeds at least
-half the time; generic admission remains pending. If a framework has no checked certificate, use
-a pending lane outside the numeric axis. Never substitute zero or a DAG theorem for a missing
-generic certificate. Lower leaderboards have separate
+The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
+plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
+`generic-lower`, with baseline 1 and the fixed assumption that correct signing succeeds at least
+half the time for every public-key-dependent message selection. Do not hardcode a separate generic
+foundation certificate or show lower admission as pending. If a future framework has no checked
+certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
+for a missing generic certificate. Lower leaderboards have separate
 rankings for generic algorithms, DAGs and partial disclosures; `?framework=dag|disclosure|generic`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
@@ -33,6 +38,8 @@ Do not relabel legacy DAG upper submissions as generic. The chart has one upper 
 the upper leaderboard has no framework filter. Reject public submissions to legacy DAG upper roots.
 Retain their proof files and historical pages as references, and preserve all existing demo rows.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
+Preserve Satoshi/Vitalik's existing demos, but do not invent generic-lower improvements: that track
+starts at its actual certified baseline until real submissions are verified.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Partial-disclosure lower

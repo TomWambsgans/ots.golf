@@ -59,7 +59,6 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
     ctx.setdefault("generic_upper", contract.generic_upper_candidate())
-    ctx.setdefault("generic_lower", contract.generic_lower_certificate())
     ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.framework(t["framework"])["title"]}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
@@ -178,11 +177,10 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     series = []
     for model in models:
         board = model["boards"].get("lower")
-        foundation = contract.generic_lower_certificate() if model["slug"] == "generic" else None
         series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
                        "framework": model["slug"], "kind": "lower", "label": f'{model["title"]} lower',
-                       "baseline": board["cfg"]["baseline"] if board else foundation["claim"] if foundation else None,
-                       "status": foundation["status"] if foundation else "certified",
+                       "baseline": board["cfg"]["baseline"] if board else None,
+                       "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
     upper = contract.generic_upper_candidate()
     series.append({"slug": "generic-upper", "framework": "generic", "kind": "upper",

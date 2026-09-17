@@ -16,7 +16,9 @@ generic admission requirements below or establish a generic lower bound.
 
 A separate [generic lower theorem](generic-lower.md) now proves at least one compression for every
 correct, weakly secure oracle algorithm whose signing succeeds with probability at least one half.
-This does not supply the adapter's missing correctness or availability proofs.
+The generic lower track is now open with a pinned challenge and ordinary submission root. This
+does not supply the upper adapter's missing correctness or availability proofs. Lower and upper
+admission are independent.
 
 ## Interface
 
@@ -100,7 +102,7 @@ signatures. Its checked axiom closure is exactly `propext`, `Classical.choice`, 
 No additional axiom or admitted proof is used. The integration module is outside both submission
 roots; it is a checked adapter of the existing baseline, not a newly accepted generic challenge.
 
-## What remains before admitting generic submissions
+## What remains before admitting generic upper submissions
 
 Security alone does not establish that an algorithm is a useful signature scheme. The interface
 therefore also defines `Correct`, `SigningFailureAtMost`, and `Admissible` independently of security.
@@ -113,11 +115,11 @@ The forest's correctness and signing-failure bound have **not** been proved agai
 predicates in this foundation step, so no `AlgorithmForest.scheme.Admissible` certificate is
 claimed. Before changing the actual upper challenge:
 
-1. Choose and pin a suitably small signing-failure allowance and finalize its message-selection
+1. Choose and pin a suitably small upper signing-failure allowance and finalize its message-selection
    semantics. The parameter `ε < 1` in the interface is only a placeholder for that contract choice.
 2. Prove correctness and the chosen availability bound for the forest, obtaining an admissible
    baseline at 106 in the generic interface.
-3. Pin the generic definitions, adapt the upper challenge/import policy/comparator declarations,
+3. Build on the generic definitions now pinned for lower, adapt the upper challenge/import policy/comparator declarations,
    and retain the current DAG lower statement.
 4. Update the site's track descriptions: a lower bound for DAG schemes need not bound generic
    algorithms. A generic result below 18 would not contradict the existing lower theorem.

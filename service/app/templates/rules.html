@@ -20,7 +20,9 @@
 
   <h3 id="generic-algorithms">1. Generic algorithms</h3>
   <p>Arbitrary terminating oracle programs for key generation, signing and verification.
-  No required graph, disclosure pattern or nonce format.</p>
+  No required graph, disclosure pattern or nonce format. Honest signatures must verify, and signing
+  must succeed with probability at least <strong>1/2</strong> for every message-selection rule based
+  on the public key. This availability threshold is fixed for generic lower submissions.</p>
 
   <h3 id="graph">2. DAGs</h3>
   <p>A fixed, public, directed acyclic graph of secret random sources, deterministic operations and hashes,
@@ -60,23 +62,25 @@
 
 <section class="prose" id="play">
   <h2 id="rules">How to submit</h2>
-  <p><strong>Open:</strong> DAG lower and partial-disclosure lower.
-  <strong>Pending:</strong> generic lower and upper, until the contract fixes their admissibility
-  requirements and signing-failure allowance.</p>
+  <p><strong>Open:</strong> generic lower, DAG lower and partial-disclosure lower.
+  <strong>Pending:</strong> generic upper, until its admissibility requirements and
+  signing-failure allowance are pinned.</p>
   <ol>
     <li>Fork <a href="{{ repo }}">the repository</a>. Change only
-    <code>formal/Submissions/Lower/</code> or <code>formal/Submissions/DisclosureLower/</code>.</li>
+    <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>
+    or <code>formal/Submissions/DisclosureLower/</code>.</li>
     <li>Put your integer claim in <code>claim.txt</code> and export the required declarations from
     <code>Solution.lean</code>. Follow the
     <a href="{{ source }}AGENTS.md#what-a-submission-exports">exact submission requirements</a>.</li>
     <li>Run <code>python3 verifier/verify.py lower --source .</code>
-    (or <code>disclosure-lower</code>), then open a pull request. A verified strict improvement
+    (or <code>generic-lower</code> or <code>disclosure-lower</code>), then open a pull request. A verified strict improvement
     is merged and becomes the record.</li>
   </ol>
   <p id="limits">No <code>sorry</code> or extra axioms: only
   <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code>.
   Verification has {{ cfg.limits.wall_clock_seconds // 60 }} minutes and
   {{ cfg.limits.memory_bytes // 1073741824 }} GiB. The
+  <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic contract</a>,
   <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
   <a href="{{ source }}formal/OptimalOTS/Disclosure.lean">disclosure condition</a> and
   <a href="{{ source }}challenges.json">verifier configuration</a> define the exact requirements.</p>

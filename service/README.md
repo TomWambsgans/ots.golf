@@ -16,10 +16,11 @@ earlier demo rows and removes baseline entries from the preview board.
 Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
 records progress from 19 to 20 and from 105 to 101.
 Partial-disclosure tracks have their own demo rows, with the same offsets from their own baselines.
-The homepage compares three **lower-bound** frameworks in cards and a shared chart. DAG and
-partial-disclosure lower bounds have numeric records. Generic lower shows the checked foundation
-theorem at 1, assuming correct signing succeeds at least half the time; generic admission remains
-pending. The leaderboard defaults to all lower frameworks, grouped by class.
+The homepage compares three open **lower-bound** frameworks in cards and a shared chart. Generic
+lower, DAG lower and partial-disclosure lower all use their pinned track metadata and normal
+leaderboards. Generic lower starts at the certified baseline 1, assuming correctness and signing
+success at least one half for every public-key-dependent message selection. It has no invented
+demo improvements. The leaderboard defaults to all lower frameworks, grouped by class.
 Filter it with `/?framework=dag`, `/?framework=disclosure`, or `/?framework=generic`.
 
 There is one **upper** track: fully generic algorithms. Its checked 106-cost adapter is shown as a
@@ -36,6 +37,8 @@ It preserves submission links and dates, adds demo rows for newly introduced tra
 submissions and baseline rows untouched. To install this hook in another checkout, run from the
 repository root: `install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"`.
 The same refresh can be run manually with `bash service/refresh-local.sh` from the repository root.
+When proof or admission status changes, update the site, metadata and rules together, then refresh
+localhost and check the rendered pages as part of that change.
 
 Use `OTS_DEMO_DATA=0 ./run-local.sh` to skip seeding. To also remove existing demo rows, run
 `.venv/bin/python seed_demo.py --remove` first. `seed_demo.py` only accepts the default local
@@ -71,7 +74,7 @@ Attribution comes from the pull request: the author, plus optional `Assisted by:
 On localhost there is no GitHub, so `python -m app.queue` queues a local commit the way the
 webhook would. For a baseline-only preview with demo data disabled, use
 `.venv/bin/python -m app.queue lower --baseline` (and the same command for `upper`).
-The admitted partial-disclosure slug is `disclosure-lower`. The legacy `upper` and
+The other admitted lower slugs are `generic-lower` and `disclosure-lower`. The legacy `upper` and
 `disclosure-upper` slugs remain available for local reference verification, not public upper admission.
 
 Run the framework and demo-preservation checks with

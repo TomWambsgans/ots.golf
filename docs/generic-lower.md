@@ -1,6 +1,6 @@
 # A first lower bound for arbitrary oracle algorithms
 
-Lean has checked the certificate below: a correct, available, weakly
+The open `generic-lower` track has certified baseline 1: a correct, available, weakly
 127-bit-secure generic scheme cannot verify every input with zero compressions. It makes no
 DAG, cut, nonce, domain-separation or signature-format assumption.
 
@@ -25,9 +25,9 @@ including key generation and the requested signature; verification costs zero by
 Its success is at least 1/2, whereas 127-bit security requires success below
 (1024 + 2^21) / 2^127 < 1/2. Contradiction.
 
-The 1/2 failure allowance is deliberately weak. The theorem should cover every stricter allowance,
-without selecting the final generic upper admission threshold. The interface's placeholder condition
-that failure is merely less than one is insufficient for this argument: successful signing could
+The lower challenge pins a deliberately weak 1/2 failure allowance. The theorem covers every
+stricter allowance without selecting the final generic upper admission threshold. The interface's
+general condition that failure is merely less than one is insufficient: successful signing could
 otherwise be far rarer than the security threshold.
 
 This argument proves only one compression. A one-query verifier still depends on the secret oracle
@@ -38,6 +38,9 @@ two or three requires another argument; it does not follow by repeating this pro
 
 ```lean
 OptimalOTS.GenericLower.candidate :
+  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
+
+OptimalOTS.Challenge.GenericLower.candidate :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
 
 OptimalOTS.GenericLower.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
@@ -51,30 +54,64 @@ result covers all strongly secure schemes meeting those admissibility requiremen
 
 Files:
 
-- `formal/OptimalOTS/AlgorithmWeak.lean`: weak experiment, strong-to-weak bridge, lower statement.
-- `formal/OptimalOTS/AlgorithmZeroQuery.lean`: independence of zero-cost verification from the cache.
-- `formal/OptimalOTS/AlgorithmLower.lean`: availability, public signature selection, fresh-message
+- Protected `Algorithm.lean` and `AlgorithmWeak.lean`: arbitrary algorithm interface, weak experiment,
+  strong-to-weak bridge and lower statement. The challenge fixes the paper limits and failure allowance.
+- `formal/Submissions/GenericLower/Costs.lean`: structural cost rules.
+- `formal/Submissions/GenericLower/ZeroQuery.lean`: independence of zero-cost verification from the cache.
+- `formal/Submissions/GenericLower/Proof.lean`: availability, public signature selection, fresh-message
   attack, experiment cost and success, and the numerical contradiction.
+- `formal/Submissions/GenericLower/Solution.lean`: official export; `claim.txt` contains 1.
+- `OptimalOTS/AlgorithmLower.lean` and `AlgorithmZeroQuery.lean`: compatibility imports only.
 
-`lake build OptimalOTS.AlgorithmLower` and the complete `lake build OptimalOTS Submissions`
-(8893 jobs) pass. The in-file axiom guard for `candidate` accepts
+`lake build Submissions.GenericLower.Solution OptimalOTS.AlgorithmLower` and the complete
+`lake build OptimalOTS Submissions` (8897 jobs) pass. The in-file axiom guard for `candidate` accepts
 exactly `propext`, `Classical.choice` and `Quot.sound`. There are no admitted proofs or
-`native_decide` calls. This is a checked foundation theorem, not yet a generic submission accepted
-by the hosted comparator: the generic admission contract and availability threshold are not pinned.
-The result works for every eventual threshold at most one half.
+`native_decide` calls. The official comparator accepts claim 1. The protected files contain the
+definitions, not the lower-bound proof; all proof code is in the ordinary submission root.
+
+Generic lower submission command:
+
+```sh
+python3 verifier/verify.py generic-lower --source .
+```
+
+The generic lower challenge and one-half failure allowance are pinned independently of the
+unfinished generic upper candidate. A stricter upper availability requirement remains inside
+the class covered by this lower theorem.
 
 The separate [one-query argument](generic-one-query.md) is research toward 2, not a certificate.
 Its normal form and transcript arguments have not yet been ported to Lean. No score of 2 is claimed.
 
 ## Local website
 
-The generic lower card and chart now show the checked bound of 1 and its signing-success assumption.
-Admission remains pending, and the theorem is not represented as an accepted solver submission.
-The other lower leaderboards retain their baseline-relative demo rows. Rules were rewritten from
-first principles, with no scores or candidate results.
+The generic lower card, chart and leaderboard use the normal track metadata and certified baseline.
+All three lower tracks are open; only generic upper admission remains pending. The generic lower
+row has no invented improvements. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
+the one-half signing-success threshold and all three submission roots, without current scores.
+The top navigation contains only the logo and Rules.
 
-All 13 service tests pass, including score-independent rules, numeric placement of the generic
-foundation theorem, framework isolation and preservation of demo rows. Headless Firefox checks pass
-for the three lower lines and single generic upper line, direction switches, sorting, keyboard
-tooltips, filtered deep links, the DAG-format disclosure in the rules, and a narrow layout without
-page overflow. Existing submission roots, contracts and verifier pins are unchanged.
+All 14 service tests pass, covering the generic lower queue and pull-request root mapping,
+score-independent rules, framework isolation and preservation of demo rows. A proof or admission
+change must now update the website, metadata, rules and documentation in the same change.
+Headless Firefox checks pass for the three lower lines and tables, generic lower's open status,
+the simplified top navigation, direction switches, sorting, keyboard chart tooltips, filtered
+deep links, rules expansion, and a narrow layout without page overflow.
+
+## Official verification
+
+The contract pin is `6c2eb7a11e4b3cc1` (19 protected files). Existing DAG and partial-disclosure
+definitions and all four original submission roots are unchanged. The additions pin the generic
+definitions, challenge and comparator configuration.
+
+`generic-lower`, claim 1: **verified**, 55.0 seconds. Log:
+`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-4cy8xbv6/verify.log`.
+
+A separate temporary copy with `claim.txt` changed to 2 and its proof left at 1 was **rejected**
+by comparator in 54.3 seconds. Log:
+`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-x77myj5i/verify.log`.
+
+DAG lower regression, claim 18: **verified**, 126.7 seconds. Log:
+`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-78l9no3y/verify.log`.
+
+Legacy DAG upper regression, claim 106: **verified**, 171.7 seconds. Log:
+`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-ffx7_3q5/verify.log`.

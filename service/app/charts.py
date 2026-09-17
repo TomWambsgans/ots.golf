@@ -47,8 +47,8 @@ def record_chart(series: list[dict], now: datetime) -> dict:
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
            '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and partial-disclosure '
-           'lower records are separate series. The generic lower theorem assumes correct signing with success '
-           'at least one half; generic submissions remain in preparation. The single upper series is the generic candidate, '
+           'lower records are separate series. Generic lower submissions cover correct signing with success '
+           'at least one half and are open. The single upper series is the generic candidate, '
            'with admission still pending. Hover or focus a record for its framework and solver.</desc>']
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
@@ -80,8 +80,6 @@ def record_chart(series: list[dict], now: datetime) -> dict:
         # Retain the contract baseline before the first improvement.
         first_x = sx(pts[0]["t"]) if pts else sx(t1)
         baseline_label = "adapter; admission pending" if status == "candidate" else "contract baseline"
-        if status == "foundation":
-            baseline_label = "checked theorem; correct signing succeeds at least half the time; admission pending"
         out.append(f'<path class="line baseline" d="M{ML},{sy(baseline):.1f} H{first_x:.1f}"><title>{label}: {baseline} · {baseline_label}</title></path>')
         last_claim = pts[-1]["claim"] if pts else baseline
         if pts:

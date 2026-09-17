@@ -30,7 +30,7 @@ def framework(slug: str) -> dict | None:
 
 
 def framework_tracks(slug: str) -> dict[str, dict]:
-    """The lower/upper pair for one model; a foundation has no admitted tracks."""
+    """Pinned certificates for a model, including retained legacy upper references."""
     return {t["kind"]: t for t in tracks() if t["framework"] == slug}
 
 
@@ -41,12 +41,6 @@ def generic_upper_candidate() -> dict:
     """
     return {"claim": 106, "status": "candidate", "framework": "generic",
             "title": "Generic algorithms", "proof": "formal/OptimalOTS/AlgorithmForest.lean"}
-
-
-def generic_lower_certificate() -> dict:
-    """Checked by GenericLower.candidate; the generic submission contract is still pending."""
-    return {"claim": 1, "status": "foundation", "framework": "generic",
-            "proof": "formal/OptimalOTS/AlgorithmLower.lean", "signing_success": "at least 1/2"}
 
 
 def contract_id() -> str:

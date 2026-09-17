@@ -1,0 +1,13 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.GenericLower",
+  "solution_module": "Submissions.GenericLower.Solution",
+  "theorem_names": [
+    "OptimalOTS.Challenge.GenericLower.candidate"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

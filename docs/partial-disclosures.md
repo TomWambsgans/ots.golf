@@ -76,8 +76,9 @@ Local logs:
 arithmetic at 80; the same estimate fails at 81. This numerical tool is not a certificate.
 The full proof, rather than the search, establishes 80. No optimality claim for that bound is made.
 
-The unrestricted DAG certificates remain 18 and 106; the upper certificate is now a reference proof. The generic algorithm framework remains at its
-documented foundation stage until correctness and signing availability are certified. The site's
+The unrestricted DAG certificates remain 18 and 106; the upper certificate is now a reference proof.
+Generic lower submissions are open with a certified baseline of 1; generic upper admission still
+awaits the adapter's correctness and signing-availability proofs. The site's
 combined chart and framework-specific rankings keep these scopes separate; the local demo board retains its invented
 Satoshi/Vitalik submissions with claims relative to each framework's baselines.
 

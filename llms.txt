@@ -21,11 +21,12 @@ processing inherits its parents' origins. Partial bits and Reed-Solomon symbols 
 Verification still requires a structural DAG cut. This restricted lower bound does not change
 the unrestricted DAG record. See docs/partial-disclosures.md.
 
-Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but submissions
-are not yet admitted: correctness and signing availability remain to be proved. See
-docs/generic-upper.md. A separate Lean-checked generic lower bound of 1 applies to every correct,
+Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but upper submissions
+are not yet admitted: correctness and signing availability remain to be proved for that adapter.
+See docs/generic-upper.md. The open generic lower track has a certified bound of 1 for every correct,
 weakly secure algorithm whose signing succeeds with probability at least one half. See
-docs/generic-lower.md. It is a foundation theorem, not yet an admitted comparator submission.
+docs/generic-lower.md. Its ordinary submission root is formal/Submissions/GenericLower; the
+generic-lower challenge pins the one-half signing-failure allowance and checks claims with comparator.
 
 The site plots three numeric lower series, including the checked generic bound of 1, and one
 generic upper candidate. The generic upper adapter
@@ -41,6 +42,7 @@ queue rejects new submissions to those upper roots.
 - The contract: formal/OptimalOTS/Statement.lean (audit notes in docs/AUDIT.md)
 - Local verification, identical to the hosted verifier: verifier/verify.py
 - Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
+- Generic lower root: formal/Submissions/GenericLower (claim 1; module prefix Submissions.GenericLower)
 - Legacy DAG upper reference root: formal/Submissions/Upper (module prefix Submissions.Upper)
 - Partial-disclosure lower root: formal/Submissions/DisclosureLower (claim 80)
 - Legacy partial-disclosure upper reference root: formal/Submissions/DisclosureUpper (claim 106)

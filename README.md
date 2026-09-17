@@ -39,7 +39,7 @@ Every ranked claim is a theorem about its pinned contract, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
 
 A generic oracle-algorithm interface and an exact adapter for the 106-cost forest are available
-as the [foundation for the single generic upper track](docs/generic-upper.md). Generic submissions
+as the [foundation for the single generic upper track](docs/generic-upper.md). Generic upper submissions
 are not yet admitted: correctness and signing availability remain to be proved.
 
 The **partial-disclosure framework** adds one restriction to the DAG model: a signature's payload may
@@ -52,8 +52,9 @@ partial-disclosure lower baseline. See [the definition and proof status](docs/pa
 The site has **three lower-bound frameworks and one fully generic upper track**. The chart compares
 all three lower series and the single 106-cost generic adapter candidate. A [Lean-checked generic
 lower bound of 1](docs/generic-lower.md) covers every correct, weakly secure algorithm whose signing
-succeeds with probability at least one half. Generic admission remains pending; the upper candidate
-awaits correctness and availability proofs. Lower leaderboards
+succeeds with probability at least one half. The `generic-lower` track is open, with a pinned
+challenge and a normal submission root. The generic upper candidate awaits correctness and
+availability proofs. Lower leaderboards
 are grouped and filtered by framework. There are no separate DAG or partial-disclosure upper
 leaderboards, and the public queue rejects new submissions to those legacy upper roots. Existing
 proofs and historical pages remain available as references. Local demo lower records are explicitly
@@ -63,7 +64,8 @@ separate from the certified baselines.
 
 - `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), `OptimalOTS/Weak.lean`
   (strong security implies the weak security the lower track assumes), the challenge stubs, and
-  `Submissions/{Lower,Upper,DisclosureLower,DisclosureUpper}/` (the submission roots, holding the baselines).
+  `Submissions/{Lower,GenericLower,DisclosureLower}/` (lower submission roots) and
+  `Submissions/{Upper,DisclosureUpper}/` (legacy upper reference roots).
 - `verifier/` — the policy checks, the contract pin, the comparator configs, the local verifier.
 - `challenges.json` — tracks, limits, protected files. `AGENTS.md` — the rules. `llms.txt` — for
   scripts and agents.

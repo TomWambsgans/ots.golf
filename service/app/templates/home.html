@@ -86,10 +86,11 @@
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
       <div class="framework-card-heading"><span class="framework-number">0{{ loop.index }}</span>
-        <span class="framework-status">{{ 'In preparation' if model.status == 'foundation' else 'Lower submissions open' }}</span></div>
+        <span class="framework-status">{{ 'Lower submissions open' if model.status == 'active' else 'In preparation' }}</span></div>
       <h3><a href="/rules#{{ 'partial-disclosures' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
       {% if model.slug == 'generic' %}
-      <p>Any oracle algorithm. No required graph or disclosure cut.</p>
+      <p>Any oracle algorithm. Honest signatures verify; signing succeeds at least half the time.
+      No required graph or disclosure cut.</p>
       {% elif model.slug == 'dag' %}
       <p>A fixed computation graph. Reveal a cut; recompute the public key.</p>
       {% else %}
@@ -97,13 +98,12 @@
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Lower <span aria-hidden="true">↑</span></dt>
-        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }}{% else %}{{ generic_lower.claim }}{% endif %}</dd></div>
+        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }}{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards %}
-      <p class="framework-baseline">Certified lower baseline: <strong>{{ model.boards.lower.cfg.baseline }}</strong> compressions.</p>
+      <p class="framework-baseline">Certified lower baseline: <strong>{{ model.boards.lower.cfg.baseline }}</strong> compression{{ '' if model.boards.lower.cfg.baseline == 1 else 's' }}.</p>
       {% else %}
-      <p class="framework-baseline">Checked for correct schemes whose signing succeeds at least half the time.
-      Generic submissions are pending.</p>
+      <p class="framework-baseline">No admitted lower certificate yet.</p>
       {% endif %}
     </article>
     {% endfor %}
@@ -115,7 +115,7 @@
       <p>No required DAG, disclosure cut or 46-output limit. Prove its cost, 127-bit security,
       correctness and signing availability.</p>
       <p class="candidate-note">The existing forest adapter has checked cost and security proofs.
-      Correctness and signing availability remain to be proved before generic submissions open.
+      Correctness and signing availability remain to be proved before generic upper submissions open.
       <a href="/rules#generic-upper">Proof status ↗</a></p>
     </div>
     <div class="upper-candidate"><span class="muted">Generic upper candidate ↓</span><strong>{{ generic_upper.claim }}</strong><span>compressions · adapter</span></div>
@@ -135,8 +135,8 @@
   <figure class="chart">
     <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption>Three lower-bound series, one per framework. The generic bound is a checked theorem for correct schemes
-    with signing success at least 1/2; its submission track is still in preparation.
+    <figcaption>Three open lower-bound tracks, one per framework. Generic lower assumes correct schemes
+    with signing success at least 1/2.
     The single upper line is the {{ generic_upper.claim }}-cost generic adapter, a candidate pending admission.
     It is not an admitted record. Hover, focus or tap a lower record for its details.</figcaption>
   </figure>
@@ -167,7 +167,7 @@
         <div class="framework-board-head">
           <div><h3 id="{{ model.slug }}-{{ kind }}-title"><span class="framework-dot" aria-hidden="true"></span>{{ model.title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %} · baseline {{ b.cfg.baseline }}</p>{% endif %}</div>
-          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compressions</span></p></div>
+          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compression{{ '' if b.state.record_claim == 1 else 's' }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
         </div>
         {% if b %}
@@ -184,11 +184,8 @@
           </table>
         </div>
         {% else %}
-        <p class="foundation-note"><strong>Proved lower bound: {{ generic_lower.claim }} compression.</strong>
-        Covers arbitrary randomized algorithms with correct signing, signing success at least 1/2,
-        and the stated resource and security requirements. The proof forges on a fresh message.</p>
-        <p class="foundation-note">This is a Lean-checked foundation theorem. The generic admissibility contract
-        must be pinned before generic submissions open. <a href="/rules#generic-algorithms">Framework rules ↗</a></p>
+        <p class="foundation-note">This framework has no admitted submission track yet.
+        <a href="/rules#model">Framework rules ↗</a></p>
         {% endif %}
       </section>
       {% endfor %}
