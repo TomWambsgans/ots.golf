@@ -384,13 +384,13 @@ def _rib(x1a: float, x1b: float, y1: float, x2a: float, x2b: float, y2: float, c
     return f'<path class="rib {cls}" d="{d}"/>'
 
 
-def _hash(b: list[str], x0: float, x1: float, y_in: float, cx: float, cy: float, out_x: float, out_y: float,
-          in_bits: int, cls: str, label: str) -> int:
-    """Input bits [x0, x1] leaving height y_in funnel into H at (cx, cy) and come out as a fresh 256-bit
-    value at (out_x, out_y). Returns the cost."""
+def _hash(b: list[str], x0: float, x1: float, y_from: float, cx: float, cy: float, out_x: float, y_to: float,
+          in_bits: int, cls: str, label: str, out_y: float) -> int:
+    """Input bits [x0, x1] leaving height y_from funnel into H at (cx, cy) and come out, at height
+    y_to, as a fresh 256-bit value drawn at (out_x, out_y). Returns the cost."""
     cost = block_cost(in_bits)
-    b.append(_rib(x0, x1, y_in, cx - 6, cx + 6, cy - 8, cls))
-    b.append(_rib(cx - 6, cx + 6, cy + 8, out_x, out_x + HASH_BITS * BIT, out_y, cls))
+    b.append(_rib(x0, x1, y_from, cx - 6, cx + 6, cy + 8, cls))
+    b.append(_rib(cx - 6, cx + 6, cy - 8, out_x, out_x + HASH_BITS * BIT, y_to, cls))
     b.append(circle(cx, cy, 8, "n hash"))
     b.append(text(cx, cy + 3.3, "H", "t hl"))
     b.append(text(cx + 12, cy + 4, str(cost), "t cost", "start"))
@@ -399,66 +399,68 @@ def _hash(b: list[str], x0: float, x1: float, y_in: float, cx: float, cy: float,
 
 
 def bit_flow() -> str:
-    """Values as bars, bits as ribbons: four secret sources of 64 to 256 bits are split, sliced,
-    transformed by an arbitrary function, reused and concatenated for free, and hashed into fresh
-    256-bit values at various costs, down to a root whose first 128 bits are the public key."""
-    Y = [22, 84, 146, 208, 270, 332, 394, 446]           # tops of the bars, row by row
-    bot = [y + BAR for y in Y]
-    mid = [(bot[i] + Y[i + 1]) / 2 for i in range(len(Y) - 1)]  # heights of the hash circles
+    """Values as bars, bits as ribbons, flowing upwards like every other figure: four secret sources
+    of 64 to 256 bits are split, sliced, transformed by an arbitrary function, reused and
+    concatenated for free, and hashed into fresh 256-bit values at various costs, up to a root whose
+    first 128 bits are the public key."""
+    Y = [446, 384, 322, 260, 198, 136, 74, 22]           # tops of the bars, row 0 (sources) at the bottom
+    top = Y                                               # bits leave a bar through its top edge
+    bot = [y + BAR for y in Y]                            # and enter the next bar through its bottom edge
+    mid = [(top[i] + bot[i + 1]) / 2 for i in range(len(Y) - 1)]   # heights of the hash circles
     W = lambda n: n * BIT
     b: list[str] = []
     costs = []
     # row 0: the secret sources
     A, B, C, D = 40, 200, 360, 480
     b += [_bar(A, Y[0], 128, "bits-a", "A · 128 b"), _bar(B, Y[0], 256, "bits-b", "B · 256 b"),
-          _bar(C, Y[0], 64, "bits-c"), text(C + W(64) / 2, Y[0] - 5, "C · 64 b", "t tag"),
+          _bar(C, Y[0], 64, "bits-c"), text(C + W(64) / 2, bot[0] + 11, "C · 64 b", "t tag"),
           _bar(D, Y[0], 128, "bits-d", "D · 128 b")]
     # row 1: H₁ = H(A); B split in two; E = f(C), an arbitrary function with a 96-bit output
     H1 = 40
-    costs.append(_hash(b, A, A + W(128), bot[0], A + W(128) / 2, mid[0], H1, Y[1], 128, "bits-h1", "H₁ = H(A) · 256 b"))
+    costs.append(_hash(b, A, A + W(128), top[0], A + W(128) / 2, mid[0], H1, bot[1], 128, "bits-h1", "H₁ = H(A) · 256 b", Y[1]))
     BL, BH = 190, 254
-    b += [_rib(B, B + W(128), bot[0], BL, BL + W(128), Y[1], "bits-b"),
-          _rib(B + W(128), B + W(256), bot[0], BH, BH + W(128), Y[1], "bits-b"),
+    b += [_rib(B, B + W(128), top[0], BL, BL + W(128), bot[1], "bits-b"),
+          _rib(B + W(128), B + W(256), top[0], BH, BH + W(128), bot[1], "bits-b"),
           _bar(BL, Y[1], 128, "bits-b", "B[:128]"), _bar(BH, Y[1], 128, "bits-b", "B[128:]")]
     E, fx = 353, C + W(64) / 2
-    b += [_rib(C, C + W(64), bot[0], fx - 6, fx + 6, mid[0] - 7, "bits-c"),
-          _rib(fx - 6, fx + 6, mid[0] + 7, E, E + W(96), Y[1], "bits-f"),
+    b += [_rib(C, C + W(64), top[0], fx - 6, fx + 6, mid[0] + 7, "bits-c"),
+          _rib(fx - 6, fx + 6, mid[0] - 7, E, E + W(96), bot[1], "bits-f"),
           square(fx, mid[0], 7, "n det"), text(fx, mid[0] + 3.3, "f", "t hl"),
           text(fx + 12, mid[0] + 4, "any function", "t tag", "start"),
           _bar(E, Y[1], 96, "bits-f", "f(C) · 96 b")]
     # row 2: T = H₁[:128]; C1 = B[128:] ‖ D; C2 = B[:128] ‖ f(C) ‖ D  (D is used twice)
     T, C1, C2 = 40, 250, 400
-    b += [_rib(H1, H1 + W(128), bot[1], T, T + W(128), Y[2], "bits-h1"), _bar(T, Y[2], 128, "bits-h1", "H₁[:128]")]
-    b += [_rib(BH, BH + W(128), bot[1], C1, C1 + W(128), Y[2], "bits-b"),
-          _rib(D, D + W(128), bot[0], C1 + W(128), C1 + W(256), Y[2], "bits-d"),
+    b += [_rib(H1, H1 + W(128), top[1], T, T + W(128), bot[2], "bits-h1"), _bar(T, Y[2], 128, "bits-h1", "H₁[:128]")]
+    b += [_rib(BH, BH + W(128), top[1], C1, C1 + W(128), bot[2], "bits-b"),
+          _rib(D, D + W(128), top[0], C1 + W(128), C1 + W(256), bot[2], "bits-d"),
           _bar(C1, Y[2], 128, "bits-b", "B[128:]"), _bar(C1 + W(128), Y[2], 128, "bits-d", "D")]
-    b += [_rib(BL, BL + W(128), bot[1], C2, C2 + W(128), Y[2], "bits-b"),
-          _rib(E, E + W(96), bot[1], C2 + W(128), C2 + W(224), Y[2], "bits-f"),
-          _rib(D, D + W(128), bot[0], C2 + W(224), C2 + W(352), Y[2], "bits-d"),
+    b += [_rib(BL, BL + W(128), top[1], C2, C2 + W(128), bot[2], "bits-b"),
+          _rib(E, E + W(96), top[1], C2 + W(128), C2 + W(224), bot[2], "bits-f"),
+          _rib(D, D + W(128), top[0], C2 + W(224), C2 + W(352), bot[2], "bits-d"),
           _bar(C2, Y[2], 128, "bits-b", "B[:128]"), _bar(C2 + W(128), Y[2], 96, "bits-f", "f(C)"),
           _bar(C2 + W(224), Y[2], 128, "bits-d", "D")]
     # row 3: C3 = T ‖ C1 (384 bits); H₂ = H(C2), 352 bits in
     C3, H2 = 160, 420
-    b += [_rib(T, T + W(128), bot[2], C3, C3 + W(128), Y[3], "bits-h1"),
-          _rib(C1, C1 + W(128), bot[2], C3 + W(128), C3 + W(256), Y[3], "bits-b"),
-          _rib(C1 + W(128), C1 + W(256), bot[2], C3 + W(256), C3 + W(384), Y[3], "bits-d"),
+    b += [_rib(T, T + W(128), top[2], C3, C3 + W(128), bot[3], "bits-h1"),
+          _rib(C1, C1 + W(128), top[2], C3 + W(128), C3 + W(256), bot[3], "bits-b"),
+          _rib(C1 + W(128), C1 + W(256), top[2], C3 + W(256), C3 + W(384), bot[3], "bits-d"),
           _bar(C3, Y[3], 128, "bits-h1", "H₁[:128]"), _bar(C3 + W(128), Y[3], 128, "bits-b", "B[128:]"),
           _bar(C3 + W(256), Y[3], 128, "bits-d", "D")]
-    costs.append(_hash(b, C2, C2 + W(352), bot[2], C2 + W(352) / 2, mid[2], H2, Y[3], 352, "bits-h2", "H₂ · 256 b"))
+    costs.append(_hash(b, C2, C2 + W(352), top[2], C2 + W(352) / 2, mid[2], H2, bot[3], 352, "bits-h2", "H₂ · 256 b", Y[3]))
     # row 4: H₃ = H(C3), 384 bits in
     H3 = 186
-    costs.append(_hash(b, C3, C3 + W(384), bot[3], C3 + W(384) / 2, mid[3], H3, Y[4], 384, "bits-h3", "H₃ · 256 b"))
-    # row 5: R = H₁[192:] ‖ H₃ ‖ H₂ (576 bits): a slice of H₁ travels four rows down
+    costs.append(_hash(b, C3, C3 + W(384), top[3], C3 + W(384) / 2, mid[3], H3, bot[4], 384, "bits-h3", "H₃ · 256 b", Y[4]))
+    # row 5: R = H₁[192:] ‖ H₃ ‖ H₂ (576 bits): a slice of H₁ travels four rows up
     R = 100
-    b += [_rib(H1 + W(192), H1 + W(256), bot[1], R, R + W(64), Y[5], "bits-h1"),
-          _rib(H3, H3 + W(256), bot[4], R + W(64), R + W(320), Y[5], "bits-h3"),
-          _rib(H2, H2 + W(256), bot[3], R + W(320), R + W(576), Y[5], "bits-h2"),
+    b += [_rib(H1 + W(192), H1 + W(256), top[1], R, R + W(64), bot[5], "bits-h1"),
+          _rib(H3, H3 + W(256), top[4], R + W(64), R + W(320), bot[5], "bits-h3"),
+          _rib(H2, H2 + W(256), top[3], R + W(320), R + W(576), bot[5], "bits-h2"),
           _bar(R, Y[5], 64, "bits-h1"), _bar(R + W(64), Y[5], 256, "bits-h3", "H₃"),
-          _bar(R + W(320), Y[5], 256, "bits-h2", "H₂"), text(R + W(32), Y[5] + BAR + 11, "H₁[192:]", "t tag")]
+          _bar(R + W(320), Y[5], 256, "bits-h2", "H₂"), text(R + W(32), Y[5] - 5, "H₁[192:]", "t tag")]
     # row 6: the root = H(R), 576 bits in; row 7: pk = root[:128]
     RT = R + W(576) / 2 - W(256) / 2
-    costs.append(_hash(b, R, R + W(576), bot[5], R + W(576) / 2, mid[5], RT, Y[6], 576, "bits-root", "root · 256 b"))
-    b += [_rib(RT, RT + W(128), bot[6], RT, RT + W(128), Y[7], "bits-root"),
+    costs.append(_hash(b, R, R + W(576), top[5], R + W(576) / 2, mid[5], RT, bot[6], 576, "bits-root", "root · 256 b", Y[6]))
+    b += [_rib(RT, RT + W(128), top[6], RT, RT + W(128), bot[7], "bits-root"),
           _bar(RT, Y[7], 128, "bits-pk", "pk · 128 b"),
           text(RT + W(128) + 8, Y[7] + BAR / 2 + 3.5, "the other 128 bits of the root are never used", "t tag", "start")]
     # legend
@@ -486,9 +488,9 @@ def bit_flow() -> str:
     b.append(text(X + 7, y + 6, f"key generation: {' + '.join(map(str, costs))} = {sum(costs)}", "t muted", "start"))
     b.append(text(X + 7, y + 20, "compressions", "t muted", "start"))
     return svg("bits", 810, 480, "".join(b),
-               "Bits flowing through a scheme: four secret sources of 64 to 256 bits are split, sliced, passed "
+               "Bits flowing up through a scheme: four secret sources of 64 to 256 bits are split, sliced, passed "
                "through an arbitrary function, reused and concatenated for free, and hashed into fresh 256-bit "
-               "values costing one or two compressions each, down to a root whose first 128 bits are the public key.")
+               "values costing one or two compressions each, up to a root whose first 128 bits are the public key.")
 
 
 def cost_ruler() -> str:
