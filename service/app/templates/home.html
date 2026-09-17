@@ -25,7 +25,6 @@
   <figure class="chart">
     {{ chart.svg|safe }}
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption class="muted">The record of each track over time, in compressions per verification, worst case. Filled dots are Lean-verified records; hollow dots are reference points from the literature, translated into this cost model. The open interval is the space between the curves.</figcaption>
   </figure>
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
   <script>
