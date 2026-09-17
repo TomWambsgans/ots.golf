@@ -37,6 +37,10 @@ transfer do not establish a bare-oracle bound; see
 Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
 
+A generic oracle-algorithm interface and an exact adapter for the 106-cost forest are available
+as a [foundation for a future upper track](docs/generic-upper.md). The current challenge and its
+DAG lower bound are unchanged; generic submissions are not yet admitted.
+
 ## Layout
 
 - `formal/` — the Lean project: `OptimalOTS/Statement.lean` (the contract), `OptimalOTS/Weak.lean`
