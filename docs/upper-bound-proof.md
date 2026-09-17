@@ -8,7 +8,18 @@ theorem forestScheme_secure : forestScheme.Secure
 theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
-(exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`). `Scheme.Secure` demands: for every adversary `A` and every `B` with
+(exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`).
+
+The contract offers a single random oracle on bit strings: no labels, no tweaks. The scheme therefore
+prepends a 16-bit tweak `tw h` (the index of the hash node `h`) to every hash input, through one extra
+deterministic node `ci k t` per chain step and inside the existing concatenation nodes `gc`, `ec`, `rc`
+(2795 nodes in all). Revealed values stay the 128-bit nodes, so signatures and costs are unchanged. In
+the proof, what a label used to say is read off the string: an index query is a query of length 512
+(`encQuery`), and the hash node a query belongs to is the number in its 16 high bits (`tagNat`,
+`Graph.Tagging` in `Keygen.lean`, `tagging` in `Values.lean`). The bad event `Spr` (a cached answer at a
+non-keygen point that begins with an honest value) only counts strings carrying the node's tweak, so a
+fresh answer threatens one node, not every node with that input length: this is where a scheme without
+tweaks would lose its 127 bits to a multi-target attack. `Scheme.Secure` demands: for every adversary `A` and every `B` with
 `CostAtMost P (experiment S A) B`, `probTrue P (experiment S A) < B / 2^127`.
 
 ## A correction to the paper

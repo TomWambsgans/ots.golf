@@ -1,8 +1,11 @@
 # Upper track baseline: the forest scheme, 106 compressions
 
-The scheme of Section 8 of the paper: 63 hash chains of length 14 whose ends are grouped three by
+The scheme of Section 7 of the paper: 63 hash chains of length 14 whose ends are grouped three by
 three into 21 group digests, grouped three by three into 7 subtree digests, hashed together into
-the root. Chain and grouping hashes cost one compression, the root two. A signature reveals one 128-bit
+the root. The contract has one random oracle and no domain separation, so the scheme separates its
+hash nodes itself: every hash input starts with a 16-bit tweak naming its node (`tw`, in `Names.lean`).
+A chain step hashes 144 bits, a grouping hash 400, the root 912, and none of them has the 512 bits of
+an index query. Chain and grouping hashes still cost one compression, the root two. A signature reveals one 128-bit
 value on every source-to-root path, and the `2 ^ 115` disclosure sets are cuts of reconstruction
 cost 105 with at most 41 revealed values (so at most 5248 revealed bits): every signature verifies
 in `1 + 105 = 106` compressions, and the scheme meets the 127-bit strong-unforgeability requirement of
