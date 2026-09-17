@@ -12,7 +12,7 @@
   <h2 id="dash-title" class="visually-hidden">Records over time</h2>
   <div class="tiles">
     <div class="tile">
-      <div class="label"><span class="swatch s1"></span>Lower bound <span class="muted">(proved, larger is better)</span></div>
+      <div class="label"><span class="swatch s1"></span>Lower bound <span class="muted">(larger is better)</span></div>
       <div class="value">{{ interval.lower.record_claim }}<span class="unit"> compressions</span></div>
       <div class="sub">{% if interval.lower.record_verified %}by <a href="/solvers/{{ interval.lower.record_setter }}">{{ interval.lower.record_setter }}</a>{% endif %}</div>
     </div>
