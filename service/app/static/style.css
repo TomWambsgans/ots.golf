@@ -50,6 +50,7 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .hero-tile { border-color: var(--accent-track); }
 .hero-figure { font-size: 48px; font-weight: 600; line-height: 1.1; margin-top: 2px; }
 .hero-figure .unit { font-size: 20px; }
+.hero-figure .times { font-size: 40px; font-weight: 500; margin-left: 2px; }
 
 /* meter: the closed parts of the interval are the fill, the open gap is the track (same ramp) */
 .meter { margin: 8px 0 8px; }
