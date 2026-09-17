@@ -1,11 +1,12 @@
-import OptimalOTS.Disclosure
+import OptimalOTS.WholeWords
 
-/-! Rendered by the verifier with the submission's claim. This bound applies only to
-DAG schemes with at most 46 distinct hash origins in each disclosed payload. -/
+/-! Rendered by the verifier with the submission's claim. Sources are 128-bit words;
+only concatenation and selecting a fixed half of a 256-bit hash are deterministic operations.
+The bare-oracle DAG security experiment and all size and cost limits are unchanged. -/
 
 namespace OptimalOTS.Challenge.DisclosureLower
 
-/-- Every weakly secure scheme in the partial-disclosure framework has an index this costly. -/
-theorem candidate : DisclosureVerificationLowerBound paperParams 46 {{CLAIM}} := sorry
+/-- Every weakly secure whole-word DAG has an index this costly. -/
+theorem candidate : WholeWordVerificationLowerBound paperParams {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.DisclosureLower

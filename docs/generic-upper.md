@@ -10,9 +10,9 @@ submission import policy, and both submission roots are unchanged. At that miles
 structure has three lower-bound classes and only this generic upper track. It labels the 106-cost
 adapter as a candidate pending admission; the old DAG upper certificates remain local references.
 
-A later, separate [partial-disclosure framework](partial-disclosures.md) adds DAG schemes with
-at most 46 disclosed hash origins and certified bounds 80 and 106. It does not complete the
-generic admission requirements below or establish a generic lower bound.
+The third lower framework now uses [whole-word DAGs](whole-words.md), replacing the historical
+partial-disclosure class. This restriction does not change the generic upper interface or
+complete the generic admission requirements below.
 
 A separate [generic lower theorem](generic-lower.md) now proves at least one compression for every
 correct, weakly secure oracle algorithm whose signing succeeds with probability at least one half.

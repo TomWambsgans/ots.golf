@@ -58,6 +58,48 @@ theorem fresh_new_mass_paper {c : Cache paperParams} {D : Finset Query}
   calc (9 / 10 : ℝ≥0∞) = 1 - 1 / 10 := nine_tenths.symm
     _ ≤ _ := tsub_le_tsub_left hb 1
 
+/-- Freshness bounds with a one-percent slack, used by the averaged attack. -/
+theorem ninety_nine_hundredths : (1 - 1 / 100 : ℝ≥0∞) = 99 / 100 := by
+  calc
+    (1 - 1 / 100 : ℝ≥0∞) = ENNReal.ofReal ((1 : ℝ) - 1 / 100) := by
+      rw [ENNReal.ofReal_sub _ (by norm_num), ENNReal.ofReal_div_of_pos (by norm_num)]
+      norm_num
+    _ = _ := by norm_num [ENNReal.ofReal_div_of_pos]
+
+theorem fresh_mass_paper_99 {c : Cache paperParams} {D : Finset Query}
+    (hc : HasSupport c D) (hD : D.card ≤ 2 ^ 22) :
+    (99 / 100 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits)
+      (fun m => if FreshMessage c m then 1 else 0) := by
+  have hb := uniform_nonfresh_le hc
+  have hb' : E ($ᵗ BitVec paperParams.msgBits)
+      (fun m => if ¬ FreshMessage c m then (1 : ℝ≥0∞) else 0) ≤ 1 / 100 := by
+    apply hb.trans
+    calc (D.card : ℝ≥0∞) / 2 ^ paperParams.msgBits
+        ≤ ((2 ^ 22 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits :=
+          ENNReal.div_le_div_right (by exact_mod_cast hD) _
+      _ ≤ _ := by
+        apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+        norm_num [ENNReal.toReal_div, paperParams]
+  have h := uniform_complement_ge paperParams.msgBits (fun m => ¬ FreshMessage c m) _ hb'
+  simpa only [not_not, ninety_nine_hundredths] using h
+
+theorem fresh_new_mass_paper_99 {c : Cache paperParams} {D : Finset Query}
+    (hc : HasSupport c D) (hD : D.card ≤ 2 ^ 22) (m₁ : Message paperParams) :
+    (99 / 100 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits)
+      (fun m => if FreshMessage c m ∧ m ≠ m₁ then 1 else 0) := by
+  have h := uniform_fresh_ne_ge hc m₁
+  apply le_trans _ h
+  have hb : ((D.card + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits ≤ 1 / 100 := by
+    calc ((D.card + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits
+        ≤ ((2 ^ 22 + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits :=
+          ENNReal.div_le_div_right (by exact_mod_cast Nat.add_le_add_right hD 1) _
+      _ ≤ _ := by
+        apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+        norm_num [ENNReal.toReal_div, paperParams]
+  calc (99 / 100 : ℝ≥0∞) = 1 - 1 / 100 := ninety_nine_hundredths.symm
+    _ ≤ _ := tsub_le_tsub_left hb 1
+
+
 theorem probTrue_eq_expectation (P : Params) (oa : OracleComp (Spec P) Bool) :
     probTrue P oa = E (run P oa ∅) (fun p => if p.1 = true then 1 else 0) := by
   unfold probTrue

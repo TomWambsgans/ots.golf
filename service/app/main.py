@@ -59,7 +59,7 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
     ctx.setdefault("generic_upper", contract.generic_upper_candidate())
-    ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.framework(t["framework"])["title"]}
+    ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.track_framework_title(t)}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
 
@@ -198,6 +198,7 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
         raise HTTPException(404)
     t = contract.track(sub.track)
     return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
+                  framework_title=contract.track_framework_title(t),
                   queue_position=next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None))
 
 

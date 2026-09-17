@@ -44,12 +44,12 @@ theorem sum_fiber_hitRate_ge {ι α : Type*} [Fintype ι] [DecidableEq α]
   simpa only [Finset.sum_const, nsmul_eq_mul, mul_comm] using h
 
 theorem paper_weighted_rate_ge (S : Scheme paperParams)
-    (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 123 46) :
-    (11 / 270 : ℝ≥0∞) ≤
+    (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41) :
+    (1 / 28 : ℝ≥0∞) ≤
       ENNReal.ofReal (FreshSign.rate paperParams paperParams.trialLimit) *
         ∑ i, AveragedSearch.hitRate (S.samePattern i).card := by
   let M : ℝ := 2 ^ 115
-  let K : ℝ := Nat.choose 123 46
+  let K : ℝ := Nat.choose 131 41
   have hM : 0 < M := by dsimp [M]; norm_num
   have hK : 0 ≤ K := Nat.cast_nonneg _
   have hden : 0 < 64 * K + M :=
@@ -72,7 +72,7 @@ theorem paper_weighted_rate_ge (S : Scheme paperParams)
   have hmul := mul_le_mul AveragedSigning.paper_rate_ge hsum'
     (div_nonneg (sq_nonneg M) hden.le)
     (FreshSign.rate_nonneg (P := paperParams) (by norm_num [paperParams]) _)
-  have hnum : (11 / 270 : ℝ) ≤
+  have hnum : (1 / 28 : ℝ) ≤
       (256 : ℝ) / (257 * 2 ^ 115) * (M ^ 2 / (64 * K + M)) := by
     norm_num [M, K, Nat.choose_eq_descFactorial_div_factorial,
       Nat.descFactorial, Nat.factorial]
@@ -88,7 +88,7 @@ theorem paper_weighted_rate_ge (S : Scheme paperParams)
     rw [ENNReal.ofReal_div_of_pos (add_pos_of_pos_of_nonneg (by norm_num) (Nat.cast_nonneg _)),
       ENNReal.ofReal_add (by norm_num : (0 : ℝ) ≤ 64) (Nat.cast_nonneg _)]
     simp only [ENNReal.ofReal_natCast, ENNReal.ofReal_ofNat, AveragedSearch.hitRate]
-  simpa only [he, ENNReal.ofReal_div_of_pos (by norm_num : (0 : ℝ) < 270),
-    ENNReal.ofReal_ofNat] using h
+  simpa only [he, ENNReal.ofReal_div_of_pos (by norm_num : (0 : ℝ) < 28),
+    ENNReal.ofReal_ofNat, ENNReal.ofReal_one] using h
 
 end OptimalOTS.AveragedCounting

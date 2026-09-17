@@ -4,7 +4,7 @@ import Submissions.DisclosureLower.AveragedCounting
 import Submissions.DisclosureLower.PatternGoods
 import Submissions.DisclosureLower.PatternHelpers
 
-/-! Average every reconstruction-pattern class to obtain a 33/1000 forgery probability. -/
+/-! Average every reconstruction-pattern class to obtain a 9801/280000 forgery probability. -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
 noncomputable section
@@ -21,19 +21,19 @@ variable (S : Scheme paperParams)
 attribute [local irreducible] signIdx signIdxLoop Scheme.sign Scheme.signLoop
   weakExperiment forge adversary Graph.encode Scheme.hashPattern Scheme.samePattern goodIndices
 
-theorem signed_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 123 46)
+theorem signed_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41)
     (x : S.graph.Assignment) (c : Cache paperParams) (hc : S.graph.CacheConsistent x c)
     (D : Finset Query) (hD : HasSupport c D) (hcard : D.card ≤ 1024)
     (m : Message paperParams) (hfresh : FreshMessage c m) :
-    (11 / 300 : ℝ≥0∞) ≤ E (run paperParams (signIdx paperParams m) c)
+    (99 / 2800 : ℝ≥0∞) ≤ E (run paperParams (signIdx paperParams m) c)
       (fun p => E (run paperParams (afterSign S (2 ^ 122) (S.publicKey x) x m p.1) p.2) win) := by
   let f := fun i : Fin paperParams.numSets => AveragedSearch.hitRate (S.samePattern i).card
-  have hsign : (11 / 270 : ℝ≥0∞) ≤
+  have hsign : (1 / 28 : ℝ≥0∞) ≤
       E (run paperParams (signIdx paperParams m) c) (fun p => AveragedSigning.reward f p.1) := by
     rw [AveragedSigning.sign_reward_eq f m c hfresh]
     exact AveragedCounting.paper_weighted_rate_ge S hcount
   have hstage : E (run paperParams (signIdx paperParams m) c)
-      (fun p => AveragedSigning.reward f p.1) * (9 / 10) ≤
+      (fun p => AveragedSigning.reward f p.1) * (99 / 100) ≤
       E (run paperParams (signIdx paperParams m) c)
         (fun p => E (run paperParams (afterSign S (2 ^ 122) (S.publicKey x) x m p.1) p.2) win) := by
     rw [← expectedValue_mul_const]
@@ -55,33 +55,33 @@ theorem signed_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat
         AveragedAttack.forge_success_ge S i x p.2 (Graph.CacheConsistent.mono _ hsub hc)
           D' hD' hcard'' m η w hw hwi
   calc
-    (11 / 300 : ℝ≥0∞) = (11 / 270) * (9 / 10) := by
+    (99 / 2800 : ℝ≥0∞) = (1 / 28) * (99 / 100) := by
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       norm_num [ENNReal.toReal_div]
     _ ≤ _ := (mul_le_mul' hsign le_rfl).trans hstage
 
-theorem choose_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 123 46)
+theorem choose_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41)
     (x : S.graph.Assignment) (c : Cache paperParams) (hc : S.graph.CacheConsistent x c)
     (D : Finset Query) (hD : HasSupport c D) (hcard : D.card ≤ 1024) :
-    (33 / 1000 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits) (fun m =>
+    (9801 / 280000 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits) (fun m =>
       E (run paperParams (signIdx paperParams m) c)
         (fun p => E (run paperParams (afterSign S (2 ^ 122) (S.publicKey x) x m p.1) p.2) win)) := by
-  have hmass := fresh_mass_paper hD (hcard.trans (by norm_num : 1024 ≤ 2 ^ 22))
+  have hmass := fresh_mass_paper_99 hD (hcard.trans (by norm_num : 1024 ≤ 2 ^ 22))
   have h := expectedValue_ge_indicator ($ᵗ BitVec paperParams.msgBits) (FreshMessage c)
     (fun m => E (run paperParams (signIdx paperParams m) c)
       (fun p => E (run paperParams (afterSign S (2 ^ 122) (S.publicKey x) x m p.1) p.2) win))
-    (11 / 300) (fun m _ hm => signed_stage_ge S hcount x c hc D hD hcard m hm)
+    (99 / 2800) (fun m _ hm => signed_stage_ge S hcount x c hc D hD hcard m hm)
   calc
-    (33 / 1000 : ℝ≥0∞) = (9 / 10) * (11 / 300) := by
+    (9801 / 280000 : ℝ≥0∞) = (99 / 100) * (99 / 2800) := by
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       norm_num [ENNReal.toReal_div]
     _ ≤ _ := (mul_le_mul' hmass le_rfl).trans h
 
-theorem success_ge_count (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 123 46) :
-    (33 / 1000 : ℝ≥0∞) ≤ probTrue paperParams (weakExperiment S (adversary S (2 ^ 122))) := by
+theorem success_ge_count (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41) :
+    (9801 / 280000 : ℝ≥0∞) ≤ probTrue paperParams (weakExperiment S (adversary S (2 ^ 122))) := by
   rw [probTrue_eq_expectation, experiment_eq, run_bind, E_bind]
   rw [← expectedValue_const (mx := run paperParams S.keygen ∅) (by simp)
-    (33 / 1000 : ℝ≥0∞)]
+    (9801 / 280000 : ℝ≥0∞)]
   apply expectedValue_mono_of_support
   intro p hp
   obtain ⟨hpk, hc⟩ := S.keygen_cacheConsistent ∅ p hp
@@ -96,8 +96,8 @@ theorem success_ge_count (hcount : (Finset.univ.image S.hashPattern).card ≤ Na
 
 /-- The whole experiment, including key generation and signing, beats 127-bit security. -/
 theorem budget_lt :
-    ((paperParams.keygenBudget + paperParams.trialLimit + 2 ^ 122 + 2 * 78 + 2 : ℕ) : ℝ≥0∞) /
-      2 ^ paperParams.securityBits < 33 / 1000 := by
+    ((paperParams.keygenBudget + paperParams.trialLimit + 2 ^ 122 + 2 * 91 + 2 : ℕ) : ℝ≥0∞) /
+      2 ^ paperParams.securityBits < 9801 / 280000 := by
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_div, paperParams]
 

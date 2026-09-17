@@ -15,13 +15,13 @@ theorem forgeFrom_success_ge (S : Scheme paperParams) (i : Fin paperParams.numSe
     (hc : S.graph.CacheConsistent x c)
     (D : Finset Query) (hD : BareLower.HasSupport c D) (hcardD : D.card ≤ 2 ^ 22)
     (m₁ : Message paperParams) :
-    (9 / 10 : ℝ≥0∞) * AveragedSearch.hitRate (S.samePattern i).card ≤ E (run paperParams
+    (99 / 100 : ℝ≥0∞) * AveragedSearch.hitRate (S.samePattern i).card ≤ E (run paperParams
       (forgeFrom S (2 ^ 122) i
         (S.graph.decode (S.sets i) (S.graph.encode (S.sets i) x))
         (Conversion.observed S i x) m₁ >>= check S (S.publicKey x) m₁) c) win := by
   unfold forgeFrom
   rw [bind_assoc, run_bind, E_bind, sampleBits, run_liftM, E_map]
-  have hmass := BareLower.fresh_new_mass_paper hD hcardD m₁
+  have hmass := BareLower.fresh_new_mass_paper_99 hD hcardD m₁
   refine le_trans ?_ (BareLower.expectedValue_ge_indicator ($ᵗ BitVec paperParams.msgBits)
     (fun m₂ => BareLower.FreshMessage c m₂ ∧ m₂ ≠ m₁) _ (AveragedSearch.hitRate (S.samePattern i).card) ?_)
   · refine (mul_le_mul_left hmass (AveragedSearch.hitRate (S.samePattern i).card)).trans ?_
@@ -50,7 +50,7 @@ theorem forge_success_ge (S : Scheme paperParams) (i : Fin paperParams.numSets)
     (w : BitVec paperParams.hashBits)
     (hw : c ⟨paperParams.msgBits + paperParams.nonceBits,m₁ ++ η₁⟩ = some w)
     (hidx : (w.setWidth paperParams.idxBits).toNat = i.val) :
-    (9 / 10 : ℝ≥0∞) * AveragedSearch.hitRate (S.samePattern i).card ≤ E (run paperParams
+    (99 / 100 : ℝ≥0∞) * AveragedSearch.hitRate (S.samePattern i).card ≤ E (run paperParams
       (forge S (2 ^ 122) m₁ (some (η₁,S.graph.encode (S.sets i) x)) >>=
         check S (S.publicKey x) m₁) c) win := by
   unfold forge

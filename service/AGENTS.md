@@ -33,7 +33,7 @@ half the time for every public-key-dependent message selection. Do not hardcode 
 foundation certificate or show lower admission as pending. If a future framework has no checked
 certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
 for a missing generic certificate. Lower leaderboards have separate
-rankings for generic algorithms, DAGs and partial disclosures; `?framework=dag|disclosure|generic`
+rankings for generic algorithms, DAGs and whole words; `?framework=dag|disclosure|generic`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
 There is exactly one upper track, for fully generic algorithms. Until generic admissibility is
@@ -41,6 +41,9 @@ proved and pinned, show the checked 106-cost adapter as a candidate, not an admi
 Do not relabel legacy DAG upper submissions as generic. The chart has one upper candidate line;
 the upper leaderboard has no framework filter. Reject public submissions to legacy DAG upper roots.
 Retain their proof files and historical pages as references, and preserve all existing demo rows.
+The `disclosure-upper` reference belongs to Historical partial disclosures, not Whole words.
+Use its `historical_framework_title` metadata on submission and solver pages. Its 16-bit tweaks
+violate the whole-word restrictions; never present it as a whole-word upper construction.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
 Preserve Satoshi/Vitalik's existing demos. Generic lower includes Vitalik's demo at the checked
 claim, with no invented improvement beyond it. The card, chart point, leaderboard, submission page
@@ -48,11 +51,14 @@ and solver profile must all refer to this same row.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
-use expandable details and diagrams to keep the overview readable. Explain partial disclosures
-through their declared dependencies and the cut requirement, not blanket claims about named encodings.
-A decoder is permitted as a declared downstream deterministic node; mathematical recoverability
-alone does not replace a valid cut. Preserve the cut-reconstruction and shared-origin diagrams.
-Partial-disclosure lower
-uses `disclosure-lower` with the same baseline-relative demo offsets as DAG lower.
+use expandable details and diagrams to keep the overview readable. Whole words uses independent
+128-bit sources, 256-bit hash outputs with two selectable halves, and concatenation of whole-word
+sequences. Concatenations can reorder, repeat or be empty; no other deterministic operations,
+smaller fragments or encodings are admitted. Literal constant words cannot be introduced by a
+deterministic node; hashing an empty input is allowed and charged. Hash inputs have no fixed arity;
+charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 256-bit nonce.
+The generic DAG cut/reconstruction diagram remains, followed by a hash/split/concatenate diagram.
+Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`DisclosureLower`, with
+the same baseline-relative demo offsets as DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.

@@ -2,7 +2,7 @@
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
 one-time signatures, with three lower-bound frameworks and one fully generic upper track. The DAG model is
-`formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/Disclosure.lean` adds the partial-disclosure class.
+`formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 Submission requirements and current admission status are below. `challenges.json` describes the
 pinned certificates, including legacy upper references; `verifier/` runs the same proof checks as
 the hosted verifier. Public admission follows the framework status below.
@@ -15,7 +15,7 @@ formal/                      the Lean project (lake root)
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/Lower/         lower-track root; baseline: repeated reconstruction patterns, claim 18
   Submissions/Upper/         legacy upper reference: a forest of 63 chains, claim 106
-  Submissions/DisclosureLower/  partial-disclosure lower-track root
+  Submissions/DisclosureLower/  whole-word lower-track root
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
   Submissions/GenericLower/     generic lower-track root; baseline claim 1
 verifier/                    checks, contract pin, comparator configs, verify.py
@@ -30,7 +30,7 @@ nothing else.
 
 The three frameworks apply to lower bounds only. A restricted lower bound does not improve a
 broader class's lower record. The single upper track uses arbitrary oracle algorithms; there are no
-separate DAG or partial-disclosure upper leaderboards.
+separate DAG or whole-word upper leaderboards.
 
 - **Generic lower** (`generic-lower`): arbitrary oracle programs, with certified baseline 1.
   `Algorithm.lean` and `AlgorithmWeak.lean` define the protected interface. The lower challenge fixes
@@ -41,16 +41,18 @@ separate DAG or partial-disclosure upper leaderboards.
   not an admitted record. Its correctness and signing-availability proofs and the upper challenge
   remain prerequisites for admission. This does not block generic lower submissions.
 - **DAG lower** (`lower`): the unrestricted DAG model, with certified lower baseline 18.
-- **Partial-disclosure lower** (`disclosure-lower`): DAG schemes with certified lower baseline 80 and at most 46 distinct
-  hash origins in each signature payload. A source has no hash origins; a hash has its own node as its
-  sole origin; a deterministic node inherits the union of its parents' origins. The signature's origins
-  are the union across all disclosed nodes. Every parent edge counts, even if its function ignores it.
+- **Whole-word lower** (`disclosure-lower`, retained slug): DAG schemes with a certified lower
+  bound of 93. Secret sources are 128 bits. Hash outputs are 256 bits, with either fixed 128-bit
+  half available. The only other deterministic operation is concatenation, with any number of
+  earlier words, including repetition and reordering. Grouping whole words into longer values is
+  permitted; disclosures reveal complete node values. There are no other deterministic functions
+  or nonempty constant nodes. The syntax itself implies at most 41 disclosed hash origins from
+  the 5248-bit payload budget; this is a proved consequence, not an additional admission condition.
 
-The partial-disclosure class allows arbitrary fragments and deterministic encodings, including selected
-Reed–Solomon symbols of a digest. Several fragments of one hash output count once; a mixture of multiple
-outputs counts each. The existing 5248-bit payload budget, 256-bit nonce, 127-bit security target, DAG
-disclosure cuts and forward reconstruction stay unchanged. This does not add arbitrary decoding from
-subsets of encoded symbols. See `docs/partial-disclosures.md` for the definition and proof status.
+The 256-bit nonce, 127-bit security target, DAG cuts, forward reconstruction and actual-input
+compression costs are unchanged. Frameworks 1 and 2 retain their existing contracts. Arbitrary
+bit fragments and Reed–Solomon transformations remain available in the unrestricted DAG class,
+not in whole words. See `docs/whole-words.md` for the definition and proof.
 
 The existing `upper` and `disclosure-upper` roots are retained as reference certificates, both at 106.
 Their pinned exports and local verifier commands remain available. The website rejects new submissions
@@ -96,11 +98,11 @@ theorem OptimalOTS.Challenge.Upper.cost :
 `scheme` is a definition hole: any term of type `Scheme paperParams` is admissible, and the two
 theorems pin it down. This is the preserved DAG certificate, not the future generic upper export.
 
-**Partial-disclosure lower track** (`formal/Submissions/DisclosureLower/`):
+**Whole-word lower track** (`formal/Submissions/DisclosureLower/`):
 
 ```lean
 theorem OptimalOTS.Challenge.DisclosureLower.candidate :
-    DisclosureVerificationLowerBound paperParams 46 <claim> := ...
+    WholeWordVerificationLowerBound paperParams <claim> := ...
 ```
 
 **Generic lower track** (`formal/Submissions/GenericLower/`):
@@ -124,8 +126,9 @@ theorem OptimalOTS.Challenge.DisclosureUpper.cost :
 theorem OptimalOTS.Challenge.DisclosureUpper.disclosure : scheme.DisclosureBound 46 := ...
 ```
 
-The partial-disclosure lower direction and record rules are the same as for the DAG lower track.
-Both partial-disclosure roots may additionally import `OptimalOTS.Disclosure`. Generic lower may
+The whole-word lower direction and record rules are the same as for the DAG lower track.
+The restricted lower root may additionally import `OptimalOTS.WholeWords` and
+`OptimalOTS.Disclosure`; the legacy partial-disclosure upper root may import `OptimalOTS.Disclosure`. Generic lower may
 additionally import `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak`. Generic upper
 declarations will require `AlgorithmScheme` and proofs of admissibility, security and verification
 cost; that challenge is not yet pinned or open for submission.
@@ -135,7 +138,8 @@ cost; that challenge is not yet pinned or open for submission.
 1. **Flat.** Only `.lean` files named as identifiers, `claim.txt`, and optionally `README.md`. No
    subdirectories. `Solution.lean` is required: it is the module the verifier exports from.
 2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, `OptimalOTS.Disclosure` for the two
-   partial-disclosure tracks, `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak` for generic lower,
+   historically named disclosure roots, `OptimalOTS.WholeWords` for whole-word lower,
+   `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak` for generic lower,
    and sibling files of the same root as `Submissions.<Track>.<File>`.
    Nothing else: not `OptimalOTS`, not the stubs, not the other
    track.

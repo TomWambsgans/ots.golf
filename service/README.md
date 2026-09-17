@@ -15,9 +15,9 @@ refreshing localhost; it is the preferred development view. Seeding is repeatabl
 earlier demo rows and removes baseline entries from the preview board.
 Claims are improvements relative to `challenges.json`: with baselines 18 and 106, the demo
 records progress from 19 to 20 and from 105 to 101.
-Partial-disclosure tracks have their own demo rows, with the same offsets from their own baselines.
+Whole-word lower has its own demo rows, with the same offsets from its contract claim.
 The homepage compares three open **lower-bound** frameworks in cards and a shared chart. Generic
-lower, DAG lower and partial-disclosure lower all use their pinned track metadata and normal
+lower, DAG lower and whole-word lower all use their pinned track metadata and normal
 leaderboards. Generic lower shows 1 as an ordinary Vitalik demo submission, assuming correctness and signing
 success at least one half for every public-key-dependent message selection. It has no invented
 demo improvements beyond the checked claim. Its zero-offset seed tracks the contract claim and
@@ -27,13 +27,18 @@ Filter it with `/?framework=dag`, `/?framework=disclosure`, or `/?framework=gene
 
 There is one **upper** track: fully generic algorithms. Its checked 106-cost adapter is shown as a
 candidate while correctness, signing availability and the generic challenge remain unfinished.
-There are no separate DAG or partial-disclosure upper leaderboards. `#lower` and `#upper` select
+There are no separate DAG or whole-word upper leaderboards. `#lower` and `#upper` select
 the direction; framework filters apply only to lower bounds. Legacy DAG upper histories remain
 accessible as reference pages, and their demo rows are preserved, without becoming generic records.
+The `disclosure-upper` track remains **Historical partial disclosures**, using the track's
+`historical_framework_title` metadata. Its 16-bit tweaks are outside the Whole words grammar.
 The public queue rejects new submissions to legacy upper roots. Rules describe the requirements
 without scores, candidate results or leaderboard history.
-The rules include diagrams of a disclosed cut and shared hash origins. Expandable sections retain
-the exact graph, generic admissibility, encoding, signature-format and submission requirements.
+The rules include diagrams of a disclosed cut and whole-word hashing: split a 256-bit digest into
+two 128-bit words, then concatenate any number of whole words for the next hash. The 5,248-bit
+payload fits at most 41 words. Expandable sections retain the exact graph, generic admissibility,
+allowed word operations, signature-format and submission requirements. The old `disclosure` URL
+and `disclosure-lower` verifier slug now select Whole words.
 
 After each local commit, the installed Git `post-commit` hook runs `refresh-local.sh` to adjust
 demo claims to the current baselines and reload the running site, including its cached commit.

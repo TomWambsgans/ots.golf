@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import re
 import unittest
 import xml.etree.ElementTree as ET
@@ -43,7 +44,8 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("dag").items()},
                          {"lower": "lower", "upper": "upper"})
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("disclosure").items()},
-                         {"lower": "disclosure-lower", "upper": "disclosure-upper"})
+                         {"lower": "disclosure-lower"})
+        self.assertIsNone(records.interval(self.session, "disclosure")["upper"])
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("generic").items()},
                          {"lower": "generic-lower"})
         self.assertEqual(records.interval(self.session, "generic")["lower"]["baseline"], 1)
@@ -156,7 +158,8 @@ class FrameworkTests(unittest.TestCase):
     def test_baselines_render_without_records(self):
         html = self.client.get('/').text
         svg = self.chart_svg(html)
-        for slug, baseline in [('generic-lower', 1), ('lower', 18), ('disclosure-lower', 80)]:
+        for track in [t for t in contract.tracks() if t['kind'] == 'lower']:
+            slug, baseline = track['slug'], track['baseline']
             group = svg.find(f"./g[@data-series='{slug}']")
             self.assertEqual(group.get('data-status'), 'certified')
             self.assertTrue(str(baseline) in group.find('path/title').text)
@@ -167,9 +170,9 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/rules').text
         body = re.search(r'<main>(.*?)</main>', html, re.S).group(1)
-        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|106)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|93|106)\b')
         self.assertFalse('framework-comparison' in body)
-        self.assertTrue('Reed–Solomon' in body)
+        self.assertTrue('whole 128-bit words' in body)
         self.assertTrue('id="generic-algorithms"' in body)
         self.assertTrue('One upper track: generic algorithms' in body)
 
@@ -207,7 +210,8 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f"/submissions/{sub.id}").text
-        self.assertTrue('href="/?framework=disclosure#lower">Partial disclosures</a>' in html)
+        self.assertTrue('href="/?framework=disclosure#lower">Whole words</a>' in html)
+        self.assertIn('Hash inputs and disclosures contain only whole 128-bit words.', html)
         self.assertTrue('Illustrative local submission with fictional attribution' in html)
 
     def test_solver_page_names_framework_and_bound_kind(self):
@@ -215,8 +219,37 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertTrue('href="/?framework=dag#lower">DAG</a>' in html)
-        self.assertTrue('href="/rules#legacy-certificates">Partial disclosures reference</a>' in html)
+        self.assertTrue('href="/rules#legacy-certificates">Historical partial disclosures reference</a>' in html)
+        self.assertIn('href="/?framework=disclosure#lower">Whole words</a>', html)
         self.assertTrue('Lower bound' in html and 'Legacy upper certificate' in html)
+
+    def test_historical_partial_upper_is_not_relabelled_whole_words(self):
+        seed_demo.add_rows(self.session, [next(r for r in seed_demo.ROWS if r[0] == 'disclosure-upper')])
+        self.session.commit()
+        sub = self.session.scalar(select(Submission))
+        html = self.client.get(f'/submissions/{sub.id}').text
+        self.assertIn('Historical partial disclosures reference certificate', html)
+        self.assertIn('16-bit input tweaks do not satisfy the whole-word framework', html)
+        self.assertNotIn('Whole words reference certificate', html)
+        self.assertNotIn('href="/?framework=disclosure#upper"', html)
+
+    def test_whole_word_demo_migration_keeps_identifiers_dates_and_other_tracks(self):
+        old_config = copy.deepcopy(contract.load())
+        next(t for t in old_config['tracks'] if t['slug'] == 'disclosure-lower')['baseline'] = 80
+        with patch.object(contract, 'load', return_value=old_config):
+            seed_demo.add_rows(self.session, seed_demo.ROWS)
+            self.session.commit()
+        old = {s.id: (s.claim, s.created_at, s.finished_at, s.record_at, s.commit)
+               for s in self.session.scalars(select(Submission))}
+        seed_demo.refresh(self.session)
+        for sub in self.session.scalars(select(Submission)):
+            self.assertIn(sub.id, old)
+            self.assertEqual((sub.created_at, sub.finished_at, sub.record_at, sub.commit), old[sub.id][1:])
+            if sub.track == 'disclosure-lower':
+                self.assertEqual(sub.claim, contract.track(sub.track)['baseline'] + sub.detail_dict['improvement'])
+            else:
+                self.assertEqual(sub.claim, old[sub.id][0])
+        self.assertEqual(seed_demo.refresh(self.session), 0)
 
     def test_public_submission_queue_does_not_admit_legacy_upper_tracks(self):
         for track in ('upper', 'disclosure-upper'):

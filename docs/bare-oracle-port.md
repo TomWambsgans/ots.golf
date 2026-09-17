@@ -319,3 +319,20 @@ verifier. The unrestricted DAG statement and both original submission roots rema
 their records are still 18 and 106. The new proof uses ordered pattern counting and an averaged
 conversion attack, without oracle separation assumptions. See [partial-disclosures.md](partial-disclosures.md)
 for the definition, proof, verification logs and scope of encoded fragments.
+
+
+## Subsequent work: whole-word restriction
+
+At the user's request, framework 3 now restricts sources to 128 bits and deterministic operations
+to concatenation and selecting either fixed 128-bit half of a 256-bit hash output. Inputs may
+concatenate any number of whole words. This replaces the 46-origin admission condition;
+frameworks 1 and 2 and their proofs remain unchanged.
+
+The syntax implies at most 41 origins in a 5248-bit payload. Ordered counting then gives
+choose(131,41) patterns under verification cost at most 92. Sharpening both freshness bounds
+from 9/10 to 99/100 gives a success probability strictly above the complete experiment's
+127-bit security allowance. The official verifier accepted
+`WholeWordVerificationLowerBound paperParams 93` in 134.6 seconds. Exact arithmetic at 93 succeeds and at 94
+fails for this estimate. See [whole-words.md](whole-words.md) for the complete argument and
+final verification report. The historical partial-disclosure upper proof remains a reference;
+its 16-bit tweaks are not silently admitted into the new whole-word syntax.

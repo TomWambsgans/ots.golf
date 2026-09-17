@@ -32,15 +32,15 @@
 
   {% include "_rules_cut_diagram.html" %}
 
-  <h3 id="partial-disclosures">3. Partial disclosures</h3>
-  <p>DAGs with at most <strong>46 distinct hash origins</strong> per signature payload. Trace disclosed
-  values backwards through deterministic nodes, stopping at hashes; count distinct hash nodes reached.
-  Sources count zero; every declared parent edge counts.</p>
-  <p>Several disclosed values derived from the same hash node count once across the whole payload.
-  Two hash nodes count twice, even if their values are equal. Hashing starts a new origin;
-  earlier hashes behind it are not counted.</p>
+  <span id="partial-disclosures"></span>
+  <h3 id="whole-words">3. Whole words</h3>
+  <p>DAGs whose hash inputs and disclosures contain only <strong>whole 128-bit words</strong>.
+  Secret sources are 128 bits. A hash returns 256 bits, usable as two 128-bit halves.
+  The only deterministic operations are concatenation and selecting either half of a hash.</p>
+  <p>Hash inputs may concatenate any number of words. The 5,248-bit payload fits at most
+  <strong>41 words</strong>, plus the usual 256-bit nonce. Disclosed nodes still form a cut.</p>
 
-  {% include "_rules_origins_diagram.html" %}
+  {% include "_rules_words_diagram.html" %}
 </section>
 
 <section class="rules-list">
@@ -67,6 +67,7 @@
       independent uniform bit strings of arbitrary fixed lengths. A deterministic node uses only its
       declared parents; a hash node hashes one parent's entire bit string. Concatenation or encoding
       is a deterministic operation. Parents precede children, and sharing is unrestricted.</p>
+      <p>Whole-word schemes further restrict source lengths and deterministic operations, as described below.</p>
       <p>Key generation evaluates every node once and stores all values as the secret key. Signing
       reveals stored values. To reconstruct, walk backwards from the root along every declared
       parent edge, stopping at disclosed nodes; then evaluate the required nodes forwards, once each.
@@ -89,16 +90,21 @@
       is unlikely to be selected.</p>
     </div>
   </details>
-  <details id="encodings">
-    <summary><span class="lead">Encoded disclosures.</span> Encoding does not replace the cut requirement.</summary>
+  <details id="whole-word-model">
+    <summary><span class="lead">Whole-word operations.</span> Hash, split a digest, concatenate; keep every word intact.</summary>
     <div class="more prose">
-      <p>A Reed–Solomon encoder can be a public deterministic node. Coordinate nodes derived from
-      one digest have one hash origin; a coordinate depending on two digest nodes has two.
-      Count every declared dependency, even if the function ignores it.</p>
-      <p>The disclosed coordinate nodes must still form a valid cut. Verification follows the
-      declared graph: being able to recover an omitted value mathematically does not replace
-      that requirement. A decoder is permitted as a downstream deterministic node whose parents
-      supply its inputs.</p>
+      <p>Each source is an independent uniform 128-bit word. A hash node returns its full 256-bit
+      answer. A deterministic node either selects the fixed low or high 128-bit half of a hash
+      node, or concatenates earlier node values. Those values may contain several whole words.</p>
+      <p>Concatenation may reorder or repeat values, and may be empty. No other deterministic
+      operation is allowed: no smaller bit fragments, XOR or encoding.
+      Sharing between nodes remains unrestricted.</p>
+      <p>A signature discloses complete node values, which may group several words. The total
+      payload is at most 41 words. Hashing <code>n</code> words costs
+      <code>max(1, ⌈n / 4⌉)</code> compressions; there is no bound on the number of input words
+      apart from the existing cost budgets. An empty input still costs one compression.
+      Cuts, signing, the public key and the message-and-nonce
+      index follow the same DAG rules.</p>
     </div>
   </details>
 </section>
@@ -113,7 +119,7 @@
 
 <section class="prose" id="play">
   <h2 id="rules">How to submit</h2>
-  <p><strong>Open:</strong> generic lower, DAG lower and partial-disclosure lower.
+  <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower.
   <strong>Pending:</strong> generic upper, until its admissibility requirements and
   signing-failure allowance are pinned.</p>
   <ol>
@@ -134,10 +140,11 @@
   <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
   <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
   <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
-  <a href="{{ source }}formal/OptimalOTS/Disclosure.lean">disclosure condition</a> and
+  <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a> and
   <a href="{{ source }}challenges.json">verifier configuration</a> define the exact requirements.</p>
   <p class="muted" id="legacy-certificates">Legacy DAG upper certificates remain available as
-  references. Their submission roots are closed.</p>
+  references, including <em>Historical partial disclosures</em>. They are not certificates for the
+  whole-word class. Their submission roots are closed.</p>
 </section>
 <section class="rules-list">
   <details id="submission-format">

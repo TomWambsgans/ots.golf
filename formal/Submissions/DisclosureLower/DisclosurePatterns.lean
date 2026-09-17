@@ -103,8 +103,8 @@ theorem max_difference_disclosed (i j : Fin P.numSets) (v : Fin S.graph.size)
 
 /-- The declared provenance budget bounds all reconstruction patterns by one binomial. -/
 theorem card_hashPattern_image_le_disclosure (S : Scheme paperParams)
-    (hdis : S.DisclosureBound 46) (hcost : ∀ i, S.verifyCost i ≤ 79) :
-    (Finset.univ.image S.hashPattern).card ≤ Nat.choose 123 46 := by
+    (hdis : S.DisclosureBound 41) (hcost : ∀ i, S.verifyCost i ≤ 92) :
+    (Finset.univ.image S.hashPattern).card ≤ Nat.choose 131 41 := by
   let F := Finset.univ.image S.hashPattern
   let idx (a : Finset (Fin S.graph.size)) : Fin paperParams.numSets :=
     if h : ∃ i, S.hashPattern i = a then Classical.choose h else ⟨0, by decide⟩
@@ -114,22 +114,22 @@ theorem card_hashPattern_image_le_disclosure (S : Scheme paperParams)
     have he : ∃ i, S.hashPattern i = a := ⟨i, hi⟩
     simp only [idx, dif_pos he]
     exact Classical.choose_spec he
-  have hA : ∀ a ∈ F, a.card ≤ 77 := by
+  have hA : ∀ a ∈ F, a.card ≤ 90 := by
     intro a ha
     rw [← hidx a ha]
     have hc := hcost (idx a)
     have hp := S.card_hashPattern_le (idx a)
-    change 1 + S.graph.reconstructCost (S.sets (idx a)) ≤ 79 at hc
+    change 1 + S.graph.reconstructCost (S.sets (idx a)) ≤ 92 at hc
     omega
-  have h := DisclosureCounting.card_le_choose 77 46 F id
+  have h := DisclosureCounting.card_le_choose 90 41 F id
     (fun a => S.graph.disclosureOrigins (S.sets (idx a)))
     (fun _ _ _ _ he => he) hA (fun a _ => hdis (idx a)) (by
       intro a ha b hb v hv hm
       apply S.max_difference_disclosed (idx a) (idx b) v
       · simpa only [hidx a ha, hidx b hb, id_eq] using hv
       · simpa only [hidx a ha, hidx b hb, id_eq] using hm)
-  have he : Nat.choose 123 77 = Nat.choose 123 46 := by
-    rw [Nat.choose_symm (show 77 ≤ 123 by omega)]
+  have he : Nat.choose 131 90 = Nat.choose 131 41 := by
+    rw [Nat.choose_symm (show 90 ≤ 131 by omega)]
   exact h.trans_eq he
 
 end Scheme

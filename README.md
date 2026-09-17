@@ -42,12 +42,13 @@ A generic oracle-algorithm interface and an exact adapter for the 106-cost fores
 as the [foundation for the single generic upper track](docs/generic-upper.md). Generic upper submissions
 are not yet admitted: correctness and signing availability remain to be proved.
 
-The **partial-disclosure framework** adds one restriction to the DAG model: a signature's payload may
-derive from at most **46 distinct hash outputs**. Arbitrary fragments, deterministic mixtures and
-Reed–Solomon encodings are allowed; multiple pieces of one digest count once. The 5248-bit payload,
-256-bit nonce and 127-bit security requirements remain. Its `disclosure-lower` and `disclosure-upper`
-certificates establish **80 and 106**; the latter is retained as a reference proof, while 80 is the
-partial-disclosure lower baseline. See [the definition and proof status](docs/partial-disclosures.md).
+The **whole-word framework** restricts DAGs to independent 128-bit secrets, 256-bit hash
+outputs, selecting either fixed 128-bit output half, and concatenation. Inputs may concatenate
+any number of whole words; signatures disclose complete values. The 5248-bit payload, 256-bit
+nonce and 127-bit security requirements remain. Its `disclosure-lower` certificate proves
+**93**, deriving the 41-word limit from the payload budget rather than imposing an origin cap.
+See [the definition and proof](docs/whole-words.md). The historical partial-disclosure upper
+certificate remains a separate reference and is not claimed to satisfy this new syntax.
 
 The site has **three lower-bound frameworks and one fully generic upper track**. The chart compares
 all three lower series and the single 106-cost generic adapter candidate. A [Lean-checked generic
@@ -55,7 +56,7 @@ lower bound of 1](docs/generic-lower.md) covers every correct, weakly secure alg
 succeeds with probability at least one half. The `generic-lower` track is open, with a pinned
 challenge and a normal submission root. The generic upper candidate awaits correctness and
 availability proofs. Lower leaderboards
-are grouped and filtered by framework. There are no separate DAG or partial-disclosure upper
+are grouped and filtered by framework. There are no separate DAG or whole-word upper
 leaderboards, and the public queue rejects new submissions to those legacy upper roots. Existing
 proofs and historical pages remain available as references. Local demo lower records are explicitly
 separate from the certified baselines.

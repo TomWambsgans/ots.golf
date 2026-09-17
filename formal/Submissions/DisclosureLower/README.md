@@ -1,26 +1,26 @@
-# Lower bound 80 for partial disclosures
+# Lower bound 93 for whole-word DAGs
 
 `Solution.lean` exports
-`OptimalOTS.Challenge.DisclosureLower.candidate : DisclosureVerificationLowerBound paperParams 46 80`.
-This is a bound for all weakly secure schemes whose disclosed payload has at most 46 hash origins.
-It does not assert the unrestricted DAG lower bound is 80.
+`OptimalOTS.Challenge.DisclosureLower.candidate : WholeWordVerificationLowerBound paperParams 93`.
+The retained track/root names are historical; the challenge now covers every weakly secure DAG
+satisfying `Scheme.WholeWords`, with no extra provenance or separation assumption.
 
-`OrderedCounting.lean` bounds finite families of ordered sets by Pascal's recurrence, using
-the largest difference between two members as a boundary witness. `DisclosurePatterns.lean`
-proves that this witness is a hash origin of the other disclosure. If every verification costs
-at most 79, at most 77 nonroot hash nodes are recomputed and the number of patterns is at most
-`Nat.choose 123 46`.
+The protected syntax in `OptimalOTS/WholeWords.lean` permits independent 128-bit sources,
+256-bit hashes, selecting a fixed output half, and concatenation of any number of earlier
+whole-word values. Signatures disclose complete values. The original DAG experiment, costs,
+nonce, cuts and resource limits remain unchanged.
 
-The `Averaged*` modules give a search bound depending on each pattern class's size, prove the
-exact weighted signing law, and average over classes using Cauchy–Schwarz. The new-message
-forgery succeeds with probability at least 33/1000, above the security allowance for its entire
-experiment. The proof uses the actual bare oracle and shared cache, including colliding inputs.
+`WholeWordOrigins.lean` proves that 128 times the number of hash origins of a node is at most
+its width. Summing over the disclosed payload derives `DisclosureBound 41` from 5248 bits.
+`DisclosurePatterns.lean` and `OrderedCounting.lean` bound reconstruction patterns by
+`Nat.choose 131 41` if every verification costs at most 92 (90 nonroot hashes).
 
-The remaining modules are copies of the unrestricted lower proof's supporting development,
-with imports confined to this root. They include free signature conversion between equal
-reconstructed hash sets, fresh-message probabilities and complete query-cost bounds. Keeping
-them here makes the submission self-contained under the flat-root import policy.
+The `Averaged*` modules prove the signing law, the repetition-class search bound and its
+Cauchy–Schwarz average. With two freshness factors of 99/100, the fresh-message forgery succeeds
+with probability at least 9801/280000. Its complete experiment costs at most
+1024 + 2^21 + 2^122 + 2*91 + 2, contradicting 127-bit weak security. Equal oracle inputs share
+answers throughout; deterministic concatenations and either output half introduce no labels.
 
 Build: `cd formal && lake build Submissions.DisclosureLower.Solution`.
 Official verifier: `python3 verifier/verify.py disclosure-lower --source .`.
-The candidate's in-file axiom guard permits only `propext`, `Classical.choice`, and `Quot.sound`.
+The candidate's axiom guard permits only `propext`, `Classical.choice`, and `Quot.sound`.

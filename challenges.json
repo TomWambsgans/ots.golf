@@ -30,7 +30,8 @@
     "formal/OptimalOTS/Algorithm.lean",
     "formal/OptimalOTS/AlgorithmWeak.lean",
     "formal/OptimalOTS/Challenge/GenericLower.lean.in",
-    "verifier/comparator-generic-lower.json"
+    "verifier/comparator-generic-lower.json",
+    "formal/OptimalOTS/WholeWords.lean"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -87,7 +88,7 @@
       "framework": "disclosure",
       "kind": "lower",
       "direction": "+",
-      "baseline": 80,
+      "baseline": 93,
       "submission_root": "formal/Submissions/DisclosureLower",
       "module_prefix": "Submissions.DisclosureLower",
       "solution_module": "Submissions.DisclosureLower.Solution",
@@ -99,7 +100,8 @@
         "Mathlib",
         "VCVio",
         "OptimalOTS.Statement",
-        "OptimalOTS.Disclosure"
+        "OptimalOTS.Disclosure",
+        "OptimalOTS.WholeWords"
       ]
     },
     {
@@ -121,7 +123,8 @@
         "VCVio",
         "OptimalOTS.Statement",
         "OptimalOTS.Disclosure"
-      ]
+      ],
+      "historical_framework_title": "Historical partial disclosures"
     },
     {
       "slug": "generic-lower",
@@ -169,12 +172,11 @@
     },
     {
       "slug": "disclosure",
-      "title": "Partial disclosures",
+      "title": "Whole words",
       "status": "active",
       "lower_track": "disclosure-lower",
-      "upper_track": "disclosure-upper",
-      "origin_limit": 46,
-      "description": "DAG schemes whose signatures disclose values derived from at most 46 hash outputs. Fragments and deterministic encodings are allowed."
+      "description": "DAGs built from independent 128-bit secrets, 256-bit hashes, fixed output halves and concatenation. Inputs and disclosures contain only whole words.",
+      "word_bits": 128
     }
   ]
 }

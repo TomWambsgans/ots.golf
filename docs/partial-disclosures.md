@@ -1,4 +1,10 @@
-# Partial disclosures from 46 hash outputs
+# Historical partial disclosures from 46 hash outputs
+
+This document records the former third framework and its verification at commit `84c5fd2`.
+The active third lower framework is now [whole words](whole-words.md). Its retained
+`disclosure-lower` slug and root export a different, explicitly pinned contract. The historical
+`disclosure-upper` certificate remains locally verifiable and is not a whole-word construction.
+The scores, commands and website descriptions below describe that earlier milestone.
 
 The third framework retains the existing bare-oracle DAG contract and adds one condition:
 apart from the nonce, the disclosed payload has at most 46 distinct hash origins. Sources

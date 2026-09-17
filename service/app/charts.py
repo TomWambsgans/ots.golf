@@ -46,7 +46,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="img" '
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
-           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and partial-disclosure '
+           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and whole-word '
            'lower records are separate series. Generic lower submissions cover correct signing with success '
            'at least one half and are open. The single upper series is the generic candidate, '
            'with admission still pending. Hover or focus a record for its framework and solver.</desc>']

@@ -3,6 +3,7 @@
 
     tools/tune_lower_bound.py --idx 1 --claims 18
     tools/tune_lower_bound.py --method disclosure --origins 46 --claims 80,81
+    tools/tune_lower_bound.py --method words --claims 93,94
     tools/tune_lower_bound.py --method entropy --s-star 5313 --idx 1 --claims 24,25
 
 For a proposed bound c, the attack assumes C_i <= c-1 for all i. Reconstruction
@@ -16,7 +17,9 @@ The default pattern method and the disclosure method use exact integer and
 rational arithmetic. The disclosure method counts bounded-origin traversal
 patterns and checks an averaged repetition attack. Its structural counting and
 probability hypotheses still require Lean proofs; a positive arithmetic margin
-is not a certificate. For the default origin limit 46, its proposed claim is 80.
+is not a certificate. For the historical origin limit 46, its claim is 80. Whole-word mode derives
+41 origins from 5248 payload bits and uses freshness 99/100, certifying the
+arithmetic for claim 93. The numerical output alone is not a Lean certificate.
 
 The entropy method is conditional research: its proposed fresh-coordinate lemmas
 are false in the bare model, so positive numerical margins do not prove a bound.
@@ -110,28 +113,31 @@ def print_point(c: int, idx: int, s_star: int) -> None:
           f"exact count > 100: {count > 100}")
 
 
-def print_disclosure_point(c: int, origins: int) -> None:
+def print_disclosure_point(c: int, origins: int, freshness: Fraction = Fraction(9, 10)) -> None:
     """Exact arithmetic for the proposed bounded-origin repetition attack.
 
     The hypothesized cost cap c-1 leaves c-3 non-root reconstructed hashes.
-    Prefix-free traversal words have at most that many recompute decisions and
-    at most `origins` stop decisions. Padding to the two maximum counts gives
-    the proposed binomial pattern bound. The search uses T=2^122 queries, hence
+    Ordered pattern counting gives the binomial bound from at most that many
+    reconstructed hashes and at most `origins` distinct disclosed hash origins. The search uses T=2^122 queries, hence
     N/T=64, and averages k/(64+k) over repetition classes of size k.
     """
     a, v, trials = c - 3, c - 2, 2 ** 122
     count = math.comb(a + origins, origins)
     averaged_search = Fraction(M, 64 * count + M)
-    lower = Fraction(9, 10) ** 2 * Fraction(256, 257) * averaged_search
+    lower = freshness ** 2 * Fraction(256, 257) * averaged_search
     budget = 1024 + L + trials + 2 * v + 2
     ratio = Fraction(budget, 2 ** 127)
     margin = lower - ratio
-    print(f"c={c}, origins={origins}, a={a}, reconstruction budget={v}")
+    print(f"c={c}, origins={origins}, a={a}, reconstruction budget={v}, freshness={freshness}")
     print(f"  exact pattern count = choose({a + origins}, {origins}) = {count}")
     print(f"  averaged search success >= {averaged_search}")
     print(f"  exact success lower bound = {lower}")
     print(f"  exact success > 33/1000: {lower > Fraction(33, 1000)} "
           f"(display ~ {float(lower):.12f})")
+    if freshness == Fraction(99, 100):
+        cutoff = Fraction(9801, 280000)
+        print(f"  certificate success >= {cutoff}: {lower >= cutoff}; "
+              f"budget/2^127 < {cutoff}: {ratio < cutoff}")
     print(f"  exact total budget = {budget}; budget/2^127 = {ratio}")
     print(f"  exact budget/2^127 < 4/125: {ratio < Fraction(4, 125)} "
           f"(display ~ {float(ratio):.12f})")
@@ -142,27 +148,28 @@ def print_disclosure_point(c: int, origins: int) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--idx", type=int, default=1)
-    ap.add_argument("--method", choices=("patterns", "disclosure", "entropy"), default="patterns")
+    ap.add_argument("--method", choices=("patterns", "disclosure", "words", "entropy"), default="patterns")
     ap.add_argument("--origins", type=int, default=46,
-                    help="maximum distinct disclosed hash origins for disclosure mode (default: 46)")
+                    help="maximum origins for disclosure mode (default: 46); words mode fixes 41")
     ap.add_argument("--s-star", type=int, default=5313,
                     help="conditional entropy information budget (default: 5313)")
     ap.add_argument("--claims", default=None,
-                    help="claims to check (default: 18 for patterns, 80 for disclosure, 24,25 for entropy)")
+                    help="claims to check (default: 18 for patterns, 80 for disclosure, 93 for words, 24,25 for entropy)")
     ap.add_argument("--no-search", action="store_true", help="only report simple integer operating points")
     args = ap.parse_args()
     try:
-        defaults = {"patterns": "18", "disclosure": "80", "entropy": "24,25"}
+        defaults = {"patterns": "18", "disclosure": "80", "words": "93", "entropy": "24,25"}
         claims = list(map(int, (args.claims or defaults[args.method]).split(",")))
     except ValueError:
         ap.error("--claims must be comma-separated integers")
-    if args.method == "disclosure":
+    if args.method in ("disclosure", "words"):
         if args.idx != 1 or args.origins < 0 or any(c < 3 for c in claims):
             ap.error("disclosure mode requires --idx 1, origins >= 0, and every claim >= 3")
         print("EXACT DISCLOSURE-ATTACK ARITHMETIC; numerical checks are not certificates.")
         print("The traversal count and averaged attack hypotheses require separate Lean proofs.")
         for c in claims:
-            print_disclosure_point(c, args.origins)
+            print_disclosure_point(c, 41 if args.method == "words" else args.origins,
+                                   Fraction(99, 100) if args.method == "words" else Fraction(9, 10))
         return 0
     if args.idx < 1 or args.s_star <= 0 or any(c - args.idx - 2 < 2 for c in claims):
         ap.error("require idx >= 1, s-star > 0, and c-idx-2 >= 2 for every proposed claim")

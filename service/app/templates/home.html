@@ -85,15 +85,15 @@
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
       <div class="framework-card-heading"><span class="framework-number">0{{ loop.index }}</span></div>
-      <h3><a href="/rules#{{ 'partial-disclosures' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
+      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm. Honest signatures verify; signing succeeds at least half the time.
       No required graph or disclosure cut.</p>
       {% elif model.slug == 'dag' %}
       <p>A fixed computation graph. Reveal a cut; recompute the public key.</p>
       {% else %}
-      <p>A DAG whose disclosed values trace back through deterministic operations to at most
-      <strong>{{ model.origin_limit }} distinct hash nodes</strong>. They must form a cut for forward reconstruction.</p>
+      <p>A DAG built from <strong>whole 128-bit words</strong>. Split each hash into two words;
+      concatenate words into new inputs. Reveal at most 41 words.</p>
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Lower <span aria-hidden="true">↑</span></dt>
@@ -112,7 +112,7 @@
     <div>
       <span class="framework-status">The single upper-bound track · admission pending</span>
       <h3 id="generic-upper-title">Build any oracle algorithm.</h3>
-      <p>No required DAG, disclosure cut or 46-output limit. Prove its cost, 127-bit security,
+      <p>No required DAG, disclosure cut or fixed word size. Prove its cost, 127-bit security,
       correctness and signing availability.</p>
       <p class="candidate-note">The existing forest adapter has checked cost and security proofs.
       Correctness and signing availability remain to be proved before generic upper submissions open.
@@ -120,7 +120,7 @@
     </div>
     <div class="upper-candidate"><span class="muted">Generic upper candidate ↓</span><strong>{{ generic_upper.claim }}</strong><span>compressions · adapter</span></div>
   </article>
-  <p class="scope-note">Each lower-bound class has its own optimum. A lower bound for partial disclosures applies to that class;
+  <p class="scope-note">Each lower-bound class has its own optimum. A lower bound for whole words applies to that class;
   it does not establish the same bound for all DAGs or all algorithms.</p>
 </section>
 
@@ -195,7 +195,7 @@
         <div class="framework-board-head"><h3 id="upper-board-title">Fully generic algorithms</h3><span class="status">Admission pending</span></div>
         <p class="foundation-note">One upper track for arbitrary oracle programs. A construction needs proofs of
         127-bit security, correctness, signing availability, signature size and cost. There are no separate DAG
-        or partial-disclosure upper leaderboards.</p>
+        or whole-word upper leaderboards.</p>
         <div class="board-scroll">
           <table class="candidate-table">
             <caption class="visually-hidden">Generic upper candidate; no admitted records yet</caption>

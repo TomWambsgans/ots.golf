@@ -30,8 +30,17 @@ def framework(slug: str) -> dict | None:
 
 
 def framework_tracks(slug: str) -> dict[str, dict]:
-    """Pinned certificates for a model, including retained legacy upper references."""
-    return {t["kind"]: t for t in tracks() if t["framework"] == slug}
+    """Certificates explicitly linked to this class; historical classes stay separate."""
+    model = framework(slug)
+    if model is None:
+        return {}
+    return {kind: track(model[f"{kind}_track"]) for kind in ("lower", "upper")
+            if f"{kind}_track" in model}
+
+
+def track_framework_title(t: dict) -> str:
+    """Historical certificates retain their class name when a public framework changes."""
+    return t.get("historical_framework_title") or framework(t["framework"])["title"]
 
 
 def generic_upper_candidate() -> dict:

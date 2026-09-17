@@ -2,7 +2,7 @@
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> Lower bounds have three frameworks: generic algorithms, DAGs and partial disclosures.
+> Lower bounds have three frameworks: generic algorithms, DAGs and whole words.
 > There is one upper track, for fully generic algorithms. Certificates are checked by the Lean kernel.
 
 Oracle model: one random oracle on bare bit strings, with no labels, tweaks or separation
@@ -15,11 +15,12 @@ the claim.txt files of the submission roots. The DAG lower proof covers every we
 without a separation hypothesis. Bounds above 18 remain open; see docs/bare-oracle-port.md.
 The former labeled-model bound 25 is not a bare-oracle certificate.
 
-Partial disclosures add a limit of 46 distinct hash origins across the payload, with baselines
-80 and 106. Sources contribute none; hash outputs contribute their own node; deterministic
-processing inherits its parents' origins. Partial bits and Reed-Solomon symbols are allowed.
-Verification still requires a structural DAG cut. This restricted lower bound does not change
-the unrestricted DAG record. See docs/partial-disclosures.md.
+Whole-word DAGs use independent 128-bit sources, 256-bit hashes, fixed 128-bit output halves,
+and concatenation of any number of earlier whole words. Disclosures contain complete values.
+The 5248-bit payload implies at most 41 hash origins, yielding the lower bound 93. There is no
+additional provenance cap and no arbitrary encoding or partial-word disclosure. The unrestricted
+DAG contract remains unchanged. See docs/whole-words.md. The retained disclosure-upper proof
+is a historical partial-disclosure reference, not a whole-word construction.
 
 Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but upper submissions
 are not yet admitted: correctness and signing availability remain to be proved for that adapter.
@@ -44,9 +45,9 @@ queue rejects new submissions to those upper roots.
 - Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
 - Generic lower root: formal/Submissions/GenericLower (claim 1; module prefix Submissions.GenericLower)
 - Legacy DAG upper reference root: formal/Submissions/Upper (module prefix Submissions.Upper)
-- Partial-disclosure lower root: formal/Submissions/DisclosureLower (claim 80)
+- Whole-word lower root: formal/Submissions/DisclosureLower (claim 93)
 - Legacy partial-disclosure upper reference root: formal/Submissions/DisclosureUpper (claim 106)
-- Partial-disclosure contract: formal/OptimalOTS/Disclosure.lean
+- Whole-word contract: formal/OptimalOTS/WholeWords.lean
 
 The one submission channel: a pull request against the contract repository changing only one
 submission root (`gh pr create` works). Put `Assisted by: <model>` and `Co-authors: a, b` lines in

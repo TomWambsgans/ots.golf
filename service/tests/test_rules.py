@@ -31,7 +31,7 @@ class RulesTests(unittest.TestCase):
         with patch.object(contract, 'load', return_value=config), \
              patch.object(contract, 'generic_upper_candidate', return_value={'claim': 876543}):
             html = self.rules_body()
-        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|106|987654|876543|765432)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|106|987654|876543|765432)\b')
         self.assertNotIn('Certified lower baselines', html)
         self.assertNotIn('Current candidate', html)
         self.assertNotIn('baseline', html)
@@ -39,15 +39,18 @@ class RulesTests(unittest.TestCase):
 
     def test_rules_preserve_framework_links_and_admission_scope(self):
         html = self.rules_body()
-        for anchor in ('generic-algorithms', 'generic-upper', 'graph', 'partial-disclosures',
+        for anchor in ('generic-algorithms', 'generic-upper', 'graph', 'partial-disclosures', 'whole-words',
                        'legacy-certificates', 'hash', 'security', 'params', 'cut', 'play', 'rules',
-                       'generic-admissibility', 'dag-model', 'encodings', 'submission-format'):
+                       'generic-admissibility', 'dag-model', 'whole-word-model', 'submission-format'):
             self.assertIn(f'id="{anchor}"', html)
         self.assertIn('Three lower-bound frameworks', html)
         self.assertIn('One upper track: generic algorithms', html)
-        self.assertIn('Reed–Solomon', html)
-        self.assertIn('46 distinct hash origins', html)
-        self.assertIn('<strong>Open:</strong> generic lower, DAG lower and partial-disclosure lower.', html)
+        self.assertIn('whole 128-bit words', html)
+        self.assertIn('41 words', html)
+        self.assertIn('No other deterministic', html)
+        self.assertNotIn('hash origins', html)
+        self.assertNotIn('Reed–Solomon', html)
+        self.assertIn('<strong>Open:</strong> generic lower, DAG lower and whole-word lower.', html)
         self.assertIn('<strong>Pending:</strong> generic upper', html)
         self.assertIn('This availability threshold is fixed for generic lower submissions.', html)
         self.assertIn('at least <strong>1/2</strong>', html)
@@ -56,7 +59,19 @@ class RulesTests(unittest.TestCase):
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
         self.assertIn('formal/OptimalOTS/Statement.lean', html)
         self.assertIn('formal/OptimalOTS/AlgorithmWeak.lean', html)
-        self.assertIn('formal/OptimalOTS/Disclosure.lean', html)
+        self.assertIn('formal/OptimalOTS/WholeWords.lean', html)
+
+    def test_whole_word_diagram_keeps_variable_input_length_and_two_hash_halves(self):
+        html = self.rules_body()
+        diagram = re.search(r'<svg[^>]*aria-labelledby="words-figure-title words-figure-desc".*?</svg>',
+                            html, re.S).group(0)
+        self.assertIn('256 bits', diagram)
+        self.assertIn('low 128 bits', diagram)
+        self.assertIn('high 128 bits', diagram)
+        self.assertIn('Any number of words', diagram)
+        self.assertIn('n whole words', diagram)
+        self.assertNotIn('origins-figure-title', html)
+        self.assertIn('cut-figure-title', html)
 
 
 if __name__ == '__main__':

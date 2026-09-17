@@ -1,0 +1,29 @@
+<figure class="rules-diagram">
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="Whole-word hashing diagram; scroll horizontally on small screens">
+    <svg viewBox="0 0 900 240" role="img" aria-labelledby="words-figure-title words-figure-desc">
+      <title id="words-figure-title">A hash gives two whole words for later inputs</title>
+      <desc id="words-figure-desc">A 256-bit hash output splits into its low and high 128-bit halves.
+      Concatenating these or other whole words forms another hash input. Any number of words is
+      allowed; every four input words cost one compression, rounded up, with a minimum of one.</desc>
+      <defs><marker id="words-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <g class="diagram-edges" marker-end="url(#words-arrow)">
+        <path d="M164 104 H187 V57 H220"/><path d="M187 104 V151 H220"/>
+        <path d="M358 57 H386 V89 H428"/><path d="M358 151 H386 V119 H428"/>
+        <path d="M580 192 V137"/><path d="M705 104 H748"/>
+      </g>
+      <g class="diagram-node"><rect x="20" y="73" width="144" height="62" rx="7"/>
+        <rect x="428" y="73" width="277" height="62" rx="7"/><rect x="748" y="73" width="128" height="62" rx="7"/></g>
+      <g class="diagram-node diagram-reveal"><rect x="220" y="34" width="138" height="46" rx="6"/>
+        <rect x="220" y="128" width="138" height="46" rx="6"/></g>
+      <g class="diagram-text" text-anchor="middle"><text x="92" y="99">H(…)</text><text x="92" y="122">256 bits</text>
+        <text x="289" y="62">low 128 bits</text><text x="289" y="156">high 128 bits</text>
+        <text x="566" y="98">w₀ ‖ w₁ ‖ … ‖ wₙ₋₁</text><text x="566" y="122">n whole words</text>
+        <text x="812" y="99">H(input)</text><text x="812" y="122">256 bits</text></g>
+      <text class="diagram-note" x="289" y="108" text-anchor="middle">two usable words</text>
+      <text class="diagram-note" x="580" y="212" text-anchor="middle">other 128-bit words</text>
+      <text class="diagram-note" x="812" y="164" text-anchor="middle">charge input blocks</text>
+    </svg>
+  </div>
+  <figcaption>Keep each 128-bit word intact. A hash can combine any number of words; its input length
+  determines its cost. The signature's 5,248-bit payload holds at most 41 words.</figcaption>
+</figure>
