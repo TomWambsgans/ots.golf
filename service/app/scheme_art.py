@@ -3,7 +3,7 @@
 Root at the center; 41 hash chains of 20 beads radiating outward to their secret sources, their
 ends hashed together into the root. One real signature is lit on it: one revealed value per chain,
 at positions whose recomputation costs exactly 96 chain hashes (revealed values, recomputed nodes,
-untouched beads), as in the paper's figure.
+untouched beads), one chain opened down to its source.
 """
 from __future__ import annotations
 
@@ -25,17 +25,21 @@ def polar(r: float, a: float) -> tuple[float, float]:
 
 
 def signature_positions() -> list[int]:
-    """Revealed positions t_k (0 = source, 20 = chain end) with sum(20 - t_k) = 96: a gentle wave,
-    so that the lit chains read as a pattern rather than noise."""
-    base = [20 - int(round(2.34 + 2.0 * math.sin(2 * math.pi * k / CHAINS * 3))) for k in range(CHAINS)]
-    steps = sum(LEN - t for t in base)
-    k = 0
-    while steps != STEPS:                       # nudge to the exact target
-        if steps < STEPS and base[k] > 0:
-            base[k] -= 1; steps += 1
-        elif steps > STEPS and base[k] < LEN:
-            base[k] += 1; steps -= 1
-        k = (k + 1) % CHAINS
+    """Revealed positions t_k (0 = source, 20 = chain end) with sum(20 - t_k) = 96: pseudo-random
+    with a fixed seed, one chain opened all the way down to its source and one cut deep, the rest
+    shallow, so the lit signature looks like a real one rather than a pattern."""
+    import random
+    rng = random.Random(0x6f74732e676f6c66)             # "ots.golf"
+    steps = [0] * CHAINS
+    deep, deeper = rng.sample(range(CHAINS), 2)
+    steps[deep], steps[deeper] = LEN, 8
+    budget = STEPS - LEN - 8
+    while budget > 0:                                   # the rest stays shallow (at most 5 beads)
+        k = rng.randrange(CHAINS)
+        if k not in (deep, deeper) and steps[k] < 5:
+            steps[k] += 1
+            budget -= 1
+    base = [LEN - c for c in steps]
     assert sum(LEN - t for t in base) == STEPS
     return base
 
