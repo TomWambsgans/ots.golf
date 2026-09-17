@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-A hash-based one-time signature reveals selected values of a fixed computation on secret inputs, and the verifier recomputes the final hash from them and compares it with the public key. We ask how cheap this verification can be, counting one compression per 512-bit block hashed. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security, some signature must cost at least 25 compressions to verify, and a concrete scheme verifies every signature in 106. Both results are proved in Lean.
+A hash-based one-time signature reveals selected values of a fixed computation on secret inputs, and the verifier recomputes the final hash from them and compares it with the public key. We ask how cheap this verification can be, counting one compression per started 512-bit block hashed, with 192 bits of overhead per query. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security, some signature must cost at least 25 compressions to verify, and a concrete scheme verifies every signature in 109. Both results are proved in Lean.
 \end{abstract}
 
 \setcounter{tocdepth}{2}
@@ -32,19 +32,19 @@ A hash-based one-time signature reveals selected values of a fixed computation o
 
 A hash-based one-time signature scheme starts from a public computation on secret random inputs. Key generation runs the computation and publishes part of its final hash as the public key. To sign, the signer reveals the values of certain intermediate nodes, chosen according to the message. To verify, one recomputes the final hash from the revealed values and compares it with the public key. Lamport and Winternitz signatures follow this pattern. The model of Section~\ref{sec:model} covers them and any other scheme whose signatures consist of node values of a fixed computation, with the revealed nodes selected by hashing the message together with a nonce.
 
-Three quantities compete in such a scheme: the length of the public key, the length of the signature, and the amount of hashing that verification requires. This note fixes the first two and asks for the least possible value of the third. We work in the random-oracle model and charge one \emph{compression} for every 512 bits of input hashed, so that a short input costs one compression and a long input costs proportionally more. Deterministic operations, such as splitting, concatenating, or otherwise transforming strings, are free, and the computation may use them without restriction. Our parameters are a 128-bit public key, signatures of at most 5504 bits, and a security requirement of roughly 127 bits: a classical attacker spending $B$ compressions must forge with probability below $B/2^{127}$.
+Three quantities compete in such a scheme: the length of the public key, the length of the signature, and the amount of hashing that verification requires. This note fixes the first two and asks for the least possible value of the third. We work in the random-oracle model and charge one \emph{compression} for every started 512-bit block of input hashed, so that a short input costs one compression and a long input costs proportionally more. Every query also carries 192 bits of overhead, a 128-bit public parameter for multi-user domain separation and a 64-bit tweak for addressing, as deployed tweakable hash functions do; they are charged but play no role in the model, whose labels provide the separation for free. Deterministic operations, such as splitting, concatenating, or otherwise transforming strings, are free, and the computation may use them without restriction. Our parameters are a 128-bit public key, signatures of at most 5504 bits, and a security requirement of roughly 127 bits: a classical attacker spending $B$ compressions must forge with probability below $B/2^{127}$.
 
 \paragraph{Result.}
-Under these constraints, some signature requires at least 25 compressions to verify (Theorem~\ref{thm:main}). One of these compressions pays for hashing the message together with a nonce, which selects the values to reveal; the remaining 24 are recomputation. In the other direction, Section~\ref{sec:scheme} gives a concrete scheme, a forest of hash chains under a small tree, whose signatures all verify in 106 compressions, and proves it secure (Theorem~\ref{thm:scheme}).
+Under these constraints, some signature requires at least 25 compressions to verify (Theorem~\ref{thm:main}). Two of these compressions pay for hashing the message together with a nonce, which selects the values to reveal; the remaining 23 are recomputation. In the other direction, Section~\ref{sec:scheme} gives a concrete scheme, 41 hash chains hashed together into a root, whose signatures all verify in 109 compressions, and proves it secure (Theorem~\ref{thm:scheme}).
 
 \paragraph{Proof idea.}
-Suppose instead that every signature verifies within 24 compressions. Then recomputing the root from any signature evaluates at most 22 hash nodes besides the root. We exhibit an attacker that requests one signature and forges another.
+Suppose instead that every signature verifies within 24 compressions. Then recomputing the root from any signature evaluates at most 21 hash nodes besides the root. We exhibit an attacker that requests one signature and forges another.
 
 The starting point is that a signature reveals at most 5248 bits, and these bits carry at most about 5248 bits of information about the signer's secret record, however the computation is arranged. We make this precise by assigning each hash node a \emph{weight}: the number of bits of its output that the revealed values pin down, once the secret inputs and the earlier outputs are given. The weights sum to at most 5257 bits, except with small probability (Lemma~\ref{lem:information}).
 
 To forge with another set of revealed nodes, the attacker must supply values from which the verifier recomputes the same root. It samples a secret record consistent with everything it has seen and tests, at each hash node that the verifier will newly evaluate, whether the oracle agrees with the sampled record. Lemma~\ref{lem:conversion} shows that $q$ attempts succeed with probability at least $1-d/\log(eq\ln q)$ when the newly evaluated nodes have total weight $d$. A target of weight $d$ is therefore reached after somewhat fewer than $2^d$ attempts.
 
-A scheme would like every other target set to be expensive. But there are $2^{115}$ sets, each touching at most 22 hash nodes, and only about 5257 bits of weight to distribute among them. A counting argument (Lemma~\ref{lem:counting}) shows that the observed signature typically leaves dozens of sets of weight below 123 bits, and about $2^{115}$ construction attempts suffice for a set of that weight. It remains to select a cheap set for the new message. The set is chosen by hashing the message with a nonce, and the attacker searches for a nonce landing on one of the hundred lowest-weight sets. These form a $100/2^{128}$ fraction of the possible hash values, so about $2^{121}$ nonce trials suffice. The total cost is about $2^{123}$ compressions, and the attack succeeds with probability above one in twenty. The ratio of cost to success probability falls below $2^{127}$, contradicting the security requirement. The margin is small, so the final comparisons are carried out in exact rational arithmetic (Appendix~\ref{sec:numerical}).
+A scheme would like every other target set to be expensive. But there are $2^{115}$ sets, each touching at most 21 hash nodes, and only about 5257 bits of weight to distribute among them. A counting argument (Lemma~\ref{lem:counting}) shows that the observed signature typically leaves hundreds of sets of weight below 113 bits, and about $2^{110}$ construction attempts suffice for a set of that weight. It remains to select a cheap set for the new message. The set is chosen by hashing the message with a nonce, and the attacker searches for a nonce landing on one of the 450 lowest-weight sets. These form a $450/2^{128}$ fraction of the possible hash values, so about $2^{121}$ nonce trials suffice, each costing two compressions. The total cost is about $2^{123.3}$ compressions, and the attack succeeds with probability above one in ten. The ratio of cost to success probability falls below $2^{127}$, contradicting the security requirement. The final comparisons are carried out in exact rational arithmetic (Appendix~\ref{sec:numerical}).
 
 \paragraph{Organization.}
 Section~\ref{sec:model} defines the model and states the theorem. Section~\ref{sec:information} defines the weights and proves the information bound. Section~\ref{sec:conversion} constructs values for a target set and bounds the cost of doing so. Section~\ref{sec:counting} proves the counting bound. Section~\ref{sec:attack} assembles the attack and completes the proof. Section~\ref{sec:scheme} describes a concrete scheme and proves its security. Appendix~\ref{sec:elementary} collects elementary facts about entropy and repeated trials, and Appendix~\ref{sec:numerical} verifies the numerical inequalities.
@@ -57,9 +57,9 @@ Key generation evaluates a public computation on random secret inputs. A signatu
 
 We model hashing by a random oracle $H$. A query consists of a public label $\tau$ and a nonempty bit string $u$. For each distinct pair $(\tau,u)$, the oracle assigns an independent, uniformly random 256-bit answer $H(\tau,u)$. Repeating a query returns the same answer. The cost of a query with input $u$ is
 \[
-c(u)=\left\lceil\frac{|u|}{512}\right\rceil
+c(u)=\left\lceil\frac{|u|+192}{512}\right\rceil
 \]
-compressions. The label does not contribute to the cost. All other computation, storage, and private randomness are free, for both the signer and the attacker.
+compressions. The 192 additional bits account for a 128-bit public parameter, which separates users, and a 64-bit tweak, which separates the positions of a scheme; deployed tweakable hash functions prepend both to every input. They are charged but do not appear in the model, whose labels provide this separation for free, and the label itself does not contribute to the cost. All other computation, storage, and private randomness are free, for both the signer and the attacker.
 
 The computation is a finite directed acyclic graph (DAG). An edge from $v$ to $w$ means that $w$ uses the value of $v$. Each node $v$ has a fixed output length $b_v$. There are three types of nodes:
 \begin{description}
@@ -97,7 +97,7 @@ If the supplied string $x$ contains the values computed at the nodes of $A_i$ du
 
 \subsection{Signatures and security}
 
-For a 256-bit message $m$ and a 256-bit nonce $\eta$, let $\mathsf{idx}(m,\eta)$ be the integer represented by the first 128 bits of $H(\tau_{\mathrm{enc}},m\Vert\eta)$, where $\Vert$ denotes concatenation. The label $\tau_{\mathrm{enc}}$ is reserved for this query and differs from every hash-node label. Computing $\mathsf{idx}$ costs one compression.
+For a 256-bit message $m$ and a 256-bit nonce $\eta$, let $\mathsf{idx}(m,\eta)$ be the integer represented by the first 128 bits of $H(\tau_{\mathrm{enc}},m\Vert\eta)$, where $\Vert$ denotes concatenation. The label $\tau_{\mathrm{enc}}$ is reserved for this query and differs from every hash-node label. Computing $\mathsf{idx}$ costs two compressions.
 
 To sign $m$, choose $\eta$ uniformly from the nonces not yet tried in this signing call and compute $i=\mathsf{idx}(m,\eta)$. If $i<M$, return the signature $(\eta,X_{A_i})$. Otherwise, try another nonce. Signing fails after $L$ unsuccessful trials.
 
@@ -105,7 +105,7 @@ To verify $(\eta,x)$ on message $m$, first check that $\eta$ has 256 bits. Compu
 \[
 |\sigma|=256+\ell_i,
 \qquad
-C_i=1+\sum_{g\in E_i}c_g.
+C_i=2+\sum_{g\in E_i}c_g.
 \]
 We require $\ell_i\le S$ for every $i$ and $\sum_g c_g\le K$, with parameters
 \[
@@ -484,24 +484,24 @@ Dividing by $\beta_a(d)>0$ proves the lemma.
 
 \section{The forgery}\label{sec:attack}
 
-A successful construction for index $j$ supplies values for the nodes of $A_j$. To obtain a signature on a new message, the attacker must also find a nonce selecting that same index. We analyze an attack that searches among the 100 indices of lowest weight.
+A successful construction for index $j$ supplies values for the nodes of $A_j$. To obtain a signature on a new message, the attacker must also find a nonce selecting that same index. We analyze an attack that searches among the 450 indices of lowest weight.
 
 \begin{proof}[Proof of Theorem~\ref{thm:main}]
-Suppose $C_i\le24$ for every index $i$. After the one-compression index query, root reconstruction costs at most $v=23$ compressions. Every hash node costs at least one compression, and the root belongs to every $E_i$. Hence $|V_i|\le22$, where $V_i=E_i\setminus\{r\}$.
+Suppose $C_i\le24$ for every index $i$. After the two-compression index query, root reconstruction costs at most $v=22$ compressions. Every hash node costs at least one compression, and the root belongs to every $E_i$. Hence $|V_i|\le21$, where $V_i=E_i\setminus\{r\}$.
 
 \paragraph{The algorithm.}
 Fix distinct 256-bit messages $m_1,m_2$. Set
 \[
-q=5\cdot2^{113},
+q=2^{110},
 \qquad
-T=3\cdot2^{121}.
+T=5\cdot2^{120}.
 \]
 The attacker performs the following steps:
 \begin{enumerate}
 \item Request a signature on $m_1$ before making any oracle queries. If signing fails, abort. Otherwise, write the returned signature as $(\eta_1,x)$.
 \item Compute $i=\mathsf{idx}(m_1,\eta_1)$. Reconstruct the root from the index $i$ and the received string $x$, and record the hash answers $y=(y_g)_{g\in E_i}$. Form the candidate distribution $Q$ from $x,y$ and compute the weights $h_i$ in~\eqref{eq:weights}.
 \item Order the indices as $j_1,\ldots,j_M$ by increasing $h_i(V_j)$. Put $i$ first among equal weights and break all other ties by index. Since $h_i(V_i)=0$, this gives $j_1=i$.
-\item Compute $\mathsf{idx}(m_2,\eta)$ for $T$ distinct nonces $\eta$. If no result lies in $\{j_1,\ldots,j_{100}\}$, abort. Otherwise, choose a nonce $\eta_2$ whose result $j_\ell$ has the smallest rank $\ell$ found.
+\item Compute $\mathsf{idx}(m_2,\eta)$ for $T$ distinct nonces $\eta$. If no result lies in $\{j_1,\ldots,j_{450}\}$, abort. Otherwise, choose a nonce $\eta_2$ whose result $j_\ell$ has the smallest rank $\ell$ found.
 \item If $\ell=1$, set $x'=x$. Otherwise, make up to $q$ construction attempts for target index $j_\ell$, as in Section~\ref{sec:conversion}. Let $x'$ be the first returned string; abort if all attempts fail.
 \item Output the message $m_2$ and signature $(\eta_2,x')$.
 \end{enumerate}
@@ -523,47 +523,47 @@ D_\ell=h_i(V_{j_\ell})
 \]
 be the weight at rank $\ell$. To bound its distribution, first fix an honest secret record. For every possible observed index $i$, this record determines the revealed tuple, the reconstructed hash answers, and hence the weight function $h_i$.
 
-Apply Lemma~\ref{lem:counting} to these functions with $a=22$ and $R=\ell$. Among good indices $i$, at most $(\ell-1)/\beta_{22}(d)$ have fewer than $\ell$ targets of weight below $d$. Having fewer than $\ell$ such targets means precisely that the $\ell$th smallest weight is at least $d$, that is, $D_\ell\ge d$. The observed index is uniform among the $M$ indices and independent of the secret record. Averaging over both, and setting aside the indices whose total weight exceeds $S_*$, which by Lemma~\ref{lem:information} have probability at most $\varepsilon=1/512$, gives
+Apply Lemma~\ref{lem:counting} to these functions with $a=21$ and $R=\ell$. Among good indices $i$, at most $(\ell-1)/\beta_{21}(d)$ have fewer than $\ell$ targets of weight below $d$. Having fewer than $\ell$ such targets means precisely that the $\ell$th smallest weight is at least $d$, that is, $D_\ell\ge d$. The observed index is uniform among the $M$ indices and independent of the secret record. Averaging over both, and setting aside the indices whose total weight exceeds $S_*$, which by Lemma~\ref{lem:information} have probability at most $\varepsilon=1/512$, gives
 \[
 \Pr[D_\ell<d]\ge
-\pos{1-\varepsilon-\frac{\ell-1}{M\beta_{22}(d)}}
+\pos{1-\varepsilon-\frac{\ell-1}{M\beta_{21}(d)}}
 \qquad(d>0).
 \]
 
 Appendix~\ref{sec:numerical} proves
 \[
-M\beta_{22}(123)>100,
+M\beta_{21}(113)>500,
 \qquad
-\frac{\beta_{22}(d)}{d^{22}}\text{ is decreasing for }d>0.
+\frac{\beta_{21}(d)}{d^{21}}\text{ is decreasing for }d>0.
 \]
-In particular, for $0<d\le123$,
+In particular, for $0<d\le113$,
 \[
-M\beta_{22}(d)>100\left(\frac d{123}\right)^{22}.
+M\beta_{21}(d)>500\left(\frac d{113}\right)^{21}.
 \]
 Substitution yields
 \begin{equation}\label{eq:rank-bound}
 \Pr[D_\ell<d]\ge
-\pos{\frac{511}{512}-\frac{\ell-1}{100}\left(\frac{123}{d}\right)^{22}}.
+\pos{\frac{511}{512}-\frac{\ell-1}{500}\left(\frac{113}{d}\right)^{21}}.
 \end{equation}
 
 \paragraph{Construction success at each rank.}
-Our choice of $q$ satisfies $\log(e q\ln q)>123$, as verified in Appendix~\ref{sec:numerical}. For fixed observations $x,y$, Lemma~\ref{lem:conversion} bounds the probability of constructing values for $A_{j_\ell}$ within $q$ attempts by at least $[1-D_\ell/123]_+$. Its average is
+Our choice of $q$ satisfies $\log(e q\ln q)>113$, as verified in Appendix~\ref{sec:numerical}. For fixed observations $x,y$, Lemma~\ref{lem:conversion} bounds the probability of constructing values for $A_{j_\ell}$ within $q$ attempts by at least $[1-D_\ell/113]_+$. Its average is
 \[
-\mathbb E\pos{1-\frac{D_\ell}{123}}
-=\frac1{123}\int_0^{123}\Pr[D_\ell<d]\,\mathrm{d}d.
+\mathbb E\pos{1-\frac{D_\ell}{113}}
+=\frac1{113}\int_0^{113}\Pr[D_\ell<d]\,\mathrm{d}d.
 \]
-For each fixed $D_\ell$, the indicator of $D_\ell<d$ integrates to $(123-D_\ell)_+$ on this interval. Averaging proves the identity.
+For each fixed $D_\ell$, the indicator of $D_\ell<d$ integrates to $(113-D_\ell)_+$ on this interval. Averaging proves the identity.
 
-For $2\le\ell\le100$, put $z_\ell=512(\ell-1)/51100$, so $0<z_\ell<1$. Using~\eqref{eq:rank-bound} and substituting $u=d/123$ gives the lower bound
+For $2\le\ell\le450$, put $z_\ell=512(\ell-1)/255500$, so $0<z_\ell<1$. Using~\eqref{eq:rank-bound} and substituting $u=d/113$ gives the lower bound
 \[
-\frac{511}{512}\int_{z_\ell^{1/22}}^1(1-z_\ell u^{-22})\,\mathrm{d}u
-=\frac{511}{512}\left(1-\frac{22}{21}z_\ell^{1/22}+\frac{z_\ell}{21}\right).
+\frac{511}{512}\int_{z_\ell^{1/21}}^1(1-z_\ell u^{-21})\,\mathrm{d}u
+=\frac{511}{512}\left(1-\frac{21}{20}z_\ell^{1/21}+\frac{z_\ell}{20}\right).
 \]
 The lower integration endpoint is where the expression inside the positive part in~\eqref{eq:rank-bound} becomes zero. Define
 \begin{equation}\label{eq:rank-success}
 b_1=1,\qquad
-b_\ell=\frac{511}{512}\left(1-\frac{22}{21}z_\ell^{1/22}+\frac{z_\ell}{21}\right)
-\quad(2\le\ell\le100).
+b_\ell=\frac{511}{512}\left(1-\frac{21}{20}z_\ell^{1/21}+\frac{z_\ell}{20}\right)
+\quad(2\le\ell\le450).
 \end{equation}
 These are lower bounds on the average success probabilities for the respective ranks. At rank one, $j_1=i$, and reconstruction from $(i,x)$ already returns the correct root, so reusing $x$ succeeds with certainty. For the other ranks, the integral also shows $0\le b_\ell\le1$.
 
@@ -575,49 +575,48 @@ The smallest rank found equals $\ell$ if none of the $T$ queries returns $j_1,\l
 \omega_\ell=
 \left(1-\frac{\ell-1}{N}\right)^T
 -\left(1-\frac{\ell}{N}\right)^T
-\qquad(1\le\ell\le100).
+\qquad(1\le\ell\le450).
 \]
 The value of $\omega_\ell$ does not depend on $x,y$. Moreover, conditional on $x,y$, the outcome of the nonce search is independent of the oracle tables used by the construction attempts. The probability that the search selects rank $\ell$ and the construction for $j_\ell$ then succeeds is therefore $\omega_\ell$ times the conditional success probability, and averaging over $x,y$ gives at least $\omega_\ell b_\ell$.
 
 Every string $x'$ returned by the attack reconstructs the correct root at its selected index $j_\ell$, and $\mathsf{idx}(m_2,\eta_2)=j_\ell$. Thus the verifier accepts $(\eta_2,x')$ on $m_2$. Since $m_2\ne m_1$, this is a forgery. Restoring the probability of signing success, we obtain
 \begin{equation}\label{eq:forgery-success}
 \Pr[\mathrm{Forge}]
-\ge(1-\delta)\sum_{\ell=1}^{100}\omega_\ell b_\ell
->\frac{11}{200}.
+\ge(1-\delta)\sum_{\ell=1}^{450}\omega_\ell b_\ell
+>\frac{3}{32}.
 \end{equation}
 The strict numerical bound is proved in Appendix~\ref{sec:numerical}.
 
 \paragraph{Cost.}
 The total cost in every execution is at most
 \[
-B=K+L+T+(q+2)v+2.
+B=K+2L+2T+(q+2)v+4.
 \]
-The terms $K,L,T$ pay for key generation, signing trials, and the nonce search. The construction attempts cost at most $qv$, since each checks a subset of the hash nodes used in one reconstruction. Reconstructing from the received values and verifying the final signature cost another $2v$ compressions for graph queries. Their two index queries cost two further compressions.
+The terms $K$, $2L$ and $2T$ pay for key generation, signing trials, and the nonce search, every index query costing two compressions. The construction attempts cost at most $qv$, since each checks a subset of the hash nodes used in one reconstruction. Reconstructing from the received values and verifying the final signature cost another $2v$ compressions for graph queries. Their two index queries cost four further compressions.
 
 Appendix~\ref{sec:numerical} verifies
 \[
-\frac{B}{2^{127}}<\frac{27}{500}<\frac{11}{200}.
+\frac{B}{2^{127}}<\frac{3}{32}<\Pr[\mathrm{Forge}].
 \]
 The attack therefore violates~\eqref{eq:security}, contradicting the assumption that every $C_i\le24$.
 \end{proof}
 
 \section{A concrete scheme}\label{sec:scheme}
 
-This section describes a concrete scheme within the model of Section~\ref{sec:model}. Every signature verifies in 106 compressions, and the scheme meets the security requirement~\eqref{eq:security}.
+This section describes a concrete scheme within the model of Section~\ref{sec:model}. Every signature verifies in 109 compressions, and the scheme meets the security requirement~\eqref{eq:security}.
 
 \subsection{Construction}
 
-The scheme hangs 63 hash chains under a tree of two grouping levels and a root. A signature reveals one value on every path from a secret source to the root, and the disclosure sets are all such cuts of equal verification cost.
+The scheme hashes the ends of 41 hash chains of length 20 directly into the root. A signature reveals one value on every chain, and the disclosure sets are all such choices of equal verification cost.
 
 \paragraph{The computation.}
-For $k=1,\dots,63$ there is a secret source $z_k$ of 128 bits; write $c_{k,0}=z_k$. For $t=1,\dots,14$ the node $c_{k,t}$ holds the first 128 bits of
+For $k=1,\dots,41$ there is a secret source $z_k$ of 128 bits; write $c_{k,0}=z_k$. For $t=1,\dots,20$ the node $c_{k,t}$ holds the first 128 bits of
 \[
-H(\tau_{k,t},\,c_{k,t-1}),\qquad \tau_{k,t}=14(k-1)+t-1 .
+H(\tau_{k,t},\,c_{k,t-1}),\qquad \tau_{k,t}=20(k-1)+t-1 .
 \]
-For $j=1,\dots,21$ the node $g_j$ holds the first 128 bits of $H(\sigma_j,\,c_{3j-2,14}\Vert c_{3j-1,14}\Vert c_{3j,14})$, and for $l=1,\dots,7$ the node $e_l$ holds the first 128 bits of $H(\rho_l,\,g_{3l-2}\Vert g_{3l-1}\Vert g_{3l})$. The root is $r=H(\tau_r,\,e_1\Vert\cdots\Vert e_7)$, and the public key is its first 128 bits. All labels are distinct.
+The root is $r=H(\tau_r,\,c_{1,20}\Vert\cdots\Vert c_{41,20})$, and the public key is its first 128 bits. All labels are distinct.
 
-Figure~\ref{fig:scheme} shows the shape of the computation and of one signature. Each node of the tree therefore has three children, except the root, which has seven. A chain hash absorbs 128 bits and a grouping hash 384 bits, so both cost one compression; the root absorbs 896 bits and costs two compressions.
-
+Figure~\ref{fig:scheme} shows the shape of the computation and of one signature. A chain hash absorbs 128 bits and costs one compression; the root absorbs $41\cdot128=5248$ bits and costs eleven.
 
 \begin{figure}[t]
 \centering
@@ -631,103 +630,88 @@ Figure~\ref{fig:scheme} shows the shape of the computation and of one signature.
   ah/.style={-{Latex[length=1.3mm]},draw=black!25},
   note/.style={font=\scriptsize,align=center}]
 
-\draw[rounded corners=2pt,draw=black!18,fill=black!3] (-0.5,-0.5) rectangle (3.1,3.5);
-
-% chain 1: a value revealed in the middle of the chain
+% chain 1: a value revealed low on the chain
 \node[sq,hid] (z1) at (0,0) {$z$};
-\node[v,hid] (p1) at (0,0.7) {};
-\fill[black!40] (0,1.07) circle (0.45pt) (0,1.2) circle (0.45pt) (0,1.33) circle (0.45pt);
-\node[v,rev] (q1) at (0,1.75) {};
-\node[v,ev] (s1) at (0,2.4) {};
-\node[v,ev] (t1) at (0,3.05) {};
-\draw[ah] (z1)--(p1); \draw[a] (0,1.45)--(q1); \draw[a] (q1)--(s1); \draw[a] (s1)--(t1);
+\node[v,rev] (q1) at (0,0.7) {};
+\node[v,ev] (s1) at (0,1.4) {};
+\fill (0,1.85) circle (0.45pt) (0,2.0) circle (0.45pt) (0,2.15) circle (0.45pt);
+\node[v,ev] (t1) at (0,2.6) {};
+\draw[ah] (z1)--(q1); \draw[a] (q1)--(s1); \draw[a] (0,2.3)--(t1);
 
-% chain 2: the chain end is revealed
+% chain 2: revealed in the middle
 \node[sq,hid] (z2) at (1.3,0) {$z$};
 \node[v,hid] (p2) at (1.3,0.7) {};
-\fill[black!40] (1.3,1.07) circle (0.45pt) (1.3,1.2) circle (0.45pt) (1.3,1.33) circle (0.45pt);
-\node[v,hid] (q2) at (1.3,1.75) {};
-\node[v,hid] (s2) at (1.3,2.4) {};
-\node[v,rev] (t2) at (1.3,3.05) {};
-\draw[ah] (z2)--(p2); \draw[ah] (1.3,1.45)--(q2); \draw[ah] (q2)--(s2); \draw[ah] (s2)--(t2);
+\fill[black!40] (1.3,1.15) circle (0.45pt) (1.3,1.3) circle (0.45pt) (1.3,1.45) circle (0.45pt);
+\node[v,rev] (q2) at (1.3,1.9) {};
+\node[v,ev] (t2) at (1.3,2.6) {};
+\draw[ah] (z2)--(p2); \draw[a] (q2)--(t2);
 
-% chain 3: the source itself is revealed
-\node[sq,rev] (z3) at (2.6,0) {$z$};
-\node[v,ev] (p3) at (2.6,0.7) {};
-\fill (2.6,1.07) circle (0.45pt) (2.6,1.2) circle (0.45pt) (2.6,1.33) circle (0.45pt);
-\node[v,ev] (q3) at (2.6,1.75) {};
-\node[v,ev] (s3) at (2.6,2.4) {};
-\node[v,ev] (t3) at (2.6,3.05) {};
-\draw[a] (z3)--(p3); \draw[a] (2.6,1.45)--(q3); \draw[a] (q3)--(s3); \draw[a] (s3)--(t3);
+% chain 3: the chain end is revealed
+\node[sq,hid] (z3) at (2.6,0) {$z$};
+\node[v,hid] (p3) at (2.6,0.7) {};
+\fill[black!40] (2.6,1.15) circle (0.45pt) (2.6,1.3) circle (0.45pt) (2.6,1.45) circle (0.45pt);
+\node[v,hid] (q3) at (2.6,1.9) {};
+\node[v,rev] (t3) at (2.6,2.6) {};
+\draw[ah] (z3)--(p3); \draw[ah] (q3)--(t3);
 
-\node[note] at (1.3,-0.95) {one group:\\three chains of length 14};
+% chain 4: the source itself is revealed
+\node[sq,rev] (z4) at (3.9,0) {$z$};
+\node[v,ev] (p4) at (3.9,0.7) {};
+\fill (3.9,1.15) circle (0.45pt) (3.9,1.3) circle (0.45pt) (3.9,1.45) circle (0.45pt);
+\node[v,ev] (q4) at (3.9,1.9) {};
+\node[v,ev] (t4) at (3.9,2.6) {};
+\draw[a] (z4)--(p4); \draw[a] (3.9,1.6)--(q4); \draw[a] (q4)--(t4);
 
-% grouping level 1
-\node[v,ev] (g1) at (1.3,4.0) {$g$};
-\draw[a] (t1)--(g1); \draw[a] (t2)--(g1); \draw[a] (t3)--(g1);
-\node[v,rev] (g2) at (4.4,4.0) {$g$};
-\node[v,rev] (g3) at (5.7,4.0) {$g$};
-\draw[fill=black!5,draw=black!25] (4.4,3.76)--(3.95,3.0)--(4.85,3.0)--cycle;
-\draw[fill=black!5,draw=black!25] (5.7,3.76)--(5.25,3.0)--(6.15,3.0)--cycle;
-\node[note] at (5.05,2.6) {two more groups};
-
-% grouping level 2
-\node[v,ev] (e1) at (3.5,5.1) {$e$};
-\draw[a] (g1)--(e1); \draw[a] (g2)--(e1); \draw[a] (g3)--(e1);
-\node[v,rev] (e2) at (7.0,5.1) {$e$};
-\node[font=\small] at (8.1,5.1) {$\cdots$};
-\node[v,rev] (e7) at (9.2,5.1) {$e$};
-\draw[fill=black!5,draw=black!25] (7.0,4.86)--(6.5,4.1)--(7.5,4.1)--cycle;
-\draw[fill=black!5,draw=black!25] (9.2,4.86)--(8.7,4.1)--(9.7,4.1)--cycle;
-\node[note] at (8.1,3.6) {six more subtrees,\\nine chains each};
+\node[font=\small] at (5.2,1.3) {$\cdots$};
+\node[note] at (5.2,-0.7) {41 chains of length 20};
 
 % root
-\node[v,ev] (r) at (6.4,6.2) {$r$};
-\draw[a] (e1)--(r); \draw[a] (e2)--(r); \draw[a] (e7)--(r);
-\node[note,anchor=west] at (6.75,6.5) {first 128 bits: public key};
+\node[v,ev] (r) at (2.6,3.9) {$r$};
+\draw[a] (t1)--(r); \draw[a] (t2)--(r); \draw[a] (t3)--(r); \draw[a] (t4)--(r);
+\node[note,anchor=west] at (3.1,4.2) {first 128 bits: public key};
 
 % legend
-\node[v,rev] at (2.6,-1.8) {}; \node[note,anchor=west] at (2.9,-1.8) {revealed};
-\node[v,ev] at (4.6,-1.8) {}; \node[note,anchor=west] at (4.9,-1.8) {recomputed};
-\node[v,hid] at (6.9,-1.8) {}; \node[note,anchor=west] at (7.2,-1.8) {never touched};
+\node[v,rev] at (0,-1.5) {}; \node[note,anchor=west] at (0.3,-1.5) {revealed};
+\node[v,ev] at (2.0,-1.5) {}; \node[note,anchor=west] at (2.3,-1.5) {recomputed};
+\node[v,hid] at (4.3,-1.5) {}; \node[note,anchor=west] at (4.6,-1.5) {never touched};
 \end{tikzpicture}
-\caption{The computation and one signature. Chain values, group digests $g$ and subtree digests $e$ hold 128 bits each. The revealed values form a cut: exactly one on every path from a source to the root. A signature may reveal a value low on a chain, a chain end, a source, or a digest standing for a whole subtree. The verifier recomputes everything above the cut, here 105 compressions' worth, and compares the first 128 bits of the root with the public key.}
+\caption{The computation and one signature. Chain values hold 128 bits each; the root hashes the 41 chain ends. A signature reveals exactly one value on every chain, at positions whose recomputation costs 96 chain hashes in total. The verifier recomputes everything above the revealed values, here 107 compressions' worth including the eleven of the root, and compares the first 128 bits of the root with the public key.}
 \label{fig:scheme}
 \end{figure}
 
 \paragraph{Disclosure sets.}
-A \emph{cut} is a set $A$ of nodes other than the root that meets every path from a source to the root exactly once. Reconstruction at $A$ evaluates the hash nodes strictly above $A$; write $\mathrm{cost}(A)$ for their total cost. Let
+A disclosure set is a choice of positions $t=(t_1,\dots,t_{41})\in\{0,\dots,20\}^{41}$, revealing $c_{k,t_k}$ on chain $k$; the verifier then recomputes $20-t_k$ chain hashes on that chain. Let
 \[
-D=\{A\ \text{a cut}:\ \mathrm{cost}(A)=105\ \text{and}\ |A|\le41\}.
+D=\Bigl\{t:\ \sum_{k=1}^{41}(20-t_k)=96\Bigr\}.
 \]
-The bound on $|A|$ keeps signatures within the length budget; without it there are cuts of cost 105 with up to 63 nodes. A direct count gives $|D|=43124494150885380367098178978085896>2^{115}$, while the number of cuts of cost 104 with at most 41 nodes is below $2^{115}$. In fact the three most common shapes already suffice: cuts revealing $a$ subtree digests, $b$ group digests under evaluated subtrees, and one value on each of the remaining $3(21-3a-b)$ chains with chain positions of total cost $s$, for $(a,b,s)\in\{(2,3,86),(1,7,86),(2,4,87)\}$, number $\binom7a\binom{21-3a}b\,c(3(21-3a-b),s)$ each, where $c(n,s)$ counts the $n$-tuples in $\{0,\dots,14\}$ with sum $s$; these three families alone contain $42050461266306169504830769337432316>2^{115}$ cuts, and the machine-checked proof of Section~\ref{sec:formal} uses them. Fix an injection $\pi:\{0,\dots,M-1\}\to D$, and let $A_i=\pi(i)$. The root is not revealed, and every source-to-root path meets $A_i$, so the conditions of Section~\ref{sec:model} hold.
+A direct count gives $|D|=44630212576611386423061846738781106>2^{115}$, while the choices with total 95 number fewer than $2^{115}$. Fix an injection $\pi:\{0,\dots,M-1\}\to D$, and let $A_i$ be the set of nodes revealed by $\pi(i)$. The root is not revealed, and every source-to-root path meets $A_i$, so the conditions of Section~\ref{sec:model} hold.
 
 \paragraph{Costs.}
-Key generation evaluates every node: $63\cdot14$ chain hashes, 21 and 7 grouping hashes, and the root, for
+Key generation evaluates every node: $41\cdot20$ chain hashes and the root, for
 \[
-63\cdot14+21+7+2=912\le1024\ \text{compressions}.
+41\cdot20+11=831\le1024\ \text{compressions}.
 \]
-A cut in $D$ has between 15 and 41 nodes, so a signature reveals between 2176 and 5248 bits and has at most 5504 bits. Every signature verifies in
+Every disclosure set has exactly 41 nodes, so a signature reveals $41\cdot128=5248$ bits and has $5504$ bits with its nonce. Every signature verifies in
 \[
-1+105=106\ \text{compressions},
+2+11+96=109\ \text{compressions},
 \]
-one compression for the index and 105 for reconstruction.
+two for the index, eleven for the root and 96 for the chain hashes.
 
 \paragraph{Why equal cost.}
-If one cut evaluates a strict subset of the nodes evaluated by another, it costs strictly less, because every hash node costs at least one compression. Two distinct cuts of equal cost are therefore incomparable: each one reveals a node that the other evaluates. This is what the security proof uses, and it is the only property of $D$ that it needs.
+If one choice recomputes a strict subset of the nodes recomputed by another, it costs strictly less. Two distinct choices of equal cost are therefore incomparable: some chain is revealed lower by the first, whose revealed value the second recomputes. This is what the security proof uses, and it is the only property of $D$ that it needs.
 
 \subsection{Distance from the lower bound}
 
-Theorem~\ref{thm:main} leaves a gap between 25 and 106 compressions. The following heuristic suggests that most of this gap cannot be closed by schemes of the usual kind. It is not a proof, and the gap remains open: it rests on an assumption about how forgeries arise that the model of Section~\ref{sec:model} does not impose. Suppose that forging at index $j$ from a signature at index $i\ne j$ always requires the output of a hash node revealed at $i$ and evaluated at $j$, that is, $A_i\cap E_j\ne\emptyset$, while $A_i\cap E_i=\emptyset$. Bollob\'as's set-pair inequality gives $\sum_i\binom{|A_i|+|E_i|}{|A_i|}^{-1}\le1$. A signature reveals at most 41 hash values of 128 bits, so $2^{115}$ disclosure sets force $|E_i|\ge93$ for some $i$, since $\binom{41+92}{41}<2^{115}$. The scheme above evaluates 104 hash nodes and costs two compressions more, because of its root.
+Theorem~\ref{thm:main} leaves a gap between 25 and 109 compressions. The following heuristic suggests that most of this gap cannot be closed by schemes of the usual kind. It is not a proof, and the gap remains open: it rests on an assumption about how forgeries arise that the model of Section~\ref{sec:model} does not impose. Suppose that forging at index $j$ from a signature at index $i\ne j$ always requires the output of a hash node revealed at $i$ and evaluated at $j$, that is, $A_i\cap E_j\ne\emptyset$, while $A_i\cap E_i=\emptyset$. Bollob\'as's set-pair inequality gives $\sum_i\binom{|A_i|+|E_i|}{|A_i|}^{-1}\le1$. A signature reveals at most 41 hash values of 128 bits, so $2^{115}$ disclosure sets force $|E_i|\ge93$ for some $i$, since $\binom{41+92}{41}<2^{115}$. The scheme above evaluates 97 hash nodes and costs 109 compressions, because the root absorbs 5248 bits and the index query 512.
 
-Among all forests of this shape, chains of one length under up to four levels of grouping, with branching factors up to 41 and optional chains of digests above the grouping nodes, an exhaustive computer search within the key-generation budget found nothing below 106 compressions. Flat variants are slightly worse: 41 chains of length 16 whose ends are hashed together, with the digits of the revealed positions summing to 96, give a Winternitz signature with a constant-sum encoding that verifies in 108 compressions. Beating the barrier above requires constraints spread over several revealed values, which is exactly the situation the attack of Theorem~\ref{thm:main} exploits.
+Among all forests of chains of one length under up to four levels of grouping, with branching factors up to 41 and optional chains of digests above the grouping nodes, an exhaustive computer search within the key-generation budget found nothing below 109 compressions. With the overhead of 192 bits per query, a grouping hash of three 128-bit values already costs two compressions, so grouping levels no longer pay for themselves and the flat scheme is optimal in this family; the forest of 63 chains under 21 and 7 digests that is optimal without the overhead costs 125 compressions here.
 
 \subsection{Security}
 
 \begin{theorem}\label{thm:scheme}
 Let an attacker's experiment with the scheme cost at most $B$ on every execution path, where $B\le2^{233}$. Then
 \[
-\Pr[\mathrm{Forge}]\le\frac{B-913}{2^{127}}.
+\Pr[\mathrm{Forge}]\le\frac{B-831}{2^{127}}.
 \]
 In particular the scheme satisfies~\eqref{eq:security} for every $B$.
 \end{theorem}
@@ -735,7 +719,7 @@ In particular the scheme satisfies~\eqref{eq:security} for every $B$.
 The final claim follows because an attacker with $B>2^{233}$ satisfies~\eqref{eq:security} trivially.
 
 \paragraph{Key generation.}
-Write $x_v$ for the value that key generation computes at the node $v$, and $\pk$ for the public key. Each hash node $v$ is queried once, at the point $P_v$ formed by its label and the values of its children (its source for the first node of a chain). The labels are distinct, so all these queries are fresh: the sources and the hash outputs are independent and uniform.
+Write $x_v$ for the value that key generation computes at the node $v$, and $\pk$ for the public key. Each hash node $v$ is queried once, at the point $P_v$ formed by its label and the value of its child (its source for the first node of a chain, the 41 chain ends for the root). The labels are distinct, so all these queries are fresh: the sources and the hash outputs are independent and uniform.
 
 We classify the remaining queries by who makes them. The signer only queries the message encoding. The attacker queries in both of its stages, and the verifier queries while checking the claimed forgery.
 
@@ -755,13 +739,13 @@ Every successful forgery causes $E_{\mathrm{hid}}$, $E_{\mathrm{spr}}$ or $E_{\m
 \end{lemma}
 
 \begin{proof}
-Let the verifier accept $(m_2,\eta_2,x')$ and let $j$ be the index of $m_2\Vert\eta_2$. The verifier computes a value $x'_v$ at every node $v$ evaluated at $A_j$, takes the supplied values at the nodes of $A_j$, and its root query returns an output beginning with $\pk$. If the root input differs from $e_1\Vert\cdots\Vert e_7$, the first query at that point is not at a key-generation point and causes $E_{\mathrm{spr}}$. Assume from now on that the root input agrees, so $x'_{e_l}=x_{e_l}$ for every $l$.
+Let the verifier accept $(m_2,\eta_2,x')$ and let $j$ be the index of $m_2\Vert\eta_2$. The verifier computes a value $x'_v$ at every node $v$ evaluated at $A_j$, takes the supplied values at the nodes of $A_j$, and its root query returns an output beginning with $\pk$. If the root input differs from $c_{1,20}\Vert\cdots\Vert c_{41,20}$, the first query at that point is not at a key-generation point and causes $E_{\mathrm{spr}}$. Assume from now on that the root input agrees, so $x'_{c_{k,20}}=x_{c_{k,20}}$ for every $k$.
 
 We use the following walk. Let $v$ be a node evaluated at $A_j$, and let $v=v_0,v_1,\dots,v_m$ be the path from $v$ to the child of the root, so that $x'_{v_m}=x_{v_m}$. Let $t^*$ be the least index with $x'_{v_{t^*}}=x_{v_{t^*}}$. If $t^*>0$, the verifier's query at the hash node of $v_{t^*}$ has an input different from the honest one, because $x'_{v_{t^*-1}}\ne x_{v_{t^*-1}}$, and an answer beginning with $x_{v_{t^*}}$; that point is not a key-generation point, so its first query causes $E_{\mathrm{spr}}$. If $t^*=0$, the verifier's query at the hash node of $v$ has an answer beginning with $x_v$; either its input differs from the honest one, which causes $E_{\mathrm{spr}}$ as before, or the query is at the key-generation point $P_v$.
 
-\emph{Signing failed.} Every key-generation point is hidden. Since $\mathrm{cost}(A_j)=105$, some node $v\ne r$ is evaluated at $A_j$. The walk from $v$ gives $E_{\mathrm{spr}}$, or a query at the hidden point $P_v$, which causes $E_{\mathrm{hid}}$.
+\emph{Signing failed.} Every key-generation point is hidden. Since $A_j$ recomputes 96 chain hashes, some node $v\ne r$ is evaluated at $A_j$. The walk from $v$ gives $E_{\mathrm{spr}}$, or a query at the hidden point $P_v$, which causes $E_{\mathrm{hid}}$.
 
-\emph{Signing succeeded at index $j\ne i$.} The cuts $A_i$ and $A_j$ are distinct of equal cost, so some node $v$ is revealed at $A_i$ and evaluated at $A_j$. The walk from $v$ gives $E_{\mathrm{spr}}$, or a query at $P_v$, which is hidden because $v$ lies on the cut $A_i$; that causes $E_{\mathrm{hid}}$.
+\emph{Signing succeeded at index $j\ne i$.} The choices $A_i$ and $A_j$ are distinct of equal cost, so some node $v$ is revealed at $A_i$ and evaluated at $A_j$. The walk from $v$ gives $E_{\mathrm{spr}}$, or a query at $P_v$, which is hidden because $v$ lies on the cut $A_i$; that causes $E_{\mathrm{hid}}$.
 
 \emph{Signing succeeded at index $j=i$, with $m_2\Vert\eta_2\ne m_1\Vert\eta_1$.} The verifier's encoding query at $m_2\Vert\eta_2$ causes $E_{\mathrm{idx}}$.
 
@@ -780,7 +764,7 @@ Let $N_{\mathrm{h}}$ and $N_{\mathrm{e}}$ be the numbers of queries made by the 
 \begin{proof}
 \emph{The event $E_{\mathrm{spr}}$.} The first query at a point that is not a key-generation point receives a fresh uniform 256-bit answer. The value it must begin with, $x_v$ or $\pk$, is fixed at key generation. Each such query therefore causes $E_{\mathrm{spr}}$ with probability $2^{-128}$, and a union bound over the queries gives the claim.
 
-\emph{The event $E_{\mathrm{hid}}$.} Consider the modified experiment in which every query at a point that is hidden at the time of the query receives a fresh uniform answer. The two experiments agree until the first query at a hidden point, so the probability of $E_{\mathrm{hid}}$ is the same in both. In the modified experiment the hidden inputs are independent of everything else. Before signing, the transcript depends on key generation only through $\pk$, which is independent of the other values. The index chosen by signing depends only on encoding answers. After a signature at index $i$, the transcript depends on key generation through the values at and above the cut $A_i$, while the input of a hidden point is a function of the sources and of the hash outputs strictly below $A_i$. The input of a hidden point on a chain is uniform on 128 bits, and the input of a hidden grouping node or of the root is uniform on 384 or 896 bits. Hence each query hits the hidden point of its label with probability at most $2^{-128}$, and a union bound over the queries gives the claim.
+\emph{The event $E_{\mathrm{hid}}$.} Consider the modified experiment in which every query at a point that is hidden at the time of the query receives a fresh uniform answer. The two experiments agree until the first query at a hidden point, so the probability of $E_{\mathrm{hid}}$ is the same in both. In the modified experiment the hidden inputs are independent of everything else. Before signing, the transcript depends on key generation only through $\pk$, which is independent of the other values. The index chosen by signing depends only on encoding answers. After a signature at index $i$, the transcript depends on key generation through the values at and above the cut $A_i$, while the input of a hidden point is a function of the sources and of the hash outputs strictly below $A_i$. The input of a hidden point on a chain is uniform on 128 bits, and the input of the hidden root is uniform on 5248 bits. Hence each query hits the hidden point of its label with probability at most $2^{-128}$, and a union bound over the queries gives the claim.
 
 \emph{The event $E_{\mathrm{idx}}$.} Let $u$ be a query by the attacker or the verifier at an encoding input $u\ne u_1$. If $u$ was queried before, the first query at $u$ was made by the attacker or by the signer. A signer query at $u\ne u_1$ returned an invalid index, which is never $i$. We may therefore charge the event to the first query at $u$ by the attacker or the verifier, which is fresh.
 
@@ -798,17 +782,17 @@ By the two lemmas,
 \[
 \Pr[\mathrm{Forge}]\le\frac{2\,\mathbb E[N_{\mathrm{h}}]+2\,\mathbb E[N_{\mathrm{e}}]}{2^{128}}=\frac{\mathbb E[N_{\mathrm{h}}+N_{\mathrm{e}}]}{2^{127}}.
 \]
-Every query costs at least one compression. On every path, key generation costs 912 compressions and signing at least one more, so the attacker and the verifier make at most $B-913$ queries. This proves the bound. For $B\le2^{233}$ it gives $\Pr[\mathrm{Forge}]<B/2^{127}$, and for larger $B$ the requirement~\eqref{eq:security} holds because its right-hand side exceeds one.
+Every query costs at least one compression. On every path, key generation costs 831 compressions, so the attacker and the verifier make at most $B-831$ queries. This proves the bound. For $B\le2^{233}$ it gives $\Pr[\mathrm{Forge}]<B/2^{127}$, and for larger $B$ the requirement~\eqref{eq:security} holds because its right-hand side exceeds one.
 \end{proof}
 
 \subsection{Machine-checked proof}\label{sec:formal}
 
-Theorem~\ref{thm:scheme} is formalized in Lean~4 on top of the model of Section~\ref{sec:model} (the same \texttt{Scheme} structure, forgery experiment, and cost bound as the formal statement of Theorem~\ref{thm:main}, in \texttt{lean/OptimalOTS/Statement.lean}). The scheme is \texttt{Forest.forestScheme}, with the $128$-bit values of this section as separate truncation nodes, the inputs of the grouping hashes as separate concatenation nodes, and the disclosure sets drawn injectively from the three shapes listed above; the theorems
+Theorem~\ref{thm:scheme} is formalized in Lean~4 on top of the model of Section~\ref{sec:model} (the same \texttt{Scheme} structure, forgery experiment, and cost bound as the formal statement of Theorem~\ref{thm:main}, in \texttt{formal/OptimalOTS/Statement.lean}, including the 192 overhead bits of the cost). The scheme is \texttt{Forest.forestScheme}, with the $128$-bit values of this section as separate truncation nodes, the input of the root as a separate concatenation node, and the disclosure sets drawn injectively from $D$; the theorems
 \begin{center}
-\texttt{forestScheme\_verifyCost : forestScheme.verifyCost i = 106},\qquad
+\texttt{forestScheme\_verifyCost : forestScheme.verifyCost i = 109},\qquad
 \texttt{forestScheme\_secure : forestScheme.Secure}
 \end{center}
-are proved without \texttt{sorry}, \texttt{native\_decide}, or additional axioms. The formal argument follows this section with two adjustments that suit a proof assistant. First, instead of bounding each event by an expected number of queries, it uses a potential: a function of the oracle cache whose average increase at every fresh query is at most $2^{-127}$ per compression of cost, so that the pathwise budget $B$ of the model directly bounds the probability of the bad events (the counting terms $|V|/M$ and $L\,|W|/(2^{256}-L)$ of the encoding analysis are part of the potential). Second, the independence of hidden inputs from the attacker's view is obtained by resampling one record coordinate below the cut, which leaves the public key, the revealed values and the exposed oracle entries unchanged. The resulting bound is $\Pr[\mathrm{Forge}]\le(B-912)/2^{127}$ for every $B\le2^{127}$, and the requirement~\eqref{eq:security} is trivial for larger $B$.
+are proved without \texttt{sorry}, \texttt{native\_decide}, or additional axioms, and $|D|$ is computed by the kernel from a dynamic-programming table. The formal argument follows this section with two adjustments that suit a proof assistant. First, instead of bounding each event by an expected number of queries, it uses a potential: a function of the oracle cache whose average increase at every fresh query is at most $2^{-127}$ per compression of cost, so that the pathwise budget $B$ of the model directly bounds the probability of the bad events (the counting terms $|V|/M$ and $L\,|W|/(2^{256}-L)$ of the encoding analysis are part of the potential). Second, the independence of hidden inputs from the attacker's view is obtained by resampling one record coordinate below the revealed values, which leaves the public key, the revealed values and the exposed oracle entries unchanged. The resulting bound is $\Pr[\mathrm{Forge}]\le(B-831)/2^{127}$ for every $B\le2^{127}$, and the requirement~\eqref{eq:security} is trivial for larger $B$. Theorem~\ref{thm:main} is formalized in the same way, with the constants of this paper.
 
 \appendix
 
@@ -877,19 +861,19 @@ Since $G(u)\ge G(u_*)$, the result follows. For completeness, $\ln3>1$ follows f
 
 \section{Exact numerical bounds}\label{sec:numerical}
 
-This appendix verifies the bounds on $\beta_{22}$, the construction budget, the forgery probability, and the total cost. Each numerical comparison uses exact rational arithmetic.
+This appendix verifies the bounds on $\beta_{21}$, the construction budget, the forgery probability, and the total cost. Each numerical comparison uses exact rational arithmetic; the machine-checked proof of Theorem~\ref{thm:main} evaluates the same certificate in the Lean kernel.
 
 \paragraph{The counting factor.}
-Substituting $S_*=5257$, $a=22$, and $d=123$ into~\eqref{eq:beta} gives
+Substituting $S_*=5257$, $a=21$, and $d=113$ into~\eqref{eq:beta} gives
 \[
-\beta_{22}(123)
-=\frac{123^{22}\prod_{k=1}^{22}(110397+5380k)}
-{5380^{22}\prod_{k=1}^{22}(115654+123k)}.
+\beta_{21}(113)
+=\frac{113^{21}\prod_{k=1}^{21}(105140+5370k)}
+{5370^{21}\prod_{k=1}^{21}(110397+113k)}.
 \]
-Cross multiplication gives $103<2^{115}\beta_{22}(123)<104$, so in particular $M\beta_{22}(123)>100$. For the monotonicity used in~\eqref{eq:rank-bound}, write
+Cross multiplication gives $546<2^{115}\beta_{21}(113)<547$, so in particular $M\beta_{21}(113)>500$. For the monotonicity used in~\eqref{eq:rank-bound}, write
 \[
-\frac{\beta_{22}(d)}{d^{22}}
-=\prod_{k=1}^{22}\frac{21S_* /(S_*+d)+k}{22S_*+kd}.
+\frac{\beta_{21}(d)}{d^{21}}
+=\prod_{k=1}^{21}\frac{20S_* /(S_*+d)+k}{21S_*+kd}.
 \]
 Each numerator is positive and decreasing, and each denominator is positive and increasing. The product is therefore decreasing for $d>0$.
 
@@ -899,94 +883,62 @@ The exponential series gives $e>1+1+1/2+1/6=8/3$. Also,
 \ln2=2\int_0^{1/3}\frac{1}{1-t^2}\,\mathrm{d}t
 >2\int_0^{1/3}(1+t^2)\,\mathrm{d}t=\frac{56}{81}.
 \]
-For $q=5\cdot2^{113}$, these bounds imply
+For $q=2^{110}$, these bounds imply
 \[
 e q\ln q>
-\frac83\cdot5\cdot2^{113}\cdot113\cdot\frac{56}{81}
-=\frac{253120}{243}\,2^{113}
->2^{123}.
+\frac83\cdot2^{110}\cdot110\cdot\frac{56}{81}
+=\frac{49280}{243}\,2^{110}
+>2^{113}.
 \]
-Thus $\log(e q\ln q)>123$, as required.
+Thus $\log(e q\ln q)>113$, as required.
 
 \paragraph{A rational bound for nonce selection.}
-For the probabilities $\omega_\ell$ defined in Section~\ref{sec:attack}, put $\lambda=T/N=3/128$. We will use a polynomial lower bound on the exponential. Define
+For the probabilities $\omega_\ell$ defined in Section~\ref{sec:attack}, put $\lambda=T/N=5/256$ and let
 \[
-P_k(y)=\sum_{h=0}^k\frac{(-y)^h}{h!}
-\qquad(k=6,7).
+c=\frac{8423790037}{2^{33}},
 \]
-For $y\ge0$, Taylor's theorem gives $P_7(y)\le e^{-y}\le P_6(y)$. Hence $P_7'(y)=-P_6(y)<0$. Since
-\[
-P_7(100\lambda)=P_7(75/32)=\frac{300676096241}{3848290697216}>0,
-\]
-all the values $P_7(\ell \lambda)$ for $1\le\ell\le100$ are positive.
-
-Integrating the derivative of $(1-y/N)^T$ gives
-\[
-\omega_\ell
-=\lambda\int_{\ell-1}^{\ell}(1-y/N)^{T-1}\,\mathrm{d}y
-\ge \lambda(1-\ell/N)^{T-1}.
-\]
-For $0\le u<1$,
-\[
--\ln(1-u)=u+\int_0^u\frac{t}{1-t}\,\mathrm{d}t
-\le u+\frac{u^2}{1-u}.
-\]
-Take $u=\ell/N<1/2$. Since $\ell\le100$ and $T<N/32$, we obtain
-\[
-(T-1)\ln(1-u)\ge-\ell \lambda-\frac{Tu^2}{1-u},
-\qquad
-\frac{Tu^2}{1-u}<\frac{625}{N}.
-\]
-Using $e^{-y}\ge1-y$ and $e^{-\ell \lambda}\le1$ now gives
+a rational number below $e^{-\lambda}$: the alternating series gives $e^{-\lambda}\ge1-\lambda+\lambda^2/2-\lambda^3/6$, and $c$ is this bound rounded down by more than $2^{-26}$, which exceeds the remainder of the series. For $1\le\ell\le450$, the identity $1-(\ell-1)/N=(1-\ell/N)(1+1/(N-\ell))$ and Bernoulli's inequality give $\omega_\ell\ge\lambda(1-\ell/N)^T$. Since $-\ln(1-u)\le u+u^2/(1-u)$ for $0\le u<1$, taking $u=\ell/N$ gives $T\ln(1-\ell/N)\ge-\ell\lambda-2\ell^2\lambda/N$, and $2\ell^2\lambda/N<2^{-105}$ for $\ell\le450$. Hence
 \begin{equation}\label{eq:omega-certificate}
-\omega_\ell
-\ge \lambda e^{-\ell \lambda}-\frac{625\lambda}{N}
-> \lambda P_7(\ell \lambda)-2^{-120}.
+\omega_\ell\ge\lambda\bigl(e^{-\ell\lambda}-2^{-105}\bigr)\ge\lambda\bigl(c^{\ell}-2^{-105}\bigr)
+\qquad(1\le\ell\le450),
 \end{equation}
-The final inequality uses $625\lambda<20<256$ and $N=2^{128}$.
+and every right-hand side is positive because $c^{450}>2^{-13}$.
 
 \paragraph{An exact bound for the success probability.}
-The formula for $b_\ell$ in~\eqref{eq:rank-success} contains $z_\ell^{1/22}$. Round this root upward to a multiple of $2^{-32}$. More precisely, for $2\le\ell\le100$, define
+The formula for $b_\ell$ in~\eqref{eq:rank-success} contains $z_\ell^{1/21}$. Round this root upward to a multiple of $2^{-20}$. More precisely, for $2\le\ell\le450$, define
 \[
-z_\ell=\frac{512(\ell-1)}{51100},
+z_\ell=\frac{512(\ell-1)}{255500},
 \qquad
-k_\ell=\min\left\{k\in\{0,\ldots,2^{32}\}:
-51100k^{22}\ge512(\ell-1)2^{704}\right\}.
+k_\ell=\min\left\{k\in\{0,\ldots,2^{20}\}:
+255500k^{21}\ge512(\ell-1)2^{420}\right\}.
 \]
-The minimum exists because $z_\ell<1$, so $k=2^{32}$ satisfies the inequality. Its definition gives $k_\ell/2^{32}\ge z_\ell^{1/22}$. Set
+The minimum exists because $z_\ell<1$, so $k=2^{20}$ satisfies the inequality. Its definition gives $k_\ell/2^{20}\ge z_\ell^{1/21}$. Set
 \[
 \underline b_1=1,\qquad
 \underline b_\ell=\frac{511}{512}
-\left(1-\frac{22k_\ell}{21\cdot2^{32}}+\frac{z_\ell}{21}\right).
+\left(1-\frac{21k_\ell}{20\cdot2^{20}}+\frac{z_\ell}{20}\right).
 \]
-The coefficient of the root in $b_\ell$ is negative, so $\underline b_\ell\le b_\ell$.
+The coefficient of the root in $b_\ell$ is negative, so $\underline b_\ell\le b_\ell$, and every $\underline b_\ell$ is nonnegative.
 
 Each $k_\ell$ is determined by integer comparisons: its defining inequality holds at $k_\ell$ and fails at $k_\ell-1$. Substituting these integers and adding the rational terms gives
 \[
-\lambda\sum_{\ell=1}^{100}\underline b_\ell P_7(\ell \lambda)
-=\frac{43420993900138087655153856906939}
-{776435992639790508416730713292800}
->\frac{559}{10000}.
+\frac{256}{257}\,\lambda\sum_{\ell=1}^{450}\bigl(c^\ell-2^{-105}\bigr)\underline b_\ell
+>0.1010>\frac{3}{32},
 \]
-Multiply~\eqref{eq:omega-certificate} by $b_\ell$ and sum. Since $P_7(\ell \lambda)>0$, $\underline b_\ell\le b_\ell$, and $0\le b_\ell\le1$, we obtain
+an inequality between explicit rationals that the machine-checked proof evaluates exactly. Multiply~\eqref{eq:omega-certificate} by $b_\ell$ and sum. Since $\underline b_\ell\le b_\ell$, $0\le b_\ell\le1$, and $1-\delta>1-2^{-256}>256/257$, we obtain
 \[
-\begin{aligned}
-(1-\delta)\sum_{\ell=1}^{100}\omega_\ell b_\ell
-&>(1-2^{-256})
-\left(\frac{559}{10000}-100\cdot2^{-120}\right)\\
-&>\frac{11}{200}.
-\end{aligned}
+(1-\delta)\sum_{\ell=1}^{450}\omega_\ell b_\ell
+>\frac{3}{32}.
 \]
-The last comparison follows by cross multiplication.
 
 \paragraph{The total cost.}
 Substituting the attack's budgets gives
 \[
-B=1024+2^{21}+3\cdot2^{121}+(5\cdot2^{113}+2)\cdot23+2.
+B=1024+2\cdot2^{21}+5\cdot2^{121}+(2^{110}+2)\cdot22+4.
 \]
 Direct comparison of these integers shows
 \[
-\frac{B}{2^{127}}<\frac{27}{500}<\frac{11}{200},
+\frac{B}{2^{127}}<\frac{3}{32},
 \]
 completing the numerical bounds used in the theorem.
 

@@ -203,7 +203,7 @@ def stepPure (i : Fin P.numSets) (C : Finset S.graph.Rec) (w : Nonce P → BitVe
     (best : Option (ℕ × Fin P.numSets × Nonce P)) (k : ℕ) :
     Option (ℕ × Fin P.numSets × Nonce P) :=
   if hj : idxOfOut P (w (BitVec.ofNat P.nonceBits k)) < P.numSets then
-    if rank S i C ⟨_, hj⟩ < 100 ∧ ∀ b ∈ best, rank S i C ⟨_, hj⟩ < b.1 then
+    if rank S i C ⟨_, hj⟩ < 450 ∧ ∀ b ∈ best, rank S i C ⟨_, hj⟩ < b.1 then
       some (rank S i C ⟨_, hj⟩, ⟨_, hj⟩, BitVec.ofNat P.nonceBits k)
     else best
   else best
@@ -246,7 +246,7 @@ theorem foldl_stepPure_map (i : Fin P.numSets) (C : Finset S.graph.Rec)
   | cons k l ih =>
     rw [List.foldl_cons, ih, List.filterMap_cons]
     by_cases h1 : idxOfOut P (w (BitVec.ofNat P.nonceBits k)) < P.numSets
-    · by_cases h3 : rank S i C ⟨_, h1⟩ < 100
+    · by_cases h3 : rank S i C ⟨_, h1⟩ < 450
       · have hF : rkOf S i C (idxOfOut P (w (BitVec.ofNat P.nonceBits k))) =
             some (rank S i C ⟨_, h1⟩) := by
           simp only [rkOf, dif_pos h1, if_pos h3]
@@ -778,7 +778,7 @@ theorem probOutput_bind_ge_of_event {α : Type} (mx : ProbComp α) (k : α → P
 
 theorem forge_stage (q T : ℕ) (h12 : msg₁ P ≠ msg₂ P) (z : S.graph.Assignment)
     (i : Fin P.numSets) (η₁ : Nonce P) (hη : idxOfOut P (nonceTab S g (msg₁ P) η₁) = i.val) :
-    (∑ ℓ ∈ Finset.range 100,
+    (∑ ℓ ∈ Finset.range 450,
         (if bestPure P T (rkOf S i (obsCands S i (S.graph.recOf z (graphTab S g))))
             (nonceTab S g (msg₂ P)) = some ℓ then 1 else 0) *
           ENNReal.ofReal (succ S q i ℓ z (graphTab S g))) ≤
@@ -792,7 +792,7 @@ theorem forge_stage (q T : ℕ) (h12 : msg₁ P ≠ msg₂ P) (z : S.graph.Assig
   set C := obsCands S i (S.graph.recOf z (graphTab S g)) with hC
   rcases hb : bestPure P T (rkOf S i C) (nonceTab S g (msg₂ P)) with _ | ℓ
   · simp
-  have hsum : ∀ ℓ' ∈ Finset.range 100, (if some ℓ = some ℓ' then (1 : ℝ≥0∞) else 0) *
+  have hsum : ∀ ℓ' ∈ Finset.range 450, (if some ℓ = some ℓ' then (1 : ℝ≥0∞) else 0) *
       ENNReal.ofReal (succ S q i ℓ' z (graphTab S g)) =
       if ℓ' = ℓ then ENNReal.ofReal (succ S q i ℓ z (graphTab S g)) else 0 := by
     intro ℓ' _
@@ -846,7 +846,7 @@ theorem sum_le_probOutput_table (q T : ℕ) (h12 : Attack.msg₁ P ≠ Attack.ms
     (g : Cell S → BitVec P.hashBits) :
     (∑ z : S.graph.Assignment, ∑ i : Fin P.numSets,
         signProb S (nonceTab S g (Attack.msg₁ P)) (S.graph.evalTab z (graphTab S g)) i *
-          ∑ ℓ ∈ Finset.range 100,
+          ∑ ℓ ∈ Finset.range 450,
             (if bestPure P T (rkOf S i (obsCands S i (S.graph.recOf z (graphTab S g))))
                 (nonceTab S g (Attack.msg₂ P)) = some ℓ then 1 else 0) *
               ENNReal.ofReal (succ S q i ℓ z (graphTab S g))) /

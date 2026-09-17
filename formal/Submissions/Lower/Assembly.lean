@@ -17,8 +17,8 @@ import OptimalOTS.Statement
 
 Combining the lazy-to-eager step, the unrolled experiment, the table factorization, the
 signing and nonce-search distributions, and the averaged construction bound, the attack with
-`q = 5 · 2^113` construction attempts and `T = 3 · 2^121` nonce trials forges with probability
-above `11/200` against every scheme whose signatures verify within 24 compressions.
+`q = 2^110` construction attempts and `T = 5 · 2^120` nonce trials forges with probability
+above `3/32` against every scheme whose signatures verify within 24 compressions.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -39,7 +39,7 @@ def Fsum {P : Params} (S : Scheme P) (q T : ℕ) (t : S.graph.Tab)
     (u w : Nonce P → BitVec P.hashBits) : ℝ≥0∞ :=
   (∑ z : S.graph.Assignment, ∑ i : Fin P.numSets,
     signProb S u (S.graph.evalTab z t) i *
-      ∑ ℓ ∈ Finset.range 100,
+      ∑ ℓ ∈ Finset.range 450,
         (if bestPure P T (rkOf S i (obsCands S i (S.graph.recOf z t))) w = some ℓ then 1 else 0) *
           ENNReal.ofReal (succ S q i ℓ z t)) / (Fintype.card S.graph.Assignment : ℝ≥0∞)
 
@@ -130,10 +130,10 @@ theorem sum_signProb_eq (S : Scheme paperParams) (x : S.graph.Assignment)
   exact ((ENNReal.eq_div_iff card_NTab_ne_zero card_NTab_ne_top).mp h.symm).symm
 
 theorem sum_bestPure_ite (S : Scheme paperParams) (i : Fin paperParams.numSets)
-    (C : Finset S.graph.Rec) (ℓ : ℕ) (hℓ : ℓ < 100) :
+    (C : Finset S.graph.Rec) (ℓ : ℕ) (hℓ : ℓ < 450) :
     ∑ w : NTab, (if bestPure paperParams Numerics.T (rkOf S i C) w = some ℓ then (1 : ℝ≥0∞)
       else 0) = Fintype.card NTab * ENNReal.ofReal (omegaR ℓ) := by
-  have h := sum_bestPure_eq (P := paperParams) Numerics.T (by decide) (by decide) (rkOf S i C) 100
+  have h := sum_bestPure_eq (P := paperParams) Numerics.T (by decide) (by decide) (rkOf S i C) 450
     (fun ℓ hℓ => rkOf_existsUnique S i C (by decide) hℓ (lt_of_lt_of_le hℓ (by decide)))
     (fun n ℓ h => rkOf_lt S i C h) ℓ hℓ
   exact ((ENNReal.eq_div_iff card_NTab_ne_zero card_NTab_ne_top).mp h.symm).symm
@@ -152,13 +152,13 @@ theorem sum_factor {U W L : Type*} [Fintype U] [Fintype W] (sL : Finset L)
 theorem sum_sum_Fsum {P : Params} (S : Scheme P) (q T : ℕ) (t : S.graph.Tab) (σ cU : ℝ≥0∞)
     (ω : ℕ → ℝ)
     (hsign : ∀ x i, ∑ u : Nonce P → BitVec P.hashBits, signProb S u x i = cU * σ)
-    (hnonce : ∀ i C, ∀ ℓ ∈ Finset.range 100,
+    (hnonce : ∀ i C, ∀ ℓ ∈ Finset.range 450,
       ∑ w : Nonce P → BitVec P.hashBits,
         (if bestPure P T (rkOf S i C) w = some ℓ then (1 : ℝ≥0∞) else 0) =
           cU * ENNReal.ofReal (ω ℓ)) :
     ∑ u : Nonce P → BitVec P.hashBits, ∑ w : Nonce P → BitVec P.hashBits, Fsum S q T t u w =
       ∑ z : S.graph.Assignment, ∑ i : Fin P.numSets,
-        (cU * σ) * (∑ ℓ ∈ Finset.range 100,
+        (cU * σ) * (∑ ℓ ∈ Finset.range 450,
           (cU * ENNReal.ofReal (ω ℓ)) * ENNReal.ofReal (succ S q i ℓ z t)) *
         (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹ := by
   unfold Fsum
@@ -179,12 +179,12 @@ theorem ofReal_sum_le {α : Type*} (s : Finset α) (f : α → ℝ) :
     rw [Finset.sum_insert ha, Finset.sum_insert ha]
     exact (ENNReal.ofReal_add_le).trans (add_le_add le_rfl ih)
 
-theorem omegaR_nonneg (ℓ : ℕ) (hℓ : ℓ < 100) : 0 ≤ omegaR ℓ := by
+theorem omegaR_nonneg (ℓ : ℕ) (hℓ : ℓ < 450) : 0 ≤ omegaR ℓ := by
   unfold omegaR
   have hN : (2 : ℝ) ^ paperParams.idxBits = 2 ^ 128 := rfl
   rw [hN]
-  have hℓ' : (ℓ : ℝ) + 1 ≤ 100 := by exact_mod_cast hℓ
-  have h128 : (100 : ℝ) ≤ 2 ^ 128 := by norm_num
+  have hℓ' : (ℓ : ℝ) + 1 ≤ 450 := by exact_mod_cast hℓ
+  have h128 : (450 : ℝ) ≤ 2 ^ 128 := by norm_num
   have hpos : (0 : ℝ) < 2 ^ 128 := by positivity
   have h0 : 0 ≤ 1 - ((ℓ : ℝ) + 1) / 2 ^ 128 := by
     rw [sub_nonneg, div_le_one hpos]; linarith
@@ -195,7 +195,7 @@ theorem omegaR_nonneg (ℓ : ℕ) (hℓ : ℓ < 100) : 0 ≤ omegaR ℓ := by
   exact sub_nonneg.mpr (pow_le_pow_left₀ h0 hle _)
 
 theorem sum_succ_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) (ℓ : ℕ)
-    (hℓ : ℓ < 100) :
+    (hℓ : ℓ < 450) :
     (paperParams.numSets : ℝ) * Fintype.card S.graph.Assignment * Fintype.card S.graph.Tab *
         Numerics.rankSuccess (ℓ + 1) ≤
       ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment, ∑ i : Fin paperParams.numSets,
@@ -222,15 +222,15 @@ theorem sum_succ_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
     have hTb : (0 : ℝ) < ((Fintype.card S.graph.Tab : ℕ) : ℝ) := by positivity
     have hRc : (0 : ℝ) < ((Fintype.card S.graph.Rec : ℕ) : ℝ) := by positivity
     have hper : ∀ i : Fin paperParams.numSets,
-        (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 123)) /
+        (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 113)) /
             ((Fintype.card S.graph.Rec : ℕ) : ℝ) *
           (((Fintype.card S.graph.Assignment : ℕ) : ℝ) * ((Fintype.card S.graph.Tab : ℕ) : ℝ)) ≤
           ∑ z : S.graph.Assignment, ∑ t : S.graph.Tab, succ S Numerics.q i ℓ z t := by
       intro i
       have h := avg_D_le_avg_succ S i ℓ
       exact (le_div_iff₀ (mul_pos hZ hTb)).mp h
-    have htail' : ∀ d : ℝ, 0 < d → d ≤ 123 →
-        511 / 512 - (ℓ : ℝ) / 100 * (123 / d) ^ 22 ≤
+    have htail' : ∀ d : ℝ, 0 < d → d ≤ 113 →
+        511 / 512 - (ℓ : ℝ) / 500 * (113 / d) ^ 21 ≤
           ((Finset.univ.filter fun p : Fin paperParams.numSets × S.graph.Rec =>
               D S p.1 ℓ p.2 < d).card : ℝ) /
             ((Fintype.card (Fin paperParams.numSets × S.graph.Rec) : ℕ) : ℝ) := by
@@ -252,13 +252,13 @@ theorem sum_succ_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
             (((Fintype.card S.graph.Assignment : ℕ) : ℝ) *
               ((Fintype.card S.graph.Tab : ℕ) : ℝ)) := by
           field_simp
-      _ ≤ (∑ i : Fin paperParams.numSets, ∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 123)) /
+      _ ≤ (∑ i : Fin paperParams.numSets, ∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 113)) /
             ((Fintype.card S.graph.Rec : ℕ) : ℝ) *
             (((Fintype.card S.graph.Assignment : ℕ) : ℝ) *
               ((Fintype.card S.graph.Tab : ℕ) : ℝ)) := by
           gcongr
       _ = ∑ i : Fin paperParams.numSets,
-            (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 123)) /
+            (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 113)) /
               ((Fintype.card S.graph.Rec : ℕ) : ℝ) *
               (((Fintype.card S.graph.Assignment : ℕ) : ℝ) *
                 ((Fintype.card S.graph.Tab : ℕ) : ℝ)) := by
@@ -276,7 +276,7 @@ theorem ofReal_sum3_le {α β γ : Type*} [Fintype α] [Fintype β] (s : Finset 
     (ofReal_sum_le _ _).trans <| Finset.sum_le_sum fun b _ => ofReal_sum_le _ _
 
 /-- The average forging success, as a real number. -/
-def successR : ℝ := ∑ ℓ ∈ Finset.range 100, omegaR ℓ * Numerics.rankSuccess (ℓ + 1)
+def successR : ℝ := ∑ ℓ ∈ Finset.range 450, omegaR ℓ * Numerics.rankSuccess (ℓ + 1)
 
 theorem sum_Fsum_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) :
     (Fintype.card S.graph.Tab : ℝ≥0∞) * Fintype.card NTab * Fintype.card NTab *
@@ -287,16 +287,16 @@ theorem sum_Fsum_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
   have hZt : (Fintype.card S.graph.Assignment : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
   have hrew : ∀ t, ∑ u : NTab, ∑ w : NTab, Fsum S Numerics.q Numerics.T t u w =
       ∑ z : S.graph.Assignment, ∑ i : Fin paperParams.numSets,
-        ((Fintype.card NTab : ℝ≥0∞) * sigma) * (∑ ℓ ∈ Finset.range 100,
+        ((Fintype.card NTab : ℝ≥0∞) * sigma) * (∑ ℓ ∈ Finset.range 450,
           ((Fintype.card NTab : ℝ≥0∞) * ENNReal.ofReal (omegaR ℓ)) * ENNReal.ofReal (succ S Numerics.q i ℓ z t)) * (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹ :=
     fun t => sum_sum_Fsum S Numerics.q Numerics.T t sigma _ omegaR
       (fun x i => sum_signProb_eq S x i) (fun i C ℓ hℓ => sum_bestPure_ite S i C ℓ
         (Finset.mem_range.mp hℓ))
   simp only [hrew]
   have hterm : ∀ t z i,
-      ((Fintype.card NTab : ℝ≥0∞) * sigma) * (∑ ℓ ∈ Finset.range 100,
+      ((Fintype.card NTab : ℝ≥0∞) * sigma) * (∑ ℓ ∈ Finset.range 450,
           ((Fintype.card NTab : ℝ≥0∞) * ENNReal.ofReal (omegaR ℓ)) * ENNReal.ofReal (succ S Numerics.q i ℓ z t)) * (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹ =
-        ((Fintype.card NTab : ℝ≥0∞) * sigma * (Fintype.card NTab : ℝ≥0∞) * (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹) * ∑ ℓ ∈ Finset.range 100,
+        ((Fintype.card NTab : ℝ≥0∞) * sigma * (Fintype.card NTab : ℝ≥0∞) * (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹) * ∑ ℓ ∈ Finset.range 450,
           ENNReal.ofReal (omegaR ℓ * succ S Numerics.q i ℓ z t) := by
     intro t z i
     rw [Finset.mul_sum, Finset.mul_sum, Finset.sum_mul]
@@ -307,10 +307,10 @@ theorem sum_Fsum_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
   have hreal : (paperParams.numSets : ℝ) * ((Fintype.card S.graph.Assignment : ℕ) : ℝ) *
         ((Fintype.card S.graph.Tab : ℕ) : ℝ) * successR ≤
       ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment, ∑ i : Fin paperParams.numSets,
-        ∑ ℓ ∈ Finset.range 100, omegaR ℓ * succ S Numerics.q i ℓ z t := by
+        ∑ ℓ ∈ Finset.range 450, omegaR ℓ * succ S Numerics.q i ℓ z t := by
     have hswap : ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment, ∑ i : Fin paperParams.numSets,
-        ∑ ℓ ∈ Finset.range 100, omegaR ℓ * succ S Numerics.q i ℓ z t =
-        ∑ ℓ ∈ Finset.range 100, omegaR ℓ * ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment,
+        ∑ ℓ ∈ Finset.range 450, omegaR ℓ * succ S Numerics.q i ℓ z t =
+        ∑ ℓ ∈ Finset.range 450, omegaR ℓ * ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment,
           ∑ i : Fin paperParams.numSets, succ S Numerics.q i ℓ z t := by
       simp only [Finset.mul_sum]
       exact sum_comm_last _ _ _ _ _
@@ -353,7 +353,7 @@ theorem sum_Fsum_ge (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 
     _ ≤ ((Fintype.card NTab : ℝ≥0∞) * sigma * (Fintype.card NTab : ℝ≥0∞) *
           (Fintype.card S.graph.Assignment : ℝ≥0∞)⁻¹) *
           ∑ t : S.graph.Tab, ∑ z : S.graph.Assignment, ∑ i : Fin paperParams.numSets,
-            ∑ ℓ ∈ Finset.range 100, ENNReal.ofReal (omegaR ℓ * succ S Numerics.q i ℓ z t) := by
+            ∑ ℓ ∈ Finset.range 450, ENNReal.ofReal (omegaR ℓ * succ S Numerics.q i ℓ z t) := by
         gcongr
         refine le_trans (ENNReal.ofReal_le_ofReal hreal) ?_
         exact (ofReal_sum_le _ _).trans <| Finset.sum_le_sum fun t _ => ofReal_sum3_le _ _
@@ -385,10 +385,10 @@ theorem omegaR_eq (ℓ : ℕ) : omegaR ℓ = Numerics.omega (ℓ + 1) := by
   simp only [Nat.cast_add, Nat.cast_one, add_sub_cancel_right, Nat.cast_pow, Nat.cast_ofNat]
 
 theorem successR_eq : successR =
-    ∑ ℓ ∈ Finset.Icc 1 100, Numerics.omega ℓ * Numerics.rankSuccess ℓ := by
+    ∑ ℓ ∈ Finset.Icc 1 450, Numerics.omega ℓ * Numerics.rankSuccess ℓ := by
   unfold successR
   simp only [omegaR_eq]
-  have hI : Finset.Icc 1 100 = Finset.Ico 1 101 :=
+  have hI : Finset.Icc 1 450 = Finset.Ico 1 451 :=
     Finset.ext fun x => by simp only [Finset.mem_Icc, Finset.mem_Ico]; omega
   rw [hI, Finset.sum_Ico_eq_sum_range]
   exact Finset.sum_congr rfl fun ℓ _ => by rw [add_comm 1 ℓ]
@@ -396,7 +396,7 @@ theorem successR_eq : successR =
 theorem sigma_mul_eq :
     sigma * ENNReal.ofReal ((paperParams.numSets : ℝ) * successR) =
       ENNReal.ofReal ((1 - Numerics.signFailure) *
-        ∑ ℓ ∈ Finset.Icc 1 100, Numerics.omega ℓ * Numerics.rankSuccess ℓ) := by
+        ∑ ℓ ∈ Finset.Icc 1 450, Numerics.omega ℓ * Numerics.rankSuccess ℓ) := by
   have hM0 : (paperParams.numSets : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.mpr paperParams_numSets_pos.ne'
   have hMt : (paperParams.numSets : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
   rw [ENNReal.ofReal_mul (by positivity), ENNReal.ofReal_natCast, sigma, ← mul_assoc,
@@ -404,7 +404,7 @@ theorem sigma_mul_eq :
     ← ENNReal.ofReal_mul one_sub_signFailure_nonneg, successR_eq]
 
 theorem probTrue_gt (S : Scheme paperParams) (hcost : ∀ i, S.verifyCost i ≤ 24) :
-    ENNReal.ofReal (11 / 200) <
+    ENNReal.ofReal (3 / 32) <
       probTrue paperParams (experiment S (adversary S Numerics.q Numerics.T)) := by
   have h1 := sum_Fsum_le_probTrue S Numerics.q Numerics.T
   have h2 := sum_Fsum_ge S hcost

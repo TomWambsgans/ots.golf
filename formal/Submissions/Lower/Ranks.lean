@@ -126,7 +126,7 @@ theorem card_targetWeight_lt_le (i : Fin P.numSets) (C : Finset S.graph.Rec) {�
   exact Or.inl (lt_of_lt_of_le hj hd)
 
 theorem rkOf_existsUnique (i : Fin P.numSets) (C : Finset S.graph.Rec)
-    (hM : P.numSets ≤ 2 ^ P.idxBits) {ℓ : ℕ} (hℓ : ℓ < 100) (hℓM : ℓ < P.numSets) :
+    (hM : P.numSets ≤ 2 ^ P.idxBits) {ℓ : ℕ} (hℓ : ℓ < 450) (hℓM : ℓ < P.numSets) :
     ∃! n, n < 2 ^ P.idxBits ∧ rkOf S i C n = some ℓ := by
   refine ⟨(rankElem S i C ℓ).val, ⟨lt_of_lt_of_le (rankElem S i C ℓ).isLt hM, ?_⟩, ?_⟩
   · unfold rkOf
@@ -140,7 +140,7 @@ theorem rkOf_existsUnique (i : Fin P.numSets) (C : Finset S.graph.Rec)
     exact congrArg Fin.val this
 
 theorem rkOf_lt (i : Fin P.numSets) (C : Finset S.graph.Rec) {n ℓ : ℕ}
-    (h : rkOf S i C n = some ℓ) : ℓ < 100 := by
+    (h : rkOf S i C n = some ℓ) : ℓ < 450 := by
   unfold rkOf at h
   split_ifs at h with h1 h2
   rw [← Option.some.inj h]

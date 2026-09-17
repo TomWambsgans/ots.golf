@@ -3,7 +3,8 @@
   "contract": {
     "version": "ots-v1-draft",
     "statement": "formal/OptimalOTS/Statement.lean",
-    "pin_file": "verifier/protected.sha256"
+    "pin_file": "verifier/protected.sha256",
+    "cost_model": "one compression per started 512-bit block of the input plus 192 overhead bits (128-bit public parameter, 64-bit tweak)"
   },
   "permitted_axioms": [
     "propext",
@@ -53,7 +54,7 @@
       "slug": "upper",
       "title": "Upper bound",
       "direction": "-",
-      "baseline": 106,
+      "baseline": 109,
       "submission_root": "formal/Submissions/Upper",
       "module_prefix": "Submissions.Upper",
       "solution_module": "Submissions.Upper.Solution",

@@ -3,11 +3,11 @@ import Submissions.Upper.Assembly
 /-!
 # Security of the concrete scheme
 
-`forestScheme_secure`: the scheme of Section 8 of the paper satisfies `Scheme.Secure`, the
+`forestScheme_secure`: the flat scheme of 41 chains of length 20 satisfies `Scheme.Secure`, the
 127-bit strong unforgeability requirement of `OptimalOTS.Statement`, and every signature verifies
-in `106` compressions (`forestScheme_verifyCost`).
+in `109` compressions (`forestScheme_verifyCost`).
 
-For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 912) = (B - 912) / 2 ^ 127 < B / 2 ^ 127`
+For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 831) = (B - 831) / 2 ^ 127 < B / 2 ^ 127`
 of `Forest.main_bound` applies; for larger budgets the requirement holds trivially since
 probabilities are at most one.
 -/
@@ -32,8 +32,8 @@ theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
   rw [ENNReal.mul_inv (Or.inl (by simp)) (Or.inl (by simp)), ← mul_assoc,
     ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
 
-theorem kappa_mul_lt {B : ℕ} (h912 : 912 ≤ B) :
-    κ * ((B - 912 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
+theorem kappa_mul_lt {B : ℕ} (h831 : 831 ≤ B) :
+    κ * ((B - 831 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
   rw [kappa_eq]
   show _ < (B : ℝ≥0∞) / 2 ^ 127
   rw [ENNReal.div_eq_inv_mul]

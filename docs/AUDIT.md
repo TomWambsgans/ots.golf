@@ -1,9 +1,10 @@
 # Audit of the contract (draft v1)
 
 Scope: `formal/OptimalOTS/Statement.lean` against Section 2 of the paper, the VCVio definitions
-it relies on (commit `25f26bf`), and the toolchain it is checked with. Date: 2026-09-16.
-Result so far: no soundness issue found; six harmless generalizations documented; one item open
-until the upper baseline is verified (F7).
+it relies on (commit `25f26bf`), and the toolchain it is checked with. Date: 2026-09-16, updated
+2026-09-17 for the cost model with 192 overhead bits per query.
+Result: no soundness issue found; six harmless generalizations documented; the non-vacuity item
+(F7) is closed by the verified upper baseline.
 
 ## What is trusted
 
@@ -28,30 +29,31 @@ and needs no trust.
    at most B on every execution path", including all branches. `randomOracle` is
    `uniformSampleImpl.withCaching`: a uniform answer on the first query, cached under the full
    query, which is the label together with the input length and bits.
-3. `formal/scripts/check-axioms.lean`: the 18 declarations that fix a certificate's meaning depend
+3. `formal/scripts/check-axioms.lean`: the 19 declarations that fix a certificate's meaning depend
    only on `propext`, `Classical.choice`, `Quot.sound`; no axiom is declared in a protected module.
-4. Comparator's own test suite passes on the pinned toolchain (14 tests). The lower baseline
-   verifies end to end: statement match, axiom closure, kernel replay accepted.
+4. Comparator's own test suite passes on the pinned toolchain (14 tests). Both baselines verify
+   end to end under the overhead cost model: statement match, axiom closure, kernel replay
+   accepted (lower 25 in 153 s; upper 109 in 136 s, 10 GB peak).
 
 ## Correspondence with the paper
 
 | Paper (Section 2) | Lean | Note |
 |---|---|---|
 | Random oracle, 256-bit answers, keyed by label and bit string | `hashSpec`, `Query := Label × Σ k, BitVec k`, `randomOracle` | inputs of different lengths are different queries |
-| Cost ⌈|u|/512⌉, label free | `blockCost`, `queryCost`; uniform sampling costs 0 | F2 |
+| Cost ⌈(|u|+192)/512⌉, label free | `blockCost` with `Params.overheadBits = 192`, `queryCost`; uniform sampling costs 0 | F2 |
 | Sources, deterministic nodes, hash nodes; one parent per hash node; distinct labels | `NodeKind`, `Graph.label_injective` | F1 |
 | Root is a hash node | `Graph.root_isHash` | |
 | Key generation evaluates all nodes; cost Σ c_g ≤ 1024 | `Graph.keygen`, `keygenCost`, `Scheme.keygen_le` | |
 | Disclosure sets exclude the root and meet every source-to-root path | `root_not_mem`, `no_hidden_source` | |
 | Reconstruction stops at revealed nodes; E_i = hash nodes evaluated | `Graph.Visited`, `evaluated`, `reconstruct` | root always evaluated |
-| C_i = 1 + Σ_{g∈E_i} c_g | `Scheme.verifyCost` | |
+| C_i = c(idx) + Σ_{g∈E_i} c_g, c(idx) = 2 | `Scheme.verifyCost` via `idxCost` | |
 | idx(m, η) = first 128 bits of H(enc, m‖η) | `index`, `setWidth idxBits` | F3 |
 | Signing: fresh random nonces, at most L trials | `Scheme.sign`, `signLoop`, `trialLimit` | |
 | Verification: recompute idx, check length, reconstruct, compare 128-bit prefix | `Scheme.verify`, `publicKey` | |
 | Forgery: accepted pair ≠ the signer's pair; any accepted pair if signing failed | `experiment` | strong unforgeability, as in the paper |
 | Security: cost ≤ B on every execution ⇒ Pr[Forge] < B/2^127 | `CostAtMost`, `Scheme.Secure` | F5 |
 | Parameters table | `paperParams` | all eleven values match |
-| Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline |
+| Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline (re-tuned for the two-compression index) |
 
 ## Findings
 
@@ -71,13 +73,13 @@ and needs no trust.
 - **F6 (info).** Adversary computation is unbounded and its private randomness is free; only
   oracle queries are charged. This is the paper's model. The adversary's state type lives in
   `Type`, which restricts nothing in practice. Kept.
-- **F7 (open until freeze).** `VerificationLowerBound paperParams c` is vacuous if no scheme
-  satisfies `Secure`. Non-vacuity is established by a kernel-checked upper-bound baseline. The
-  contract is not frozen before the paper's 106-compression scheme verifies on the upper track.
+- **F7 (closed).** `VerificationLowerBound paperParams c` would be vacuous if no scheme
+  satisfied `Secure`. Non-vacuity is established by the kernel-checked upper-bound baseline: the
+  flat scheme of 41 chains of length 20 verifies at 109 compressions under the cost model with overhead.
 
 ## Freeze procedure
 
-1. Resolve F7 (upper baseline verified).
+1. F7 is resolved.
 2. Set `contract.version` in `challenges.json` to `ots-v1`, run `verifier/pin_contract.py pin`,
    and record the contract id printed there on the site.
 3. From then on, any change to a protected file is `ots-v2`: the v1 leaderboard is archived and

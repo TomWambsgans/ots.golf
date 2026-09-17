@@ -74,10 +74,10 @@ def bestPure (P : Params) (T : ℕ) (rk : ℕ → Option ℕ) (w : Nonce P → B
 def obsCands (i : Fin P.numSets) (ξ : S.graph.Rec) : Finset S.graph.Rec :=
   candidates (evalHashAt S i) (reveal S i) ξ
 
-/-- The rank of an index value if it is a valid index of rank below `100`. -/
+/-- The rank of an index value if it is a valid index of rank below `450`. -/
 def rkOf (i : Fin P.numSets) (C : Finset S.graph.Rec) (n : ℕ) : Option ℕ :=
   if h : n < P.numSets then
-    (if rank S i C ⟨n, h⟩ < 100 then some (rank S i C ⟨n, h⟩) else none)
+    (if rank S i C ⟨n, h⟩ < 450 then some (rank S i C ⟨n, h⟩) else none)
   else
     none
 

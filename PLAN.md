@@ -3,7 +3,7 @@
 ## Goal
 A two-track, Lean-kernel-verified competition on the worst-case verification cost of graph-based
 hash-based one-time signatures (128-bit public key, signatures ≤ 5504 bits, 127-bit security).
-Current interval: **25 ≤ optimum ≤ 106** compressions.
+Current interval: **25 ≤ optimum ≤ 109** compressions, in the cost model with 192 overhead bits per query.
 
 - **Upper track** (minimize): a concrete `Scheme paperParams`, a proof that it is `Secure`, and a
   proof that every index verifies in ≤ c. A record needs c ≤ record − 1.
