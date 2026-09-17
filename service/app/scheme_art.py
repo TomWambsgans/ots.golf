@@ -2,8 +2,8 @@
 
 Root at the center; 7 subtree digests e_l around it; 3 group digests g_j under each; 3 hash chains
 of 14 beads under each group, radiating outward to their 63 secret sources. One real signature is
-lit on it: a cut of cost exactly 105 (revealed values, recomputed nodes, untouched beads), as in
-Figure 1 of the paper.
+lit on it: a cut of cost exactly 105 with 41 revealed values (revealed values, recomputed nodes,
+untouched beads), of the kind the formal proof's disclosure family contains.
 """
 from __future__ import annotations
 
@@ -25,25 +25,31 @@ def polar(r: float, a: float) -> tuple[float, float]:
 
 
 def signature_cut() -> dict:
-    """A cut of cost 105: three subtrees opened; in each the middle group opened and its three
-    chains revealed low; every other digest revealed. Returns the status of every node."""
-    open_e = {0, 2, 4}
-    t_by_chain = {}
-    ts = iter([3, 4, 2, 3, 3, 4, 4, 2, 4])          # Σ(14 − t) = 97 → cost 2 + 3·2 + 97 = 105
-    revealed_g, revealed_e, open_g = set(), set(), set()
-    for l in range(NUM_E):
-        if l not in open_e:
-            revealed_e.add(l)
-            continue
-        for j in range(3 * l, 3 * l + 3):
-            if j == 3 * l + 1:
-                open_g.add(j)
-                for k in range(3 * j, 3 * j + 3):
-                    t_by_chain[k] = next(ts)
-            else:
-                revealed_g.add(j)
-    cost = 2 + sum(1 + 1 + sum(LEN - t_by_chain[k] for k in range(9 * l + 3, 9 * l + 6)) for l in open_e)
+    """A cut of cost 105 with 41 revealed values, of the most common shape of the formal proof's
+    disclosure family: two subtree digests revealed, three group digests revealed under the open
+    subtrees, and one value on each of the 36 remaining chains, with chain positions of total
+    cost 86 (cost 2 + 5 + 12 + 86 = 105). The choice is pseudo-random with a fixed seed, so the
+    picture is stable but does not look hand-made. Returns the status of every node."""
+    import random
+    rng = random.Random(0x6f74732e676f6c66)             # "ots.golf"
+    revealed_e = set(rng.sample(range(NUM_E), 2))
+    open_e = set(range(NUM_E)) - revealed_e
+    groups_under_open = [j for l in sorted(open_e) for j in range(3 * l, 3 * l + 3)]
+    revealed_g = set(rng.sample(groups_under_open, 3))
+    open_g = set(groups_under_open) - revealed_g
+    chains = [k for j in sorted(open_g) for k in range(3 * j, 3 * j + 3)]
+    costs = {k: 0 for k in chains}                      # 14 - t_k, each at most 14, total 86
+    budget = 86
+    while budget > 0:
+        k = rng.choice(chains)
+        if costs[k] < LEN:
+            costs[k] += 1
+            budget -= 1
+    t_by_chain = {k: LEN - c for k, c in costs.items()}
+    cost = 2 + sum(1 + sum(1 + sum(LEN - t_by_chain[k] for k in range(3 * j, 3 * j + 3))
+                           for j in range(3 * l, 3 * l + 3) if j in open_g) for l in open_e)
     assert cost == 105, cost
+    assert len(revealed_e) + len(revealed_g) + len(t_by_chain) == 41
     return {"open_e": open_e, "open_g": open_g, "revealed_e": revealed_e, "revealed_g": revealed_g,
             "t": t_by_chain}
 
