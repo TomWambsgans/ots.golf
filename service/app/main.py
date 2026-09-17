@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth, charts, contract, github, records
+from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
 from .db import Submission, User, get_session, init_db, utcnow
 
@@ -106,11 +106,14 @@ def home(request: Request, session: Session = Depends(get_session)):
     iv = records.interval(session)
     boards = {t["slug"]: {"cfg": t, "frontier": records.frontier(session, t["slug"])[:10],
                           "others": records.others(session, t["slug"])[:5],
-                          "in_flight": records.in_flight(session, t["slug"])} for t in contract.tracks()}
+                          "in_flight": records.in_flight(session, t["slug"]),
+                          "solvers": records.solver_count(session, t["slug"]),
+                          "state": records.track_state(session, t)} for t in contract.tracks()}
     literature = load_literature()
     chart = charts.record_chart({t["slug"]: records.curve(session, t["slug"]) for t in contract.tracks()},
                                 {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow(), literature)
-    return render(request, "home.html", interval=iv, boards=boards, chart=chart, literature=literature)
+    return render(request, "home.html", interval=iv, boards=boards, chart=chart, literature=literature,
+                  art=scheme_art.svg())
 
 
 def load_literature() -> list[dict]:

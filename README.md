@@ -2,7 +2,10 @@
 
 How cheap can verifying a hash-based one-time signature be? This repository is the contract, the
 verifier and the baselines of **ots.golf**, a competition on that number, modeled on
-[better.codes](https://better.codes) and [zk.golf](https://zk.golf).
+[better.codes](https://better.codes) (the Proximity Prize, by the Proximity Prize team, the Ethereum
+Foundation, Yukon and zkSecurity; [proximity-prize/proximity-prize](https://github.com/proximity-prize/proximity-prize))
+and [zk.golf](https://zk.golf) (zkSecurity; [zksecurity/zk-golf-challenges](https://github.com/zksecurity/zk-golf-challenges)).
+The leaderboard and the progress chart follow better.codes' design.
 
 The model is the one of *A Verification Lower Bound for Hash-Based One-Time Signatures*
 (`paper/`): a public computation graph of secret sources, deterministic nodes and hash nodes;
