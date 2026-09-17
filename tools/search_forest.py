@@ -8,7 +8,7 @@ hash cost of everything strictly above it. The family of a cost c is the set of 
 at most 41 nodes (41 · 128 = 5248 revealed bits). We want the least c whose family has at least
 2^115 cuts, within a key-generation budget of 1024 compressions.
 
-    tools/search_forest.py [--overhead 192] [--max-levels 3] [--max-branch 10] [--digest-chains 0]
+    tools/search_forest.py [--overhead 0] [--max-levels 3] [--max-branch 10] [--digest-chains 0]
 
 The search reported in the paper: --max-levels 4 --max-branch 41 --digest-chains 3. Needs numpy.
 
@@ -146,7 +146,7 @@ def exact_count(L, branches, digests, oh, cost):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--overhead", type=int, default=192)
+    ap.add_argument("--overhead", type=int, default=0, help="bits charged per query besides the input (the contract charges none)")
     ap.add_argument("--max-levels", type=int, default=3)
     ap.add_argument("--max-branch", type=int, default=10)
     ap.add_argument("--min-branch", type=int, default=2)

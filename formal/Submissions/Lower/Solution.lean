@@ -32,19 +32,18 @@ theorem verificationLowerBound_paper : VerificationLowerBound paperParams 25 := 
   by_contra hcon
   push Not at hcon
   have hcost : ∀ i, S.verifyCost i ≤ 24 := fun i => Nat.lt_succ_iff.mp (hcon i)
-  have hidx : idxCost paperParams = 2 := by decide
-  have hB := Attack.costAtMost_experiment S Numerics.q Numerics.T 22 fun i => by
+  have hB := Attack.costAtMost_experiment S Numerics.q Numerics.T 23 (by decide) fun i => by
     have := hcost i
+    have hidx : idxCost paperParams = 1 := by decide
     simp only [Scheme.verifyCost, hidx] at this
     omega
   have hsec := hS _ _ hB
   have hprob := Assembly.probTrue_gt S hcost
-  have hcostval : ((paperParams.keygenBudget + paperParams.trialLimit * idxCost paperParams +
-      Numerics.T * idxCost paperParams + (Numerics.q + 2) * 22 + 2 * idxCost paperParams : ℕ) :
-        ℝ≥0∞) / 2 ^ paperParams.securityBits < ENNReal.ofReal (3 / 32) := by
-    have hval : (paperParams.keygenBudget + paperParams.trialLimit * idxCost paperParams +
-        Numerics.T * idxCost paperParams + (Numerics.q + 2) * 22 + 2 * idxCost paperParams : ℕ) =
-        Numerics.attackCost := by rw [hidx]; rfl
+  have hcostval : ((paperParams.keygenBudget + paperParams.trialLimit + Numerics.T +
+      (Numerics.q + 2) * 23 + 2 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.securityBits <
+      ENNReal.ofReal (11 / 200) := by
+    have hval : (paperParams.keygenBudget + paperParams.trialLimit + Numerics.T +
+        (Numerics.q + 2) * 23 + 2 : ℕ) = Numerics.attackCost := rfl
     rw [hval, ← ENNReal.ofReal_natCast, show (2 : ℝ≥0∞) ^ paperParams.securityBits =
         ENNReal.ofReal ((2 : ℝ) ^ 127) by
           rw [ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_ofNat]; rfl,

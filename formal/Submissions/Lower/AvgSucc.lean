@@ -10,7 +10,7 @@ import Submissions.Lower.EntropyLemmas
 # Construction success averaged over key generation
 
 For a fixed index `i` and rank `ℓ`, the success probability of the forging step, averaged over
-the sources and the graph tables, is at least the average of `max 0 (1 - D/113)` over records.
+the sources and the graph tables, is at least the average of `max 0 (1 - D/123)` over records.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -443,7 +443,7 @@ def succC (i : Fin P.numSets) (ℓ : ℕ) (C : Finset S.graph.Rec) (t : S.graph.
 
 omit S in
 theorem pow_le_neg_logb_div (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1) :
-    (1 - p) ^ Numerics.q ≤ -Real.logb 2 p / 113 := by
+    (1 - p) ^ Numerics.q ≤ -Real.logb 2 p / 123 := by
   have hq3 : 3 ≤ Numerics.q := by unfold Numerics.q; norm_num
   have h := one_sub_pow_le_neg_log_div Numerics.q hq3 p hp hp1
   have hb := Numerics.budget_lt_logb
@@ -459,13 +459,13 @@ theorem pow_le_neg_logb_div (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1) :
     ring
   have hu : 0 ≤ -Real.log p := by have := Real.log_nonpos hp.le hp1; linarith
   refine h.trans ?_
-  have e : -Real.logb 2 p / 113 = -Real.log p / (113 * Real.log 2) := by
+  have e : -Real.logb 2 p / 123 = -Real.log p / (123 * Real.log 2) := by
     rw [Real.logb]; ring
   rw [← heq, e]
   exact div_le_div_of_nonneg_left hu (by positivity) (mul_le_mul_of_nonneg_right hb.le hl2.le)
 
 theorem core (i : Fin P.numSets) (ℓ : ℕ) (C : Finset S.graph.Rec) (hC : C.Nonempty) :
-    max 0 (1 - targetWeight S i C (rankElem S i C ℓ) / 113) ≤
+    max 0 (1 - targetWeight S i C (rankElem S i C ℓ) / 123) ≤
       (∑ ξ ∈ C, (∑ t ∈ consTabs S ξ, succC S i ℓ C t) / ((consTabs S ξ).card : ℝ)) /
         (C.card : ℝ) := by
   have hCc : (0 : ℝ) < C.card := by exact_mod_cast hC.card_pos
@@ -477,7 +477,7 @@ theorem core (i : Fin P.numSets) (ℓ : ℕ) (C : Finset S.graph.Rec) (hC : C.No
     simp only [h1, Finset.sum_const, nsmul_eq_mul, mul_one]
     rw [Finset.sum_congr rfl fun ξ _ => div_self (hT ξ).ne', Finset.sum_const, nsmul_eq_mul,
       mul_one, div_self hCc.ne']
-    exact max_le zero_le_one (by linarith [div_nonneg hw (by norm_num : (0 : ℝ) ≤ 113)])
+    exact max_le zero_le_one (by linarith [div_nonneg hw (by norm_num : (0 : ℝ) ≤ 123)])
   · have hs : ∀ t, succC S i ℓ C t =
         1 - (1 - attemptProbNodes S t (newNodes S i (rankElem S i C ℓ)) C) ^ Numerics.q :=
       fun t => by simp only [succC, if_neg hj]
@@ -493,14 +493,14 @@ theorem core (i : Fin P.numSets) (ℓ : ℕ) (C : Finset S.graph.Rec) (hC : C.No
     · have hkey := avg_neg_logb_le S i j C hC
       have hpt : ∀ ξ ∈ C, 1 - ((∑ t ∈ consTabs S ξ,
             -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C)) /
-            ((consTabs S ξ).card : ℝ)) / 113 ≤
+            ((consTabs S ξ).card : ℝ)) / 123 ≤
           (∑ t ∈ consTabs S ξ, (1 - (1 - attemptProbNodes S t (newNodes S i j) C) ^ Numerics.q)) /
             ((consTabs S ξ).card : ℝ) := by
         intro ξ hξ
         have e : 1 - ((∑ t ∈ consTabs S ξ,
               -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C)) /
-              ((consTabs S ξ).card : ℝ)) / 113 =
-            (∑ t ∈ consTabs S ξ, (1 - -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C) / 113)) /
+              ((consTabs S ξ).card : ℝ)) / 123 =
+            (∑ t ∈ consTabs S ξ, (1 - -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C) / 123)) /
               ((consTabs S ξ).card : ℝ) := by
           have hne := (hT ξ).ne'
           rw [Finset.sum_sub_distrib, Finset.sum_const, nsmul_eq_mul, mul_one, ← Finset.sum_div]
@@ -511,14 +511,14 @@ theorem core (i : Fin P.numSets) (ℓ : ℕ) (C : Finset S.graph.Rec) (hC : C.No
         have hp := attemptProbNodes_pos S t (newNodes S i j) C ξ hξ hcons
         have hp1 := (attemptProbNodes_nonneg_le S t (newNodes S i j) C).2
         linarith [pow_le_neg_logb_div _ hp hp1]
-      calc 1 - targetWeight S i C j / 113
+      calc 1 - targetWeight S i C j / 123
           ≤ 1 - ((∑ ξ ∈ C, (∑ t ∈ consTabs S ξ,
               -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C)) /
-              ((consTabs S ξ).card : ℝ)) / (C.card : ℝ)) / 113 := by
-            linarith [div_le_div_of_nonneg_right hkey (by norm_num : (0 : ℝ) ≤ 113)]
+              ((consTabs S ξ).card : ℝ)) / (C.card : ℝ)) / 123 := by
+            linarith [div_le_div_of_nonneg_right hkey (by norm_num : (0 : ℝ) ≤ 123)]
         _ = (∑ ξ ∈ C, (1 - ((∑ t ∈ consTabs S ξ,
               -Real.logb 2 (attemptProbNodes S t (newNodes S i j) C)) /
-              ((consTabs S ξ).card : ℝ)) / 113)) / (C.card : ℝ) := by
+              ((consTabs S ξ).card : ℝ)) / 123)) / (C.card : ℝ) := by
             rw [Finset.sum_sub_distrib, Finset.sum_const, nsmul_eq_mul, mul_one, ← Finset.sum_div]
             field_simp
         _ ≤ _ := div_le_div_of_nonneg_right (Finset.sum_le_sum hpt) hCc.le
@@ -529,7 +529,7 @@ end AvgSuccAux
 
 open AvgSuccAux in
 theorem avg_D_le_avg_succ (S : Scheme paperParams) (i : Fin paperParams.numSets) (ℓ : ℕ) :
-    (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 113)) / (Fintype.card S.graph.Rec : ℝ) ≤
+    (∑ ξ : S.graph.Rec, max 0 (1 - D S i ℓ ξ / 123)) / (Fintype.card S.graph.Rec : ℝ) ≤
       (∑ z : S.graph.Assignment, ∑ t : S.graph.Tab, succ S Numerics.q i ℓ z t) /
         ((Fintype.card S.graph.Assignment : ℝ) * Fintype.card S.graph.Tab) := by
   set R : S.graph.Rec → ℝ := fun ξ =>

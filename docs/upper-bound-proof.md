@@ -1,33 +1,35 @@
 # The upper-bound proof: architecture
 
-The upper-track baseline (`formal/Submissions/Upper/`) proves, for `flatScheme : Scheme paperParams`
-(41 chains of length 20 hashed directly into the root) with
+The upper-track baseline (`formal/Submissions/Upper/`) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
+21 group digests, 7 subtree digests, one root) with
 
 ```
-theorem flatScheme_secure : flatScheme.Secure
-theorem flatScheme_verifyCost (i) : flatScheme.verifyCost i = 109
+theorem forestScheme_secure : forestScheme.Secure
+theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
 (exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`). `Scheme.Secure` demands: for every adversary `A` and every `B` with
 `CostAtMost P (experiment S A) B`, `probTrue P (experiment S A) < B / 2^127`.
 
-## Why flat
+## A correction to the paper
 
-The contract charges `⌈(k + 192) / 512⌉` compressions for a hash on `k` input bits. A chain hash (128 bits)
-costs one compression, a ternary grouping hash (384 bits) two, the message index two, and a single
-root over all 41 chain ends (5248 bits) eleven. An exhaustive search over forests
-(`tools/search_forest.py --max-levels 4 --max-branch 41 --digest-chains 3`: chains of one length under
-up to four grouping levels with branching factors up to 41, optional digest chains) finds nothing
-below 109 compressions, and the flat
-scheme reaches it: `11` for the root, `96` chain hashes, `2` for the index. Its disclosure sets are
-the position vectors `t : Fin 41 → Fin 21` with `∑ (20 - t k) = 96`, exactly `41` revealed values
-(5248 bits) each, and there are `comp 41 96 = 44630212576611386423061846738781106 > 2^115` of them.
-Two distinct vectors of equal sum are incomparable, which is the only property of the family the
-security proof uses.
+The first version of the paper defined `D = {cuts of cost 105}` and claimed every such cut has at most 41 nodes.
+This is false: cutting all 63 chains gives cost-105 cuts with 63 nodes.  The stated count
+43124494150885380367098178978085896 is the number of cost-105 cuts with **at most 41 nodes**.
+The paper now defines `D := {cuts : cost = 105 ∧ |A| ≤ 41}` (so the 5248-bit budget holds), and in fact only
+the three most common shapes (97.5% of `D`, still > 2^115):
+
+| e revealed | g revealed | active chains | chain cost | nodes | count |
+|---|---|---|---|---|---|
+| 2 | 3 | 36 | 86 | 41 | C(7,2)·C(15,3)·comp(36,86) |
+| 1 | 7 | 33 | 86 | 41 | C(7,1)·C(18,7)·comp(33,86) |
+| 2 | 4 | 33 | 87 | 39 | C(7,2)·C(15,4)·comp(33,87) |
+
+where `comp n s` = number of `(c_1..c_n) ∈ [0,14]^n` with sum `s`.
 
 ## The proof (paper Section 7.3, reorganized for formalization)
 
-Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^21`, `N = B - 831` (budget after key generation).
+Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^21`, `N = B - 912` (budget after key generation).
 `ξ : G.Rec` ranges uniformly over records (sources + hash outputs); `c₀ ξ` is the cache after
 key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for every hash node).
 
@@ -56,7 +58,7 @@ key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for e
    * encoding query before signing: `ε` (valid-index count `/M`) + `ε` (collision pairs, scaled
      by `L/(2^256-L)`);
    * encoding query after signing: `ε` (index equals `i`).
-   Total `≤ 2ε` per compression, so `Pr[forge] ≤ 2ε N = (B-831)/2^127 < B/2^127`.
+   Total `≤ 2ε` per compression, so `Pr[forge] ≤ 2ε N = (B-912)/2^127 < B/2^127`.
 
 6. **Signing** (`SignIdx.lean`): `Pr[u₁ fresh ∧ i ∈ V(d_A)] ≤ |V|/M` and
    `Pr[some trial lands on a collided entry] ≤ L·pairs/(2^256-L)`.

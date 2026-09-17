@@ -3,12 +3,12 @@ import Submissions.Upper.Assembly
 /-!
 # Security of the concrete scheme
 
-`flatScheme_secure`: the flat scheme of 41 chains of length 20 satisfies `Scheme.Secure`, the
+`forestScheme_secure`: the scheme of Section 8 of the paper satisfies `Scheme.Secure`, the
 127-bit strong unforgeability requirement of `OptimalOTS.Statement`, and every signature verifies
-in `109` compressions (`flatScheme_verifyCost`).
+in `106` compressions (`forestScheme_verifyCost`).
 
-For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 831) = (B - 831) / 2 ^ 127 < B / 2 ^ 127`
-of `Flat.main_bound` applies; for larger budgets the requirement holds trivially since
+For a budget `B ≤ 2 ^ 127` the bound `probTrue ≤ 2 ε (B - 912) = (B - 912) / 2 ^ 127 < B / 2 ^ 127`
+of `Forest.main_bound` applies; for larger budgets the requirement holds trivially since
 probabilities are at most one.
 -/
 
@@ -22,9 +22,9 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Flat
+namespace Forest
 
-attribute [local irreducible] experiment flatScheme
+attribute [local irreducible] experiment forestScheme
 
 theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
   unfold κ ε
@@ -32,8 +32,8 @@ theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
   rw [ENNReal.mul_inv (Or.inl (by simp)) (Or.inl (by simp)), ← mul_assoc,
     ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
 
-theorem kappa_mul_lt {B : ℕ} (h831 : 831 ≤ B) :
-    κ * ((B - 831 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
+theorem kappa_mul_lt {B : ℕ} (h912 : 912 ≤ B) :
+    κ * ((B - 912 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
   rw [kappa_eq]
   show _ < (B : ℝ≥0∞) / 2 ^ 127
   rw [ENNReal.div_eq_inv_mul]
@@ -47,7 +47,7 @@ theorem one_lt_div {B : ℕ} (h : 2 ^ 127 < B) : (1 : ℝ≥0∞) < (B : ℝ≥0
   exact_mod_cast h
 
 /-- **Security of the concrete scheme.** -/
-theorem flatScheme_secure : flatScheme.Secure := by
+theorem forestScheme_secure : forestScheme.Secure := by
   intro A B hB
   by_cases hle : B ≤ 2 ^ 127
   · have h1 := @main_bound A B hB hle
@@ -55,18 +55,18 @@ theorem flatScheme_secure : flatScheme.Secure := by
     exact h1.trans_lt (kappa_mul_lt h2)
   · exact (probOutput_le_one).trans_lt (one_lt_div (not_le.1 hle))
 
-end Flat
+end Forest
 
 /--
-info: 'OptimalOTS.Flat.flatScheme_secure' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'OptimalOTS.Forest.forestScheme_secure' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms Flat.flatScheme_secure
+#print axioms Forest.forestScheme_secure
 
 /--
-info: 'OptimalOTS.Flat.flatScheme_verifyCost' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'OptimalOTS.Forest.forestScheme_verifyCost' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms Flat.flatScheme_verifyCost
+#print axioms Forest.forestScheme_verifyCost
 
 end OptimalOTS

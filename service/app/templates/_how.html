@@ -29,18 +29,20 @@ recomputes the final hash and compares it with the public key.</p>
 new query, a label and an input, receives an independent uniform 256-bit answer, and a repeated query
 receives the same answer. Signer, verifier and attacker learn <code>H</code> only by querying it. A query on
 an input <code>u</code> costs</p>
-<p class="formula">c(u) = ⌈ (|u| + 192) / 512 ⌉ compressions.</p>
+<p class="formula">c(u) = ⌈ |u| / 512 ⌉ compressions, and at least one.</p>
 <p>Hash functions absorb their input in 512-bit blocks, one call of the compression function per block, and
-that call is the unit of work in software, in hardware and in a SNARK circuit. The 192 extra bits are what a
-deployed tweakable hash prepends to every input, a 128-bit public parameter and a 64-bit tweak, and the
-model charges for them without representing them: its labels play the tweak's role. So a chain step over
-128 bits costs one compression, the index hash over message and nonce costs two, and the root of the
-baseline scheme, over 41 chain ends, costs eleven.</p>
+that call is the unit of work in software, in hardware and in a SNARK circuit. Nothing else is charged. A
+deployed scheme also hashes a public parameter chosen per key and a tweak. The parameter can be padded to a
+full block and absorbed first: the state after that block depends only on the key, so everyone computes it
+once and starts every query from it, an observation of Justin Drake. Tweaks are what the labels of the model
+stand for, and they separate queries for free; a scheme that wants them inside its inputs builds them with
+deterministic nodes and pays for their bits. So a chain step over 128 bits, a hash of three chain ends and
+the index hash over message and nonce cost one compression each, and the root of the baseline scheme, over
+seven digests, costs two.</p>
 <p>Everything else is free, for everyone: concatenating, splitting, comparing, drawing randomness. Only
 queries to <code>H</code> count, and nothing else bounds the attacker's computation.</p>
 <figure class="fig">{{ figs.cost|safe }}
-<figcaption>Four inputs against 512-bit blocks. The hatched prefix is the overhead of every query; the
-cost is the number of blocks started.</figcaption></figure>
+<figcaption>Four inputs against 512-bit blocks. The cost is the number of blocks started.</figcaption></figure>
 
 <h2 id="graph">3. A scheme is a graph of computations</h2>
 <p>A scheme is a fixed, public, finite directed acyclic graph. Each node holds a bit string of a fixed
@@ -83,16 +85,16 @@ revealed value, the root stays hidden, and the number beside each recomputed has
 cost.</figcaption></figure>
 
 <h2 id="cost">5. Verification and the score</h2>
-<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, two compressions, rejects if
+<p>The verifier recomputes <code>i</code> from <code>m</code> and <code>η</code>, one compression, rejects if
 <code>i ≥ M</code> or if the revealed string has the wrong length, splits it into the values of <code>A<sub>i</sub></code>, evaluates every node
 between the cut and the root, and accepts if the first 128 bits of the recomputed root equal
 <code>pk</code>. With <code>E<sub>i</sub></code> the hash nodes it evaluates, the signature of index
 <code>i</code> costs</p>
-<p class="formula">C<sub>i</sub> = 2 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
+<p class="formula">C<sub>i</sub> = 1 + Σ<sub>g ∈ E<sub>i</sub></sub> c<sub>g</sub> compressions,</p>
 <p>and the <strong>score of a scheme is max<sub>i</sub> C<sub>i</sub></strong>, its most expensive
-signature. The signature in the figure costs 2 + 8 = 10. In the baseline scheme, 41 chains of length 20
-hashed together into the root, every signature recomputes 96 chain hashes and the 11-compression root:
-2 + 96 + 11 = 109.</p>
+signature. The signature in the figure costs 1 + 8 = 9. In the baseline scheme, 63 chains of length 14
+grouped by three into 21 digests, those by three into 7, and the 7 hashed into the root, every signature
+recomputes 103 chain and digest hashes and the two-compression root: 1 + 103 + 2 = 106.</p>
 
 <h2 id="security">6. Security</h2>
 <p>The attacker receives <code>pk</code>, queries <code>H</code> at will, asks for one signature on a message
@@ -120,7 +122,7 @@ secure one, has a signature at least that expensive. Larger wins. Both are Lean 
 <p>Fixed in <code>paperParams</code>; a submission cannot change them.</p>
 <table class="kv params">
 <tr><th>Hash output</th><td>256 bits</td></tr>
-<tr><th>Block, and overhead per query</th><td>512 bits, and 192 bits</td></tr>
+<tr><th>Block</th><td>512 bits</td></tr>
 <tr><th>Public key</th><td>128 bits, the first bits of the root</td></tr>
 <tr><th>Message, nonce</th><td>256 bits each; the index is the first 128 bits of <code>H(enc, m ‖ η)</code></td></tr>
 <tr><th>Revealed bits per signature</th><td>at most 5248, so signatures of at most 5504 bits</td></tr>

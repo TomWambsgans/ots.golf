@@ -3,9 +3,14 @@ import Mathlib
 /-!
 # Counting chain positions
 
-`comp n s` is the number of tuples `(c_1, …, c_n) ∈ {0, …, 20}^n` with sum `s`.  The disclosure
-sets of the concrete scheme are the `comp 41 96 ≥ 2 ^ 115` ways of placing one revealed value on
-each of the 41 chains of length 20 so that the verifier recomputes exactly 96 chain hashes.
+`comp n s` is the number of tuples `(c_1, …, c_n) ∈ {0, …, 14}^n` with sum `s`.  The three
+shapes of disclosure sets used by the concrete scheme have
+
+```
+21 · 455 · comp 36 86 + 7 · 31824 · comp 33 86 + 21 · 1365 · comp 33 87 ≥ 2 ^ 115
+```
+
+(`C(7,2) = 21`, `C(15,3) = 455`, `C(7,1) = 7`, `C(18,7) = 31824`, `C(15,4) = 1365`).
 
 The exact values are certified without `native_decide`: `comp` is evaluated through a
 polynomial-size table of partial sums (`compTable`), which agrees with `comp` by induction and is
@@ -14,15 +19,15 @@ computed by kernel reduction.
 
 namespace OptimalOTS
 
-namespace Flat
+namespace Forest
 
-/-- Number of `(c : Fin n → Fin 21)` with `∑ i, (c i).val = s`. -/
+/-- Number of `(c : Fin n → Fin 15)` with `∑ i, (c i).val = s`. -/
 def comp : ℕ → ℕ → ℕ
   | 0, s => if s = 0 then 1 else 0
-  | n + 1, s => ∑ v ∈ Finset.range 21, if v ≤ s then comp n (s - v) else 0
+  | n + 1, s => ∑ v ∈ Finset.range 15, if v ≤ s then comp n (s - v) else 0
 
 theorem card_comp (n s : ℕ) :
-    (Finset.univ.filter fun c : Fin n → Fin 21 => ∑ i, (c i).val = s).card = comp n s := by
+    (Finset.univ.filter fun c : Fin n → Fin 15 => ∑ i, (c i).val = s).card = comp n s := by
   induction n generalizing s with
   | zero =>
     rw [comp]
@@ -31,9 +36,9 @@ theorem card_comp (n s : ℕ) :
       simp
     · simp [Ne.symm h]
   | succ n ih =>
-    rw [comp, ← Fin.sum_univ_eq_sum_range (fun v => if v ≤ s then comp n (s - v) else 0) 21]
+    rw [comp, ← Fin.sum_univ_eq_sum_range (fun v => if v ≤ s then comp n (s - v) else 0) 15]
     simp only [← ih]
-    rw [Finset.card_filter, ← (Fin.consEquiv fun _ => Fin 21).sum_comp, Fintype.sum_prod_type]
+    rw [Finset.card_filter, ← (Fin.consEquiv fun _ => Fin 15).sum_comp, Fintype.sum_prod_type]
     refine Finset.sum_congr rfl fun v _ => ?_
     simp only [Fin.consEquiv_apply, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ]
     split_ifs with hv
@@ -43,19 +48,6 @@ theorem card_comp (n s : ℕ) :
     · refine Finset.sum_eq_zero fun c _ => ?_
       rw [if_neg]
       omega
-
-/-- The tuples counted by `comp`, as a set kept opaque: `Finset.univ` of a function type must
-never be unfolded by the elaborator. -/
-irreducible_def compSet (n s : ℕ) : Finset (Fin n → Fin 21) :=
-  Finset.univ.filter fun c => ∑ i, (c i).val = s
-
-theorem mem_compSet (n s : ℕ) (c : Fin n → Fin 21) : c ∈ compSet n s ↔ ∑ i, (c i).val = s := by
-  rw [compSet_def, Finset.mem_filter]
-  simp only [Finset.mem_univ, true_and]
-
-theorem card_compSet (n s : ℕ) : (compSet n s).card = comp n s := by
-  rw [compSet_def]
-  exact card_comp n s
 
 /-! ### Kernel-checkable evaluation of `comp`
 
@@ -68,7 +60,7 @@ def compTable (S : ℕ) : ℕ → List ℕ
   | 0 => 1 :: List.replicate S 0
   | n + 1 =>
     (List.range (S + 1)).map fun s =>
-      ((List.range 21).map fun v => if v ≤ s then (compTable S n).getD (s - v) 0 else 0).sum
+      ((List.range 15).map fun v => if v ≤ s then (compTable S n).getD (s - v) 0 else 0).sum
 
 theorem sum_map_range (f : ℕ → ℕ) (m : ℕ) :
     ((List.range m).map f).sum = ∑ v ∈ Finset.range m, f v := by
@@ -96,14 +88,23 @@ theorem compTable_getD (S n s : ℕ) (hs : s ≤ S) : (compTable S n).getD s 0 =
     · exact ih (s - v) (by omega)
     · rfl
 
-theorem comp_41_96 : comp 41 96 = 44630212576611386423061846738781106 := by
-  rw [← compTable_getD 96 41 96 le_rfl]
+theorem comp_36_86 : comp 36 86 = 2775281970561648566171176949562 := by
+  rw [← compTable_getD 86 36 86 le_rfl]
   decide +kernel
 
-theorem count_ge : 2 ^ 115 ≤ comp 41 96 := by
-  rw [comp_41_96]
+theorem comp_33_86 : comp 33 86 = 59401693306392006050563151322 := by
+  rw [← compTable_getD 86 33 86 le_rfl]
+  decide +kernel
+
+theorem comp_33_87 : comp 33 87 = 80231837540948301105645263934 := by
+  rw [← compTable_getD 87 33 87 le_rfl]
+  decide +kernel
+
+theorem shapes_ge :
+    2 ^ 115 ≤ 21 * 455 * comp 36 86 + 7 * 31824 * comp 33 86 + 21 * 1365 * comp 33 87 := by
+  rw [comp_36_86, comp_33_86, comp_33_87]
   norm_num
 
-end Flat
+end Forest
 
 end OptimalOTS

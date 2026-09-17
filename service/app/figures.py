@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from html import escape
 
-OVERHEAD, BLOCK, HASH_BITS = 192, 512, 256
+BLOCK, HASH_BITS = 512, 256
 
 
 def block_cost(k: int) -> int:
-    """`blockCost paperParams k` of Statement.lean: started 512-bit blocks of k + 192 bits."""
-    return max(1, (k + OVERHEAD + BLOCK - 1) // BLOCK)
+    """`blockCost paperParams k` of Statement.lean: started 512-bit blocks of the input, at least one."""
+    return max(1, (k + BLOCK - 1) // BLOCK)
 
 
 # ---------------------------------------------------------------- primitives
@@ -198,21 +198,21 @@ def generic_graph() -> Dag:
     """A small graph that is a real DAG, not a tree: values of many widths (64 to 768 bits), a
     source and a truncated value each feeding two nodes, deterministic nodes of one, two and three
     parents (a selection of bits, an arbitrary function, concatenations), hash nodes over inputs of
-    64 to 768 bits, costing one or two compressions each."""
+    64 to 768 bits: one compression up to 512 bits, two beyond."""
     H = HASH_BITS
     nodes = {
         "s1": Node("src", (), 128, 80, 340, "128 b", "b"),
-        "s2": Node("src", (), 256, 230, 340, "256 b", "b"),
+        "s2": Node("src", (), 512, 230, 340, "512 b", "b"),
         "s3": Node("src", (), 128, 300, 340, "128 b", "b"),
-        "s4": Node("src", (), 128, 440, 340, "128 b", "b"),
+        "s4": Node("src", (), 256, 440, 340, "256 b", "b"),
         "h1": Node("hash", ("s1",), H, 80, 285),
         "t":  Node("det", ("h1",), 128, 80, 230, "first 128 b", "l"),
         "h2": Node("hash", ("t",), H, 80, 175),
         "f":  Node("det", ("h2",), 64, 80, 125, "any f · 64 b", "l"),
         "h5": Node("hash", ("f",), H, 80, 75),
-        "c2": Node("det", ("s2", "s3"), 384, 265, 285, "concat · 384 b"),
+        "c2": Node("det", ("s2", "s3"), 640, 265, 285, "concat · 640 b"),
         "h3": Node("hash", ("c2",), H, 265, 230),
-        "c3": Node("det", ("t", "h3", "s4"), 512, 300, 175, "concat · 512 b"),
+        "c3": Node("det", ("t", "h3", "s4"), 640, 300, 175, "concat · 640 b"),
         "h4": Node("hash", ("c3",), H, 300, 120),
         "h6": Node("hash", ("s4",), H, 440, 285),
         "h7": Node("hash", ("h6",), H, 440, 230),
@@ -319,7 +319,7 @@ def dag() -> str:
     entries = [
         ("src", "secret source", ["uniformly random bits, any length"]),
         ("det", "deterministic node", ["any public function of any parents,", "any output length; costs nothing"]),
-        ("hash", "hash node", ["H(label, input), 256-bit output;", "any input length, at (|input| + 192) / 512", "compressions rounded up (the blue numbers)"]),
+        ("hash", "hash node", ["H(label, input), 256-bit output;", "any input length, at |input| / 512", "compressions rounded up (the blue numbers)"]),
         ("root", "root", ["the designated hash node;", "public key = its first 128 bits"]),
     ]
     y = Y
@@ -333,7 +333,7 @@ def dag() -> str:
     b.append(text(X + 7, y + 18, "a value may feed any number of nodes", "t muted", "start"))
     b.append(text(X + 7, y + 40, f"key generation: {G.keygen_cost()} compressions", "t muted", "start"))
     return svg("dag", 780, 370, "".join(b),
-               "A computation graph of the model: four secret sources of 128 or 256 bits, deterministic nodes "
+               "A computation graph of the model: four secret sources of 128 to 512 bits, deterministic nodes "
                "selecting bits, applying an arbitrary function and concatenating two or three values, hash nodes "
                "over 128 to 768 bits costing one or two compressions, values feeding several nodes, and the root.")
 
@@ -357,7 +357,8 @@ def dag_cut() -> str:
     b.append(text(X + 22, Y + 104, "never touched", "t strong", "start"))
     b.append(text(X + 22, Y + 120, "below the cut, still secret", "t muted", "start"))
     b.append(text(X + 7, Y + 166, "verification cost", "t strong", "start"))
-    b.append(text(X + 7, Y + 184, f"2 (index) + {total} = {2 + total} compressions", "t muted", "start"))
+    idx = block_cost(512)                                # the index query: message and nonce
+    b.append(text(X + 7, Y + 184, f"{idx} (index) + {total} = {idx + total} compressions", "t muted", "start"))
     return svg("cut", 780, 370, "".join(b),
                "The same graph with one disclosure set lit: three revealed values (one of them a secret source), "
                "the nodes the verifier recomputes above them with their costs, and the untouched nodes below.")
@@ -467,7 +468,7 @@ def bit_flow() -> str:
     X, y = 586, 30
     rows = [
         ("A B C D", "secret sources", ["uniformly random bits, 64 to 256 here"]),
-        ("H", "hash node", ["any input in, 256 fresh bits out, at", "(|input| + 192) / 512 compressions", "rounded up (the blue numbers)"]),
+        ("H", "hash node", ["any input in, 256 fresh bits out, at", "|input| / 512 compressions, rounded up", "(the blue numbers)"]),
         ("f", "deterministic node", ["any public function, any output length"]),
         ("~", "ribbons", ["bits on the move: split, sliced, reused,", "concatenated, and all of it free"]),
     ]
@@ -494,17 +495,16 @@ def bit_flow() -> str:
 
 
 def cost_ruler() -> str:
-    """Inputs of several lengths against 512-bit blocks, each preceded by the 192 overhead bits."""
+    """Inputs of several lengths against 512-bit blocks: the cost is the number of blocks started."""
     X0, BW = 240, 130              # left edge of block 1, pixels per 512-bit block
     px = BW / BLOCK
     rows = [
         ("chain step: a 128-bit value", 128),
-        ("a 256-bit digest", 256),
+        ("a group: three 128-bit chain ends", 3 * 128),
         ("index query H(enc, m ‖ η), 512 bits", 512),
-        ("root of the baseline: 41 × 128 bits", 41 * 128),
+        ("root of the baseline: 7 × 128 bits", 7 * 128),
     ]
-    b = ['<defs><pattern id="hatch" class="hatch" width="6" height="6" patternUnits="userSpaceOnUse" '
-         'patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6"/></pattern></defs>']
+    b = []
     for k in range(4):
         x = X0 + BW * k
         b.append(line(x, 30, x, 166, "blockline"))
@@ -513,29 +513,12 @@ def cost_ruler() -> str:
     for i, (label, bits) in enumerate(rows):
         y = 48 + 32 * i
         b.append(text(X0 - 14, y + 4, label, "t", "end"))
-        over = OVERHEAD * px
-        b.append(f'<rect class="over" fill="url(#hatch)" x="{_fmt(X0)}" y="{_fmt(y - 7)}" width="{_fmt(over)}" height="14"/>')
-        full = bits * px
-        xend = X0 + over + full
-        if xend <= X0 + 3 * BW - 8:
-            b.append(f'<rect class="bar" x="{_fmt(X0 + over)}" y="{_fmt(y - 7)}" width="{_fmt(full)}" height="14"/>')
-        else:                       # too long to draw: a break
-            xb = X0 + 3 * BW - 36
-            b.append(f'<rect class="bar" x="{_fmt(X0 + over)}" y="{_fmt(y - 7)}" width="{_fmt(xb - X0 - over)}" height="14"/>')
-            b.append(f'<rect class="bar" x="{_fmt(xb + 14)}" y="{_fmt(y - 7)}" width="18" height="14"/>')
-            b.append(line(xb + 3, y + 10, xb + 7, y - 10, "brk"))
-            b.append(line(xb + 8, y + 10, xb + 12, y - 10, "brk"))
+        b.append(f'<rect class="bar" x="{_fmt(X0)}" y="{_fmt(y - 7)}" width="{_fmt(bits * px)}" height="14"/>')
         c = block_cost(bits)
         b.append(text(X0 + 3 * BW + 16, y + 4, f"{c} compression{'s' if c > 1 else ''}", "t strong", "start"))
-    y = 190
-    b.append(f'<rect class="over" fill="url(#hatch)" x="{_fmt(X0)}" y="{_fmt(y - 8)}" width="16" height="11"/>')
-    b.append(text(X0 + 22, y, "192 overhead bits: public parameter ‖ tweak", "t muted", "start"))
-    b.append(f'<rect class="bar" x="{_fmt(X0 + 280)}" y="{_fmt(y - 8)}" width="16" height="11"/>')
-    b.append(text(X0 + 302, y, "the input", "t muted", "start"))
-    return svg("cost", 800, 200, "".join(b),
-               "Four hash inputs laid against 512-bit blocks, each preceded by 192 overhead bits: a 128-bit "
-               "chain step and a 256-bit digest cost one compression, the 512-bit index query two, the "
-               "baseline's 5248-bit root eleven.")
+    return svg("cost", 800, 176, "".join(b),
+               "Four hash inputs laid against 512-bit blocks: a 128-bit chain step, three chain ends of 384 "
+               "bits and the 512-bit index query cost one compression each, the baseline's 896-bit root two.")
 
 
 def experiment() -> str:

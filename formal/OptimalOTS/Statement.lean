@@ -27,8 +27,7 @@ security (every win of `weakExperiment` is a win of `experiment`, at the same co
 The file is organized as follows.
 
 1. `Params`: the numerical parameters.
-2. The random oracle and the cost of a query (one compression per started 512-bit block of the input
-   plus 192 overhead bits: a 128-bit public parameter and a 64-bit tweak).
+2. The random oracle and the cost of a query (one compression per started 512-bit block).
 3. Computation graphs: secret sources, deterministic nodes and hash nodes.
 4. Schemes: disclosure sets, key generation, signing, verification, and the verification cost.
 5. Security: the one-signature forgery experiment and `Scheme.Secure`.
@@ -49,12 +48,11 @@ namespace OptimalOTS
 structure Params where
   /-- Output length of the random oracle. -/
   hashBits : ℕ
-  /-- A query on `k` input bits costs `⌈(k + overheadBits) / blockBits⌉` compressions (and at least one). -/
+  /-- A query on `k` input bits costs `⌈k / blockBits⌉` compressions (and at least one). Nothing
+  else is charged: a per-key public parameter can be absorbed once, in a block of its own, and the
+  chaining state reused by every later query (an observation of Justin Drake), and the labels of
+  the model stand for tweaks, which a scheme is free to spell out in its inputs. -/
   blockBits : ℕ
-  /-- Bits every query carries besides its input: a public parameter for multi-user domain
-  separation and a tweak for addressing. They are charged but do not appear in the model, where
-  labels provide the separation for free. -/
-  overheadBits : ℕ
   /-- Length of the public key: a prefix of the root hash. -/
   pkBits : ℕ
   /-- Length of messages. -/
@@ -91,9 +89,8 @@ abbrev hashSpec (P : Params) : OracleSpec Query := Query →ₒ BitVec P.hashBit
 /-- The oracles of every party: free uniform sampling and the random oracle. -/
 abbrev Spec (P : Params) := unifSpec + hashSpec P
 
-/-- Cost of hashing `k` bits: the number of started blocks of the input together with the
-overhead bits, and at least one. -/
-def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.overheadBits + P.blockBits - 1) / P.blockBits)
+/-- Cost of hashing `k` bits: the number of started blocks, and at least one. -/
+def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.blockBits - 1) / P.blockBits)
 
 /-- Cost of the index query `H(enc, m ‖ η)`. -/
 def idxCost (P : Params) : ℕ := blockCost P (P.msgBits + P.nonceBits)
@@ -410,7 +407,6 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
 def paperParams : Params where
   hashBits := 256
   blockBits := 512
-  overheadBits := 192
   pkBits := 128
   msgBits := 256
   nonceBits := 256

@@ -2,7 +2,7 @@
 """Numeric model of the lower-bound attack (paper Sections 5-6, Appendix B), to re-tune its
 operating point under a cost model where the index hash costs `idx` compressions.
 
-    tools/tune_lower_bound.py [--idx 2] [--claims 25,24,23]
+    tools/tune_lower_bound.py [--idx 1] [--claims 25,24,23]
 
 For a claimed bound c (every secure scheme has some C_i >= c), the attack assumes C_i <= c-1 for
 all i, so reconstruction costs at most v = c-1-idx and evaluates at most a = v-1 hash nodes besides
@@ -65,15 +65,15 @@ def cost(idx: int, v: int, q: float, T: float) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--idx", type=int, default=2)
+    ap.add_argument("--idx", type=int, default=1)
     ap.add_argument("--claims", default="25,24,23")
     a_ = ap.parse_args()
     print(f"index hash = {a_.idx} compression(s)")
-    # sanity: the point of the earlier cost model, without overhead bits (idx 1, c = 25: a = 22, v = 23, K = 100, q = 5·2^113, T = 3·2^121)
+    # sanity: the proof's operating point (idx 1, c = 25: a = 22, v = 23, K = 100, q = 5·2^113, T = 3·2^121)
     q0, T0 = 5 * 2 ** 113, 3 * 2 ** 121
-    print(f"earlier point (idx 1): d_min(22,100) = {d_min(22, 100):.2f} <= log(e q ln q) = {construction_threshold(q0):.2f} "
-          f"(then: d0 = 123); success = {success(22, 100, q0, T0, 123):.5f} (then > 0.055); "
-          f"cost/2^127 = {cost(1, 23, q0, T0) / 2 ** 127:.5f} (then < 0.054)")
+    print(f"proof's point (idx 1): d_min(22,100) = {d_min(22, 100):.2f} <= log(e q ln q) = {construction_threshold(q0):.2f} "
+          f"(proof: d0 = 123); success = {success(22, 100, q0, T0, 123):.5f} (proof > 0.055); "
+          f"cost/2^127 = {cost(1, 23, q0, T0) / 2 ** 127:.5f} (proof < 0.054)")
     for c in map(int, a_.claims.split(",")):
         v = c - 1 - a_.idx
         a = v - 1

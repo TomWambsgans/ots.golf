@@ -4,9 +4,8 @@ import Submissions.Lower.Attack
 # The cost of the attack experiment
 
 With `q` construction attempts and `T` nonce trials, the whole experiment (key generation,
-signing, the attack and final verification) costs at most `K + L c + T c + (q + 2) v + 2 c` on
-every execution path, where `c = idxCost P` is the cost of an index query and `v` bounds the
-reconstruction cost of every disclosure set.
+signing, the attack and final verification) costs at most `K + L + T + (q + 2) v + 2` on every
+execution path, where `v` bounds the reconstruction cost of every disclosure set.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -155,9 +154,9 @@ end Graph
 
 /-! ## Signing and verification -/
 
-theorem costAtMost_index {P : Params} (m : Message P) (η : Nonce P) :
-    CostAtMost P (index P m η) (idxCost P) :=
-  (costAtMost_hash _ _ le_rfl).map _
+theorem costAtMost_index {P : Params} (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
+    (m : Message P) (η : Nonce P) : CostAtMost P (index P m η) 1 :=
+  (costAtMost_hash _ _ hidx.le).map _
 
 namespace Scheme
 
@@ -166,30 +165,29 @@ variable {P : Params} (S : Scheme P)
 theorem costAtMost_keygen : CostAtMost P S.keygen P.keygenBudget :=
   (S.graph.costAtMost_keygen.bind_le (fun _ => costAtMost_pure _ 0) (by simp)).mono S.keygen_le
 
-theorem costAtMost_signLoop (x : S.graph.Assignment) (m : Message P) :
-    ∀ k tried, CostAtMost P (S.signLoop x m k tried) (k * idxCost P)
+theorem costAtMost_signLoop (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
+    (x : S.graph.Assignment) (m : Message P) :
+    ∀ k tried, CostAtMost P (S.signLoop x m k tried) k
   | 0, _ => costAtMost_pure _ _
   | k + 1, tried => by
       rw [Scheme.signLoop]
       split_ifs
-      · refine (costAtMost_liftM_probComp _ 0).bind_le (b₂ := (k + 1) * idxCost P) (fun j => ?_)
-          (by simp)
-        refine (costAtMost_index _ _).bind_le (b₂ := k * idxCost P) (fun i => ?_)
-          (by rw [Nat.succ_mul]; omega)
+      · refine (costAtMost_liftM_probComp _ 0).bind_le (b₂ := k + 1) (fun j => ?_) (by simp)
+        refine (costAtMost_index hidx _ _).bind_le (b₂ := k) (fun i => ?_) (by omega)
         split_ifs with hi
         · exact costAtMost_pure _ _
-        · exact costAtMost_signLoop x m k _
+        · exact costAtMost_signLoop hidx x m k _
       · exact costAtMost_pure _ _
 
-theorem costAtMost_sign (x : S.graph.Assignment) (m : Message P) :
-    CostAtMost P (S.sign x m) (P.trialLimit * idxCost P) :=
-  S.costAtMost_signLoop x m _ _
+theorem costAtMost_sign (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
+    (x : S.graph.Assignment) (m : Message P) : CostAtMost P (S.sign x m) P.trialLimit :=
+  S.costAtMost_signLoop hidx x m _ _
 
-theorem costAtMost_verify {v : ℕ}
+theorem costAtMost_verify (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) {v : ℕ}
     (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) (pk : PublicKey P) (m : Message P)
-    (σ : Signature P) : CostAtMost P (S.verify pk m σ) (idxCost P + v) := by
+    (σ : Signature P) : CostAtMost P (S.verify pk m σ) (1 + v) := by
   unfold Scheme.verify
-  refine (costAtMost_index _ _).bind_le (b₂ := v) (fun i => ?_) le_rfl
+  refine (costAtMost_index hidx _ _).bind_le (b₂ := v) (fun i => ?_) le_rfl
   split_ifs with hi
   · dsimp only
     split_ifs
@@ -204,20 +202,20 @@ namespace Attack
 
 variable {P : Params} (S : Scheme P)
 
-theorem costAtMost_searchStep (i : Fin P.numSets) (C : Finset S.graph.Rec)
-    (best : Option (ℕ × Fin P.numSets × Nonce P)) (k : ℕ) :
-    CostAtMost P (searchStep S i C best k) (idxCost P) := by
+theorem costAtMost_searchStep (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
+    (i : Fin P.numSets) (C : Finset S.graph.Rec) (best : Option (ℕ × Fin P.numSets × Nonce P))
+    (k : ℕ) : CostAtMost P (searchStep S i C best k) 1 := by
   unfold searchStep
-  refine (costAtMost_index _ _).bind_le (b₂ := 0) (fun j => ?_) (by simp)
+  refine (costAtMost_index hidx _ _).bind_le (b₂ := 0) (fun j => ?_) le_rfl
   dsimp only
   split_ifs <;> exact costAtMost_pure _ _
 
-theorem costAtMost_search (T : ℕ) (i : Fin P.numSets) (C : Finset S.graph.Rec) :
-    CostAtMost P (search S T i C) (T * idxCost P) := by
+theorem costAtMost_search (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) (T : ℕ)
+    (i : Fin P.numSets) (C : Finset S.graph.Rec) : CostAtMost P (search S T i C) T := by
   unfold search
-  have := costAtMost_foldlM (searchStep S i C) (fun _ => idxCost P)
-    (fun best k => costAtMost_searchStep S i C best k) (List.range T) none
-  simpa [List.map_const', List.sum_replicate, smul_eq_mul] using this
+  have := costAtMost_foldlM (searchStep S i C) (fun _ => 1)
+    (fun best k => costAtMost_searchStep S hidx i C best k) (List.range T) none
+  simpa using this
 
 theorem costAtMost_attemptM :
     ∀ (gs : List (Fin S.graph.size)) (C : Finset S.graph.Rec),
@@ -249,17 +247,17 @@ theorem sum_newNodes_le (i j : Fin P.numSets) :
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hg
   exact (Finset.mem_filter.1 hg.1).1
 
-theorem costAtMost_forge (q T : ℕ) {v : ℕ}
+theorem costAtMost_forge (q T : ℕ) (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) {v : ℕ}
     (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) :
-    ∀ σ, CostAtMost P (forge S q T σ) (idxCost P + (v + (T * idxCost P + q * v)))
+    ∀ σ, CostAtMost P (forge S q T σ) (1 + (v + (T + q * v)))
   | none => costAtMost_pure _ _
   | some (η₁, pl) => by
       simp only [forge]
-      refine (costAtMost_index _ _).bind_le (b₂ := v + (T * idxCost P + q * v)) (fun i => ?_) le_rfl
+      refine (costAtMost_index hidx _ _).bind_le (b₂ := v + (T + q * v)) (fun i => ?_) le_rfl
       split_ifs with hi
       · refine ((S.graph.costAtMost_reconstruct (S.sets ⟨i, hi⟩) _).mono (hv _)).bind_le
-          (b₂ := T * idxCost P + q * v) (fun xr => ?_) le_rfl
-        refine (costAtMost_search S T _ _).bind_le (b₂ := q * v) (fun r => ?_) le_rfl
+          (b₂ := T + q * v) (fun xr => ?_) le_rfl
+        refine (costAtMost_search S hidx T _ _).bind_le (b₂ := q * v) (fun r => ?_) le_rfl
         rcases r with _ | ⟨_, j, η₂⟩
         · exact costAtMost_pure _ _
         · simp only
@@ -276,25 +274,22 @@ theorem costAtMost_forge (q T : ℕ) {v : ℕ}
 
 
 theorem costAtMost_experiment {P : Params} (S : Scheme P) (q T v : ℕ)
+    (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
     (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) :
     CostAtMost P (weakExperiment S (adversary S q T))
-      (P.keygenBudget + P.trialLimit * idxCost P + T * idxCost P + (q + 2) * v +
-        2 * idxCost P) := by
+      (P.keygenBudget + P.trialLimit + T + (q + 2) * v + 2) := by
   unfold weakExperiment
   refine S.costAtMost_keygen.bind_le
-    (b₂ := P.trialLimit * idxCost P +
-      ((idxCost P + (v + (T * idxCost P + q * v))) + (idxCost P + v))) (fun x => ?_)
-    (by nlinarith)
+    (b₂ := P.trialLimit + ((1 + (v + (T + q * v))) + (1 + v))) (fun x => ?_) (by nlinarith)
   rcases x with ⟨pk, sk⟩
   refine (costAtMost_pure _ 0).bind_le
-    (b₂ := P.trialLimit * idxCost P +
-      ((idxCost P + (v + (T * idxCost P + q * v))) + (idxCost P + v))) (fun y => ?_) (by simp)
+    (b₂ := P.trialLimit + ((1 + (v + (T + q * v))) + (1 + v))) (fun y => ?_) (by simp)
   rcases y with ⟨m₁, st⟩
-  refine (S.costAtMost_sign sk m₁).bind_le
-    (b₂ := (idxCost P + (v + (T * idxCost P + q * v))) + (idxCost P + v)) (fun σ₁ => ?_) le_rfl
-  refine (costAtMost_forge S q T hv σ₁).bind_le (b₂ := idxCost P + v) (fun z => ?_) le_rfl
+  refine (S.costAtMost_sign hidx sk m₁).bind_le
+    (b₂ := (1 + (v + (T + q * v))) + (1 + v)) (fun σ₁ => ?_) le_rfl
+  refine (costAtMost_forge S q T hidx hv σ₁).bind_le (b₂ := 1 + v) (fun z => ?_) le_rfl
   rcases z with ⟨m₂, σ₂⟩
-  exact (S.costAtMost_verify hv pk m₂ σ₂).bind_le (fun _ => costAtMost_pure _ 0) (by simp)
+  exact (S.costAtMost_verify hidx hv pk m₂ σ₂).bind_le (fun _ => costAtMost_pure _ 0) (by simp)
 
 end Attack
 

@@ -34,12 +34,12 @@ PEOPLE = [
 # track, login, claim, hours ago, status, is_record, assisted_by, co_authors
 # (only finished rows: the worker would try to verify anything pending)
 ROWS = [
-    ("upper", "satoshi-nakamoto", 107, 6 * 24 + 5, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 105, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 106, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 105, 6 * 24 + 5, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-buterin", 104, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
+    ("upper", "satoshi-nakamoto", 103, 3 * 24 + 2, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-buterin", 104, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
     ("upper", "vitalik-buterin", 101, 26, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "GPT-2", []),
+    ("upper", "satoshi-nakamoto", 102, 10, "verified", False, "GPT-2", []),
     ("lower", "vitalik-buterin", 26, 5 * 24 + 3, "verified", True, "LLaMA 7B", []),
     ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "GPT-2", []),
     ("lower", "vitalik-buterin", 26, 22, "verified", False, "LLaMA 7B", []),

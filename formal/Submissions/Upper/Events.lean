@@ -25,7 +25,7 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Flat
+namespace Forest
 
 open Name
 
@@ -64,23 +64,23 @@ theorem append_inj {n m : ℕ} {x x' : BitVec n} {y y' : BitVec m} (h : x ++ y =
     have := key i
     simpa [hi] using this
 
-theorem catN_inj : ∀ (n : ℕ) {a b : Fin n → BitVec 128}, catN n a = catN n b → a = b
-  | 0, a, b, _ => funext fun i => i.elim0
-  | n + 1, a, b, h => by
-    have h' : (catN n fun i => a i.castSucc) ++ a (Fin.last n) =
-        (catN n fun i => b i.castSucc) ++ b (Fin.last n) := cast_injective _ h
-    obtain ⟨h1, h2⟩ := append_inj h'
-    have ih := catN_inj n h1
-    funext i
-    by_cases hi : i.val < n
-    · have := congrFun ih ⟨i.val, hi⟩
-      simpa using this
-    · have e : i = Fin.last n := Fin.ext (by have := i.isLt; simp only [Fin.val_last]; omega)
-      rw [e]
-      exact h2
+theorem cat3_inj {a b c a' b' c' : BitVec 128} (h : cat3 a b c = cat3 a' b' c') :
+    a = a' ∧ b = b' ∧ c = c' := by
+  unfold cat3 at h
+  obtain ⟨h12, h3⟩ := append_inj (cast_injective _ h)
+  obtain ⟨h1, h2⟩ := append_inj h12
+  exact ⟨h1, h2, h3⟩
 
-theorem cat41_inj {a b : Fin 41 → BitVec 128} (h : cat41 a = cat41 b) : a = b :=
-  catN_inj 41 (cast_injective _ h)
+theorem cat7_inj {a b : Fin 7 → BitVec 128} (h : cat7 a = cat7 b) : a = b := by
+  unfold cat7 at h
+  obtain ⟨h0123456, h6⟩ := append_inj (cast_injective _ h)
+  obtain ⟨h012345, h5⟩ := append_inj h0123456
+  obtain ⟨h01234, h4⟩ := append_inj h012345
+  obtain ⟨h0123, h3⟩ := append_inj h01234
+  obtain ⟨h012, h2⟩ := append_inj h0123
+  obtain ⟨h0, h1⟩ := append_inj h012
+  funext l
+  fin_cases l <;> assumption
 
 /-! ## Names -/
 
@@ -94,6 +94,8 @@ theorem hashParent_cases {h p : Name} (hp : hashParent h = some p) :
     h = rh ∨ ∃ v, hashOf v = some h := by
   cases h <;> simp only [hashParent, reduceCtorEq] at hp
   · exact Or.inr ⟨cv _ _, rfl⟩
+  · exact Or.inr ⟨gv _, rfl⟩
+  · exact Or.inr ⟨ev _, rfl⟩
   · exact Or.inl rfl
 
 theorem hashParent_of_hashOf {v h : Name} (hh : hashOf v = some h) : ∃ p, hashParent h = some p := by
@@ -103,20 +105,32 @@ theorem hashParent_of_hashOf {v h : Name} (hh : hashOf v = some h) : ∃ p, hash
 theorem cost_of_hashOf {v h : Name} (hh : hashOf v = some h) : v.cost = 0 := by
   cases v <;> simp only [hashOf, reduceCtorEq] at hh <;> rfl
 
-theorem prev_zero (k : Fin 41) : prev k 0 = src k := rfl
+theorem prev_zero (k : Fin 63) : prev k 0 = src k := rfl
 
-theorem prev_succ (k : Fin 41) (t : Fin 20) (ht : t.val < 19) :
+theorem prev_succ (k : Fin 63) (t : Fin 14) (ht : t.val < 13) :
     prev k ⟨t.val + 1, by omega⟩ = cv k t := by
   simp [prev]
 
-theorem val_rc' (ξ : Rec) : val ξ rc = cat41 fun k => val ξ (cv k 19) := by
+theorem val_gc' (ξ : Rec) (j : Fin 21) :
+    val ξ (gc j) = cat3 (val ξ (cv (chainOf j 0) 13)) (val ξ (cv (chainOf j 1) 13))
+      (val ξ (cv (chainOf j 2) 13)) := by
+  rw [val_gc, val_cv, val_cv, val_cv]
+
+theorem val_ec' (ξ : Rec) (l : Fin 7) :
+    val ξ (ec l) = cat3 (val ξ (gv (groupOf l 0))) (val ξ (gv (groupOf l 1)))
+      (val ξ (gv (groupOf l 2))) := by
+  rw [val_ec, val_gv, val_gv, val_gv]
+
+theorem val_rc' (ξ : Rec) : val ξ rc = cat7 fun l => val ξ (ev l) := by
   rw [val_rc]
-  exact congrArg cat41 (funext fun k => (val_cv ξ k 19).symm)
+  exact congrArg cat7 (funext fun l => (val_ev ξ l).symm)
 
 theorem val_of_hashOf (ξ : Rec) {v h : Name} (hh : hashOf v = some h) :
     trunc (val ξ v) = trunc (ξ.2 h.fin) := by
   cases v <;> simp only [hashOf, Option.some.injEq, reduceCtorEq] at hh <;> subst hh
-  rw [val_cv]; exact trunc_128 _
+  · rw [val_cv]; exact trunc_128 _
+  · rw [val_gv]; exact trunc_128 _
+  · rw [val_ev]; exact trunc_128 _
 
 /-! ## The kinds of the nodes -/
 
@@ -178,23 +192,55 @@ theorem yv_det (hy : graph.ReconEqs d (fins A) given y) {n : Name} (he : Evaluat
   rw [this]
   simp
 
-theorem yv_cv (hy : graph.ReconEqs d (fins A) given y) {k : Fin 41} {t : Fin 20}
+theorem yv_cv (hy : graph.ReconEqs d (fins A) given y) {k : Fin 63} {t : Fin 14}
     (he : Evaluated A (cv k t)) : yv y (cv k t) = trunc (yv y (ch k t)) := by
   rw [yv_det hy he rfl (by simp)]
   show trunc (y _) = _
   unfold yv
   rw [trunc_cast_eq]
 
-theorem yv_rc (hy : graph.ReconEqs d (fins A) given y) (he : Evaluated A rc) :
-    yv y rc = cat41 fun k => yv y (cv k 19) := by
+theorem yv_gv (hy : graph.ReconEqs d (fins A) given y) {j : Fin 21}
+    (he : Evaluated A (gv j)) : yv y (gv j) = trunc (yv y (gh j)) := by
   rw [yv_det hy he rfl (by simp)]
-  show cat41 (fun k => trunc (y (cv k 19).fin)) = _
-  exact congrArg cat41 (funext fun k => trunc_eq_cast (graph_len_fin (cv k 19)) _)
+  show trunc (y _) = _
+  unfold yv
+  rw [trunc_cast_eq]
+
+theorem yv_ev (hy : graph.ReconEqs d (fins A) given y) {l : Fin 7}
+    (he : Evaluated A (ev l)) : yv y (ev l) = trunc (yv y (eh l)) := by
+  rw [yv_det hy he rfl (by simp)]
+  show trunc (y _) = _
+  unfold yv
+  rw [trunc_cast_eq]
+
+theorem yv_gc (hy : graph.ReconEqs d (fins A) given y) {j : Fin 21}
+    (he : Evaluated A (gc j)) :
+    yv y (gc j) = cat3 (yv y (cv (chainOf j 0) 13)) (yv y (cv (chainOf j 1) 13))
+      (yv y (cv (chainOf j 2) 13)) := by
+  rw [yv_det hy he rfl (by simp)]
+  show cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  congr 1 <;> exact trunc_eq_cast (graph_len_fin _) _
+
+theorem yv_ec (hy : graph.ReconEqs d (fins A) given y) {l : Fin 7}
+    (he : Evaluated A (ec l)) :
+    yv y (ec l) = cat3 (yv y (gv (groupOf l 0))) (yv y (gv (groupOf l 1)))
+      (yv y (gv (groupOf l 2))) := by
+  rw [yv_det hy he rfl (by simp)]
+  show cat3 (trunc (y _)) (trunc (y _)) (trunc (y _)) = _
+  congr 1 <;> exact trunc_eq_cast (graph_len_fin _) _
+
+theorem yv_rc (hy : graph.ReconEqs d (fins A) given y) (he : Evaluated A rc) :
+    yv y rc = cat7 fun l => yv y (ev l) := by
+  rw [yv_det hy he rfl (by simp)]
+  show cat7 (fun l => trunc (y (ev l).fin)) = _
+  exact congrArg cat7 (funext fun l => trunc_eq_cast (graph_len_fin (ev l)) _)
 
 theorem yv_of_hashOf (hy : graph.ReconEqs d (fins A) given y) {v h : Name}
     (hh : hashOf v = some h) (he : Evaluated A v) : trunc (yv y v) = trunc (yv y h) := by
   cases v <;> simp only [hashOf, Option.some.injEq, reduceCtorEq] at hh <;> subst hh
-  rw [yv_cv hy he]; exact trunc_128 _
+  · rw [yv_cv hy he]; exact trunc_128 _
+  · rw [yv_gv hy he]; exact trunc_128 _
+  · rw [yv_ev hy he]; exact trunc_128 _
 
 end Recon
 
@@ -249,24 +295,68 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
     | src k =>
       exact hash_step hA hy hacc (h := ch k 0) rfl rfl hv hne ih'
     | cv k t =>
-      by_cases ht : t.val = 19
-      · have ht' : t = 19 := Fin.ext ht
+      by_cases ht : t.val = 13
+      · have ht' : t = 13 := Fin.ext ht
         subst ht'
-        have hch : child (cv k 19) = some rc := rfl
-        have hcE : Evaluated A rc :=
+        have hch : child (cv k 13) = some (gc ⟨k / 3, by omega⟩) := by simp [Name.child]
+        have hcE : Evaluated A (gc ⟨k / 3, by omega⟩) :=
           ⟨hv _ (Above.child hch), fun m hm => hv m (Above.step hch hm)⟩
         refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
         intro heq
-        rw [yv_rc hy hcE, val_rc'] at heq
-        exact hne (congrFun (cat41_inj heq) k)
+        rw [yv_gc hy hcE, val_gc'] at heq
+        obtain ⟨h0, h1, h2⟩ := cat3_inj heq
+        have hk : (k : ℕ) % 3 = 0 ∨ (k : ℕ) % 3 = 1 ∨ (k : ℕ) % 3 = 2 := by omega
+        rcases hk with hk | hk | hk
+        · have e : chainOf ⟨k / 3, by omega⟩ 0 = k := Fin.ext (by simp [chainOf]; omega)
+          rw [e] at h0
+          exact hne h0
+        · have e : chainOf ⟨k / 3, by omega⟩ 1 = k := Fin.ext (by simp [chainOf]; omega)
+          rw [e] at h1
+          exact hne h1
+        · have e : chainOf ⟨k / 3, by omega⟩ 2 = k := Fin.ext (by simp [chainOf]; omega)
+          rw [e] at h2
+          exact hne h2
       · have hch : child (cv k t) = some (ch k ⟨t.val + 1, by omega⟩) := by simp [Name.child, ht]
         have hhp : hashParent (ch k ⟨t.val + 1, by omega⟩) = some (cv k t) := by
           simp only [hashParent, Option.some.injEq]
           exact prev_succ k t (by omega)
         exact hash_step hA hy hacc hch hhp hv hne ih'
+    | gc j =>
+      exact hash_step hA hy hacc (h := gh j) rfl rfl hv hne ih'
+    | gv j =>
+      have hch : child (gv j) = some (ec ⟨j / 3, by omega⟩) := rfl
+      have hcE : Evaluated A (ec ⟨j / 3, by omega⟩) :=
+        ⟨hv _ (Above.child hch), fun m hm => hv m (Above.step hch hm)⟩
+      refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
+      intro heq
+      rw [yv_ec hy hcE, val_ec'] at heq
+      obtain ⟨h0, h1, h2⟩ := cat3_inj heq
+      have hj : (j : ℕ) % 3 = 0 ∨ (j : ℕ) % 3 = 1 ∨ (j : ℕ) % 3 = 2 := by omega
+      rcases hj with hj | hj | hj
+      · have e : groupOf ⟨j / 3, by omega⟩ 0 = j := Fin.ext (by simp [groupOf]; omega)
+        rw [e] at h0
+        exact hne h0
+      · have e : groupOf ⟨j / 3, by omega⟩ 1 = j := Fin.ext (by simp [groupOf]; omega)
+        rw [e] at h1
+        exact hne h1
+      · have e : groupOf ⟨j / 3, by omega⟩ 2 = j := Fin.ext (by simp [groupOf]; omega)
+        rw [e] at h2
+        exact hne h2
+    | ec l =>
+      exact hash_step hA hy hacc (h := eh l) rfl rfl hv hne ih'
+    | ev l =>
+      have hch : child (ev l) = some rc := rfl
+      have hcE : Evaluated A rc :=
+        ⟨hv _ (Above.child hch), fun m hm => hv m (Above.step hch hm)⟩
+      refine ih' _ (by have := height_child hch; omega) hcE.2 rfl ?_
+      intro heq
+      rw [yv_rc hy hcE, val_rc'] at heq
+      exact hne (congrFun (cat7_inj heq) l)
     | rc =>
       exact hash_step hA hy hacc (h := rh) rfl rfl hv hne ih'
     | ch k t => exact absurd hvh (by simp [Name.cost])
+    | gh j => exact absurd hvh (by simp [Name.cost])
+    | eh l => exact absurd hvh (by simp [Name.cost])
     | rh => exact absurd hvh (by simp [Name.cost])
 
 /-! ## The events -/
@@ -363,6 +453,6 @@ theorem events_same {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paper
   unfold val at heq
   exact cast_injective _ heq
 
-end Flat
+end Forest
 
 end OptimalOTS

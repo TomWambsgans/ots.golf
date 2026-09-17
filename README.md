@@ -11,14 +11,14 @@ The model is the one of *A Verification Lower Bound for Hash-Based One-Time Sign
 (`paper/`): a public computation graph of secret sources, deterministic nodes and hash nodes;
 signatures reveal node values selected by hashing the message with a nonce; the verifier
 recomputes the root and compares a 128-bit prefix with the public key. Hashing is charged one compression
-per started 512-bit block of the input plus 192 overhead bits (a 128-bit public parameter for
-multi-user domain separation and a 64-bit tweak), so a chain hash costs one compression and the
-message index two. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security:
+per started 512-bit block of the input and nothing else: a per-key public parameter can be absorbed
+once in a block of its own and its chaining state reused (an observation of Justin Drake), and
+tweaks are the role of the model's labels. A chain hash and the message index cost one compression each. With a 128-bit public key, signatures of at most 5504 bits and 127-bit security:
 
 | Track | Certificate | Baseline | Record needs |
 |---|---|---|---|
 | Lower | `VerificationLowerBound paperParams c`, over weakly secure schemes | 25 (Lean-verified) | c ≥ record + 1 |
-| Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 109 (Lean-verified) | c ≤ record − 1 |
+| Upper | a `Scheme paperParams`, `Secure`, every index ≤ c | 106 (Lean-verified) | c ≤ record − 1 |
 
 Every ranked claim is a theorem about the pinned `formal/OptimalOTS/Statement.lean`, checked by
 the Lean kernel with [leanprover/comparator](https://github.com/leanprover/comparator).
@@ -33,7 +33,7 @@ the Lean kernel with [leanprover/comparator](https://github.com/leanprover/compa
   scripts and agents.
 - `service/` — the site and the hosted verifier (`service/README.md`; deployment in `service/deploy/`).
 - `paper/` — the paper. `docs/` — the proof maps of both baselines and the statement audit.
-- `tools/` — the searches and numeric certificates behind the two baselines.
+- `tools/` — the searches behind the two baselines: forest shapes and the lower bound's operating point.
 
 ## Build and verify locally
 

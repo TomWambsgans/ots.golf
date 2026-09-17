@@ -1,8 +1,9 @@
 # Audit of the contract (draft v1)
 
 Scope: `formal/OptimalOTS/Statement.lean` against Section 2 of the paper, the VCVio definitions
-it relies on (commit `25f26bf`), and the toolchain it is checked with. Date: 2026-09-16, updated
-2026-09-17 for the cost model with 192 overhead bits per query.
+it relies on (commit `25f26bf`), and the toolchain it is checked with. Date: 2026-09-16; updated
+2026-09-17 for the weak-security hypothesis of the lower track and again for the cost model without
+overhead bits (one compression per started block of the input, nothing else).
 Result: no soundness issue found; six harmless generalizations documented; the non-vacuity item
 (F7) is closed by the verified upper baseline.
 
@@ -32,15 +33,14 @@ and needs no trust.
 3. `formal/scripts/check-axioms.lean`: the 19 declarations that fix a certificate's meaning depend
    only on `propext`, `Classical.choice`, `Quot.sound`; no axiom is declared in a protected module.
 4. Comparator's own test suite passes on the pinned toolchain (14 tests). Both baselines verify
-   end to end under the overhead cost model: statement match, axiom closure, kernel replay
-   accepted (lower 25 in 153 s; upper 109 in 136 s, 10 GB peak).
+   end to end: statement match, axiom closure, kernel replay accepted (lower 25, upper 106).
 
 ## Correspondence with the paper
 
 | Paper (Section 2) | Lean | Note |
 |---|---|---|
 | Random oracle, 256-bit answers, keyed by label and bit string | `hashSpec`, `Query := Label × Σ k, BitVec k`, `randomOracle` | inputs of different lengths are different queries |
-| Cost ⌈(|u|+192)/512⌉, label free | `blockCost` with `Params.overheadBits = 192`, `queryCost`; uniform sampling costs 0 | F2 |
+| Cost ⌈|u|/512⌉ (at least 1), label free | `blockCost`, `queryCost`; uniform sampling costs 0 | F2 |
 | Sources, deterministic nodes, hash nodes; one parent per hash node; distinct labels | `NodeKind`, `Graph.label_injective` | F1 |
 | Root is a hash node | `Graph.root_isHash` | |
 | Key generation evaluates all nodes; cost Σ c_g ≤ 1024 | `Graph.keygen`, `keygenCost`, `Scheme.keygen_le` | |
@@ -53,8 +53,8 @@ and needs no trust.
 | Forgery: accepted pair ≠ the signer's pair; any accepted pair if signing failed | `experiment` | strong unforgeability, as in the paper |
 | Weak forgery: accepted pair on a message ≠ the signed one; any accepted pair if signing failed | `weakExperiment`, `Scheme.WeaklySecure` | the hypothesis of the lower track; implied by `Secure` (`Scheme.Secure.weaklySecure` in `formal/OptimalOTS/Weak.lean`) |
 | Security: cost ≤ B on every execution ⇒ Pr[Forge] < B/2^127 | `CostAtMost`, `Scheme.Secure` | F5 |
-| Parameters table | `paperParams` | all twelve values match |
-| Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline (re-tuned for the two-compression index) |
+| Parameters table | `paperParams` | all eleven values match |
+| Theorem: max_i C_i ≥ 25 | `VerificationLowerBound paperParams 25` | proved by the lower baseline |
 
 ## Findings
 
@@ -77,7 +77,7 @@ and needs no trust.
   `Type`, which restricts nothing in practice. Kept.
 - **F7 (closed).** `VerificationLowerBound paperParams c` would be vacuous if no scheme
   satisfied `Secure`. Non-vacuity is established by the kernel-checked upper-bound baseline: the
-  flat scheme of 41 chains of length 20 verifies at 109 compressions under the cost model with overhead.
+  forest of 63 chains of length 14 verifies at 106 compressions.
 
 ## Freeze procedure
 

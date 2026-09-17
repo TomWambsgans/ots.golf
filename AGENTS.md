@@ -12,7 +12,7 @@ formal/                      the Lean project (lake root)
   OptimalOTS/Statement.lean  the contract: Scheme, Secure, verifyCost, paperParams
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/Lower/         lower-track root; baseline: the paper's proof, claim 25
-  Submissions/Upper/         upper-track root; baseline: 41 flat chains, claim 109
+  Submissions/Upper/         upper-track root; baseline: a forest of 63 chains, claim 106
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```

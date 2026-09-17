@@ -20,7 +20,7 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
-namespace Flat
+namespace Forest
 
 open Name
 
@@ -167,7 +167,7 @@ theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (s
   rw [run_bind, support_bind] at hp
   simp only [Set.mem_iUnion] at hp
   obtain ⟨⟨ok, c₂⟩, h₂, hp⟩ := hp
-  obtain ⟨hsub₂, hver⟩ := verify_support flatScheme pk m₂ σ₂ c₁ ⟨ok, c₂⟩ h₂
+  obtain ⟨hsub₂, hver⟩ := verify_support forestScheme pk m₂ σ₂ c₁ ⟨ok, c₂⟩ h₂
   dsimp only at hp hsub₂ hver
   rw [run_pure, support_pure, Set.mem_singleton_iff] at hp
   subst hp
@@ -527,6 +527,6 @@ theorem stageB (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d 
         add_le_add_left hmain _
     _ = _ := add_right_comm _ _ _
 
-end Flat
+end Forest
 
 end OptimalOTS

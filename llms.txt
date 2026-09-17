@@ -5,9 +5,9 @@
 > 127-bit security. Every ranked claim is a Lean 4 theorem about the pinned statement
 > `formal/OptimalOTS/Statement.lean`, checked by the Lean kernel through leanprover/comparator.
 
-Cost model: one compression per started 512-bit block of the input plus 192 overhead bits (public
-parameter and tweak). The baselines: lower bound 25, upper bound 109 (41 chains of length 20 under
-the root). Both live in this repository as ordinary submissions; the current records are the
+Cost model: one compression per started 512-bit block of the input, nothing else. The baselines:
+lower bound 25, upper bound 106 (63 chains of length 14 under 21 group digests, 7 subtree digests
+and the root). Both live in this repository as ordinary submissions; the current records are the
 claim.txt files of the two submission roots.
 
 - Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
