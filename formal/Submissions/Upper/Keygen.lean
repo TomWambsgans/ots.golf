@@ -4,11 +4,15 @@ import Submissions.Upper.Semantics
 /-!
 # Key generation under the lazy random oracle
 
-Key generation samples every source and queries every hash node once, at distinct labels. Under
-the lazy random oracle started from the empty cache it therefore produces, for a uniformly random
-record `ξ : G.Rec`, the assignment `G.evalRec ξ` and the cache `G.keygenCache ξ` holding the
-keygen point of every hash node.
+Key generation samples every source and queries every hash node once. The oracle has no labels, so
+the queries of different hash nodes are kept apart by the strings themselves: a `Graph.Tagging`
+reads, from a query, the hash node it belongs to. Under the lazy random oracle started from the
+empty cache, key generation of a tagged graph therefore produces, for a uniformly random record
+`ξ : G.Rec`, the assignment `G.evalRec ξ` and the cache `G.keygenCache ξ` holding the keygen point
+of every hash node.
 
+* `Graph.Tagging`: a public tag function under which the input of every hash node carries the tag
+  of that node;
 * `E_run_keygen`: the expectation of any function of the output and the final cache is the
   uniform average over records;
 * `costAtMost_keygen_bind`: a budget for `S.keygen >>= k` leaves `B - keygenCost` for the
@@ -27,10 +31,18 @@ namespace Graph
 
 variable {P : Params} (G : Graph P)
 
-/-- The keygen point of hash node `v` under the assignment `x`: its label and its input. -/
+/-- A public way to read, from a query, the hash node it belongs to. -/
+structure Tagging (G : Graph P) where
+  tag : Query → Option (Fin G.size)
+  /-- The parent of every hash node is a deterministic node whose output always carries the tag
+  of that hash node. -/
+  tag_parent : ∀ v p hp hl, G.kind v = .hash p hp hl →
+    ∃ ps hps f hf, G.kind p = .det ps hps f hf ∧ ∀ x, tag ⟨G.len p, f x⟩ = some v
+
+/-- The keygen point of hash node `v` under the assignment `x`: its input, with its length. -/
 def point (x : G.Assignment) (v : Fin G.size) : Option Query :=
   match G.kind v with
-  | .hash p _ τ _ => some (.node τ, ⟨G.len p, x p⟩)
+  | .hash p _ _ => some ⟨G.len p, x p⟩
   | _ => none
 
 /-- The cache written by key generation for the record `ξ`. -/
@@ -42,38 +54,36 @@ def keygenCache (ξ : G.Rec) : Cache P :=
 
 theorem point_eq_some_iff (x : G.Assignment) (v : Fin G.size) (q : Query) :
     G.point x v = some q ↔
-      ∃ p hp τ hl, G.kind v = .hash p hp τ hl ∧ q = (.node τ, ⟨G.len p, x p⟩) := by
+      ∃ p hp hl, G.kind v = .hash p hp hl ∧ q = ⟨G.len p, x p⟩ := by
   unfold point
-  rcases hk : G.kind v with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, τ, hl⟩
+  rcases hk : G.kind v with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, hl⟩
   · simp
   · simp
   · simp only [Option.some.injEq, NodeKind.hash.injEq]
     constructor
     · rintro rfl
-      exact ⟨p, hp, τ, hl, ⟨rfl, rfl⟩, rfl⟩
-    · rintro ⟨p', hp', τ', hl', ⟨rfl, rfl⟩, rfl⟩
+      exact ⟨p, hp, hl, rfl, rfl⟩
+    · rintro ⟨p', hp', hl', rfl, rfl⟩
       rfl
 
 /-- The point of a non-hash node is `none`. -/
-theorem point_eq_none_of_label?_eq_none (x : G.Assignment) (v : Fin G.size)
-    (h : (G.kind v).label? = none) : G.point x v = none := by
+theorem point_eq_none_of_not_isHash (x : G.Assignment) (v : Fin G.size)
+    (h : ¬ (G.kind v).IsHash) : G.point x v = none := by
   unfold point
-  rcases hk : G.kind v with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, τ, hl⟩
+  rcases hk : G.kind v with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, hl⟩
   · rfl
   · rfl
-  · rw [hk] at h; cases h
+  · rw [hk] at h; exact absurd trivial h
 
-/-- Points of different hash nodes have different labels. -/
-theorem point_inj (x x' : G.Assignment) {v v' : Fin G.size} {q : Query}
-    (h : G.point x v = some q) (h' : G.point x' v' = some q) : v = v' := by
-  rw [point_eq_some_iff] at h h'
-  obtain ⟨p, hp, τ, hl, hk, rfl⟩ := h
-  obtain ⟨p', hp', τ', hl', hk', hq⟩ := h'
-  have hτ : τ = τ' := by
-    have := congrArg Prod.fst hq
-    simpa using this
-  subst hτ
-  exact G.label_injective v v' τ (by rw [hk]; rfl) (by rw [hk']; rfl)
+/-- The points of the assignment `x` carry the tags of their hash nodes. -/
+def TagOK (T : G.Tagging) (x : G.Assignment) : Prop :=
+  ∀ v q, G.point x v = some q → T.tag q = some v
+
+/-- Points of different hash nodes differ: they carry different tags. -/
+theorem point_inj (T : G.Tagging) {x x' : G.Assignment} (hx : G.TagOK T x) (hx' : G.TagOK T x')
+    {v v' : Fin G.size} {q : Query}
+    (h : G.point x v = some q) (h' : G.point x' v' = some q) : v = v' :=
+  Option.some.inj ((hx v q h).symm.trans (hx' v' q h'))
 
 /-- One step of the cache fold: record the keygen point of `v` under `x` with answer `y v`. -/
 def cacheStep (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits) (c : Cache P)
@@ -95,15 +105,15 @@ theorem cacheStep_of_eq_none (x : G.Assignment) (y : Fin G.size → BitVec P.has
     G.cacheStep x y c v = c := by
   simp [cacheStep, h]
 
-theorem foldl_cacheStep_eq_some_iff (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
-    (q : Query) (w : BitVec P.hashBits) :
+theorem foldl_cacheStep_eq_some_iff (T : G.Tagging) {x : G.Assignment} (hx : G.TagOK T x)
+    (y : Fin G.size → BitVec P.hashBits) (q : Query) (w : BitVec P.hashBits) :
     ∀ (l : List (Fin G.size)) (c : Cache P),
       (l.foldl (G.cacheStep x y) c) q = some w ↔
         (∃ v ∈ l, G.point x v = some q ∧ y v = w) ∨
           (c q = some w ∧ ∀ v ∈ l, G.point x v ≠ some q)
   | [], c => by simp
   | a :: l, c => by
-    rw [List.foldl_cons, foldl_cacheStep_eq_some_iff x y q w l]
+    rw [List.foldl_cons, foldl_cacheStep_eq_some_iff T hx y q w l]
     rcases ha : G.point x a with _ | q'
     · rw [G.cacheStep_of_eq_none x y c ha]
       simp only [List.mem_cons, exists_eq_or_imp, ha, reduceCtorEq, false_and, false_or,
@@ -122,7 +132,7 @@ theorem foldl_cacheStep_eq_some_iff (x : G.Assignment) (y : Fin G.size → BitVe
           · by_cases hl : ∃ v ∈ l, G.point x v = some q' ∧ y v = w
             · exact Or.inl hl
             · refine Or.inr ⟨h, fun v hv hvq => hl ⟨v, hv, hvq, ?_⟩⟩
-              rw [G.point_inj x x hvq ha, h]
+              rw [G.point_inj T hx hx hvq ha, h]
           · exact Or.inl ⟨v, hv, hvq, hw⟩
       · rw [QueryCache.cacheQuery_of_ne _ _ (Ne.symm hq)]
         have hne : G.point x a ≠ some q := by rw [ha]; intro h; exact hq (Option.some.inj h)
@@ -136,26 +146,44 @@ theorem foldl_cacheStep_eq_some_iff (x : G.Assignment) (y : Fin G.size → BitVe
           · exact Or.inl h
           · exact Or.inr ⟨hc, hl⟩
 
-theorem keygenCache_apply_iff (ξ : G.Rec) (q : Query) (w : BitVec P.hashBits) :
+/-- The assignment of a record carries the right tags: the parent of a hash node is a
+deterministic node, whose value in `G.evalRec ξ` is its function applied to `G.evalRec ξ`. -/
+theorem tagOK_evalRec (T : G.Tagging) (ξ : G.Rec) : G.TagOK T (G.evalRec ξ) := by
+  intro v q hq
+  obtain ⟨p, hp, hl, hk, rfl⟩ := (G.point_eq_some_iff _ v q).1 hq
+  obtain ⟨ps, hps, f, hf, hkp, htag⟩ := T.tag_parent v p hp hl hk
+  have hval : G.evalRec ξ p = f (G.evalRec ξ) := by
+    have h := G.evalRec_apply ξ p
+    rw [hkp] at h
+    exact h
+  rw [hval]
+  exact htag _
+
+/-- Points of different hash nodes differ, in the assignments of any two records. -/
+theorem point_evalRec_inj (T : G.Tagging) (ξ ξ' : G.Rec) {v v' : Fin G.size} {q : Query}
+    (h : G.point (G.evalRec ξ) v = some q) (h' : G.point (G.evalRec ξ') v' = some q) : v = v' :=
+  G.point_inj T (G.tagOK_evalRec T ξ) (G.tagOK_evalRec T ξ') h h'
+
+theorem keygenCache_apply_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) (w : BitVec P.hashBits) :
     G.keygenCache ξ q = some w ↔ ∃ v, G.point (G.evalRec ξ) v = some q ∧ ξ.2 v = w := by
-  rw [keygenCache_eq, foldl_cacheStep_eq_some_iff]
+  rw [keygenCache_eq, G.foldl_cacheStep_eq_some_iff T (G.tagOK_evalRec T ξ)]
   simp [List.mem_finRange]
 
-theorem keygenCache_isSome_iff (ξ : G.Rec) (q : Query) :
+theorem keygenCache_isSome_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) :
     (G.keygenCache ξ q).isSome ↔ ∃ v, G.point (G.evalRec ξ) v = some q := by
   rw [Option.isSome_iff_exists]
   constructor
   · rintro ⟨w, hw⟩
-    obtain ⟨v, hv, -⟩ := (G.keygenCache_apply_iff ξ q w).1 hw
+    obtain ⟨v, hv, -⟩ := (G.keygenCache_apply_iff T ξ q w).1 hw
     exact ⟨v, hv⟩
   · rintro ⟨v, hv⟩
-    exact ⟨ξ.2 v, (G.keygenCache_apply_iff ξ q _).2 ⟨v, hv, rfl⟩⟩
+    exact ⟨ξ.2 v, (G.keygenCache_apply_iff T ξ q _).2 ⟨v, hv, rfl⟩⟩
 
 /-! ## Node-kind case lemmas -/
 
-theorem point_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v} {τ : ℕ}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp τ hl) :
-    G.point x v = some (.node τ, ⟨G.len p, x p⟩) := by
+theorem point_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v}
+    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) :
+    G.point x v = some ⟨G.len p, x p⟩ := by
   simp [point, hk]
 
 theorem point_of_kind_eq_source (x : G.Assignment) {v : Fin G.size} (hk : G.kind v = .source) :
@@ -166,8 +194,8 @@ theorem point_of_kind_eq_det (x : G.Assignment) {v : Fin G.size} {ps hps f hf}
     (hk : G.kind v = .det ps hps f hf) : G.point x v = none := by
   simp [point, hk]
 
-theorem recVal_of_kind_eq_hash (ξ : G.Rec) {v p : Fin G.size} {hp : p < v} {τ : ℕ}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp τ hl) (x : G.Assignment) :
+theorem recVal_of_kind_eq_hash (ξ : G.Rec) {v p : Fin G.size} {hp : p < v}
+    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) (x : G.Assignment) :
     G.recVal ξ v x = (ξ.2 v).cast hl.symm := by
   simp [recVal, hk, NodeKind.value]
 
@@ -179,10 +207,10 @@ theorem recVal_of_kind_eq_det (ξ : G.Rec) {v : Fin G.size} {ps hps f hf}
     (hk : G.kind v = .det ps hps f hf) (x : G.Assignment) : G.recVal ξ v x = f x := by
   simp [recVal, hk, NodeKind.value]
 
-theorem evalNode_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v} {τ : ℕ}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp τ hl)
+theorem evalNode_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v}
+    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl)
     (s : OracleComp (Spec P) (BitVec (G.len v))) :
-    G.evalNode x v s = (fun y => y.cast hl.symm) <$> hash P (.node τ) (x p) := by
+    G.evalNode x v s = (fun y => y.cast hl.symm) <$> hash P (x p) := by
   simp [evalNode, hk]
 
 theorem evalNode_of_kind_eq_source (x : G.Assignment) {v : Fin G.size} (hk : G.kind v = .source)
@@ -194,8 +222,8 @@ theorem evalNode_of_kind_eq_det (x : G.Assignment) {v : Fin G.size} {ps hps f hf
     G.evalNode x v s = pure (f x) := by
   simp [evalNode, hk]
 
-theorem nodeCost_of_kind_eq_hash {v p : Fin G.size} {hp : p < v} {τ : ℕ}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp τ hl) :
+theorem nodeCost_of_kind_eq_hash {v p : Fin G.size} {hp : p < v}
+    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) :
     G.nodeCost v = blockCost P (G.len p) := by
   simp [nodeCost, hk]
 
@@ -332,27 +360,53 @@ theorem E_run_sampleAssignment (g : G.Assignment × Cache P → ℝ≥0∞) (c :
 
 /-! ## Evaluating the nodes -/
 
-/-- The cache `c` holds no point of any node of `l`, whatever the assignment. -/
-def Fresh (l : List (Fin G.size)) (c : Cache P) : Prop :=
-  ∀ v ∈ l, ∀ (x : G.Assignment) (q : Query), G.point x v = some q → c q = none
+/-- The cache `c` holds no query tagged with a node of `l`. -/
+def Fresh (T : G.Tagging) (l : List (Fin G.size)) (c : Cache P) : Prop :=
+  ∀ v ∈ l, ∀ q : Query, T.tag q = some v → c q = none
 
-theorem fresh_empty (l : List (Fin G.size)) : G.Fresh l ∅ := fun _ _ _ _ _ => rfl
+theorem fresh_empty (T : G.Tagging) (l : List (Fin G.size)) : G.Fresh T l ∅ :=
+  fun _ _ _ _ => rfl
 
-theorem Fresh.tail {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
-    (h : G.Fresh (a :: l) c) : G.Fresh l c :=
+theorem Fresh.tail {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
+    (h : G.Fresh T (a :: l) c) : G.Fresh T l c :=
   fun v hv => h v (List.mem_cons_of_mem a hv)
 
-theorem Fresh.cacheQuery {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
-    (h : G.Fresh (a :: l) c) (ha : a ∉ l) {x : G.Assignment} {q : Query}
-    (hq : G.point x a = some q) (u : BitVec P.hashBits) :
-    G.Fresh l (c.cacheQuery q u) := by
-  intro v hv x' q' hq'
+theorem Fresh.cacheQuery {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
+    (h : G.Fresh T (a :: l) c) (ha : a ∉ l) {q : Query} (hq : T.tag q = some a)
+    (u : BitVec P.hashBits) : G.Fresh T l (c.cacheQuery q u) := by
+  intro v hv q' hq'
   have hne : q' ≠ q := by
-    intro e
-    have hva : v = a := G.point_inj x' x hq' (by rw [e]; exact hq)
+    rintro rfl
+    have hva : v = a := Option.some.inj (hq'.symm.trans hq)
     exact ha (hva ▸ hv)
   rw [QueryCache.cacheQuery_of_ne _ _ hne]
-  exact h v (List.mem_cons_of_mem a hv) x' q' hq'
+  exact h v (List.mem_cons_of_mem a hv) q' hq'
+
+/-- Every hash node of `l` whose parent is not in `l` (so has been evaluated already) has, in the
+assignment `x`, an input carrying its tag. -/
+def Tagged (T : G.Tagging) (l : List (Fin G.size)) (x : G.Assignment) : Prop :=
+  ∀ v ∈ l, ∀ p hp hl, G.kind v = .hash p hp hl → p ∉ l → T.tag ⟨G.len p, x p⟩ = some v
+
+theorem tagged_finRange (T : G.Tagging) (x : G.Assignment) :
+    G.Tagged T (List.finRange G.size) x :=
+  fun _ _ p _ _ _ hp => absurd (List.mem_finRange p) hp
+
+/-- Evaluating the head `a` keeps the invariant, provided a deterministic node gets the value of
+its function. A source or a hash node is never the parent of a hash node. -/
+theorem Tagged.update {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)}
+    {x : G.Assignment} (h : G.Tagged T (a :: l) x) (u : BitVec (G.len a))
+    (hu : ∀ ps hps f hf, G.kind a = .det ps hps f hf → u = f x) :
+    G.Tagged T l (Function.update x a u) := by
+  intro v hv p hp hl hk hpl
+  obtain ⟨ps, hps, f, hf, hkp, htag⟩ := T.tag_parent v p hp hl hk
+  by_cases hpa : p = a
+  · subst hpa
+    rw [Function.update_self, hu ps hps f hf hkp]
+    exact htag x
+  · rw [Function.update_of_ne hpa]
+    refine h v (List.mem_cons_of_mem a hv) p hp hl hk ?_
+    simp only [List.mem_cons, not_or]
+    exact ⟨hpa, hpl⟩
 
 theorem foldl_recVal_update_of_not_mem (z : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
     {a : Fin G.size} (u' : BitVec P.hashBits) (l : List (Fin G.size)) (ha : a ∉ l)
@@ -371,9 +425,10 @@ theorem foldl_cacheStep_update_of_not_mem (F : G.Assignment) (y : Fin G.size →
   have hva : v ≠ a := fun h => ha (h ▸ hv)
   simp only [cacheStep, Function.update_of_ne hva]
 
-theorem E_run_evalFold (z : G.Assignment) (g : G.Assignment × Cache P → ℝ≥0∞) :
+theorem E_run_evalFold (T : G.Tagging) (z : G.Assignment)
+    (g : G.Assignment × Cache P → ℝ≥0∞) :
     ∀ (l : List (Fin G.size)), l.Pairwise (· < ·) → ∀ (x : G.Assignment) (c : Cache P),
-      G.Fresh l c →
+      G.Fresh T l c → G.Tagged T l x →
       E (run P (l.foldlM (fun x v => Function.update x v <$> G.evalNode x v (pure (z v))) x) c)
           g =
         ∑ y : Fin G.size → BitVec P.hashBits,
@@ -381,28 +436,35 @@ theorem E_run_evalFold (z : G.Assignment) (g : G.Assignment × Cache P → ℝ�
             g (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x,
               l.foldl (G.cacheStep
                 (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x) y) c)
-  | [], _, x, c, _ => by
+  | [], _, x, c, _, _ => by
     rw [List.foldlM_nil, run_pure, E_pure]
     simp only [List.foldl_nil, sum_inv_card_mul']
-  | a :: l, hpw, x, c, hfresh => by
+  | a :: l, hpw, x, c, hfresh, htagged => by
     rw [List.pairwise_cons] at hpw
     obtain ⟨hlt, hpw⟩ := hpw
     have ha : a ∉ l := fun h => lt_irrefl a (hlt a h)
     rw [List.foldlM_cons, run_bind, E_bind]
-    rcases hk : G.kind a with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, τ, hl⟩
+    rcases hk : G.kind a with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, hl⟩
     · rw [G.evalNode_of_kind_eq_source x hk, run_map, run_pure, E_map, E_pure]
-      rw [E_run_evalFold z g l hpw _ c (Fresh.tail G hfresh)]
+      rw [E_run_evalFold T z g l hpw _ c (Fresh.tail G hfresh)
+        (Tagged.update G htagged _ fun _ _ _ _ h => by rw [hk] at h; cases h)]
       refine Finset.sum_congr rfl fun y _ => ?_
       simp only [List.foldl_cons, G.recVal_of_kind_eq_source _ hk,
         G.cacheStep_of_eq_none _ _ _ (G.point_of_kind_eq_source _ hk)]
     · rw [G.evalNode_of_kind_eq_det x hk, run_map, run_pure, E_map, E_pure]
-      rw [E_run_evalFold z g l hpw _ c (Fresh.tail G hfresh)]
+      rw [E_run_evalFold T z g l hpw _ c (Fresh.tail G hfresh)
+        (Tagged.update G htagged _ fun _ _ _ _ h => by
+          rw [hk, NodeKind.det.injEq] at h; rw [h.2])]
       refine Finset.sum_congr rfl fun y _ => ?_
       simp only [List.foldl_cons, G.recVal_of_kind_eq_det _ hk,
         G.cacheStep_of_eq_none _ _ _ (G.point_of_kind_eq_det _ hk)]
-    · have hq : G.point x a = some (.node τ, ⟨G.len p, x p⟩) := G.point_of_kind_eq_hash x hk
-      have hcq : c (.node τ, ⟨G.len p, x p⟩) = none :=
-        hfresh a (List.mem_cons_self ..) x _ hq
+    · have hpa : p ∉ a :: l := by
+        simp only [List.mem_cons, not_or]
+        exact ⟨ne_of_lt hp, fun h => lt_asymm hp (hlt p h)⟩
+      -- the input of `a` carries the tag of `a`, so the cache does not hold it
+      have htq : T.tag ⟨G.len p, x p⟩ = some a :=
+        htagged a (List.mem_cons_self ..) p hp hl hk hpa
+      have hcq : c ⟨G.len p, x p⟩ = none := hfresh a (List.mem_cons_self ..) _ htq
       rw [G.evalNode_of_kind_eq_hash x hk, hash, run_map, run_map, run_query,
         oracleImpl_run_inr_none P hcq]
       simp only [E_map, E_bind, E_pure, E_uniform]
@@ -411,38 +473,38 @@ theorem E_run_evalFold (z : G.Assignment) (g : G.Assignment × Cache P → ℝ�
             (Function.update x a (u.cast hl.symm)),
           l.foldl (G.cacheStep (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x))
             (Function.update x a (u.cast hl.symm))) y)
-            (c.cacheQuery (.node τ, ⟨G.len p, x p⟩) u)))
+            (c.cacheQuery ⟨G.len p, x p⟩ u)))
         (fun u u' y => by
           simp only [G.foldl_recVal_update_of_not_mem z y u' l ha,
             G.foldl_cacheStep_update_of_not_mem _ y u' l ha])
       refine Eq.trans ?_ (key.trans ?_)
       · refine Finset.sum_congr rfl fun u _ => ?_
-        rw [E_run_evalFold z g l hpw _ _ (Fresh.cacheQuery G hfresh ha hq u)]
+        rw [E_run_evalFold T z g l hpw _ _ (Fresh.cacheQuery G hfresh ha htq u)
+          (Tagged.update G htagged _ fun _ _ _ _ h => by rw [hk] at h; cases h)]
       · refine Finset.sum_congr rfl fun y _ => ?_
-        have hpa : p ∉ a :: l := by
-          simp only [List.mem_cons, not_or]
-          exact ⟨ne_of_lt hp, fun h => lt_asymm hp (hlt p h)⟩
         have hF : G.point ((a :: l).foldl
             (fun x v => Function.update x v (G.recVal (z, y) v x)) x) a =
-            some (.node τ, ⟨G.len p, x p⟩) := by
+            some ⟨G.len p, x p⟩ := by
           rw [G.point_of_kind_eq_hash _ hk,
             foldl_update_apply_of_not_mem (fun x v => G.recVal (z, y) v x) _ x p hpa]
         simp only [List.foldl_cons] at hF ⊢
         rw [G.cacheStep_of_eq_some _ _ _ hF, G.recVal_of_kind_eq_hash _ hk]
 
-theorem E_run_evaluate (z : G.Assignment) (g : G.Assignment × Cache P → ℝ≥0∞) :
+theorem E_run_evaluate (T : G.Tagging) (z : G.Assignment)
+    (g : G.Assignment × Cache P → ℝ≥0∞) :
     E (run P (G.evaluate z) ∅) g =
       ∑ y : Fin G.size → BitVec P.hashBits,
         (Fintype.card (Fin G.size → BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
           g (G.evalRec (z, y), G.keygenCache (z, y)) := by
   unfold Graph.evaluate
-  rw [G.E_run_evalFold z g _ (List.pairwise_lt_finRange _) _ ∅ (G.fresh_empty _)]
+  rw [G.E_run_evalFold T z g _ (List.pairwise_lt_finRange _) _ ∅ (G.fresh_empty T _)
+    (G.tagged_finRange T _)]
   rfl
 
 end Graph
 
-/-- Key generation is a uniform record. -/
-theorem E_run_keygen {P : Params} (S : Scheme P)
+/-- Key generation of a tagged graph is a uniform record. -/
+theorem E_run_keygen {P : Params} (S : Scheme P) (T : S.graph.Tagging)
     (g : (PublicKey P × S.graph.Assignment) × Cache P → ℝ≥0∞) :
     E (run P S.keygen ∅) g =
       ∑ ξ : S.graph.Rec, (Fintype.card S.graph.Rec : ℝ≥0∞)⁻¹ *
@@ -454,7 +516,7 @@ theorem E_run_keygen {P : Params} (S : Scheme P)
   rw [run_bind, E_bind]
   simp only [run_pure, E_pure]
   rw [run_bind, E_bind, S.graph.E_run_sampleAssignment]
-  simp only [S.graph.E_run_evaluate]
+  simp only [S.graph.E_run_evaluate T]
   rw [Fintype.sum_prod_type]
   simp only [Fintype.card_prod, Nat.cast_mul, Finset.mul_sum]
   refine Finset.sum_congr rfl fun z _ => Finset.sum_congr rfl fun y _ => ?_
@@ -520,7 +582,7 @@ theorem costAtMost_evalFold_bind (z : G.Assignment) {β : Type}
   | a :: l, x, b, h => by
     rw [List.foldlM_cons, bind_assoc] at h
     rw [List.map_cons, List.sum_cons]
-    rcases hk : G.kind a with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, τ, hl⟩
+    rcases hk : G.kind a with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, hl⟩
     · rw [G.evalNode_of_kind_eq_source x hk, map_pure, pure_bind] at h
       obtain ⟨h1, h2⟩ := costAtMost_evalFold_bind z k l _ b h
       rw [G.nodeCost_of_kind_eq_source hk, zero_add]
@@ -536,7 +598,7 @@ theorem costAtMost_evalFold_bind (z : G.Assignment) {β : Type}
     · rw [G.evalNode_of_kind_eq_hash x hk, hash, bind_map_left, bind_map_left,
         costAtMost_query_bind_iff] at h
       obtain ⟨hc, h⟩ := h
-      have hcost : queryCost P (.inr (.node τ, ⟨G.len p, x p⟩)) = G.nodeCost a := by
+      have hcost : queryCost P (.inr ⟨G.len p, x p⟩) = G.nodeCost a := by
         simp [queryCost, nodeCost, hk]
       rw [hcost] at hc h
       refine ⟨?_, fun y => ?_⟩

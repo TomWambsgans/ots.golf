@@ -131,8 +131,8 @@ def ReconEqAt (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment)
   (v ∈ A → y v = given v) ∧
     (v ∉ A → ¬ G.Visited A v → y v = 0) ∧
     (v ∉ A → G.Visited A v →
-      (∀ p hp τ hl, G.kind v = .hash p hp τ hl →
-        ∃ w, d (.node τ, ⟨G.len p, y p⟩) = some w ∧ y v = w.cast hl.symm) ∧
+      (∀ p hp hl, G.kind v = .hash p hp hl →
+        ∃ w, d ⟨G.len p, y p⟩ = some w ∧ y v = w.cast hl.symm) ∧
       (∀ ps hlt f hf, G.kind v = .det ps hlt f hf → y v = f y) ∧
       (G.kind v = .source → y v = 0))
 
@@ -142,8 +142,8 @@ def ReconEqs (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment) : 
   ∀ v, (v ∈ A → y v = given v) ∧
     (v ∉ A → ¬ G.Visited A v → y v = 0) ∧
     (v ∉ A → G.Visited A v →
-      (∀ p hp τ hl, G.kind v = .hash p hp τ hl →
-        ∃ w, d (.node τ, ⟨G.len p, y p⟩) = some w ∧ y v = w.cast hl.symm) ∧
+      (∀ p hp hl, G.kind v = .hash p hp hl →
+        ∃ w, d ⟨G.len p, y p⟩ = some w ∧ y v = w.cast hl.symm) ∧
       (∀ ps hlt f hf, G.kind v = .det ps hlt f hf → y v = f y) ∧
       (G.kind v = .source → y v = 0))
 
@@ -156,8 +156,8 @@ theorem ReconEqAt.mono {d d' : Cache P} (h : Cache.Sub d d') {A : Finset (Fin G.
   obtain ⟨h1, h2, h3⟩ := he
   refine ⟨h1, h2, fun hA hV => ?_⟩
   obtain ⟨h31, h32, h33⟩ := h3 hA hV
-  refine ⟨fun p hp τ hl hk => ?_, h32, h33⟩
-  obtain ⟨w, hw, hy⟩ := h31 p hp τ hl hk
+  refine ⟨fun p hp hl hk => ?_, h32, h33⟩
+  obtain ⟨w, hw, hy⟩ := h31 p hp hl hk
   exact ⟨w, h _ _ hw, hy⟩
 
 /-- The equation at `v` only looks at the values at nodes `≤ v`. -/
@@ -169,8 +169,8 @@ theorem ReconEqAt.congr {d : Cache P} {A : Finset (Fin G.size)} {given y y' : G.
   refine ⟨fun hA => by rw [hv]; exact h1 hA, fun hA hV => by rw [hv]; exact h2 hA hV,
     fun hA hV => ?_⟩
   obtain ⟨h31, h32, h33⟩ := h3 hA hV
-  refine ⟨fun p hp τ hl hk => ?_, fun ps hlt f hf hk => ?_, fun hk => by rw [hv]; exact h33 hk⟩
-  · obtain ⟨w, hw, hyw⟩ := h31 p hp τ hl hk
+  refine ⟨fun p hp hl hk => ?_, fun ps hlt f hf hk => ?_, fun hk => by rw [hv]; exact h33 hk⟩
+  · obtain ⟨w, hw, hyw⟩ := h31 p hp hl hk
     refine ⟨w, ?_, by rw [hv]; exact hyw⟩
     rw [h p hp.le]; exact hw
   · rw [hv, h32 ps hlt f hf hk]
@@ -185,10 +185,10 @@ end Graph
 /-! ## Support of a hash query -/
 
 /-- A hash query records its answer in the cache. -/
-theorem hash_support {P : Params} (τ : Label) {k : ℕ} (u : BitVec k) (c : Cache P) :
-    ∀ p ∈ support (run P (hash P τ u) c), Cache.Sub c p.2 ∧ p.2 (τ, ⟨k, u⟩) = some p.1 := by
+theorem hash_support {P : Params} {k : ℕ} (u : BitVec k) (c : Cache P) :
+    ∀ p ∈ support (run P (hash P u) c), Cache.Sub c p.2 ∧ p.2 ⟨k, u⟩ = some p.1 := by
   intro p hp
-  have h : hash P τ u = liftM ((Spec P).query (.inr (τ, ⟨k, u⟩))) >>= pure := (bind_pure _).symm
+  have h : hash P u = liftM ((Spec P).query (.inr ⟨k, u⟩)) >>= pure := (bind_pure _).symm
   rw [h, run_query_bind] at hp
   simp only [run_pure] at hp
   rw [support_bind] at hp
@@ -196,7 +196,7 @@ theorem hash_support {P : Params} (τ : Label) {k : ℕ} (u : BitVec k) (c : Cac
   obtain ⟨⟨v, c'⟩, hv, hp⟩ := hp
   rw [support_pure, Set.mem_singleton_iff] at hp
   subst hp
-  rcases hc : c (τ, ⟨k, u⟩) with _ | w
+  rcases hc : c ⟨k, u⟩ with _ | w
   · rw [oracleImpl_run_inr_none P hc, support_bind] at hv
     simp only [Set.mem_iUnion] at hv
     obtain ⟨w, -, hw⟩ := hv
@@ -216,8 +216,8 @@ variable {P : Params} (G : Graph P)
 theorem evalNode_support (x : G.Assignment) (v : Fin G.size) (c : Cache P) :
     ∀ p ∈ support (run P (G.evalNode x v (pure 0)) c),
       Cache.Sub c p.2 ∧
-      (∀ q hq τ hl, G.kind v = .hash q hq τ hl →
-        ∃ w, p.2 (.node τ, ⟨G.len q, x q⟩) = some w ∧ p.1 = w.cast hl.symm) ∧
+      (∀ q hq hl, G.kind v = .hash q hq hl →
+        ∃ w, p.2 ⟨G.len q, x q⟩ = some w ∧ p.1 = w.cast hl.symm) ∧
       (∀ ps hlt f hf, G.kind v = .det ps hlt f hf → p.1 = f x) ∧
       (G.kind v = .source → p.1 = 0) := by
   unfold evalNode
@@ -227,23 +227,23 @@ theorem evalNode_support (x : G.Assignment) (v : Fin G.size) (c : Cache P) :
     intro p hp
     rw [run_pure, support_pure, Set.mem_singleton_iff] at hp
     subst hp
-    exact ⟨Cache.Sub.refl c, (fun _ _ _ _ h => nomatch h), (fun _ _ _ _ h => nomatch h),
+    exact ⟨Cache.Sub.refl c, (fun _ _ _ h => nomatch h), (fun _ _ _ _ h => nomatch h),
       fun _ => rfl⟩
   | det ps hlt f hf =>
     intro p hp
     rw [run_pure, support_pure, Set.mem_singleton_iff] at hp
     subst hp
-    refine ⟨Cache.Sub.refl c, (fun _ _ _ _ h => nomatch h), fun _ _ _ _ h => ?_,
+    refine ⟨Cache.Sub.refl c, (fun _ _ _ h => nomatch h), fun _ _ _ _ h => ?_,
       (fun h => nomatch h)⟩
     cases h
     rfl
-  | hash q hq τ hl =>
+  | hash q hq hl =>
     intro p hp
     rw [run_map, support_map, Set.mem_image] at hp
     obtain ⟨⟨w, c'⟩, hw, rfl⟩ := hp
-    obtain ⟨hsub, hc'⟩ := hash_support _ _ c _ hw
+    obtain ⟨hsub, hc'⟩ := hash_support _ c _ hw
     dsimp only at hsub hc' ⊢
-    refine ⟨hsub, fun q' hq' τ' hl' h => ?_, (fun _ _ _ _ h => nomatch h), (fun h => nomatch h)⟩
+    refine ⟨hsub, fun q' hq' hl' h => ?_, (fun _ _ _ _ h => nomatch h), (fun h => nomatch h)⟩
     cases h
     exact ⟨w, hc', rfl⟩
 
@@ -277,8 +277,8 @@ theorem reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment) (x : 
       dsimp only at hsub hhash hdet hsrc ⊢
       refine ⟨hsub, fun w hw => Function.update_of_ne hw _ _, ?_⟩
       refine ⟨fun h => absurd h hA, fun _ h => absurd hV h, fun _ _ => ⟨?_, ?_, ?_⟩⟩
-      · intro p hp τ hl hk
-        obtain ⟨w, hw, hyw⟩ := hhash p hp τ hl hk
+      · intro p hp hl hk
+        obtain ⟨w, hw, hyw⟩ := hhash p hp hl hk
         refine ⟨w, ?_, ?_⟩
         · rw [Function.update_of_ne (ne_of_lt hp)]; exact hw
         · rw [Function.update_self]; exact hyw
@@ -425,13 +425,13 @@ end Graph
 /-- The index query records its answer in the cache. -/
 theorem index_support {P : Params} (m : Message P) (η : Nonce P) (c : Cache P) :
     ∀ p ∈ support (run P (index P m η) c),
-      Cache.Sub c p.2 ∧ ∃ w, p.2 (.enc, ⟨P.msgBits + P.nonceBits, m ++ η⟩) = some w ∧
+      Cache.Sub c p.2 ∧ ∃ w, p.2 ⟨P.msgBits + P.nonceBits, m ++ η⟩ = some w ∧
         p.1 = (w.setWidth P.idxBits).toNat := by
   intro p hp
   unfold index at hp
   rw [run_map, support_map, Set.mem_image] at hp
   obtain ⟨⟨w, c'⟩, hw, rfl⟩ := hp
-  obtain ⟨hsub, hc'⟩ := hash_support _ _ c _ hw
+  obtain ⟨hsub, hc'⟩ := hash_support _ c _ hw
   dsimp only at hsub hc' ⊢
   exact ⟨hsub, w, hc', rfl⟩
 
@@ -441,7 +441,7 @@ theorem verify_support {P : Params} (S : Scheme P) (pk : PublicKey P) (m : Messa
     (σ : Signature P) (c : Cache P) :
     ∀ p ∈ support (run P (S.verify pk m σ) c),
       Cache.Sub c p.2 ∧ (p.1 = true →
-        ∃ w, p.2 (.enc, ⟨P.msgBits + P.nonceBits, m ++ σ.1⟩) = some w ∧
+        ∃ w, p.2 ⟨P.msgBits + P.nonceBits, m ++ σ.1⟩ = some w ∧
           ∃ hi : (w.setWidth P.idxBits).toNat < P.numSets,
             σ.2.length = S.graph.revealBits (S.sets ⟨_, hi⟩) ∧
             ∃ y : S.graph.Assignment,

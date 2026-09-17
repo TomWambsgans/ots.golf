@@ -11,6 +11,10 @@ changes them by a bounded amount on average:
 * `pairs` grows by `2 · encCount / 2 ^ idxBits`, where `encCount` is the number of encoding
   entries;
 * a fresh encoding answer has a given index with probability `1 / 2 ^ idxBits`.
+
+The oracle has no labels: an encoding query is a query of length `msgBits + nonceBits`
+(`encQuery`), and a query of any other length is not one (`ne_encQuery_of_length_ne`), which is how
+the hypothesis `∀ u, q ≠ encQuery P u` of the `_of_ne_enc` lemmas is discharged.
 -/
 
 open OracleSpec OracleComp ENNReal

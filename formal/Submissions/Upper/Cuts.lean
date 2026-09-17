@@ -344,6 +344,9 @@ theorem mem_cutOf_len' {c : Choice} {n : Name} (hn : n ∈ cutOf c) : n.len = 12
   by_contra h
   exact not_mem_cutOf_of_len h hn
 
+theorem ci_not_mem_cutOf (c : Choice) (k : Fin 63) (t : Fin 14) : ci k t ∉ cutOf c :=
+  not_mem_cutOf_of_len (by simp [Name.len])
+
 theorem ch_not_mem_cutOf (c : Choice) (k : Fin 63) (t : Fin 14) : ch k t ∉ cutOf c :=
   not_mem_cutOf_of_len (by simp [Name.len])
 
@@ -501,7 +504,8 @@ theorem evaluated_ch_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
   unfold Evaluated
   simp only [above_iff_mem_ancSet, ancSet, Finset.forall_mem_union, Finset.forall_mem_image,
     Finset.mem_filter, Finset.mem_univ, true_and, Finset.forall_mem_insert, Finset.mem_singleton,
-    forall_eq, ch_not_mem_cutOf, cv_mem_cutOf_iff', gc_not_mem_cutOf, gh_not_mem_cutOf,
+    forall_eq, ci_not_mem_cutOf, ch_not_mem_cutOf, cv_mem_cutOf_iff', gc_not_mem_cutOf,
+    gh_not_mem_cutOf,
     gv_mem_cutOf_iff', ec_not_mem_cutOf, eh_not_mem_cutOf, ev_mem_cutOf_iff', rc_not_mem_cutOf,
     rh_not_mem_cutOf, not_false_eq_true, true_and, and_true, implies_true, mem_active_iff,
     subtreeOfChain, groupOfChain]
@@ -517,8 +521,18 @@ theorem evaluated_ch_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
     rw [Fin.le_def] at hx
     omega
 
+/-- The input of a chain hash is evaluated exactly when the chain hash is. -/
+theorem evaluated_ci_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
+    Evaluated (cutOf c) (ci k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val := by
+  rw [← evaluated_ch_iff']
+  constructor
+  · intro h
+    exact ⟨ch_not_mem_cutOf c k t, fun m hm => h.2 m (Above.step rfl hm)⟩
+  · intro h
+    exact evaluated_of_child rfl (ci_not_mem_cutOf c k t) h
+
 theorem child_cv_of_lt (k : Fin 63) (t : Fin 14) (ht : t.val < 13) :
-    child (cv k t) = some (ch k ⟨t.val + 1, by omega⟩) := by
+    child (cv k t) = some (ci k ⟨t.val + 1, by omega⟩) := by
   simp only [Name.child]
   rw [dif_neg (by omega)]
 
@@ -544,7 +558,7 @@ theorem isCut_cutOf' {c : Choice} (hc : c ∈ shapes) : IsCut (cutOf c) where
       unfold chainNode
       split_ifs with h0
       · exact forall_above_of_child rfl
-          ((evaluated_ch_iff' c k 0).mpr ⟨hk, by rw [h0]; exact Nat.zero_le _⟩)
+          ((evaluated_ci_iff' c k 0).mpr ⟨hk, by rw [h0]; exact Nat.zero_le _⟩)
       · by_cases h13 : (c.2.2 k).val = 14
         · refine forall_above_of_child (child_cv_of_eq k _ (by dsimp only; omega))
             (evaluated_of_child rfl (gc_not_mem_cutOf c _) ((evaluated_gh_iff' c _).mpr ?_))
@@ -552,7 +566,7 @@ theorem isCut_cutOf' {c : Choice} (hc : c ∈ shapes) : IsCut (cutOf c) where
           exact hk'
         · have hlt := (c.2.2 k).isLt
           refine forall_above_of_child (child_cv_of_lt k _ (by dsimp only; omega))
-            ((evaluated_ch_iff' c k _).mpr ⟨hk, ?_⟩)
+            ((evaluated_ci_iff' c k _).mpr ⟨hk, ?_⟩)
           dsimp only
           omega
   covers := by
@@ -669,6 +683,10 @@ theorem evaluated_gh_iff (j : Fin 21) :
 theorem evaluated_ch_iff (k : Fin 63) (t : Fin 14) :
     Evaluated (cutOf c) (ch k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
   evaluated_ch_iff' c k t
+
+theorem evaluated_ci_iff (k : Fin 63) (t : Fin 14) :
+    Evaluated (cutOf c) (ci k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
+  evaluated_ci_iff' c k t
 
 theorem isCut_cutOf : IsCut (cutOf c) :=
   isCut_cutOf' hc

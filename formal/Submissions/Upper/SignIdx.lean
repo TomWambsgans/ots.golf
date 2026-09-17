@@ -8,7 +8,7 @@ signature; `Scheme.sign` is its image under encoding the revealed values.
 
 The analysis of the loop, started from a cache `d`:
 
-* `run_signIdx_extend`: node-labelled cache entries are irrelevant to the loop;
+* `run_signIdx_extend`: cache entries of other lengths are irrelevant to the loop;
 * `signIdx_support`: every new cache entry is an encoding entry at an input `m ++ η`; a new
   entry with a valid index is the one that ended the loop;
 * `signIdx_bound`: with `IdxPre d u₁ i` the event that a pre-existing encoding entry `u ≠ u₁`
@@ -93,8 +93,9 @@ variable (P : Params)
 /-- An encoding input. -/
 abbrev EncInput (P : Params) := BitVec (P.msgBits + P.nonceBits)
 
-/-- The encoding query at input `u`. -/
-def encQuery (u : EncInput P) : Query := (.enc, ⟨P.msgBits + P.nonceBits, u⟩)
+/-- The encoding query at input `u`: the query of length `msgBits + nonceBits` with bits `u`. The
+oracle has no labels, so an encoding query is told apart from every other query by its length. -/
+def encQuery (u : EncInput P) : Query := ⟨P.msgBits + P.nonceBits, u⟩
 
 /-- The index read from an oracle answer. -/
 def idxOf (w : BitVec P.hashBits) : ℕ := (w.setWidth P.idxBits).toNat
@@ -123,8 +124,25 @@ def signIdx (m : Message P) : OracleComp (Spec P) (Option (Nonce P × Fin P.numS
 /-! ### Basic facts on encoding inputs -/
 
 theorem encQuery_inj {u u' : EncInput P} (h : encQuery P u = encQuery P u') : u = u' := by
-  simp only [encQuery, Prod.mk.injEq, Sigma.mk.inj_iff, heq_eq_eq, true_and] at h
+  simp only [encQuery, Sigma.mk.inj_iff, heq_eq_eq, true_and] at h
   exact h
+
+/-- The length of an encoding query. -/
+theorem encQuery_fst (u : EncInput P) : (encQuery P u).1 = P.msgBits + P.nonceBits := rfl
+
+/-- A query of another length is not an encoding query. -/
+theorem ne_encQuery_of_length_ne {q : Query} (hq : q.1 ≠ P.msgBits + P.nonceBits)
+    (u : EncInput P) : q ≠ encQuery P u := by
+  rintro rfl
+  exact hq rfl
+
+/-- The queries of encoding length are exactly the encoding queries. -/
+theorem exists_eq_encQuery_of_length_eq {q : Query} (hq : q.1 = P.msgBits + P.nonceBits) :
+    ∃ u : EncInput P, q = encQuery P u := by
+  obtain ⟨k, v⟩ := q
+  change k = P.msgBits + P.nonceBits at hq
+  subst hq
+  exact ⟨v, rfl⟩
 
 theorem append_nonce_inj (m : Message P) {η η' : Nonce P} (h : m ++ η = m ++ η') : η = η' := by
   have := congrArg (fun u : EncInput P => u.setWidth P.nonceBits) h
@@ -273,7 +291,7 @@ theorem sign_eq_map {P : Params} (S : Scheme P) (x : S.graph.Assignment) (m : Me
 /-! ### Non-encoding entries are irrelevant -/
 
 theorem run_signIdxLoop_extend (m : Message P) (f : Cache P)
-    (hf : ∀ k (u : BitVec k), f (.enc, ⟨k, u⟩) = none) :
+    (hf : ∀ u : EncInput P, f (encQuery P u) = none) :
     ∀ (k : ℕ) (tried : Finset (Nonce P)) (d : Cache P),
       run P (signIdxLoop P m k tried) (Cache.extend d f) =
         (fun p => (p.1, Cache.extend p.2 f)) <$> run P (signIdxLoop P m k tried) d := by
@@ -291,7 +309,7 @@ theorem run_signIdxLoop_extend (m : Message P) (f : Cache P)
       rw [run_query_bind, run_query_bind]
       rcases hdq : d (encQuery P (m ++ nonceOf P tried hc j)) with _ | w
       · have hdq' : Cache.extend d f (encQuery P (m ++ nonceOf P tried hc j)) = none := by
-          rw [Cache.extend_apply_of_none hdq]; exact hf _ _
+          rw [Cache.extend_apply_of_none hdq]; exact hf _
         rw [oracleImpl_run_inr_none P hdq, oracleImpl_run_inr_none P hdq']
         simp only [bind_assoc, pure_bind, map_bind]
         refine bind_congr fun w => ?_
@@ -310,9 +328,9 @@ theorem run_signIdxLoop_extend (m : Message P) (f : Cache P)
     · rw [signIdxLoop, dif_neg hc]
       simp [run_pure]
 
-/-- Entries at non-encoding points are irrelevant to the loop. -/
+/-- Entries at non-encoding points (queries of another length) are irrelevant to the loop. -/
 theorem run_signIdx_extend (m : Message P) (d f : Cache P)
-    (hf : ∀ k (u : BitVec k), f (.enc, ⟨k, u⟩) = none) :
+    (hf : ∀ u : EncInput P, f (encQuery P u) = none) :
     run P (signIdx P m) (Cache.extend d f) =
       (fun p => (p.1, Cache.extend p.2 f)) <$> run P (signIdx P m) d :=
   run_signIdxLoop_extend P m f hf P.trialLimit ∅ d
@@ -429,10 +447,10 @@ def pairs (d : Cache P) : ℕ :=
     p.1 ≠ p.2 ∧ ∃ w w', d (encQuery P p.1) = some w ∧ d (encQuery P p.2) = some w' ∧
       idxOf P w = idxOf P w').card
 
-/-- `Φ` does not see encoding entries. -/
+/-- `Φ` does not see encoding entries: the entries at queries of length `msgBits + nonceBits`. -/
 def EncInvariant (Φ : Cache P → ℝ≥0∞) : Prop :=
-  ∀ (c : Cache P) (k : ℕ) (u : BitVec k) (w : BitVec P.hashBits),
-    Φ (c.cacheQuery (.enc, ⟨k, u⟩) w) = Φ c
+  ∀ (c : Cache P) (u : EncInput P) (w : BitVec P.hashBits),
+    Φ (c.cacheQuery (encQuery P u) w) = Φ c
 
 /-- `d'` extends `d` by the entries of a signing run with outcome `r`. -/
 def SignExt (m : Message P) (d : Cache P) (r : Option (Nonce P × Fin P.numSets)) (d' : Cache P) :
@@ -780,7 +798,7 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
           rw [oracleImpl_run_inr_none P hq, E_bind, E_uniform]
           simp only [E_pure]
           have hΦ' : ∀ w, Φ (d'.cacheQuery (encQuery P (m ++ η)) w) = Φ d := fun w =>
-            (hΦ d' _ (m ++ η) w).trans hΦd
+            (hΦ d' (m ++ η) w).trans hΦd
           have hSub' : ∀ w, Cache.Sub d (d'.cacheQuery (encQuery P (m ++ η)) w) := fun w =>
             hSub.trans (Cache.sub_cacheQuery_of_none hq w)
           have perw : ∀ w : BitVec P.hashBits,

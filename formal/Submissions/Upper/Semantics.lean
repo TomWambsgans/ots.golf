@@ -26,12 +26,12 @@ variable {hb N : ℕ} {len : Fin N → ℕ} {v : Fin N}
 
 /-- Length of the oracle input of a node: the parent's length for a hash node, else zero. -/
 def inLen : NodeKind hb N len v → ℕ
-  | hash p _ _ _ => len p
+  | hash p _ _ => len p
   | _ => 0
 
 /-- The oracle input of a node under the assignment `x`. -/
 def input : (k : NodeKind hb N len v) → ((w : Fin N) → BitVec (len w)) → BitVec k.inLen
-  | hash p _ _ _, x => x p
+  | hash p _ _, x => x p
   | source, _ => 0
   | det _ _ _ _, _ => 0
 
@@ -41,24 +41,24 @@ def value : NodeKind hb N len v →
     ((w : Fin N) → BitVec (len w)) → BitVec (len v) → BitVec hb → BitVec (len v)
   | source, _, s, _ => s
   | det _ _ f _, x, _, _ => f x
-  | hash _ _ _ h, _, _, a => a.cast h.symm
+  | hash _ _ h, _, _, a => a.cast h.symm
 
 /-- The oracle output stored in the value of a hash node (zero for other nodes). -/
 def output : NodeKind hb N len v → BitVec (len v) → BitVec hb
-  | hash _ _ _ h, a => a.cast h
+  | hash _ _ h, a => a.cast h
   | _, _ => 0
 
 /-- The oracle query made by a node on input `u` (none for non-hash nodes). -/
 def query (P : Params) {len : Fin N → ℕ} {v : Fin N} :
     (k : NodeKind P.hashBits N len v) → BitVec k.inLen → OracleComp (Spec P) (BitVec P.hashBits)
-  | hash _ _ τ _, u => OptimalOTS.hash P (.node τ) u
+  | hash _ _ _, u => OptimalOTS.hash P u
   | _, _ => pure 0
 
 /-- Parents precede their child. -/
 theorem lt_of_mem_parents : ∀ (k : NodeKind hb N len v) {w : Fin N}, w ∈ k.parents → w < v
   | source, _, h => by simp [parents] at h
   | det _ hlt _ _, _, h => hlt _ h
-  | hash _ hlt _ _, _, h => by simp only [parents, Finset.mem_singleton] at h; exact h ▸ hlt
+  | hash _ hlt _, _, h => by simp only [parents, Finset.mem_singleton] at h; exact h ▸ hlt
 
 /-- The value computed from an assignment (with oracle answers depending on the node's input)
 only depends on the parents' values. -/
@@ -69,7 +69,7 @@ theorem value_input_congr (k : NodeKind hb N len v) (s : BitVec (len v))
   cases k with
   | source => rfl
   | det ps _ f hf => exact hf x y h
-  | hash p _ τ hl =>
+  | hash p _ hl =>
     simp only [value, input]
     rw [h p (by simp [parents])]
 

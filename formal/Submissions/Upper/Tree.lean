@@ -37,9 +37,10 @@ inductive Above : Name → Name → Prop
 
 /-- Distance to the root. -/
 def height : Name → ℕ
-  | src _ => 36
-  | ch _ t => 35 - 2 * t
-  | cv _ t => 34 - 2 * t
+  | src _ => 50
+  | ci _ t => 49 - 3 * t
+  | ch _ t => 48 - 3 * t
+  | cv _ t => 47 - 3 * t
   | gc _ => 7
   | gh _ => 6
   | gv _ => 5
@@ -93,15 +94,22 @@ def ancSet : Name → Finset Name
   | gv j => {ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
   | gh j => {gv j, ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
   | gc j => {gh j, gv j, ec ⟨j / 3, by omega⟩, eh ⟨j / 3, by omega⟩, ev ⟨j / 3, by omega⟩, rc, rh}
-  | cv k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
+  | cv k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ci k) ∪
+      (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
       (Finset.univ.filter fun t' : Fin 14 => t < t').image (cv k) ∪
       {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
         ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
-  | ch k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
+  | ch k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ci k) ∪
+      (Finset.univ.filter fun t' : Fin 14 => t < t').image (ch k) ∪
       (Finset.univ.filter fun t' : Fin 14 => t ≤ t').image (cv k) ∪
       {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
         ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
-  | src k => Finset.univ.image (ch k) ∪ Finset.univ.image (cv k) ∪
+  | ci k t => (Finset.univ.filter fun t' : Fin 14 => t < t').image (ci k) ∪
+      (Finset.univ.filter fun t' : Fin 14 => t ≤ t').image (ch k) ∪
+      (Finset.univ.filter fun t' : Fin 14 => t ≤ t').image (cv k) ∪
+      {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
+        ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
+  | src k => Finset.univ.image (ci k) ∪ Finset.univ.image (ch k) ∪ Finset.univ.image (cv k) ∪
       {gc ⟨k / 3, by omega⟩, gh ⟨k / 3, by omega⟩, gv ⟨k / 3, by omega⟩,
         ec ⟨k / 9, by omega⟩, eh ⟨k / 9, by omega⟩, ev ⟨k / 9, by omega⟩, rc, rh}
 
@@ -157,14 +165,27 @@ theorem ancSet_child {n p : Name} (h : child n = some p) : ancSet n = insert p (
         (Finset.univ.filter (fun t' : Fin 14 => (0 : Fin 14) ≤ t')).image (cv k) from by
       rw [filter_zero_le]]
     rw [show Finset.univ.image (ch k) =
-        insert (ch k 0) ((Finset.univ.filter (fun t' : Fin 14 => 0 < t')).image (ch k)) from by
+        (Finset.univ.filter (fun t' : Fin 14 => (0 : Fin 14) ≤ t')).image (ch k) from by
+      rw [filter_zero_le]]
+    rw [show Finset.univ.image (ci k) =
+        insert (ci k 0) ((Finset.univ.filter (fun t' : Fin 14 => 0 < t')).image (ci k)) from by
       rw [← Finset.image_insert, ← univ_eq_insert_zero]]
-    rw [Finset.insert_union, Finset.insert_union]
+    rw [Finset.insert_union, Finset.insert_union, Finset.insert_union]
+  | ci k t =>
+    simp only [Name.child, Option.some.injEq] at h; subst h
+    simp only [ancSet]
+    have hB : (Finset.univ.filter (fun t' : Fin 14 => t ≤ t')).image (ch k) =
+        insert (ch k t) ((Finset.univ.filter (fun t' : Fin 14 => t < t')).image (ch k)) := by
+      rw [filter_le_eq_insert t, Finset.image_insert]
+    rw [hB, Finset.union_insert (ch k t), Finset.insert_union (ch k t),
+      Finset.insert_union (ch k t)]
   | ch k t =>
     simp only [Name.child, Option.some.injEq] at h; subst h
     simp only [ancSet]
-    rw [filter_le_eq_insert t, Finset.image_insert, Finset.union_insert (cv k t),
-      Finset.insert_union (cv k t)]
+    have hC : (Finset.univ.filter (fun t' : Fin 14 => t ≤ t')).image (cv k) =
+        insert (cv k t) ((Finset.univ.filter (fun t' : Fin 14 => t < t')).image (cv k)) := by
+      rw [filter_le_eq_insert t, Finset.image_insert]
+    rw [hC, Finset.union_insert (cv k t), Finset.insert_union (cv k t)]
   | cv k t =>
     simp only [Name.child] at h
     split_ifs at h with ht
@@ -180,8 +201,12 @@ theorem ancSet_child {n p : Name} (h : child n = some p) : ancSet n = insert p (
           (Finset.univ.filter
             (fun t' : Fin 14 => (⟨t.val + 1, by omega⟩ : Fin 14) ≤ t')).image (cv k) from by
         rw [filter_lt_eq_filter_le t (by omega)]]
+      rw [show (Finset.univ.filter (fun t' : Fin 14 => t < t')).image (ch k) =
+          (Finset.univ.filter
+            (fun t' : Fin 14 => (⟨t.val + 1, by omega⟩ : Fin 14) ≤ t')).image (ch k) from by
+        rw [filter_lt_eq_filter_le t (by omega)]]
       rw [filter_lt_succ t (by omega), Finset.image_insert, Finset.insert_union,
-        Finset.insert_union]
+        Finset.insert_union, Finset.insert_union]
   | gc j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
   | gh j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
   | gv j => simp only [Name.child, Option.some.injEq] at h; subst h; rfl
@@ -390,7 +415,7 @@ theorem IsCut.trichotomy {A : Finset Name} (hA : IsCut A) (n : Name) :
 section
 
 /- Unifying or normalising a hypothesis of the form `p ∈ evaluatedSet A` makes Lean unfold
-`Finset.univ : Finset Name` through the `Fintype` instance (1913 elements), which exhausts the
+`Finset.univ : Finset Name` through the `Fintype` instance (2795 elements), which exhausts the
 recursion depth; `evaluatedSet` is therefore kept opaque in this section. -/
 attribute [local irreducible] evaluatedSet
 
