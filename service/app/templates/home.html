@@ -67,7 +67,6 @@
     </div>
     {% for slug in ['upper', 'lower'] %}{% set b = boards[slug] %}
     <div class="board-current tk" data-track="{{ slug }}"{% if slug != 'upper' %} hidden{% endif %}>
-      <p class="tick-label">current {{ b.cfg.title|lower }}</p>
       <p class="board-big"><span class="swatch {{ 's2' if slug == 'upper' else 's1' }}"></span>{{ b.state.record_claim }} <span class="lb-unit">compressions</span></p>
     </div>
     {% endfor %}

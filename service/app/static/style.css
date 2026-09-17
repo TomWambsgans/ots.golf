@@ -75,7 +75,6 @@ h2 .muted, h1 .muted { font-weight: 400; font-size: 0.75em; }
 .seg-btn:hover { color: var(--ink); }
 .seg-btn[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .board-current { text-align: right; }
-.board-current .tick-label { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .board-current .board-big { margin: 0; font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .board-current .board-big .swatch { width: 12px; height: 12px; margin-right: 8px; vertical-align: 4px; }
 .board-current .board-big .lb-unit { font-size: 15px; font-weight: 400; color: var(--muted); letter-spacing: 0; }

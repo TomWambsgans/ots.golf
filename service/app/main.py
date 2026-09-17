@@ -109,22 +109,9 @@ def home(request: Request, session: Session = Depends(get_session)):
                           "in_flight": records.in_flight(session, t["slug"]),
                           "solvers": records.solver_count(session, t["slug"]),
                           "state": records.track_state(session, t)} for t in contract.tracks()}
-    literature = load_literature()
     chart = charts.record_chart({t["slug"]: records.curve(session, t["slug"]) for t in contract.tracks()},
-                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow(), literature)
-    return render(request, "home.html", interval=iv, boards=boards, chart=chart, literature=literature,
-                  art=scheme_art.svg())
-
-
-def load_literature() -> list[dict]:
-    p = settings.repo_root / "docs" / "literature.json"
-    if not p.is_file():
-        return []
-    pts = json.loads(p.read_text(encoding="utf-8")).get("points", [])
-    for pt in pts:
-        pt["t"] = datetime.strptime(pt["date"], "%Y-%m-%d")
-    return pts
-
+                                {t["slug"]: t["baseline"] for t in contract.tracks()}, utcnow())
+    return render(request, "home.html", interval=iv, boards=boards, chart=chart, art=scheme_art.svg())
 
 
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)

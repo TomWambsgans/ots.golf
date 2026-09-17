@@ -27,7 +27,7 @@
   </td>
   <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compressions</span>{% else %}–{% endif %}</a></td>
   <td class="r lb-gain">
-    {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }} ({{ '%+.1f'|format(100 * d / prev.claim) }}%)</span>{% else %}<span class="muted">first record</span>{% endif %}
+    {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
     {%- elif kind == 'other' %}<span class="muted">not a record</span>
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
   </td>

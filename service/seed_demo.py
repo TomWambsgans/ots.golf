@@ -3,7 +3,8 @@
 Adds two invented solvers (parody names, generated avatars) with verified submissions and
 records over the past week, so the leaderboard, the chart and the tiles have something to show.
 Everything it adds is marked with `detail = {"demo": true}` and `--remove` deletes it again. The
-two repository baselines are moved back in time so that the invented records come after them.
+repository baselines and their `ots-golf` user are removed from the board (re-queue them with
+`python -m app.queue <track> --baseline` when needed).
 
     .venv/bin/python seed_demo.py           # add (idempotent: removes its previous rows first)
     .venv/bin/python seed_demo.py --remove  # remove the phony rows only
@@ -32,15 +33,15 @@ PEOPLE = [
 # track, login, claim, hours ago, status, is_record, assisted_by, co_authors
 # (only finished rows: the worker would try to verify anything pending)
 ROWS = [
-    ("upper", "satoshi-nakamoto", 107, 6 * 24 + 5, "verified", True, "Claude Fable 5.1", []),
-    ("upper", "vitalik-butterin", 105, 4 * 24 + 11, "verified", True, None, []),
-    ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "GPT-6", []),
-    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "Gemini 4 Ultra", []),
-    ("upper", "vitalik-butterin", 101, 26, "verified", True, "Claude Fable 5.1 max", []),
-    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, None, []),
-    ("lower", "vitalik-butterin", 26, 5 * 24 + 3, "verified", True, "Gemini 4 Ultra", []),
-    ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "Claude Fable 5.1", []),
-    ("lower", "vitalik-butterin", 26, 22, "verified", False, None, []),
+    ("upper", "satoshi-nakamoto", 107, 6 * 24 + 5, "verified", True, "GPT-2", []),
+    ("upper", "vitalik-butterin", 105, 4 * 24 + 11, "verified", True, "ELIZA", []),
+    ("upper", "satoshi-nakamoto", 104, 3 * 24 + 2, "verified", True, "Llama 1 7B", []),
+    ("upper", "vitalik-butterin", 106, 2 * 24 + 7, "verified", False, "Markov chain", []),
+    ("upper", "vitalik-butterin", 101, 26, "verified", True, "GPT-2 XL", []),
+    ("upper", "satoshi-nakamoto", 103, 10, "verified", False, "Clippy", []),
+    ("lower", "vitalik-butterin", 26, 5 * 24 + 3, "verified", True, "BERT base", []),
+    ("lower", "satoshi-nakamoto", 27, 2 * 24 + 1, "verified", True, "GPT-2", []),
+    ("lower", "vitalik-butterin", 26, 22, "verified", False, "T9 autocomplete", []),
 ]
 
 
@@ -74,14 +75,13 @@ def add(session) -> int:
         users[login] = u
     session.flush()
 
-    # the repository baselines come first in the story: move them to a week ago
-    oldest = NOW - timedelta(hours=8 * 24)
-    for s in session.scalars(select(Submission).where(Submission.baseline.is_(True))):
-        s.created_at = oldest
-        s.started_at = oldest + timedelta(seconds=5)
-        s.finished_at = oldest + timedelta(minutes=3)
-        if s.is_record:
-            s.record_at = s.finished_at
+    # the board is the invented solvers only: no baseline rows, no ots-golf user
+    for b in session.scalars(select(Submission).where(Submission.baseline.is_(True))):
+        session.delete(b)
+    session.flush()
+    bot = session.scalar(select(User).where(User.login == "ots-golf"))
+    if bot is not None and not bot.submissions:
+        session.delete(bot)
 
     for track, login, claim, hours_ago, status, is_record, assisted, coauthors in ROWS:
         t = NOW - timedelta(hours=hours_ago)
