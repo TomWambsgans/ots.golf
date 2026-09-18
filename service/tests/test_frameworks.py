@@ -101,7 +101,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual({s.get('data-series') for s in lower}, {'generic-lower', 'lower', 'disclosure-lower'})
         generic = svg.find("./g[@data-series='generic-lower']")
         self.assertEqual(generic.get('data-status'), 'certified')
-        self.assertEqual(generic.find("text[@class='label']").text, 'Generality 3/3 lower 1')
+        self.assertEqual(''.join(generic.find("text[@class='label']").itertext()), 'Lower bound 3/3 · 1')
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertEqual(self.chart(response.text), [])
         axis_y = float(svg.find("./line[@class='axis']").get('y1'))
@@ -162,7 +162,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'generic-upper')
         self.assertEqual(uppers[0].get('data-status'), 'certified')
-        self.assertEqual(uppers[0].find("text[@class='label']").text, 'Upper bound 105')
+        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 105')
         self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 2)
         self.assertNotIn('admission pending', html.lower())
         self.assertNotIn('candidate', html.lower())
@@ -186,7 +186,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/').text
         generic = self.chart_svg(html).find("./g[@data-series='generic-upper']")
-        self.assertEqual(generic.find("text[@class='label']").text, 'Upper bound 106')
+        self.assertEqual(''.join(generic.find("text[@class='label']").itertext()), 'Upper bound · 106')
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertIsNone(records.current_record(self.session, 'generic-upper'))
 

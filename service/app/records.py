@@ -84,6 +84,28 @@ def overview(session: Session) -> list[dict]:
     return result
 
 
+def latest_records(session: Session, limit: int = 8) -> list[dict]:
+    """The most recent record-setting submissions across every public track, newest first."""
+    cfg = contract.load()
+    public = {f["lower_track"] for f in cfg["frameworks"] if "lower_track" in f} | set(cfg["upper_tracks"])
+    items = []
+    for t in contract.tracks():
+        if t["slug"] not in public:
+            continue
+        recs = frontier(session, t["slug"])
+        for i, s in enumerate(recs):
+            prev = recs[i + 1] if i + 1 < len(recs) else None
+            if t["kind"] == "lower":
+                label, href = "Lower bound · " + contract.track_framework_title(t), f'/?framework={t["framework"]}#lower'
+            else:
+                label = "Upper bound · " + ("RISC-V cycles" if t["slug"] == "riscv-upper" else "compressions")
+                href = "/#upper"
+            items.append({"sub": s, "cfg": t, "label": label, "href": href,
+                          "gain": (s.claim - prev.claim) if prev and prev.claim is not None else None})
+    items.sort(key=lambda x: x["sub"].record_at or x["sub"].finished_at or x["sub"].created_at, reverse=True)
+    return items[:limit]
+
+
 def board(session: Session, track: dict) -> dict:
     return {"cfg": track, "state": track_state(session, track),
             "frontier": frontier(session, track["slug"]),

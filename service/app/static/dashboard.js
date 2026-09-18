@@ -57,6 +57,19 @@
     });
   });
 
+  function fitRows() {
+    document.querySelectorAll('.board-scroll[data-rows]').forEach(function (box) {
+      var head = box.querySelector('thead'), row = box.querySelector('tbody tr');
+      if (!head || !row || !row.offsetHeight) return;
+      box.style.maxHeight = (head.offsetHeight + row.offsetHeight * Number(box.dataset.rows) + 2) + 'px';
+    });
+  }
+  fitRows();
+  window.addEventListener('resize', fitRows);
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('.lower-btn, .upper-btn, .seg-btn')) window.requestAnimationFrame(fitRows);
+  });
+
   var lowerButtons = document.querySelectorAll('.lower-btn');
   var lowerBoards = document.querySelectorAll('.framework-board[data-framework]');
   lowerButtons.forEach(function (button) {

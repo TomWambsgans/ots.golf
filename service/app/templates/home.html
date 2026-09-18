@@ -66,23 +66,16 @@
 </section>
 
 <section class="dashboard" aria-labelledby="dash-title">
-  <div class="section-heading"><h2 id="dash-title">Progress over time</h2>
+  <div class="section-heading chart-heading"><h2 id="dash-title">Progress over time</h2>
     {% if riscv_chart %}<div class="seg chart-switch" role="group" aria-label="Chart">
       <button type="button" class="chart-btn" data-chart="compressions" aria-pressed="true">Compressions</button>
       <button type="button" class="chart-btn" data-chart="cycles" aria-pressed="false">RISC-V cycles</button>
     </div>{% endif %}
   </div>
   <div class="chart-panel" data-chart="compressions">
-    <ul class="chart-legend" aria-label="Chart series">
-      {% for s in chart.series %}
-      <li class="f-{{ s.framework }} {{ s.kind }}{% if s.baseline is none %} pending{% endif %}"><span class="series-swatch" aria-hidden="true"></span>{{ s.label }}{% if s.baseline is none %}<span class="muted"> · pending</span>{% endif %}</li>
-      {% endfor %}
-    </ul>
     <figure class="chart">
       <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
       <div class="tooltip" id="tooltip" hidden></div>
-      <figcaption>Lower records are separate for each framework. The orange line shows the upper bound.
-      Hover or focus a record for details; select it to open the submission.</figcaption>
     </figure>
     <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
   </div>
@@ -95,6 +88,41 @@
     <script id="riscv-chart-points" type="application/json">{{ riscv_chart.points|safe }}</script>
   </div>
   {% endif %}
+</section>
+
+<section class="dashboard progress" aria-labelledby="progress-title">
+  <div class="section-heading"><h2 id="progress-title">Latest progress</h2></div>
+  <div class="board-panel progress-panel">
+    <div class="board-scroll" data-rows="5" role="region" tabindex="0" aria-labelledby="progress-title">
+      <table class="lb-table progress-table">
+        <caption class="visually-hidden">Most recent records across all tracks</caption>
+        <thead><tr>
+          <th class="l" scope="col">Solver</th>
+          <th class="l" scope="col">Track</th>
+          <th class="r" scope="col">Score</th>
+          <th class="r" scope="col">Gain</th>
+          <th class="r" scope="col">Date</th>
+        </tr></thead>
+        <tbody>
+        {% for item in latest %}{% set s = item.sub %}
+        <tr class="lb-row record">
+          <td class="lb-solver">
+            <span class="lb-avatar">{% if s.user.avatar_url %}<img src="{{ s.user.avatar_url }}" alt="">{% else %}<span class="lb-avatar-blank"></span>{% endif %}</span>
+            <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
+            {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
+          </td>
+          <td class="lb-track"><a href="{{ item.href }}">{{ item.label }}</a></td>
+          <td class="r lb-score"><a href="/submissions/{{ s.id }}">{{ s.claim }} <span class="lb-unit">{{ item.cfg|cost_unit(s.claim) }}</span></a></td>
+          <td class="r lb-gain">{% if item.gain is not none %}<span class="good">{{ '+' if item.gain > 0 else '' }}{{ item.gain }}</span>{% else %}<span class="muted">first record</span>{% endif %}</td>
+          <td class="r lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted lb-empty">No records yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </section>
 
 <section class="boards" aria-labelledby="board-title">
@@ -112,20 +140,19 @@
       <button type="button" class="lower-btn" data-framework="{{ model.slug }}" aria-pressed="{{ 'true' if shown_framework == model.slug else 'false' }}">{{ model.title }}</button>
       {% endfor %}
     </div>
-    <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. Upper constructions may use any oracle algorithm.</p>
     {% set kind = 'lower' %}
     <div class="board-track" data-track="lower">
       {% for model in models %}
       <section class="framework-board f-{{ model.slug }}" data-framework="{{ model.slug }}" aria-labelledby="{{ model.slug }}-{{ kind }}-title"{% if shown_framework != model.slug %} hidden{% endif %}>
         {% set b = model.boards.get(kind) %}
         <div class="framework-board-head">
-          <div><h3 id="{{ model.slug }}-{{ kind }}-title"><span class="framework-dot" aria-hidden="true"></span>{{ model.title }}</h3>
+          <div><h3 id="{{ model.slug }}-{{ kind }}-title" class="visually-hidden">{{ model.title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
         </div>
         {% if b %}
-        <div class="board-scroll" role="region" tabindex="0" aria-labelledby="{{ model.slug }}-{{ kind }}-title">
+        <div class="board-scroll" data-rows="10" role="region" tabindex="0" aria-labelledby="{{ model.slug }}-{{ kind }}-title">
           <table class="lb-table" data-track="{{ b.cfg.slug }}">
             <caption class="visually-hidden">{{ model.title }} {{ kind }}-bound records</caption>
             <thead><tr>
@@ -157,13 +184,13 @@
       {% set upper_id = 'riscv-upper-board-title' if is_riscv else 'upper-board-title' %}
       <section class="generic-upper-board" data-upper="{{ 'riscv-upper' if is_riscv else 'generic-upper' }}" aria-labelledby="{{ upper_id }}"{% if is_riscv %} hidden{% endif %}>
         <div class="framework-board-head">
-          <div><h3 id="{{ upper_id }}">{{ upper_title }}</h3>
+          <div><h3 id="{{ upper_id }}" class="visually-hidden">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
         </div>
         {% if b %}
-        <div class="board-scroll" role="region" tabindex="0" aria-labelledby="{{ upper_id }}">
+        <div class="board-scroll" data-rows="10" role="region" tabindex="0" aria-labelledby="{{ upper_id }}">
           <table class="lb-table" data-track="{{ b.cfg.slug }}">
             <caption class="visually-hidden">{{ upper_title }} records</caption>
             <thead><tr>

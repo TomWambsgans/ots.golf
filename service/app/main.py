@@ -308,7 +308,7 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     for model in models:
         board = model["boards"].get("lower")
         series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
-                       "framework": model["slug"], "kind": "lower", "label": f'{model["title"]} lower',
+                       "framework": model["slug"], "kind": "lower", "label": f'Lower bound {model["title"].split()[-1]}',
                        "baseline": board["cfg"]["baseline"] if board else None,
                        "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
@@ -323,7 +323,7 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                    "label": "Upper bound", "baseline": upper_config["baseline"] if upper_config else None,
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
-                  generic_upper=upper, riscv_upper=riscv,
+                  generic_upper=upper, riscv_upper=riscv, latest=records.latest_records(session, limit=60),
                   riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
                       chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
                   chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())

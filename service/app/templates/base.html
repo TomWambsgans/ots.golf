@@ -28,7 +28,8 @@
   leanprover/comparator (https://github.com/leanprover/comparator).
 #}
 <footer>
-  <p>Contract <code>{{ contract_version }}</code> · id <code title="{{ contract_id }}">{{ contract_id[:16] }}</code> · trusted commit <code>{{ contract_commit[:10] }}</code>.</p>
+  <p>Contract <a href="{{ settings.contract_url }}"><code>{{ contract_version }}</code></a> · id <code title="{{ contract_id }}">{{ contract_id[:16] }}</code> · trusted commit <a href="{{ settings.contract_url }}/commit/{{ contract_commit }}"><code>{{ contract_commit[:10] }}</code></a></p>
+  <p><a href="{{ settings.contract_url }}">Model, verifier and website</a> · <a href="{{ settings.submissions_url }}">Submissions</a> on GitHub.</p>
 </footer>
 </body>
 </html>
