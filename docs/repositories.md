@@ -5,6 +5,17 @@
 | [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev) | Trusted Lean model, challenge stubs, verifier, website, tooling and reference certificates |
 | [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | The four public submission roots, proof PRs and merged records |
 
+The local workspace contains both repositories:
+
+```text
+sig.golf/
+├── ots.golf-dev/
+└── ots.golf-submissions/
+```
+
+Run core commands from `ots.golf-dev/` and submission checks from `ots.golf-submissions/`.
+Start localhost with `bash service/run-local.sh` from the core repository.
+
 The submissions workspace has a `.contract` submodule pinned to a core commit for local proof
 checking. Its PRs change one admitted root. The hosted verifier reads that root from the PR's exact
 head, using its own core checkout for every protected file and verification tool.
