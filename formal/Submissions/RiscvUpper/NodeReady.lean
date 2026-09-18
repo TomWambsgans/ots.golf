@@ -4,7 +4,7 @@ import Submissions.RiscvUpper.NodeProgramProof
 
 namespace OptimalOTS.RiscvUpperProgram.Direct
 
-open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier
+open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier OracleComp
 
 /-- Each aligned doubleword in the fixed position array is accessible. -/
 theorem position_access (k : Fin 63) :
@@ -272,5 +272,27 @@ theorem node_ready (s : MachineState) (n : Name)
   refine ⟨nodePrelude_ready s n positions cursor, fun _ => ?_⟩
   apply operation_ready _ n
   simpa only [MachineState.getReg_setPC] using nodePrelude_destination s n
+
+/-- Each operation advances across its code and preserves the instruction image. -/
+theorem operationEffect_pc_code (s next : MachineState) (op : NodeOp)
+    (ready : OperationReady s op) (reached : next ∈ support (operationEffect s op)) :
+    next.pc = s.pc + BitVec.ofNat 64 (4 * (operation op).length) ∧ next.code = s.code := by
+  cases op with
+  | hash source =>
+    change next ∈ support
+      (Riscv.writeHash ((hashSetup source).foldl execInstrBr s) <$>
+        hash paperParams (Riscv.hashInput ((hashSetup source).foldl execInstrBr s)).2) at reached
+    obtain ⟨answer, _, rfl⟩ := OracleComp.mem_support_map_peel _ _ reached
+    constructor
+    · simp only [Riscv.writeHash, MachineState.setPC]
+      rw [Riscv.linear_fold_pc s _ ready.1, operation_hash]
+      simp only [List.length_append, List.length_singleton, Nat.mul_add, Nat.mul_one,
+        BitVec.ofNat_add, BitVec.add_assoc]
+      rfl
+    · simp only [Riscv.writeHash, MachineState.code_setPC, MachineState.code_writeWords, Riscv.fold_code]
+  | zero | copy source | tagged1 tag source | tagged3 tag a b c | tagged7 tag children =>
+    simp only [operationEffect, mem_support_pure_iff] at reached
+    subst next
+    exact ⟨Riscv.linear_fold_pc _ _ ready, Riscv.fold_code _ _⟩
 
 end OptimalOTS.RiscvUpperProgram.Direct
