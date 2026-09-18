@@ -11,6 +11,7 @@ import OptimalOTS.Disclosure
 import OptimalOTS.WholeWords
 import OptimalOTS.Algorithm
 import OptimalOTS.AlgorithmWeak
+import OptimalOTS.Riscv
 
 open Lean
 
@@ -41,7 +42,19 @@ def contractDecls : List Name :=
    ``OptimalOTS.AlgorithmScheme.VerifyCostAtMost,
    ``OptimalOTS.AlgorithmScheme.experiment, ``OptimalOTS.AlgorithmScheme.Secure,
    ``OptimalOTS.AlgorithmScheme.weakExperiment, ``OptimalOTS.AlgorithmScheme.WeaklySecure,
-   ``OptimalOTS.AlgorithmVerificationLowerBound]
+   ``OptimalOTS.AlgorithmVerificationLowerBound,
+   ``OptimalOTS.Riscv.Image, ``OptimalOTS.Riscv.Image.Valid,
+   ``OptimalOTS.Riscv.admittedInstruction, ``OptimalOTS.Riscv.initialState,
+   ``OptimalOTS.Riscv.hashInput, ``OptimalOTS.Riscv.hashArgumentsValid,
+   ``OptimalOTS.Riscv.writeHash, ``OptimalOTS.Riscv.execute,
+   ``OptimalOTS.Riscv.Submission, ``OptimalOTS.Riscv.Submission.scheme,
+   ``OptimalOTS.Riscv.Submission.run, ``OptimalOTS.Riscv.Submission.Implements,
+   ``OptimalOTS.Riscv.Submission.AcceptCostAtMost, ``OptimalOTS.Riscv.Submission.Certificate,
+   ``OptimalOTS.Riscv.Submission.no_fault,
+   ``OptimalOTS.Riscv.Submission.implementedScheme,
+   ``OptimalOTS.Riscv.Submission.implementedScheme_eq,
+   ``OptimalOTS.Riscv.Submission.implemented_secure,
+   ``OptimalOTS.Riscv.Submission.implemented_admissible]
 
 def whitelist : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 

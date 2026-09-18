@@ -54,6 +54,7 @@ def main() -> int:
         if args.formal or args.official:
             check('Lean library and submissions', ['lake', 'build', 'OptimalOTS', 'Submissions'], ROOT / 'formal')
             check('protected model axioms', ['lake', 'env', 'lean', 'scripts/check-axioms.lean'], ROOT / 'formal')
+            check('RISC-V machine boundaries', ['lake', 'env', 'lean', 'scripts/check-riscv.lean'], ROOT / 'formal')
         if args.official:
             import json
             cfg = json.loads((ROOT / 'challenges.json').read_text())
