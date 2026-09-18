@@ -109,13 +109,13 @@ def svg() -> str:
             x, y = pts[t]
             st = status_chain(k, t)
             if t == 0:
-                s = 4.2
+                s = 5.2
                 nodes.append(f'<rect class="n src {st}" data-r="bead" data-k="{k}" data-t="{t}" x="{x - s:.1f}" '
                              f'y="{y - s:.1f}" width="{2 * s:.1f}" height="{2 * s:.1f}" '
                              f'transform="rotate(45 {x:.1f} {y:.1f})"/>')
             else:
                 nodes.append(f'<circle class="n bead {st}" data-r="bead" data-k="{k}" data-t="{t}" cx="{x:.1f}" '
-                             f'cy="{y:.1f}" r="3.4"/>')
+                             f'cy="{y:.1f}" r="4.3"/>')
         # tip -> group
         gx, gy = polar(R_G, angle(PER_G * j + 1))
         tx, ty = pts[LEN]
@@ -128,14 +128,14 @@ def svg() -> str:
         st = "revealed" if j in cut["revealed_g"] else ("recomputed" if j in cut["open_g"] else "untouched")
         est = "untouched" if l in cut["revealed_e"] else "recomputed"
         edges.append(f'<line class="e {est}" data-r="gedge" data-s="{l}" x1="{gx:.1f}" y1="{gy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}"/>')
-        nodes.append(f'<circle class="n g {st}" data-r="g" data-g="{j}" cx="{gx:.1f}" cy="{gy:.1f}" r="5.2"/>')
+        nodes.append(f'<circle class="n g {st}" data-r="g" data-g="{j}" cx="{gx:.1f}" cy="{gy:.1f}" r="6.5"/>')
     for l in range(NUM_E):
         ex, ey = polar(R_E, angle(PER_G * PER_E * l + 4))
         st = "revealed" if l in cut["revealed_e"] else "recomputed"
         edges.append(f'<line class="e recomputed" x1="{ex:.1f}" y1="{ey:.1f}" x2="{CX:.1f}" y2="{CY:.1f}"/>')
-        nodes.append(f'<circle class="n e {st}" data-r="s" data-s="{l}" cx="{ex:.1f}" cy="{ey:.1f}" r="6.8"/>')
-    nodes.append(f'<circle class="n root recomputed" cx="{CX:.1f}" cy="{CY:.1f}" r="11"/>')
-    nodes.append(f'<circle class="n clasp" cx="{CX:.1f}" cy="{CY:.1f}" r="18"/>')
+        nodes.append(f'<circle class="n e {st}" data-r="s" data-s="{l}" cx="{ex:.1f}" cy="{ey:.1f}" r="8.5"/>')
+    nodes.append(f'<circle class="n root recomputed" cx="{CX:.1f}" cy="{CY:.1f}" r="13.5"/>')
+    nodes.append(f'<circle class="n clasp" cx="{CX:.1f}" cy="{CY:.1f}" r="21"/>')
     out.extend(edges)
     out.extend(nodes)
     out.append("</svg>")

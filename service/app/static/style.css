@@ -127,15 +127,15 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 .art-wrap { pointer-events: none; width: 100%; }
 .scheme-art { width: 80%; height: auto; display: block; margin: 0 auto; }
 .scheme-art .e, .scheme-art .n { transition: fill .6s ease, stroke .6s ease, stroke-width .6s ease, opacity .6s ease; }
-.scheme-art .e { stroke: var(--art-faint); stroke-width: 1; }
-.scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.4; opacity: 0.9; }
-.scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.1; }
+.scheme-art .e { stroke: var(--art-faint); stroke-width: 1.4; }
+.scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.8; opacity: 0.9; }
+.scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.4; }
 .scheme-art .n.untouched { opacity: 1; }
 .scheme-art .n.recomputed { fill: var(--series-1); stroke: var(--series-1); }
 .scheme-art .n.revealed { fill: var(--series-2); stroke: var(--series-2); }
 .scheme-art .n.src.revealed { fill: var(--series-2); }
 .scheme-art .n.root { fill: var(--ink); stroke: var(--ink); }
-.scheme-art .n.clasp { fill: none; stroke: var(--ink); stroke-width: 1.2; opacity: 0.6; }
+.scheme-art .n.clasp { fill: none; stroke: var(--ink); stroke-width: 1.5; opacity: 0.6; }
 .hero h1 { font-size: 34px; }
 @media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .art-wrap { max-width: 420px; margin: 0 auto; } }
 
