@@ -9,7 +9,7 @@ The security and graph proofs are adapted from the checked GenericUpper forest.
 the certified 24058-instruction RV64IM image: 32-byte value slots, one hash sweep and one read
 sweep per chain level, and a scratch buffer for the tree inputs. `CompactVerifier.image_refines`
 proves that the image's complete oracle computation equals the certified verifier on every input
-and that every accepting execution costs at most 24053 virtual cycles: one cycle per executed
+and that every accepting execution costs at most 24053 cycles: one cycle per executed
 instruction and two for the 912-bit root hash. `Candidate.lean` bundles these into
 `machineCertificate`, and `Solution.lean` exports `OptimalOTS.Challenge.RiscvUpper.submission`
 and `certificate` at the claim in `claim.txt`.

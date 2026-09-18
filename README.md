@@ -3,7 +3,7 @@
 How cheaply can a hash-based one-time signature be verified?
 
 ots.golf compares **three lower-bound classes** and has two upper tracks: an **Upper bound** in
-compressions for arbitrary oracle algorithms, and a **RISC-V upper bound** in virtual cycles for
+compressions for arbitrary oracle algorithms, and a **RISC-V upper bound** in cycles for
 verified machine implementations. All five tracks are open. A submission is a Lean proof about a
 pinned contract.
 The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
@@ -28,7 +28,7 @@ perfect correctness, signing failure at most `2^-128`, 127-bit strong security, 
 size and cost proofs. The **RISC-V upper bound** track (`riscv-upper`) has a verified
 **24053-cycle RV64IM verifier** for a fixed-layout forest OTS: the machine's oracle computation is
 proved equal to the Lean verifier on every input, every execution terminates, and accepting
-executions cost at most 24053 virtual cycles. The original DAG and historical partial-disclosure
+executions cost at most 24053 cycles. The original DAG and historical partial-disclosure
 upper certificates remain locally verifiable references.
 
 ## Model

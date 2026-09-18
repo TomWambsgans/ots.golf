@@ -2,7 +2,7 @@
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
 one-time signatures, with three lower-bound frameworks and two upper tracks: a fully generic
-compression bound and a RISC-V implementation bound in virtual cycles. The DAG model is
+compression bound and a RISC-V implementation bound in cycles. The DAG model is
 `formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 Submission requirements and current admission status are below. `challenges.json` describes the
 pinned certificates, including legacy upper references; `verifier/` runs the same proof checks as
@@ -55,7 +55,7 @@ of the lower frameworks. All five public tracks are open.
   strong unforgeability. Proofs live in `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
 - **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
-  every raw input. The score is a proved bound on the virtual cycles of every accepting execution;
+  every raw input. The score is a proved bound on the cycles of every accepting execution;
   the checked construction costs 24053. Proofs live in `formal/Submissions/RiscvUpper/`; see
   `docs/riscv-upper.md`.
 
@@ -150,7 +150,7 @@ theorem OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate <cl
 `Riscv.Submission` bundles the OTS algorithms, a fixed RV64IM image and a per-input fuel witness.
 The certificate proves the Upper bound admissibility and 127-bit strong security of the OTS, exact
 refinement of its Lean verifier by the machine's complete oracle computation on every public key,
-message and raw signature bit string, and at most `<claim>` virtual cycles on every accepting
+message and raw signature bit string, and at most `<claim>` cycles on every accepting
 execution. Refinement excludes traps and fuel exhaustion, so every execution terminates, including
 rejections, which have no cycle bound. Ordinary instructions, RANDOM and HALT cost one cycle; HASH
 costs `max(1, ⌈bits / 512⌉)` on its exact input and uses the competition's single oracle. The

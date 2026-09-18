@@ -11,7 +11,7 @@
 
 <section class="framework-overview" aria-label="Verification bounds">
   <p class="section-intro">Build an OTS that is cheaper to verify, or prove that a lower cost is
-  impossible in one of three lower-bound frameworks.</p>
+  impossible.</p>
   <article class="generic-upper-card" aria-labelledby="generic-upper-title">
     <div>
       <h3 id="generic-upper-title"><a href="/rules#generic-upper">Upper bound</a></h3>
@@ -31,7 +31,7 @@
       {% if riscv_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
       {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
     </div>
-    <div class="upper-score"><span class="muted">Accepting verification cost ↓</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>virtual cycles</span></div>
+    <div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>cycles</span></div>
   </article>
   {% endif %}
   <div class="framework-cards">
@@ -61,32 +61,36 @@
 </section>
 
 <section class="dashboard" aria-labelledby="dash-title">
-  <div class="section-heading"><h2 id="dash-title">Bounds over time</h2><span class="muted">Lower ↑ · Upper ↓</span></div>
-  <ul class="chart-legend" aria-label="Chart series">
-    {% for s in chart.series %}
-    <li class="f-{{ s.framework }} {{ s.kind }}{% if s.baseline is none %} pending{% endif %}"><span class="series-swatch" aria-hidden="true"></span>{{ s.label }}{% if s.baseline is none %}<span class="muted"> · pending</span>{% endif %}</li>
-    {% endfor %}
-  </ul>
-  <figure class="chart">
-    <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
-    <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption>Lower records are separate for each framework. The orange line shows the upper bound.
-    Hover or focus a record for details; select it to open the submission.</figcaption>
-  </figure>
-  <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
+  <div class="section-heading"><h2 id="dash-title">Bounds over time</h2>
+    {% if riscv_chart %}<div class="seg chart-switch" role="group" aria-label="Chart">
+      <button type="button" class="chart-btn" data-chart="compressions" aria-pressed="true">Compressions</button>
+      <button type="button" class="chart-btn" data-chart="cycles" aria-pressed="false">RISC-V cycles</button>
+    </div>{% endif %}
+  </div>
+  <div class="chart-panel" data-chart="compressions">
+    <ul class="chart-legend" aria-label="Chart series">
+      {% for s in chart.series %}
+      <li class="f-{{ s.framework }} {{ s.kind }}{% if s.baseline is none %} pending{% endif %}"><span class="series-swatch" aria-hidden="true"></span>{{ s.label }}{% if s.baseline is none %}<span class="muted"> · pending</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <figure class="chart">
+      <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
+      <div class="tooltip" id="tooltip" hidden></div>
+      <figcaption>Lower records are separate for each framework. The orange line shows the upper bound.
+      Hover or focus a record for details; select it to open the submission.</figcaption>
+    </figure>
+    <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
+  </div>
+  {% if riscv_chart %}
+  <div class="chart-panel riscv-dashboard" data-chart="cycles" hidden>
+    <figure class="chart" data-points="riscv-chart-points">
+      <div class="chart-plot" tabindex="0" aria-label="RISC-V chart; scroll horizontally on small screens">{{ riscv_chart.svg|safe }}</div>
+      <div class="tooltip" hidden></div>
+    </figure>
+    <script id="riscv-chart-points" type="application/json">{{ riscv_chart.points|safe }}</script>
+  </div>
+  {% endif %}
 </section>
-
-{% if riscv_chart %}
-<section class="dashboard riscv-dashboard" aria-labelledby="riscv-dash-title">
-  <div class="section-heading"><h2 id="riscv-dash-title">RISC-V cost over time</h2><span class="muted">Upper ↓</span></div>
-  <figure class="chart" data-points="riscv-chart-points">
-    <div class="chart-plot" tabindex="0" aria-label="RISC-V chart; scroll horizontally on small screens">{{ riscv_chart.svg|safe }}</div>
-    <div class="tooltip" hidden></div>
-    <figcaption>Certified accepting cost in virtual cycles. This chart has its own scale.</figcaption>
-  </figure>
-  <script id="riscv-chart-points" type="application/json">{{ riscv_chart.points|safe }}</script>
-</section>
-{% endif %}
 
 <section class="boards" aria-labelledby="board-title">
   <div class="board-panel">

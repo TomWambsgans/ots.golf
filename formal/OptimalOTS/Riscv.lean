@@ -7,7 +7,7 @@ import OptimalOTS.RiscvMachine
 The signature is its transmitted bit string. The implementation proof identifies the
 machine's complete oracle computation with the supplied Lean verifier, preserving queries,
 randomness, and their compression costs. Every execution terminates; only accepting
-executions are ranked by virtual cycles. No sampled benchmark is an admission requirement.
+executions are ranked by cycles. No sampled benchmark is an admission requirement.
 -/
 
 namespace OptimalOTS.Riscv

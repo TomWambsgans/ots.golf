@@ -1,6 +1,6 @@
 # RISC-V verification track
 
-The second upper track scores a proved upper bound on the virtual cycles of **every accepting
+The second upper track scores a proved upper bound on the cycles of **every accepting
 execution**, for every public key, message, signature, and oracle-answer path. Rejecting executions
 must terminate and agree with the specification; their cycle counts are unscored.
 
@@ -16,7 +16,7 @@ a fixed assembly image, and an input-dependent fuel bound witnessing termination
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
   queries and randomness. Faults and fuel exhaustion are excluded on every input.
-- At most `C` virtual cycles on each accepting execution. The bound need not be attained.
+- At most `C` cycles on each accepting execution. The bound need not be attained.
 
 `implemented_secure` and `implemented_admissible` transport security and admissibility to the
 machine verifier. The security experiment continues to count hash compressions for all parties;
@@ -26,12 +26,12 @@ the new score also counts the verifier's ordinary instructions. No sampled bench
 
 [`RiscvMachine.lean`](../formal/OptimalOTS/RiscvMachine.lean) uses the RV64IM subset provided by
 [`riscv-zkvm` at `4634e41`](https://github.com/Verified-zkEVM/riscv-zkvm/tree/4634e41b229da4256e4a1f1688b94133fffa4af0).
-Each ordinary instruction costs one virtual cycle. Pseudo-instructions must be expanded.
+Each ordinary instruction costs one cycle. Pseudo-instructions must be expanded.
 The model fixes instruction costs rather than modeling a hardware pipeline.
 
 `ECALL` selects one of three operations using `t0` (`x5`):
 
-| `t0` | Operation | Arguments and result | Virtual cycles |
+| `t0` | Operation | Arguments and result | Cycles |
 |---:|---|---|---:|
 | 0 | HALT | `a0` is 0 for rejection or 1 for acceptance | 1 |
 | 1 | HASH | `a0`: input pointer; `a1`: bit length; `a2`: aligned 32-byte output pointer | `max(1, ceil(bits/512))` |
@@ -144,7 +144,7 @@ its refinement at 229113 cycles; `Program.lean` retains the fused reconstruction
 
 The official verifier accepts this root through the RISC-V challenge stub; its wall time is
 recorded in [the production review](production-readiness.md). The website presents the checked
-claim as a separate RISC-V upper track measured in virtual cycles, with a Satoshi-attributed local
+claim as a separate RISC-V upper track measured in cycles, with a Satoshi-attributed local
 demo fixture at zero improvement. The certificate's proof also belongs in `ots.golf-submissions`.
 
 ## Attribution

@@ -4,7 +4,7 @@ import Submissions.RiscvUpper.StructuredPure
 # Refinement with exact cycle accounting
 
 `Refines fuel s q c` states that the machine's observed decision from `s` is the oracle
-computation `q` and that every completed execution path costs at most `c` virtual cycles.
+computation `q` and that every completed execution path costs at most `c` cycles.
 The composition rules mirror the observation rules and add the cost of each region.
 -/
 

@@ -324,7 +324,7 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
                   generic_upper=upper, riscv_upper=riscv,
-                  riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="virtual cycles",
+                  riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
                       chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
                   chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())
 

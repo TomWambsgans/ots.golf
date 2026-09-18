@@ -48,6 +48,15 @@
     });
   });
 
+  var chartButtons = document.querySelectorAll('.chart-btn');
+  var chartPanels = document.querySelectorAll('.chart-panel');
+  chartButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      chartButtons.forEach(function (other) { other.setAttribute('aria-pressed', String(other === button)); });
+      chartPanels.forEach(function (panel) { panel.hidden = panel.dataset.chart !== button.dataset.chart; });
+    });
+  });
+
   var buttons = document.querySelectorAll('.seg-btn');
   var panels = document.querySelectorAll('.board-track');
   function show(kind, updateUrl) {

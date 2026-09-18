@@ -25,7 +25,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
         machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=24053,
-                       cost_unit='virtual cycles', submission_root='formal/Submissions/RiscvUpper')
+                       cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
         self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
         for framework in self.config['frameworks']:
@@ -58,27 +58,33 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 24053 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(24053, 'satoshi-nakamoto', 'virtual cycles')])
+                         [(324053, 'hal-finney', 'cycles'), (229113, 'vitalik-buterin', 'cycles'),
+                          (214053, 'hal-finney', 'cycles'), (59393, 'vitalik-buterin', 'cycles'),
+                          (32053, 'vitalik-buterin', 'cycles'), (24053, 'satoshi-nakamoto', 'cycles')])
+        self.assertIn('class="chart-btn" data-chart="cycles"', html)
+        self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
         self.assertIn('id="riscv-upper-title"', html)
+        self.assertNotIn('lower-bound frameworks.</p>', html)
+        self.assertNotIn('Accepting verification cost', html)
         self.assertIn('id="riscv-upper-board-title"', html)
         self.assertIn('id="generic-upper-title"', html)
         self.assertEqual(len(re.findall('class="framework-card ', html)), 3)
         charts = [ET.fromstring(svg) for svg in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)]
-        self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'virtual cycles'])
+        self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'cycles'])
         self.assertEqual(charts[1].find('./g').get('data-series'), 'riscv-upper')
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))
-        sub = self.session.get(Submission, machine[0]['id'])
+        sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('24053 virtual cycles', detail)
+        self.assertIn('24053 cycles', detail)
         self.assertIn('every accepting execution', detail)
         self.assertIn('href="/rules#riscv-upper"', detail)
         self.assertIn('Verification status: unverified.', detail)
         self.assertNotIn('s-verified', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertIn('RISC-V upper bound</a>', profile)
-        self.assertIn('virtual cycles', profile)
+        self.assertIn('cycles', profile)
 
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['generic-upper']
@@ -98,15 +104,18 @@ class RiscvTrackTests(unittest.TestCase):
                   for s in self.session.scalars(select(Submission))}
         self.assertEqual(len(before), 26)
         self.config['upper_tracks'].append('riscv-upper')
-        self.assertEqual(seed_demo.refresh(self.session), 1)
+        self.assertEqual(seed_demo.refresh(self.session), 7)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 27)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 33)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)
-        machine = self.session.scalar(select(Submission).where(Submission.track == 'riscv-upper'))
+        rows = list(self.session.scalars(select(Submission).where(Submission.track == 'riscv-upper')))
+        self.assertEqual(len(rows), 7)
+        machine = min(rows, key=lambda r: r.claim)
         self.assertEqual(machine.claim, contract.riscv_upper_track()['baseline'])
         self.assertEqual(machine.detail_dict['improvement'], 0)
+        self.assertTrue(machine.is_record)
 
     def test_rules_state_accepting_bound_and_total_spec_refinement_without_scores(self):
         html = self.client.get('/rules').text

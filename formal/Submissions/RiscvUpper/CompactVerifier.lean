@@ -6,7 +6,7 @@ import Submissions.RiscvUpper.DecoderExecution
 # Exact refinement of the compact machine image
 
 The compact image observes exactly the certified raw-signature verifier, preserving every oracle
-query, and every accepting run costs at most `cycleBound` virtual cycles: one cycle per executed
+query, and every accepting run costs at most `cycleBound` cycles: one cycle per executed
 instruction, with the 912-bit root hash charged two.
 -/
 

@@ -145,7 +145,7 @@ class VerifierTests(unittest.TestCase):
         track = next(t for t in self.cfg["tracks"] if t["slug"] == "riscv-upper")
         self.assertIn("riscv-upper", self.cfg["upper_tracks"])
         self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
-                         ("upper", "generic", "virtual cycles"))
+                         ("upper", "generic", "cycles"))
         self.assertFalse(any("upper_track" in f for f in self.cfg["frameworks"]))
         template = self.root / track["challenge_template"]
         template.parent.mkdir(parents=True, exist_ok=True)

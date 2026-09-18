@@ -191,7 +191,7 @@
       "kind": "upper",
       "direction": "-",
       "baseline": 24053,
-      "cost_unit": "virtual cycles",
+      "cost_unit": "cycles",
       "submission_root": "formal/Submissions/RiscvUpper",
       "module_prefix": "Submissions.RiscvUpper",
       "solution_module": "Submissions.RiscvUpper.Solution",

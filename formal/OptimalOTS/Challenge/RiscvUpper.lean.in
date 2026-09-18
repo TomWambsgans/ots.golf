@@ -8,7 +8,7 @@ namespace OptimalOTS.Challenge.RiscvUpper
 noncomputable def submission : Riscv.Submission := sorry
 
 /-- Correctness, signing availability, resource limits, 127-bit strong security, exact machine
-refinement on every input, and at most `{{CLAIM}}` virtual cycles on every accepting path. -/
+refinement on every input, and at most `{{CLAIM}}` cycles on every accepting path. -/
 theorem certificate : submission.Certificate {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.RiscvUpper

@@ -283,7 +283,7 @@ queue protocol. Review those constraints before changing the deployment topology
 ## RISC-V upper bound track certified and admitted (2026-09-18)
 
 `formal/Submissions/RiscvUpper/` now holds a complete `Riscv.Submission.Certificate` at
-**229113 virtual cycles**: the fixed-layout forest OTS, its 114557-instruction RV64IM verifier
+**229113 cycles**: the fixed-layout forest OTS, its 114557-instruction RV64IM verifier
 image, a proof that the image's complete oracle computation equals the certified Lean verifier on
 every public key, message and raw signature bit string (so every execution terminates, including
 rejections, with the specified queries in the specified order), and the accepting-execution cycle
@@ -293,7 +293,7 @@ The proof map is in [the track notes](riscv-upper.md).
 
 The metadata now admits two upper tracks through top-level `upper_tracks`
 (`generic-upper`, `riscv-upper`); the three frameworks classify lower bounds only, and
-`frameworks.generic.upper_track` was removed. The new track has `cost_unit` "virtual cycles",
+`frameworks.generic.upper_track` was removed. The new track has `cost_unit` "cycles",
 baseline 229113, the RISC-V challenge stub and comparator configuration as protected files, and
 imports limited to `Mathlib`, `VCVio`, `OptimalOTS.{Statement,Algorithm,RiscvMachine,Riscv}`
 plus siblings. The new 26-file pin is
@@ -348,7 +348,7 @@ per chain level, and assembles the tree inputs in a scratch buffer. The image ha
 instructions and the same 70272-byte decoder table. `CompactVerifier.image_refines` proves
 `Riscv.Refines 24058 (initialState image pk m bits) (some <$> directVerify pk m bits) 24053`:
 the observed oracle computation equals the certified verifier on every input, so every
-execution terminates, and every terminating execution costs at most **24053 virtual cycles**
+execution terminates, and every terminating execution costs at most **24053 cycles**
 (one per instruction, two for the 912-bit root hash; guarded blocks and the 14619-instruction
 decoder are charged in full). `Solution.lean` exports the certificate at 24053 with `claim.txt`
 24053, using only `propext`, `Classical.choice` and `Quot.sound`. The proof map is in
@@ -356,8 +356,20 @@ decoder are charged in full). `Solution.lean` exports the certificate at 24053 w
 as references.
 
 `challenges.json` sets the `riscv-upper` baseline to 24053; the protected pin was regenerated and
-the contract id is now `0bb4dcd5b2cafa898516b79c464b5f75fb862e35c76d8c7824e779892ca4ae95`. The
+the cost unit is now simply "cycles" in the contract docstrings, the metadata, the website and the docs,
+the RISC-V chart lost its redundant caption, and the contract id is
+`2604d3fe599b404cc4c285f96c2ba984f6bd83b38254480238514f4b59d50e03`. The
 Satoshi demo fixture keeps zero improvement, so the local preview shows the new baseline. The
 official verifier accepted `riscv-upper` at 24053 in 353.6 seconds on macOS
 (`/private/tmp/ots-riscv-compact.log`); the policy check reports 79 files and 1,086,640 bytes.
 61 verifier tests, 75 service tests and 7 tooling tests pass. Nothing was pushed or deployed.
+
+The front page was trimmed at the same time: one chart area shows compressions by default with a
+segmented switch to the RISC-V cycles chart, the chart headings lost their direction hints and
+the RISC-V caption, the tagline no longer mentions the three frameworks, and the RISC-V card
+says "Verification cost", and the rules page frames the objective as the worst-case verification
+cost in compressions or RISC-V cycles rather than compressions alone. Six fictional RISC-V rows give that chart a history: Hal Finney and
+Vitalik Buterin trade records from 324053 down to 32053 cycles with one non-record attempt, and
+Satoshi's zero-improvement record stays the current one, so the demo now seeds 33 rows with every
+track admitted. The Firefox audit passes with the switch exercised
+(`/private/tmp/ots-ui-cycles/`).

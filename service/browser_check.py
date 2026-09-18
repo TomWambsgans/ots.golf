@@ -213,11 +213,16 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js(f'return document.querySelectorAll(".chart-series[data-kind=upper]").length === {2 if riscv_enabled else 1} && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
     if riscv_enabled:
         riscv_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'riscv-upper')
-        assert js('return [...document.querySelectorAll(".lb-table[data-track=riscv-upper] .lb-row")].map(r => Number(r.dataset.score));') == [riscv_claim]
-        assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("riscv-chart-points").textContent).every(p => p.unit === "virtual cycles");')
+        assert min(js('return [...document.querySelectorAll(".lb-table[data-track=riscv-upper] .lb-row")].map(r => Number(r.dataset.score));')) == riscv_claim
+        assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("riscv-chart-points").textContent).every(p => p.unit === "cycles");')
+        assert js('return document.querySelector(".riscv-dashboard").hidden && !document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
+        js('document.querySelector(".chart-btn[data-chart=cycles]").click(); return true;')
+        assert js('return !document.querySelector(".riscv-dashboard").hidden && document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
         js('document.querySelector(".riscv-dashboard .chart-record").focus(); return true;')
-        assert js('return !document.querySelector(".riscv-dashboard .tooltip").hidden && document.querySelector(".riscv-dashboard .tooltip").textContent.includes("virtual cycles");')
+        assert js('return !document.querySelector(".riscv-dashboard .tooltip").hidden && document.querySelector(".riscv-dashboard .tooltip").textContent.includes("cycles");')
         js('document.activeElement.blur(); return true;')
+        (output / 'riscv-chart.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
+        js('document.querySelector(".chart-btn[data-chart=compressions]").click(); return true;')
     js('document.documentElement.dataset.theme = "light"; document.getElementById("dash-title").scrollIntoView(); return true;')
     (output / 'chart-light.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
     print('Desktop chart, direction toggle, sorting, and keyboard tooltip passed')

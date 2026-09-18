@@ -21,9 +21,10 @@
     <div class="more prose">
       <span id="legacy-certificates"></span>
       <p>A one-time signature scheme has public-key and signature sizes, a security level, and
-      costs for key generation, signing and verification. We measure those costs in
-      <a href="#hash">hash compressions</a>. We fix the following requirements and ask how few
-      compressions verification can require in the worst case.</p>
+      costs for key generation, signing and verification, measured in
+      <a href="#hash">hash compressions</a>. We fix the following requirements and ask how cheap
+      verification can be in the worst case{% if riscv_upper_track %}: in compressions for any
+      algorithm, or in cycles for a RISC-V implementation{% endif %}.</p>
       <table class="params" id="params">
         <caption class="visually-hidden">Fixed requirements and the verification objective</caption>
         <thead><tr><th scope="col">Parameter</th><th scope="col">Requirement</th></tr></thead>
@@ -34,7 +35,7 @@
           <tr><th scope="row">Key generation</th><td>At most 1,024 compressions</td></tr>
           <tr><th scope="row">Signing</th><td>At most 2<sup>21</sup> compressions</td></tr>
           <tr><th scope="row">Security</th><td>127 bits</td></tr>
-          <tr><th scope="row">Verification</th><td><strong>Minimize worst-case compressions</strong></td></tr>
+          <tr><th scope="row">Verification</th><td><strong>Minimize the worst-case cost</strong>{% if riscv_upper_track %}, in compressions or RISC-V cycles{% endif %}</td></tr>
         </tbody>
       </table>
       <p id="tracks">{% if riscv_upper_track %}Each track requires{% else %}There are two tracks, both requiring{% endif %} a Lean-kernel-checked proof:</p>
@@ -91,7 +92,7 @@
       verifier. Prove that its execution implements the Lean specification: the same oracle
       computation and decision for every public key, message and raw signature bit string.
       Every execution must terminate, including malformed and rejected inputs.</p>
-      <p>The claim bounds <strong>virtual cycles on every accepting execution</strong>, for every
+      <p>The claim bounds <strong>cycles on every accepting execution</strong>, for every
       input, oracle answer and random choice. Each ordinary instruction, randomness call and halt
       costs one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
       an <code>n</code>-bit input, with no additional instruction charge. It uses the same random
@@ -102,7 +103,7 @@
       <code>HASH</code> reads the input pointer and bit length from <code>a0</code> and <code>a1</code>,
       then writes 256 output bits at the aligned pointer in <code>a2</code>.
       The image contains at most 262,144 instructions and 1 MiB of initial data.
-      These virtual cycles measure the specified machine, independently of processor hardware.</p>
+      These cycles measure the specified machine, independently of processor hardware.</p>
     </div>
   </details>
   {% endif %}

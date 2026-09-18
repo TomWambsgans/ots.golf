@@ -41,7 +41,7 @@ theorem submission_cost : submission.AcceptCostAtMost 24053 := by
   intro pk m bits cycles accepted
   exact (RiscvUpperProgram.Compact.image_refines pk m bits).2 true cycles accepted
 
-/-- Every requirement of a scored RISC-V submission, at 24053 virtual cycles. -/
+/-- Every requirement of a scored RISC-V submission, at 24053 cycles. -/
 theorem machineCertificate : submission.Certificate 24053 :=
   ⟨submission_admissible, submission_secure, submission_implements, submission_cost⟩
 

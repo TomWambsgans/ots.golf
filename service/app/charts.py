@@ -48,7 +48,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
         return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
     chart_id = escape(chart_id)
-    description = ("Certified bounds on accepting executions. Smaller is better. " if unit == "virtual cycles" else
+    description = ("Certified bounds on accepting executions. Smaller is better. " if unit == "cycles" else
                    "Lower bounds rise and upper bounds fall. Each lower framework has its own series. ")
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" data-unit="{escape(unit)}" '
            f'aria-labelledby="{chart_id}-title {chart_id}-desc">',
@@ -58,7 +58,8 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
         out.append(f'<line class="grid" x1="{ML}" x2="{W - MR}" y1="{y:.1f}" y2="{y:.1f}"/>')
-        out.append(f'<text class="tick" x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end">{v}</text>')
+        label = f"{v // 1000}k" if v >= 10000 and v % 1000 == 0 else str(v)
+        out.append(f'<text class="tick" x="{ML - 8}" y="{y + 4:.1f}" text-anchor="end">{label}</text>')
     out.append(f'<line class="axis" x1="{ML}" x2="{W - MR}" y1="{H - bottom_margin}" y2="{H - bottom_margin}"/>')
     for t in _time_ticks(t0, t1):
         out.append(f'<text class="tick" x="{sx(t):.1f}" y="{H - bottom_margin + 20}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')

@@ -39,10 +39,10 @@ filters those lower tables only. Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
 three lower frameworks. `generic-upper` is “Upper bound”, measured in compressions. `riscv-upper`
-is “RISC-V upper bound”, measured in virtual cycles on accepting executions; every execution
+is “RISC-V upper bound”, measured in cycles on accepting executions; every execution
 must still terminate and refine the Lean oracle specification. Render the second card, chart,
 leaderboard and rules section only after its checked certificate is pinned and admitted. Its chart
-has an independent cycle axis: never combine virtual cycles with compression bounds. The
+has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
 Preserve all existing demo entries. The additional Satoshi RISC-V fixture has zero improvement

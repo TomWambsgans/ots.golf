@@ -252,6 +252,66 @@
       "co_authors": []
     },
     {
+      "id": "riscv-upper-hal-finney-110",
+      "track": "riscv-upper",
+      "login": "hal-finney",
+      "improvement": -300000,
+      "hours_ago": 110,
+      "is_record": true,
+      "assisted_by": "ELIZA",
+      "co_authors": []
+    },
+    {
+      "id": "riscv-upper-vitalik-buterin-96",
+      "track": "riscv-upper",
+      "login": "vitalik-buterin",
+      "improvement": -205060,
+      "hours_ago": 96,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "riscv-upper-hal-finney-72",
+      "track": "riscv-upper",
+      "login": "hal-finney",
+      "improvement": -190000,
+      "hours_ago": 72,
+      "is_record": true,
+      "assisted_by": "ELIZA",
+      "co_authors": []
+    },
+    {
+      "id": "riscv-upper-vitalik-buterin-44",
+      "track": "riscv-upper",
+      "login": "vitalik-buterin",
+      "improvement": -35340,
+      "hours_ago": 44,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "riscv-upper-hal-finney-30",
+      "track": "riscv-upper",
+      "login": "hal-finney",
+      "improvement": -40000,
+      "hours_ago": 30,
+      "is_record": false,
+      "assisted_by": "ELIZA",
+      "co_authors": []
+    },
+    {
+      "id": "riscv-upper-vitalik-buterin-14",
+      "track": "riscv-upper",
+      "login": "vitalik-buterin",
+      "improvement": -8000,
+      "hours_ago": 14,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
       "id": "riscv-upper-satoshi-nakamoto-2",
       "track": "riscv-upper",
       "login": "satoshi-nakamoto",

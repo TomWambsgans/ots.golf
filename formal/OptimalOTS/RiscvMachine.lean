@@ -5,8 +5,8 @@ import RiscvZkvm.Rv64
 # The competition's RISC-V machine
 
 RV64IM instructions use the pinned `riscv-zkvm` semantics. Each ordinary instruction,
-including HALT, costs one virtual cycle. HASH costs `blockCost paperParams` on its exact
-bit-string input. RANDOM supplies a fresh uniform 64-bit word for one virtual cycle.
+including HALT, costs one cycle. HASH costs `blockCost paperParams` on its exact
+bit-string input. RANDOM supplies a fresh uniform 64-bit word for one cycle.
 These are the only system calls. Code and initial data are finite, fixed parts of the image.
 
 The oracle boundary and counted execution follow Derek Sorensen's `xmss-verify-asm`
