@@ -54,7 +54,10 @@ Keep the rules concise and independent of current scores, candidate results and 
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
 use titled sections that are all collapsed on a fresh visit, beginning with “What is a one-time
 signature?”. Teach the concepts before the exact requirements, and keep diagrams inside the
-relevant sections. Preserve direct links that open the requested section. Whole words uses independent
+relevant sections. Combine overlapping topics and keep introductory explanations brief, linking
+to reliable background reading (such as Wikipedia for Lamport and the RFC for WOTS+) instead of
+repeating tutorials. Keep competition-specific requirements on the page. Preserve direct links
+that open the requested section. Whole words uses independent
 128-bit sources, 256-bit hash outputs with two selectable halves, and concatenation of whole-word
 sequences. Concatenations can reorder, repeat or be empty; no other deterministic operations,
 smaller fragments or encodings are admitted. Literal constant words cannot be introduced by a
@@ -77,3 +80,8 @@ Use `browser_check.py` for repeatable Firefox checks of the seeded local preview
 visible before scores and on submission/profile pages; fictional rows must not present kernel
 verification badges or fabricated commit links. A passing macOS proof check does not establish
 production sandbox safety.
+
+Keep the homepage headline “Think one-time signatures are easy? Prove it.” and the mandala at
+80% of its containing column's width. Keep the homepage concise: the generic upper card shows
+its linked title, candidate/admission status and cost; detailed requirements belong in the rules.
+Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”

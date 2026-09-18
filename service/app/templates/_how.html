@@ -1,50 +1,31 @@
-{# Shared oracle, cost and security rules; every topic is collapsed by default. #}
+{# Competition-specific oracle, cost and security rules. #}
 <details id="hash">
-  <summary><h2>How does the hash oracle work?</h2></summary>
+  <summary><h2>What are the hash and cost rules?</h2></summary>
   <div class="more prose">
-    <p>A <strong>random oracle</strong> is an idealized hash function. Give it a bit string it has
-    never seen, and it returns an independent, uniformly random 256-bit answer. Ask again with
-    the same input, and it returns the same answer.</p>
-    <p>Every party uses this one oracle, including the attacker. It has no built-in labels or
-    domain separation: equal inputs receive equal answers, even when used for different purposes.
-    A scheme may add distinguishing bits to its inputs, but pays for those bits.</p>
-  </div>
-</details>
-<details id="cost">
-  <summary><h2>What does one unit of cost mean?</h2></summary>
-  <div class="more prose">
-    <p>One unit is a <strong>compression</strong>: processing a started 512-bit input block.
-    Hashing up to 512 bits costs one; hashing 513 bits costs two. Every query costs at least one,
-    even if its input is empty or has already been queried.</p>
-    <p>Count the complete input, including any distinguishing bits. Deterministic computation and
-    randomness are free for every party, including the attacker. Cost bounds are worst-case over
-    every execution path, not averages over typical runs.</p>
-  </div>
-</details>
-<details id="security">
-  <summary><h2>What does 127-bit security mean here?</h2></summary>
-  <div class="more prose">
-    <p>The attacker sees the public key, may query the oracle, requests one signature on a chosen
-    message, then attempts a forgery. Security bounds the probability that the verifier accepts it.</p>
-    <p>If the whole experiment costs at most <code>B</code> compressions on every run, forgery
-    success must have probability strictly below <code>B / 2<sup>127</sup></code>. This budget
-    includes key generation, signing, the attacker's queries and final verification.</p>
-    <p>Upper bounds require <strong>strong unforgeability</strong>: any accepted message/signature
-    pair different from the signed pair counts as a forgery. Lower bounds assume the weaker
-    requirement that only forgeries on an unsigned message count. If signing fails, any accepted
-    pair counts in either experiment.</p>
-  </div>
-</details>
-<details id="params">
-  <summary><h2>Which sizes and resource limits are fixed?</h2></summary>
-  <div class="more prose">
-    <table class="params">
+    <p>All parties share one random oracle: each new input bit string gets an independent uniform
+    256-bit answer; repeated inputs get the same answer. There are no implicit labels or domain
+    separation. Hashing is the only cryptographic primitive.</p>
+    <p id="cost">A <strong>compression</strong> costs one unit per started 512-bit input block,
+    with a minimum of one, even for empty or repeated queries. Explicit distinguishing bits count
+    as input. Deterministic computation and randomness are free, including for the attacker.
+    Every cost bound is worst-case over all execution paths.</p>
+    <table class="params" id="params">
       <caption class="visually-hidden">Resource limits shared by all frameworks</caption>
       <tr><th scope="row">Public key / message</th><td>128 / 256 bits</td></tr>
       <tr><th scope="row">Signature</th><td>At most 5,504 bits</td></tr>
       <tr><th scope="row">Key generation / signing</th><td>At most 1,024 / 2<sup>21</sup> compressions</td></tr>
     </table>
-    <p>For DAGs, the signature budget is a 256-bit nonce plus at most 5,248 revealed bits.
-    Generic algorithms may use any signature format within the same total size.</p>
+  </div>
+</details>
+<details id="security">
+  <summary><h2>What does 127-bit security mean here?</h2></summary>
+  <div class="more prose">
+    <p>The attacker sees the public key, may query the oracle, requests one chosen-message
+    signature, then attempts a forgery. For every budget <code>B</code> covering the whole
+    experiment on every run, success must be strictly below <code>B / 2<sup>127</sup></code>.
+    Include key generation, signing, the attacker's queries and final verification.</p>
+    <p>Upper bounds require <strong>strong unforgeability</strong>: any accepted pair different
+    from the signed pair counts. Lower bounds count only accepted forgeries on an unsigned message.
+    If signing fails, any accepted pair counts in either experiment.</p>
   </div>
 </details>

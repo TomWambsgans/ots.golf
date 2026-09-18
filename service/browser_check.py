@@ -225,7 +225,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
         assert js('return document.querySelector("#' + anchor + '").closest("details").open;')
     js('document.querySelectorAll("details").forEach(d => d.open = true); return true;')
     assert js('return [...document.querySelectorAll(".rules-diagram svg")].every(s => document.getElementById(s.getAttribute("aria-labelledby").split(" ")[0]));')
-    assert js('return document.querySelector("#cut").open;')
+    assert js('return document.querySelector("#cut").closest("details").open;')
     assert_rules_have_no_scores(js('return document.querySelector("main").innerText;'), config)
     print('Rules visible words:', js(r'return document.querySelector("main").innerText.trim().split(/\s+/).length;'))
     js('window.scrollTo(0, 0); return true;')
