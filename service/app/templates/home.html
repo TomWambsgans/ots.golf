@@ -27,8 +27,7 @@
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
       <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
       {% if model.slug == 'generic' %}
-      <p>Any oracle algorithm. Honest signatures verify; signing succeeds at least half the time.
-      No required graph or disclosure cut.</p>
+      <p>Any oracle algorithm.</p>
       {% elif model.slug == 'dag' %}
       <p>A fixed graph with arbitrary deterministic functions. Reveal a cut; recompute the public key.</p>
       {% else %}
