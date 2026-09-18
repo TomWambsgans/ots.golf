@@ -1,7 +1,7 @@
 """Phony leaderboard data for local development.
 
-Adds two invented solvers (parody names, generated avatars) with verified submissions and
-records over the past week, so the leaderboard, the chart and the tiles have something to show.
+Loads versioned demo/submissions.json into a local database. The fictional submissions
+exercise record presentation; their rendered verification status remains unverified.
 Everything it adds is marked with `detail = {"demo": true}` and `--remove` deletes it again. The
 repository baselines and their `ots-golf` user are removed from the board (re-queue them with
 `python -m app.queue <track> --baseline` when needed).
@@ -17,6 +17,7 @@ import hashlib
 import json
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from sqlalchemy import select
@@ -27,33 +28,25 @@ from app.db import Base, Submission, User, engine, SessionLocal, utcnow
 DEMO = {"demo": True}
 NOW = utcnow().replace(microsecond=0)
 
-# login, display name, avatar colour, initials
-PEOPLE = [
-    ("satoshi-nakamoto", "Satoshi Nakamoto", "#e2792e", "SN"),
-    ("vitalik-buterin", "Vitalik Buterin", "#6d5ce7", "VB"),
-]
+FIXTURE_PATH = Path(__file__).with_name("demo") / "submissions.json"
+FIXTURES = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+if FIXTURES["version"] != 1:
+    raise ValueError("unsupported demo fixture version")
+PEOPLE = [(p["login"], p["name"], p["colour"], p["initials"]) for p in FIXTURES["people"]]
+# Only finished rows: the worker must never attempt to verify fictional submissions.
+ROWS = [(r["track"], r["login"], r["improvement"], r["hours_ago"], "verified",
+         r["is_record"], r["assisted_by"], r["co_authors"]) for r in FIXTURES["submissions"]]
+FIXTURE_IDS = {(r[0], r[1], r[3]): fixture["id"]
+               for r, fixture in zip(ROWS, FIXTURES["submissions"])}
+if len(set(FIXTURE_IDS.values())) != len(ROWS) or len(FIXTURE_IDS) != len(ROWS):
+    raise ValueError("demo fixtures must have unique IDs and dates per author/track")
+BASE_ROWS = [r for r in ROWS if r[0] in {"upper", "lower"}]
+GENERIC_ROWS = [r for r in ROWS if r[0] == "generic-lower"]
+GENERIC_UPPER_ROWS = [r for r in ROWS if r[0] == "generic-upper"]
 
-# track, login, improvement over baseline, hours ago, status, is_record, assisted_by, co_authors
-# (only finished rows: the worker would try to verify anything pending)
-BASE_ROWS = [
-    ("upper", "satoshi-nakamoto", 1, 6 * 24 + 5, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 2, 4 * 24 + 11, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 3, 3 * 24 + 2, "verified", True, "GPT-2", []),
-    ("upper", "vitalik-buterin", 2, 2 * 24 + 7, "verified", False, "LLaMA 7B", []),
-    ("upper", "vitalik-buterin", 5, 26, "verified", True, "LLaMA 7B", []),
-    ("upper", "satoshi-nakamoto", 4, 10, "verified", False, "GPT-2", []),
-    ("lower", "vitalik-buterin", 1, 5 * 24 + 3, "verified", True, "LLaMA 7B", []),
-    ("lower", "satoshi-nakamoto", 2, 2 * 24 + 1, "verified", True, "GPT-2", []),
-    ("lower", "vitalik-buterin", 1, 22, "verified", False, "LLaMA 7B", []),
-]
-# The generic proof is shown as a normal submission with fictional Vitalik attribution.
-# Zero offset keeps its claim equal to the checked repository result when that result changes.
-GENERIC_ROWS = [("generic-lower", "vitalik-buterin", 0, 20, "verified", True, "LLaMA 7B", [])]
-GENERIC_UPPER_ROWS = [
-    ("generic-upper", "vitalik-buterin", 0, 18, "verified", True, "LLaMA 7B", []),
-    ("generic-upper", "satoshi-nakamoto", 1, 6, "verified", True, "GPT-2", []),
-]
-ROWS = BASE_ROWS + [("disclosure-" + track, *rest) for track, *rest in BASE_ROWS] + GENERIC_ROWS + GENERIC_UPPER_ROWS
+
+def fixture_id(row) -> str:
+    return FIXTURE_IDS[(row[0], row[1], row[3])]
 
 
 def demo_claim(track: str, improvement: int) -> int:
@@ -62,21 +55,32 @@ def demo_claim(track: str, improvement: int) -> int:
 
 
 def refresh(session) -> int:
-    """Update demo numbers and seed missing track demos without replacing any existing row."""
+    """Reconcile committed fixtures without replacing existing rows or touching real submissions."""
     changed = 0
-    existing_tracks = set()
+    existing_ids = set()
     for sub in session.scalars(select(Submission)):
         detail = sub.detail_dict
         if detail.get("demo"):
-            existing_tracks.add(sub.track)
+            identifier = detail.get("fixture_id")
+            if identifier is None:
+                # Adopt rows made by earlier versions, preserving their identifiers and dates.
+                matches = [r for r in ROWS if (r[0], r[1], r[2], r[5], r[6]) ==
+                           (sub.track, sub.user.login, detail.get("improvement"),
+                            sub.is_record, sub.assisted_by)]
+                if len(matches) == 1:
+                    identifier = fixture_id(matches[0])
+                    detail["fixture_id"] = identifier
+                    sub.detail = json.dumps(detail)
+            if identifier:
+                existing_ids.add(identifier)
         if detail.get("demo") and "improvement" in detail and contract.track(sub.track):
             claim = demo_claim(sub.track, detail["improvement"])
             if sub.claim != claim:
                 sub.claim = claim
                 changed += 1
-    missing = {row[0] for row in ROWS} - existing_tracks
+    missing = [row for row in ROWS if fixture_id(row) not in existing_ids]
     if missing:
-        changed += add_rows(session, [row for row in ROWS if row[0] in missing])
+        changed += add_rows(session, missing)
     session.commit()
     return changed
 
@@ -130,7 +134,8 @@ def add_rows(session, rows) -> int:
                          created_at=t - timedelta(minutes=4), started_at=t - timedelta(minutes=3),
                          finished_at=t if status == "verified" else None,
                          duration_s=150.0 if status == "verified" else None,
-                         detail=json.dumps({**DEMO, "improvement": improvement}))
+                         detail=json.dumps({**DEMO, "improvement": improvement,
+                                            "fixture_id": FIXTURE_IDS[(track, login, hours_ago)]}))
         session.add(sub)
     return len(rows)
 

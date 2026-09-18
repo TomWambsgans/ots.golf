@@ -14,7 +14,8 @@ uv sync --frozen
 
 Open `http://localhost:8000`. Startup refreshes the fictional Satoshi Nakamoto and Vitalik Buterin
 submissions, preserving their IDs and dates. The page labels this as demo data. Claims follow the
-contract through the offsets in `seed_demo.py`; generic lower has a zero-offset Vitalik submission.
+contract through the offsets in the committed [demo fixtures](demo/submissions.json); generic lower
+has a zero-offset Vitalik submission. A fresh clone recreates the board without a database dump.
 Real submissions are left alone. Set `OTS_DEMO_DATA=0` to skip this refresh.
 
 After every local commit, refresh localhost and check the rendered page. This checkout's

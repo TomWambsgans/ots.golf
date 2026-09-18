@@ -210,6 +210,37 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
         self.assertEqual(len(list(self.session.scalars(select(Submission)))), 21)
 
+    def test_refresh_restores_one_missing_fixture_in_an_existing_track(self):
+        seed_demo.refresh(self.session)
+        sub = self.session.scalar(select(Submission).where(Submission.track == 'generic-upper'))
+        missing_fixture = sub.detail_dict['fixture_id']
+        self.session.delete(sub)
+        self.session.commit()
+        before = {s.id: (s.created_at, s.record_at) for s in self.session.scalars(select(Submission))}
+        self.assertEqual(seed_demo.refresh(self.session), 1)
+        self.assertEqual(seed_demo.refresh(self.session), 0)
+        rows = list(self.session.scalars(select(Submission)))
+        self.assertEqual(sum(s.detail_dict.get('fixture_id') == missing_fixture for s in rows), 1)
+        for s in rows:
+            if s.id in before:
+                self.assertEqual((s.created_at, s.record_at), before[s.id])
+
+    def test_refresh_adopts_old_demo_rows_without_replacing_them(self):
+        seed_demo.refresh(self.session)
+        before = {}
+        for sub in self.session.scalars(select(Submission)):
+            before[sub.id] = (sub.created_at, sub.record_at, sub.commit)
+            detail = sub.detail_dict
+            detail.pop('fixture_id')
+            sub.detail = json.dumps(detail)
+        self.session.commit()
+        self.assertEqual(seed_demo.refresh(self.session), 0)
+        rows = list(self.session.scalars(select(Submission)))
+        self.assertEqual(len(rows), len(before))
+        for sub in rows:
+            self.assertEqual((sub.created_at, sub.record_at, sub.commit), before[sub.id])
+            self.assertIn('fixture_id', sub.detail_dict)
+
     def test_baselines_render_without_records(self):
         html = self.client.get('/').text
         svg = self.chart_svg(html)

@@ -15,6 +15,9 @@ sig.golf/
 
 Run core commands from `ots.golf-dev/` and submission checks from `ots.golf-submissions/`.
 Start localhost with `bash service/run-local.sh` from the core repository.
+The [committed demo fixtures](../service/demo/submissions.json) populate a fresh local database
+automatically. They belong to the website in the core repository; checked proof submissions
+belong to `ots.golf-submissions`.
 
 The submissions workspace has a `.contract` submodule pinned to a core commit for local proof
 checking. Its PRs change one admitted root. The hosted verifier reads that root from the PR's exact

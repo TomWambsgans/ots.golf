@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "people": [
+    {
+      "login": "satoshi-nakamoto",
+      "name": "Satoshi Nakamoto",
+      "colour": "#e2792e",
+      "initials": "SN"
+    },
+    {
+      "login": "vitalik-buterin",
+      "name": "Vitalik Buterin",
+      "colour": "#6d5ce7",
+      "initials": "VB"
+    }
+  ],
+  "submissions": [
+    {
+      "id": "upper-satoshi-nakamoto-149",
+      "track": "upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 1,
+      "hours_ago": 149,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "upper-vitalik-buterin-107",
+      "track": "upper",
+      "login": "vitalik-buterin",
+      "improvement": 2,
+      "hours_ago": 107,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "upper-satoshi-nakamoto-74",
+      "track": "upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 3,
+      "hours_ago": 74,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "upper-vitalik-buterin-55",
+      "track": "upper",
+      "login": "vitalik-buterin",
+      "improvement": 2,
+      "hours_ago": 55,
+      "is_record": false,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "upper-vitalik-buterin-26",
+      "track": "upper",
+      "login": "vitalik-buterin",
+      "improvement": 5,
+      "hours_ago": 26,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "upper-satoshi-nakamoto-10",
+      "track": "upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 4,
+      "hours_ago": 10,
+      "is_record": false,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "lower-vitalik-buterin-123",
+      "track": "lower",
+      "login": "vitalik-buterin",
+      "improvement": 1,
+      "hours_ago": 123,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "lower-satoshi-nakamoto-49",
+      "track": "lower",
+      "login": "satoshi-nakamoto",
+      "improvement": 2,
+      "hours_ago": 49,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "lower-vitalik-buterin-22",
+      "track": "lower",
+      "login": "vitalik-buterin",
+      "improvement": 1,
+      "hours_ago": 22,
+      "is_record": false,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-satoshi-nakamoto-149",
+      "track": "disclosure-upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 1,
+      "hours_ago": 149,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-vitalik-buterin-107",
+      "track": "disclosure-upper",
+      "login": "vitalik-buterin",
+      "improvement": 2,
+      "hours_ago": 107,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-satoshi-nakamoto-74",
+      "track": "disclosure-upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 3,
+      "hours_ago": 74,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-vitalik-buterin-55",
+      "track": "disclosure-upper",
+      "login": "vitalik-buterin",
+      "improvement": 2,
+      "hours_ago": 55,
+      "is_record": false,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-vitalik-buterin-26",
+      "track": "disclosure-upper",
+      "login": "vitalik-buterin",
+      "improvement": 5,
+      "hours_ago": 26,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-upper-satoshi-nakamoto-10",
+      "track": "disclosure-upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 4,
+      "hours_ago": 10,
+      "is_record": false,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-lower-vitalik-buterin-123",
+      "track": "disclosure-lower",
+      "login": "vitalik-buterin",
+      "improvement": 1,
+      "hours_ago": 123,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-lower-satoshi-nakamoto-49",
+      "track": "disclosure-lower",
+      "login": "satoshi-nakamoto",
+      "improvement": 2,
+      "hours_ago": 49,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-lower-vitalik-buterin-22",
+      "track": "disclosure-lower",
+      "login": "vitalik-buterin",
+      "improvement": 1,
+      "hours_ago": 22,
+      "is_record": false,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "generic-lower-vitalik-buterin-20",
+      "track": "generic-lower",
+      "login": "vitalik-buterin",
+      "improvement": 0,
+      "hours_ago": 20,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "generic-upper-vitalik-buterin-18",
+      "track": "generic-upper",
+      "login": "vitalik-buterin",
+      "improvement": 0,
+      "hours_ago": 18,
+      "is_record": true,
+      "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "generic-upper-satoshi-nakamoto-6",
+      "track": "generic-upper",
+      "login": "satoshi-nakamoto",
+      "improvement": 1,
+      "hours_ago": 6,
+      "is_record": true,
+      "assisted_by": "GPT-2",
+      "co_authors": []
+    }
+  ]
+}
