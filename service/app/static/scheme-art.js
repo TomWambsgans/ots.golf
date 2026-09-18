@@ -1,5 +1,5 @@
 (function () {
-  // A fresh random signature on the necklace at load, and another one every two seconds: a uniform
+  // A fresh random signature in the iris at load, and another one every two seconds: a uniform
   // element of the scheme's disclosure family (Cuts.lean), the cuts of cost 105 with at most 41
   // revealed values, of three shapes (revealed subtrees, revealed groups, chain cost). The shape is
   // drawn by its share of the family, the digests uniformly, and the chain positions exactly
@@ -59,7 +59,37 @@
     });
   }
   light(sample());
-  if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
-    setInterval(function () { if (!document.hidden) light(sample()); }, 2000);
+  var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var aperture = svg.querySelector('[data-eye-aperture]');
+  var upperLid = svg.querySelector('.lid-upper'), lowerLid = svg.querySelector('.lid-lower');
+  var patternTimer, blinkTimer, frame;
+  function openEye(amount) {
+    var top = 280 - 310 * amount, bottom = 280 + 310 * amount;
+    var upper = 'M 22 280 C 196 ' + top + ' 664 ' + top + ' 838 280';
+    var lower = 'M 838 280 C 664 ' + bottom + ' 196 ' + bottom + ' 22 280';
+    aperture.setAttribute('d', upper + ' ' + lower + ' Z');
+    upperLid.setAttribute('d', upper); lowerLid.setAttribute('d', lower);
   }
+  function blink() {
+    var start;
+    function tick(now) {
+      if (start === undefined) start = now;
+      var elapsed = now - start;
+      // Close briskly, hold for an instant, then reopen gently. The iris stays still.
+      var amount = elapsed < 110 ? 1 - elapsed / 110 : elapsed < 150 ? 0 : Math.min(1, (elapsed - 150) / 190);
+      openEye(amount * amount * (3 - 2 * amount));
+      frame = elapsed < 340 ? requestAnimationFrame(tick) : undefined;
+    }
+    frame = requestAnimationFrame(tick);
+  }
+  function updateMotion() {
+    clearInterval(patternTimer); clearInterval(blinkTimer); cancelAnimationFrame(frame);
+    if (aperture) openEye(1);
+    if (motion.matches || document.hidden) return;
+    patternTimer = setInterval(function () { light(sample()); }, 2000);
+    if (aperture) blinkTimer = setInterval(blink, 10000);
+  }
+  motion.addEventListener('change', updateMotion);
+  document.addEventListener('visibilitychange', updateMotion);
+  updateMotion();
 })();

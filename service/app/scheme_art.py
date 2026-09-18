@@ -1,4 +1,4 @@
-"""The baseline scheme, drawn faithfully as a radial necklace.
+"""The forest scheme, drawn as the iris of an eye.
 
 Root at the center; 7 subtree digests around it; 3 group digests under each; 3 hash chains of 14
 beads under each group, radiating outward to their 63 secret sources. One real signature is lit on
@@ -15,9 +15,9 @@ from functools import lru_cache
 
 CHAINS, LEN, PER_G, PER_E, NUM_E = 63, 14, 3, 3, 7
 SHAPES = ((2, 3, 86), (1, 7, 86), (2, 4, 87))        # (|E|, |G|, chain cost); root 2 + digests + chains = 105
-SIZE = 1100
-CX = CY = SIZE / 2
-R_E, R_G, R_TIP, STEP = 78, 140, 200, 15.5   # radii; beads t=14..0 from R_TIP outward
+CX, CY = 430, 280
+# Leave space for the pupil while retaining the scheme's radial ordering.
+R_E, R_G, R_TIP, STEP = 73.64, 97.2, 120, 5.89
 
 
 def angle(chain: int) -> float:
@@ -82,10 +82,16 @@ def signature_cut(seed: int = 0x6f74732e676f6c66) -> dict:
 @lru_cache(maxsize=1)
 def svg() -> str:
     cut = signature_cut()
-    reach = R_TIP + LEN * STEP + 14                    # outermost source plus its diamond
     shapes = ";".join(f"{e},{g},{c}" for e, g, c in SHAPES)
-    out = [f'<svg viewBox="{CX - reach:.0f} {CY - reach:.0f} {2 * reach:.0f} {2 * reach:.0f}" class="scheme-art" '
-           f'data-len="{LEN}" data-shapes="{shapes}" aria-hidden="true" focusable="false">']
+    upper = 'M 22 280 C 196 -30 664 -30 838 280'
+    lower = 'M 838 280 C 664 590 196 590 22 280'
+    out = [f'<svg viewBox="0 0 860 560" class="scheme-art" '
+           f'data-len="{LEN}" data-shapes="{shapes}" aria-hidden="true" focusable="false">',
+           '<defs><clipPath id="mandala-eye-aperture">',
+           f'<path data-eye-aperture="" d="{upper} {lower} Z"/>',
+           '</clipPath></defs>',
+           '<g clip-path="url(#mandala-eye-aperture)">',
+           f'<circle class="iris-boundary" cx="{CX}" cy="{CY}" r="214"/>']
     edges, nodes = [], []
 
     def status_chain(k: int, t: int) -> str:
@@ -109,13 +115,13 @@ def svg() -> str:
             x, y = pts[t]
             st = status_chain(k, t)
             if t == 0:
-                s = 5.2
+                s = 2.4
                 nodes.append(f'<rect class="n src {st}" data-r="bead" data-k="{k}" data-t="{t}" x="{x - s:.1f}" '
                              f'y="{y - s:.1f}" width="{2 * s:.1f}" height="{2 * s:.1f}" '
                              f'transform="rotate(45 {x:.1f} {y:.1f})"/>')
             else:
                 nodes.append(f'<circle class="n bead {st}" data-r="bead" data-k="{k}" data-t="{t}" cx="{x:.1f}" '
-                             f'cy="{y:.1f}" r="4.3"/>')
+                             f'cy="{y:.1f}" r="1.85"/>')
         # tip -> group
         gx, gy = polar(R_G, angle(PER_G * j + 1))
         tx, ty = pts[LEN]
@@ -128,15 +134,17 @@ def svg() -> str:
         st = "revealed" if j in cut["revealed_g"] else ("recomputed" if j in cut["open_g"] else "untouched")
         est = "untouched" if l in cut["revealed_e"] else "recomputed"
         edges.append(f'<line class="e {est}" data-r="gedge" data-s="{l}" x1="{gx:.1f}" y1="{gy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}"/>')
-        nodes.append(f'<circle class="n g {st}" data-r="g" data-g="{j}" cx="{gx:.1f}" cy="{gy:.1f}" r="6.5"/>')
+        nodes.append(f'<circle class="n g {st}" data-r="g" data-g="{j}" cx="{gx:.1f}" cy="{gy:.1f}" r="3"/>')
     for l in range(NUM_E):
         ex, ey = polar(R_E, angle(PER_G * PER_E * l + 4))
         st = "revealed" if l in cut["revealed_e"] else "recomputed"
         edges.append(f'<line class="e recomputed" x1="{ex:.1f}" y1="{ey:.1f}" x2="{CX:.1f}" y2="{CY:.1f}"/>')
-        nodes.append(f'<circle class="n e {st}" data-r="s" data-s="{l}" cx="{ex:.1f}" cy="{ey:.1f}" r="8.5"/>')
-    nodes.append(f'<circle class="n root recomputed" cx="{CX:.1f}" cy="{CY:.1f}" r="13.5"/>')
-    nodes.append(f'<circle class="n clasp" cx="{CX:.1f}" cy="{CY:.1f}" r="21"/>')
+        nodes.append(f'<circle class="n e {st}" data-r="s" data-s="{l}" cx="{ex:.1f}" cy="{ey:.1f}" r="3.9"/>')
+    nodes.append(f'<circle class="pupil-boundary" cx="{CX}" cy="{CY}" r="45.5"/>')
+    nodes.append(f'<circle class="n root recomputed" cx="{CX}" cy="{CY}" r="40"/>')
+    nodes.append(f'<circle class="catchlight" cx="{CX - 12}" cy="{CY - 13}" r="7"/>')
     out.extend(edges)
     out.extend(nodes)
-    out.append("</svg>")
+    out.extend(['</g>', f'<path class="lid lid-upper" d="{upper}"/>',
+                f'<path class="lid lid-lower" d="{lower}"/>', '</svg>'])
     return "\n".join(out)

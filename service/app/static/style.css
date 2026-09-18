@@ -2,18 +2,18 @@
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6d67; --line: #e6e5e1;
   --accent: #2a78d6; --accent-track: #cde2fb; --accent-ink: #1c5cab;
   --good: #21812a; --warning: #fab219; --serious: #ac4f29; --critical: #d03b3b;
-  --art-faint: #8e9fb4;
+  --art-faint: #8e9fb4; --art-ink: #17283e;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781; --line: #33332f;
     --accent: #3987e5; --accent-track: #104281; --accent-ink: #86b6ef;
-    --art-faint: #4a4a46; --good: #78ca75; --critical: #f08b8b; --serious: #ee9e7f;
+    --art-faint: #78899f; --art-ink: #afc0d5; --good: #78ca75; --critical: #f08b8b; --serious: #ee9e7f;
   }
 }
 :root[data-theme="dark"] {
   --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781; --line: #33332f;
-  --accent: #3987e5; --accent-track: #104281; --accent-ink: #86b6ef; --art-faint: #4a4a46; --good: #78ca75; --critical: #f08b8b; --serious: #ee9e7f;
+  --accent: #3987e5; --accent-track: #104281; --accent-ink: #86b6ef; --art-faint: #78899f; --art-ink: #afc0d5; --good: #78ca75; --critical: #f08b8b; --serious: #ee9e7f;
 }
 * { box-sizing: border-box; }
 html { color-scheme: light dark; }
@@ -126,17 +126,22 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 /* the scheme, drawn beside the hero */
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; margin: 16px 0 20px; }
 .art-wrap { pointer-events: none; width: 100%; }
-.scheme-art { width: 80%; height: auto; display: block; margin: 0 auto; }
+.scheme-art { width: 100%; height: auto; display: block; margin: 0 auto; }
 .scheme-art .e, .scheme-art .n { transition: fill .6s ease, stroke .6s ease, stroke-width .6s ease, opacity .6s ease; }
-.scheme-art .e { stroke: var(--art-faint); stroke-width: 1.4; }
-.scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.8; opacity: 0.9; }
-.scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.4; }
+.scheme-art .e { stroke: var(--art-faint); stroke-width: 1.02; }
+.scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.42; opacity: 0.9; }
+.scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.12; }
 .scheme-art .n.untouched { opacity: 1; }
 .scheme-art .n.recomputed { fill: var(--series-1); stroke: var(--series-1); }
 .scheme-art .n.revealed { fill: var(--series-2); stroke: var(--series-2); }
 .scheme-art .n.src.revealed { fill: var(--series-2); }
-.scheme-art .n.root { fill: var(--ink); stroke: var(--ink); }
-.scheme-art .n.clasp { fill: none; stroke: var(--ink); stroke-width: 1.5; opacity: 0.6; }
+.scheme-art .n.root { fill: #17283e; stroke: var(--art-ink); }
+.scheme-art .iris-boundary { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.5; }
+.scheme-art .pupil-boundary { fill: none; stroke: var(--art-ink); stroke-width: 1.1; }
+.scheme-art .catchlight { fill: #fff; }
+.scheme-art .lid { fill: none; stroke: var(--art-ink); stroke-linecap: round; }
+.scheme-art .lid-upper { stroke-width: 3.5; }
+.scheme-art .lid-lower { stroke-width: 2.4; }
 .hero h1 { font-size: 34px; }
 @media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .art-wrap { max-width: 420px; margin: 0 auto; } }
 

@@ -96,13 +96,13 @@ class Marionette:
 
 
 @contextmanager
-def firefox_session(binary: str, port: int):
+def firefox_session(binary: str, port: int, *, reduced_motion: bool = True):
     with tempfile.TemporaryDirectory(prefix='ots-firefox-') as directory:
         profile = Path(directory) / 'profile'
         profile.mkdir()
         prefs = {
             'marionette.port': port,
-            'ui.prefersReducedMotion': 1,
+            'ui.prefersReducedMotion': int(reduced_motion),
             'browser.shell.checkDefaultBrowser': False,
             'datareporting.policy.dataSubmissionEnabled': False,
             'toolkit.telemetry.enabled': False,
@@ -302,6 +302,35 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     print('Light/dark, reduced motion, phone widths, tooltip Escape/scroll and HTML 404 checks passed')
 
 
+def audit_eye_motion(browser: Marionette, base_url: str) -> None:
+    browser.command('WebDriver:Navigate', {'url': base_url + '/'})
+    assert not browser.js("return matchMedia('(prefers-reduced-motion: reduce)').matches;")
+    assert browser.js("return document.querySelectorAll('.scheme-art [data-r=bead]').length === 945;")
+    browser.js("""
+        const svg = document.querySelector('.scheme-art');
+        const aperture = svg.querySelector('[data-eye-aperture]');
+        const started = performance.now();
+        const audit = {patterns: [], blinks: [], closed: false, open: aperture.getAttribute('d')};
+        new MutationObserver(changes => {
+            if (changes.some(c => c.attributeName === 'class')) audit.patterns.push(performance.now() - started);
+            if (changes.some(c => c.target === aperture)) {
+                audit.blinks.push(performance.now() - started);
+                if (aperture.getAttribute('d') === 'M 22 280 C 196 280 664 280 838 280 M 838 280 C 664 280 196 280 22 280 Z') audit.closed = true;
+            }
+            svg.dataset.motionAudit = JSON.stringify(audit);
+        }).observe(svg, {subtree: true, attributes: true, attributeFilter: ['class', 'd']});
+        return true;
+    """)
+    time.sleep(11)
+    result = browser.js("const audit = JSON.parse(document.querySelector('.scheme-art').dataset.motionAudit); return {...audit, reopened: document.querySelector('[data-eye-aperture]').getAttribute('d') === audit.open};")
+    assert len(result['patterns']) >= 5, result
+    assert 1500 <= result['patterns'][0] <= 2500, result
+    assert all(1500 <= b - a <= 2500 for a, b in zip(result['patterns'], result['patterns'][1:])), result
+    assert result['blinks'] and 9500 <= result['blinks'][0] <= 10500, result
+    assert result['closed'] and result['reopened'], result
+    print('Eye: random signature every two seconds; full blink and reopening at ten seconds passed')
+
+
 def main() -> None:
     default_firefox = shutil.which('firefox') or '/Applications/Firefox.app/Contents/MacOS/firefox'
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -327,6 +356,8 @@ def main() -> None:
     print('Screenshots:', output)
     with firefox_session(binary, args.marionette_port or free_port()) as browser:
         audit(browser, args.base_url, output, config)
+    with firefox_session(binary, args.marionette_port or free_port(), reduced_motion=False) as browser:
+        audit_eye_motion(browser, args.base_url)
     print('Browser audit passed. Screenshots:', output)
 
 
