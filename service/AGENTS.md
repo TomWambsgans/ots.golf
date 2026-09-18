@@ -89,6 +89,7 @@ Keep the homepage headline “Think one-time signatures are easy? Prove it.” a
 80% of its containing column's width. Keep the homepage concise: the generic upper card shows
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”
+Keep the heading “One upper bound. Three lower bounds.” removed from the homepage.
 
 Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Keep the
 existing `generic-upper` identifier for URLs, data and verification. Show its score card before
