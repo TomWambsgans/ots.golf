@@ -1,8 +1,8 @@
-# A first lower bound for arbitrary oracle algorithms
+# Generality 3/3: a lower bound for arbitrary oracle algorithms
 
-The open `generic-lower` track has certified baseline 1: a correct, available, weakly
-127-bit-secure generic scheme cannot verify every input with zero compressions. It makes no
-DAG, cut, nonce, domain-separation or signature-format assumption.
+The `generic-lower` track has a certified lower bound of 1 for every correct, available,
+weakly 127-bit-secure oracle algorithm satisfying the paper's size and resource limits.
+Both algorithm challenges fix signing failure at most `2^-128`.
 
 ## Paper argument
 
@@ -25,14 +25,12 @@ including key generation and the requested signature; verification costs zero by
 Its success is at least 1/2, whereas 127-bit security requires success below
 (1024 + 2^21) / 2^127 < 1/2. Contradiction.
 
-The lower challenge pins a deliberately weak 1/2 failure allowance. The theorem covers every
-stricter allowance without selecting the final generic upper admission threshold. The interface's
-general condition that failure is merely less than one is insufficient: successful signing could
-otherwise be far rarer than the security threshold.
+The proof lemma covers every failure allowance at most 1/2. The public challenge specializes it
+to `2^-128`, matching the upper track. This quantitative availability bound gives the attack
+enough success probability to exceed the security threshold.
 
-This argument proves only one compression. A one-query verifier still depends on the secret oracle
-table, so its accepting signatures cannot simply be selected by free public computation. A bound of
-two or three requires another argument; it does not follow by repeating this proof.
+The argument uses the verifier's independence from the oracle. A verifier making one query can
+depend on its answer, so a larger lower bound requires a different attack.
 
 ## Checked certificate
 
@@ -41,7 +39,7 @@ OptimalOTS.GenericLower.candidate :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
 
 OptimalOTS.Challenge.GenericLower.candidate :
-  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
+  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) 1
 
 OptimalOTS.GenericLower.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits ε 1
@@ -75,25 +73,17 @@ Generic lower submission command:
 python3 verifier/verify.py generic-lower --source .
 ```
 
-The generic lower challenge and one-half failure allowance are pinned independently of the
-generic upper certificate. Its stricter `2^-128` availability requirement remains inside
-the class covered by this lower theorem.
+The generic lower challenge pins the `2^-128` failure allowance. Its certificate applies the
+general lemma with the exact inequality `2^-128 ≤ 1/2`.
 
-The separate [one-query argument](generic-one-query.md) is research toward 2, not a certificate.
-Its normal form and transcript arguments have not yet been ported to Lean. No score of 2 is claimed.
+The separate [one-query argument](generic-one-query.md) is research toward 2. Its normal-form and
+transcript lemmas await Lean proofs; the certified claim remains 1.
 
 ## Local website
 
-The generic lower card, chart and leaderboard show claim 1 as an ordinary Vitalik demo submission.
-All three lower tracks and the generic upper track are open. The generic lower
-row uses the checked claim with fictional attribution and no invented improvement. Its chart point,
-detail page and solver profile link to the same persistent row. Website copy has no special baseline
-labels. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
-the one-half lower signing-success threshold, the stricter upper allowance, and all four public
-submission roots, without current scores.
-The top navigation contains only the logo and Rules.
-The rules keep scores out of the overview, illustrate cuts and shared hash origins, and preserve
-the exact admissibility, encoding, DAG and submission requirements in expandable sections.
+The card, chart, leaderboard and solver profile link to the same persistent Vitalik demo at claim 1.
+All four public tracks are open. Rules state the shared `2^-128` algorithm availability threshold,
+admissibility, encoding, DAG and submission requirements in expandable sections.
 
 All 15 service tests pass, covering the generic lower queue and pull-request root mapping,
 score-independent rules, framework isolation, Vitalik's linked generic submission and preservation of demo rows. A proof or admission
@@ -102,7 +92,17 @@ Headless Firefox checks pass for the three lower lines and tables, generic lower
 the simplified top navigation, direction switches, sorting, keyboard chart tooltips, filtered
 deep links, rules expansion, and a narrow layout without page overflow.
 
-## Official verification
+## Verification
+
+The public challenge now fixes `2^-128`, shared with the upper track. The updated certificate
+applies `paper_lowerBound_one` and proves `2^-128 ≤ 1/2` with exact arithmetic. The official
+verifier accepted claim 1 in 53.0 seconds under pin
+`fd04517f1f73521d46ca98afb9c7e43d34df60f7d9fded3a1fdcb9817c3023fb`.
+A temporary submission using the stricter `2^-256` allowance compiled successfully and was
+rejected for a statement mismatch in 58.8 seconds. Full validation is recorded in
+[the production review](production-readiness.md).
+
+### Original one-half challenge
 
 The contract pin is `6c2eb7a11e4b3cc1` (19 protected files). Existing DAG and partial-disclosure
 definitions and all four original submission roots are unchanged. The additions pin the generic

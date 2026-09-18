@@ -2,18 +2,15 @@
 <details id="hash">
   <summary><h2>What are the hash and cost rules?</h2></summary>
   <div class="more prose">
-    <p>All parties share one random oracle: each new input bit string gets an independent uniform
-    256-bit answer; repeated inputs get the same answer. There are no implicit labels or domain
-    separation. Hashing is the only cryptographic primitive.</p>
-    <p id="cost">A <strong>compression</strong> costs one unit per started 512-bit input block,
-    with a minimum of one, even for empty or repeated queries. Explicit distinguishing bits count
-    as input. Deterministic computation and randomness are free, including for the attacker.
+    <p>All parties share one random oracle on bit strings. Each distinct input gets an independent
+    uniform 256-bit answer, shared across all uses. Hashing is the only cryptographic primitive.</p>
+    <p id="cost">A hash query costs one <strong>compression</strong> per started 512-bit input block,
+    with a minimum of one. Every call is charged, including repeated queries. Input lengths include
+    explicit parameters and tweaks. Deterministic computation and randomness are free for all parties.
     Every cost bound is worst-case over all execution paths.</p>
-    <p>We add no implicit per-query cost for a public parameter chosen once per key. As
-    Justin Drake observed, a block-based implementation can pad that parameter to a full block,
-    absorb it once, and reuse the resulting hash state for later queries under the same key.
-    The setup is paid once, rather than repeated for every query. Any parameter or tweak explicitly
-    included in an oracle input still counts toward its length.</p>
+    <p>As Justin Drake observed, a block-based implementation can pad a per-key public parameter
+    to a full block, absorb it once, and reuse the resulting hash state. This makes the parameter
+    a shared setup cost. The model therefore charges each query for its explicit input bits.</p>
   </div>
 </details>
 <details id="security">

@@ -141,6 +141,18 @@ class VerifierTests(unittest.TestCase):
                          {prefix + name for name in ("admissible", "secure", "cost")})
         self.assertEqual(comparator["definition_names"], [prefix + "scheme"])
 
+    def test_algorithm_tracks_share_the_fixed_signing_failure_allowance(self):
+        for slug in ("generic-lower", "generic-upper"):
+            with self.subTest(track=slug):
+                track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
+                self.assertEqual(track["signing_failure_allowance"],
+                                 {"numerator": 1, "denominator": 2**128})
+                template = self.root / track["challenge_template"]
+                template.parent.mkdir(parents=True, exist_ok=True)
+                template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
+                rendered, _ = render(self.root, slug, track["baseline"])
+                self.assertIn("(1 / 2 ^ 128)", rendered.read_text())
+
     def test_invalid_utf8_source(self):
         (self.sub / "Solution.lean").write_bytes(b"\xff")
         self.assertFalse(check(self.root, "generic-lower")["ok"])

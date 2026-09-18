@@ -14,22 +14,22 @@ Public tracks, from broadest to most restricted lower class:
 | Upper bound | generic-upper | Any admissible oracle algorithm | 106 |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
-smaller is better. Restricted lower records do not improve broader classes. The Upper bound
+smaller is better. Each lower class has its own record. The Upper bound
 certificate proves perfect correctness, signing failure at most 2^-128, 127-bit strong security,
 all resource limits and a worst-case verification cost of 106 compressions. Generality 3/3 lower
-fixes signing failure at most 1/2 and uses weak unforgeability. Both availability requirements
+uses the same signing-failure limit of 2^-128 and weak unforgeability. Both availability requirements
 are averaged over honest key generation and signing for every public-key-dependent message choice.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
-an answer. There are no implicit labels, tweaks or separation conditions; explicit tweaks cost
-input bits. Each query costs one compression per started 512-bit input block, at least one.
+an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
+costs one compression per started 512-bit input block, at least one.
 Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^21.
 Deterministic computation and randomness are free. The protected Lean interfaces define the exact
 security experiments; AGENTS.md lists submission requirements.
 
 Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower and GenericUpper,
 respectively. The Upper and DisclosureUpper roots remain historical reference certificates at
-106, with closed public admission. Their historical rows are never relabelled as Upper bound records.
+106, with closed public admission.
 
 Submit a pull request changing only one admitted submission root. It must be flat, include
 Solution.lean and claim.txt, obey import and size limits, and use the pinned toolchain. Exported
@@ -45,7 +45,7 @@ Local checks, replacing generic-upper with another track slug as needed:
     python3 verifier/check_submission.py generic-upper
     python3 verifier/verify.py generic-upper --source .
 
-macOS checks proofs without sandboxing untrusted code. Production requires the Linux isolation
+macOS proof checks run unsandboxed for trusted local development. Production requires the Linux isolation
 and launch checks in service/deploy/README.md. Lower filters affect only lower leaderboards;
 the chart has three lower series and one Upper bound series. Rules contain no current scores.
 Local Satoshi/Vitalik rows are clearly fictional demos, never verified submissions; preserve them

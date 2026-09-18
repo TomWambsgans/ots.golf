@@ -1,8 +1,8 @@
-# The bare-oracle verification lower bound
+# Generality 2/3: the bare-oracle verification lower bound
 
-The contract is `formal/OptimalOTS/Statement.lean`: one random oracle on bit strings, with no
-labels, tweaks, separation assumptions, or restrictions on deterministic node functions beyond
-parent locality. The lower track quantifies over every weakly secure scheme:
+The contract is `formal/OptimalOTS/Statement.lean`: one shared random oracle keyed by its input
+bit string, and arbitrary deterministic node functions of their declared parents.
+The lower track quantifies over every weakly secure scheme:
 
 ```lean
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
@@ -24,8 +24,8 @@ set of reconstructed nonroot hash nodes has size at most 15. Key generation allo
 After receiving a signature, the attacker reconstructs it and chooses any algebraic record
 consistent with the disclosed values and observed hash outputs. Every such record makes the
 same queries at the observed hash nodes. Its disclosure at any index with the same reconstruction
-pattern therefore verifies under the actual oracle. The choice is computationally unbounded
-and makes no oracle queries; no probability distribution on candidate records is assumed.
+pattern therefore verifies under the actual oracle. The choice is a free deterministic function
+of the observed values.
 
 The attacker samples its first message after key generation and its second after signing and
 reconstruction. A cache of at most `D` queries excludes the full nonce domains of at most `D`

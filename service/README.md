@@ -35,21 +35,20 @@ default local database. Do not use fictional data in production.
 
 ## Tracks and presentation
 
-The homepage has three lower frameworks: generic algorithms, DAGs and whole words. Their
-leaderboards are independent. `/?framework=generic|dag|disclosure` filters the lower tables;
-`#lower` and `#upper` select the direction. Scores appear as attributed submissions, without a
-special baseline presentation. Rules explain the contract without current scores or proof history.
+The homepage has three lower frameworks: Generality 3/3 (any algorithm), 2/3 (DAGs with arbitrary
+functions) and 1/3 (whole-word DAGs). Each has its own leaderboard.
+`/?framework=generic|dag|disclosure` filters the lower tables; `#lower` and `#upper` select the
+direction. Scores appear as attributed submissions. Rules define the contract's requirements.
 
-The only upper track is `generic-upper`, for fully generic algorithms. Its pinned construction
+The Upper bound track (`generic-upper`) accepts any oracle algorithm. Its pinned construction
 proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong security, all size and
 resource limits, and a worst-case verification cost of 106 compressions. It has its own records,
-chart and leaderboard; the lower framework filter never filters upper submissions.
-Legacy `upper` and `disclosure-upper` certificates remain accessible as historical references,
-including their demo rows; they are not generic upper records. The latter belongs to Historical
-partial disclosures, not Whole words. New public submissions to both legacy roots are rejected.
+chart and leaderboard. The framework filter applies to lower submissions.
+Legacy `upper` and `disclosure-upper` certificates and demos remain accessible under Historical
+DAG and Historical partial disclosures. Public admission to those roots is closed.
 Default localhost demos preserve the existing 19 rows and add a fictional Vitalik submission at
 the generic upper certificate's cost, followed by a fictional Satoshi improvement of one compression.
-Both are marked as demos, without verified badges or commit links.
+Both carry demo labels and unverified status.
 
 Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
@@ -67,7 +66,7 @@ retries delivery without repeating the proof. Attribution comes from the PR auth
 
 For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
 use `.venv/bin/python -m app.queue lower`, substituting `generic-lower`, `disclosure-lower` or `generic-upper` as
-needed. `--baseline` initializes a checked certificate locally; it does not bypass verification.
+needed. `--baseline` queues a certificate for verification and local initialization.
 The two legacy upper slugs also work for local reference checks. Only one worker may use a data
 directory; lock files enforce this across processes on the same host.
 

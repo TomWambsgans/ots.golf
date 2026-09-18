@@ -152,7 +152,7 @@
       ],
       "signing_failure_allowance": {
         "numerator": 1,
-        "denominator": 2
+        "denominator": 340282366920938463463374607431768211456
       }
     },
     {
@@ -187,7 +187,7 @@
       "slug": "generic",
       "title": "Generality 3/3",
       "status": "active",
-      "description": "Arbitrary oracle algorithms with perfect correctness, signing success at least one half and the fixed size, resource and security requirements.",
+      "description": "Arbitrary oracle algorithms with perfect correctness, signing failure at most 2^-128 and the fixed size, resource and security requirements.",
       "lower_track": "generic-lower",
       "upper_track": "generic-upper"
     },

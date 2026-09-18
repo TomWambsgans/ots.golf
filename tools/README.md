@@ -1,6 +1,6 @@
 # Numerical tools
 
-These scripts explore constructions and attack arithmetic. A positive result is not a Lean proof.
+These scripts explore constructions and attack arithmetic. Claims require a Lean proof.
 
 `python3 tools/tune_lower_bound.py --method words --claims 93,94` checks the whole-word attack
 with exact integers and fractions. Use `--method patterns --claims 18` for the unrestricted DAG
@@ -19,7 +19,7 @@ uv pip install --python .venv-tools/bin/python numpy
 The checked shape has key-generation cost 912 and reconstruction cost 105, plus one compression
 for the message-and-nonce index. `--overhead` adds explicit bits to each graph hash input only;
 it never changes that index query. Float arithmetic finds candidates; Python integers recount
-the selected candidate exactly. This counts a disclosure family and does not prove security.
+the selected disclosure family exactly. Security requires a separate Lean proof.
 
 ## Repository regression checks
 

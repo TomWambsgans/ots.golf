@@ -134,7 +134,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('1 compression', detail)
         self.assertIn('arbitrary oracle algorithms', detail)
         self.assertIn('href="/rules#generic-algorithms"', detail)
-        self.assertIn('fictional attribution', detail)
+        self.assertIn('Fictional local demo', detail)
         self.assertNotIn('DAG framework', detail)
         self.assertNotIn('baseline', detail.lower())
         profile = self.client.get('/solvers/vitalik-buterin').text
@@ -267,7 +267,7 @@ class FrameworkTests(unittest.TestCase):
         html = self.client.get(f"/submissions/{sub.id}").text
         self.assertTrue('href="/?framework=disclosure#lower">Generality 1/3</a>' in html)
         self.assertIn('Hash inputs and disclosures contain only whole 128-bit words.', html)
-        self.assertTrue('Illustrative local submission with fictional attribution' in html)
+        self.assertIn('Fictional local demo', html)
 
     def test_solver_page_names_framework_and_bound_kind(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
@@ -284,7 +284,7 @@ class FrameworkTests(unittest.TestCase):
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('Historical partial disclosures reference certificate', html)
-        self.assertIn('16-bit input tweaks do not satisfy Generality 1/3', html)
+        self.assertIn('Historical reference in Historical partial disclosures', html)
         self.assertNotIn('Whole words reference certificate', html)
         self.assertNotIn('href="/?framework=disclosure#upper"', html)
 
@@ -313,7 +313,7 @@ class FrameworkTests(unittest.TestCase):
         for sub in self.session.scalars(select(Submission)):
             detail = self.client.get(f'/submissions/{sub.id}').text
             self.assertIn('<span class="status">demo</span>', detail)
-            self.assertIn('has not been verified', detail)
+            self.assertIn('Verification status: unverified.', detail)
             self.assertNotIn('s-verified', detail)
             self.assertNotIn(sub.commit_url, detail)
         profile = self.client.get('/solvers/vitalik-buterin').text

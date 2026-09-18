@@ -29,8 +29,8 @@ real submissions alone, so it is safe while the worker is running.
 
 The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
 plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
-`generic-lower`, with baseline 1 and the fixed assumption that correct signing succeeds at least
-half the time for every public-key-dependent message selection. Do not hardcode a separate generic
+`generic-lower`, with baseline 1 and signing failure at most `2^-128` for every public-key-dependent
+message selection, matching the upper track. Do not hardcode a separate generic
 foundation certificate or show lower admission as pending. If a future framework has no checked
 certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
 for a missing generic certificate. Lower leaderboards have separate
@@ -67,7 +67,7 @@ sequences. Concatenations can reorder, repeat or be empty; no other deterministi
 smaller fragments or encodings are admitted. Literal constant words cannot be introduced by a
 deterministic node; hashing an empty input is allowed and charged. Hash inputs have no fixed arity;
 charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 256-bit nonce.
-The generic DAG cut/reconstruction diagram remains, followed by a hash/split/concatenate diagram.
+The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
 Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`DisclosureLower`, with
 the same baseline-relative demo offsets as DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
@@ -110,3 +110,8 @@ arbitrary deterministic functions), and “Generality 1/3” (a DAG built from w
 names in cards, charts, filters, leaderboards, rules and submission/profile pages; explain the
 restrictions in the descriptions. Keep the existing slugs and Lean names. Historical upper
 references retain their historical names; the generality levels apply only to lower bounds.
+
+Keep all four homepage score cards compact, with compression units beside each lower score.
+Use “lossless encoding” in public prose for the contract's injective signature encoding.
+Name the bound direction explicitly in each score-card and framework rule heading. The algorithm
+rule section covers both the Upper bound track and Generality 3/3 lower bounds.

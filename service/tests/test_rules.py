@@ -47,14 +47,15 @@ class RulesTests(unittest.TestCase):
         self.assertIn('<strong>Lower bound.</strong>', html)
         self.assertIn('whole 128-bit words', html)
         self.assertIn('41 words', html)
-        self.assertIn('No other deterministic', html)
+        self.assertIn('Each deterministic node performs one of two operations:', html)
         self.assertNotIn('hash origins', html)
         self.assertNotIn('Reed–Solomon', html)
         self.assertIn('Submit an upper-bound construction, or a lower-bound proof', html)
         self.assertNotIn('<strong>Pending:</strong>', html)
-        self.assertIn('signing failure is at most <strong>1/2 for lower bounds</strong>', html)
-        self.assertIn('<strong>2<sup>−128</sup> for upper constructions</strong>', html)
-        self.assertIn('returned signatures are rejected with probability zero', html)
+        self.assertIn('signing failure is at most <strong>2<sup>−128</sup></strong>', html)
+        self.assertIn('in both tracks', html)
+        self.assertIn('verification accepts with probability one', html)
+        self.assertIn('starting from a fresh oracle', html)
         self.assertIn('formal/Submissions/GenericUpper/', html)
         self.assertIn('formal/Submissions/GenericLower/', html)
         self.assertNotIn('Their submission roots are closed.', html)
@@ -63,17 +64,15 @@ class RulesTests(unittest.TestCase):
         self.assertIn('formal/OptimalOTS/AlgorithmWeak.lean', html)
         self.assertIn('formal/OptimalOTS/WholeWords.lean', html)
 
-    def test_whole_word_diagram_keeps_variable_input_length_and_two_hash_halves(self):
+    def test_whole_word_rules_keep_variable_input_length_and_two_hash_halves(self):
         html = self.rules_body()
-        diagram = re.search(r'<svg[^>]*aria-labelledby="words-figure-title words-figure-desc".*?</svg>',
+        section = re.search(r'<details id="whole-word-model">.*?</details>',
                             html, re.S).group(0)
-        self.assertIn('256 bits', diagram)
-        self.assertIn('low 128 bits', diagram)
-        self.assertIn('high 128 bits', diagram)
-        self.assertIn('Any number of words', diagram)
-        self.assertIn('n whole words', diagram)
-        self.assertNotIn('origins-figure-title', html)
-        self.assertIn('cut-figure-title', html)
+        self.assertIn('256 bits', section)
+        self.assertIn('whole 128-bit words', section)
+        self.assertIn('fixed low or high half directly from a hash output', section)
+        self.assertIn('A hash accepts any number of words', section)
+        self.assertIn('max(1, ⌈n / 4⌉)', section)
 
 
 if __name__ == '__main__':

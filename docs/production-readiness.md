@@ -196,6 +196,35 @@ diagrams, tooltips, filters and light/dark themes. Logs are in
 `/private/tmp/ots-rules-generality-tests.log`, `/private/tmp/ots-generality-verifier-tests.log`
 and `/private/tmp/ots-ui-generality.log`; screenshots are in `/private/tmp/ots-ui-generality/`.
 
+## Shared algorithm availability and concise presentation (2026-09-17)
+
+Both algorithm challenges now fix signing failure at most `2^-128`. The generic lower export
+specializes the retained lemma for every allowance at most one half; the certified claim remains 1.
+The protected interface's mathematical definitions, both DAG lower statements and all upper proof
+files are unchanged. The new 22-file pin is
+`fd04517f1f73521d46ca98afb9c7e43d34df60f7d9fded3a1fdcb9817c3023fb`.
+
+The official verifier accepted `generic-lower` at 1 in 53.0 seconds and `generic-upper` at 106
+in 152.0 seconds. A temporary lower submission narrowed to failure at most `2^-256` compiled,
+then comparator rejected its statement in 58.8 seconds. This checks enforcement of the exact
+class quantified over. Results: `/private/tmp/ots-unified-availability-{lower,upper,reject-narrow}.json`.
+
+The full Lean build passed (8,927 jobs), as did the 46-declaration protected-model axiom audit,
+60 verifier tests and 59 service tests. Logs: `/private/tmp/ots-availability-{full-build,axioms}.log`
+and `/private/tmp/ots-concise-{verifier,service}-tests.log`.
+
+The website and current proof guides now define objects through their structure and allowed
+operations. Public prose calls injective encoding “lossless encoding.” The two framework
+diagrams were removed; the WOTS+ list of message and checksum chains remains. All nine rule
+sections start folded, with the bound direction explicit in framework headings. The Justin Drake
+explanation remains alongside the actual-input cost rule.
+
+Homepage lower cards explicitly say “Lower bound” and show compression units. At 1360 pixels,
+the upper card is 24.0% shorter and each lower card is 25.3% shorter. Firefox checks passed
+on desktop and at 320/390 pixels, with light/dark themes, controls, filters, tooltips and
+horizontal scrolling. Screenshots and logs: `/private/tmp/ots-ui-concise/` and
+`/private/tmp/ots-ui-concise.log`. Card measurements: `/private/tmp/ots-cards-{before,after}.json`.
+
 ## Gates before public launch
 
 Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any

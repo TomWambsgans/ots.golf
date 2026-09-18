@@ -4,7 +4,7 @@
 {% block content %}
 <h1 id="solver-name">{% if solver.avatar_url %}<img class="avatar" src="{{ solver.avatar_url }}" alt="">{% endif %}{{ solver.login }}</h1>
 {% if solver.github_id %}<p><a href="https://github.com/{{ solver.login }}">github.com/{{ solver.login }}</a></p>{% endif %}
-<p class="muted">Claims belong to the named framework. Scores from different classes are not one ranking.</p>
+<p class="muted">Each framework has its own ranking.</p>
 <div class="board-scroll" role="region" tabindex="0" aria-labelledby="solver-name"><table>
 <caption class="visually-hidden">Submissions by {{ solver.login }}</caption>
 <thead><tr><th scope="col">Claim</th><th scope="col">Framework / track</th><th scope="col">Solver</th><th scope="col">Assisted by</th><th scope="col">Status</th><th scope="col">When</th></tr></thead>

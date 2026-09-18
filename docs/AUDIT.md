@@ -63,11 +63,10 @@ schemes permitting malleability of a signature on the signed message.
 
 `Algorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
 perfect correctness, signing availability, pathwise resource limits and oversized-signature rejection.
-`AlgorithmWeak.lean` pins the fresh-message experiment and the generic lower statement. The lower
-challenge fixes signing failure at most one half for every public-key-dependent message choice.
-Availability is averaged over honest key generation and signing; it does not promise availability
-after arbitrary adversarial oracle preprocessing. The verified lower bound of 1 rules out zero-query
-verification for this entire admissible class. No graph or mandatory index query is assumed.
+`AlgorithmWeak.lean` pins the fresh-message experiment and the generic lower statement. Both
+algorithm challenges fix signing failure at most `2^-128` for every public-key-dependent message
+choice, averaged over honest key generation and signing from a fresh oracle. The verified lower
+bound of 1 specializes a proof covering every failure allowance at most one half.
 
 The generic upper challenge fixes signing failure at most `2^-128` and requires separate proofs
 of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
@@ -75,16 +74,14 @@ same programs and exact security experiment as the historical DAG construction. 
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
 the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 512-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^21) ≤ 2^-256 ≤ 2^-128`, for every message chosen as a
-function of the public key. These input lengths are construction properties, not generic model
-assumptions. All new proofs reside in the independent `GenericUpper` submission root; the original
+function of the public key. All new proofs reside in the independent `GenericUpper` submission root; the original
 `Upper` root is unchanged. See [the proof map](generic-upper.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, 256-bit hashes,
 fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
-grouped values and empty inputs are allowed. The definitions enforce exact lengths and functions;
-no arbitrary transformations or constant words can enter through deterministic nodes. Cuts disclose
-complete values. The 41-origin property is derived from the 5,248-bit payload budget and is not an
-additional assumption. The resulting certificate proves 93, using the same weak-security experiment.
+grouped values and empty inputs are allowed. The definitions fix this list of node operations.
+Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
+The resulting certificate proves 93, using the same weak-security experiment.
 There is no checked whole-word upper construction.
 
 `formal/scripts/check-axioms.lean` now imports every protected model module, rejects declared axioms

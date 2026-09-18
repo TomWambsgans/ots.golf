@@ -6,10 +6,9 @@ normal-form and transcript lemmas below have not been formalized, so this is not
 an admitted submission or a website record. The separately checked generic
 lower certificate of 1 is documented in `generic-lower.md`.
 
-The argument uses only the current oracle-program interface and first-principles
-counting. It does not assume a DAG, mandatory index query, domain separation,
-deterministic verification, or an efficient attacker. It does assume perfect
-correctness, signing success at least one half, and the paper resource limits.
+The argument uses the current oracle-program interface and first-principles counting,
+including randomized verification. It assumes perfect correctness, signing success at
+least one half, and the paper resource limits.
 
 ## Assumptions and constants
 

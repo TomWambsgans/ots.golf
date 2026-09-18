@@ -11,7 +11,7 @@
 
 <section class="framework-overview" aria-label="Verification bounds">
   <p class="section-intro">Build an OTS that is cheaper to verify, or prove that a lower cost is
-  impossible in one of three frameworks.</p>
+  impossible in one of three lower-bound frameworks.</p>
   <article class="generic-upper-card" aria-labelledby="generic-upper-title">
     <div>
       <h3 id="generic-upper-title"><a href="/rules#generic-upper">Upper bound</a></h3>
@@ -25,7 +25,7 @@
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
-      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
+      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">Lower bound <span class="framework-generality">{{ model.title }}</span></a></h3>
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm.</p>
       {% elif model.slug == 'dag' %}
@@ -34,8 +34,8 @@
       <p>A DAG built from <strong>whole 128-bit words</strong>.</p>
       {% endif %}
       <dl class="framework-bounds">
-        <div><dt>Lower <span aria-hidden="true">↑</span></dt>
-        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }}{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
+        <div><dt>Verification cost <span aria-hidden="true">↑</span></dt>
+        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards and model.boards.lower.state.record_submission_id %}
       <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a>

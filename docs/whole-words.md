@@ -1,4 +1,4 @@
-# Whole-word lower framework
+# Generality 1/3: whole-word DAGs
 
 The third lower framework is now `WholeWordVerificationLowerBound paperParams c`, defined in
 `formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class; the historical
@@ -7,23 +7,18 @@ unrestricted DAG contracts are unchanged. There is still one upper track, for ge
 
 ## Exact restriction
 
-Secret sources are independent uniform 128-bit words. Hashing returns 256 bits; either fixed
-128-bit half can be used. The only other deterministic operation is concatenation. Any number
-of earlier words may be concatenated, with repetition and reordering allowed. Nested groups of
-whole words, complete hash outputs and empty concatenations are also permitted. There are no
-nonempty constant nodes, arbitrary functions, encodings or partial-word disclosures. Selecting
-a half means a fixed choice declared in the graph, not a choice dependent on a value.
+Secret sources are independent uniform 128-bit words. Hashing returns 256 bits. Each deterministic
+node either selects a fixed low or high 128-bit half directly from a hash output, or concatenates
+an ordered list of complete earlier values. Concatenations may repeat, reorder, group or be empty.
 
 Every node carries a sequence of whole words; a signature discloses complete node values. All
 original DAG cut, root reconstruction, nonce/index, size and resource requirements remain:
 5248 payload bits plus a 256-bit nonce, 128-bit public key, 1024 key-generation compressions,
 2^21 signing trials, 2^115 accepted indices out of 2^128, and 127-bit weak unforgeability.
-Hash inputs have no fixed arity. One shared random oracle answers equal inputs equally; each
+Hashes accept any number of words. One shared random oracle answers equal inputs equally; each
 hash call costs at least one compression and one per started 512-bit input block.
 
-This restriction rules out arbitrary Reed–Solomon encoding and partial bits. Such operations
-remain available in the unrestricted DAG and generic frameworks. No origin limit is imposed
-on entrants: the bound below follows from the permitted syntax and existing payload size.
+The permitted syntax and existing payload size imply the origin bound proved below.
 
 ## Proof on paper
 
@@ -54,7 +49,7 @@ security and proves that some index costs at least **93 compressions**.
 
 The argument permits all oracle-input collisions, both usable halves, and arbitrarily long
 concatenations. Longer hash inputs only increase charged cost. The same fixed attack estimate
-fails at 94; this is not a proof that 93 is optimal.
+fails at 94. The optimal bound remains open.
 
 ## Certificate and checks
 

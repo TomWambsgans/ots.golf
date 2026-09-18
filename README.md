@@ -13,26 +13,26 @@ contract's random-oracle experiment.
 | Generality 2/3 | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
 | Generality 1/3 | Whole-word DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
 
-These bounds apply to different classes. The whole-word result does not establish 93 for
-arbitrary DAGs or generic algorithms. The whole-word track retains its earlier
+Each lower record applies to its class. The whole-word track retains its earlier
 `disclosure-lower` identifier for URL and submission-root compatibility.
 
 The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
 perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
 size and cost proofs. The original DAG and historical partial-disclosure upper certificates
-remain locally verifiable references; neither contributes records to the Upper bound track.
+remain locally verifiable references.
 
 ## Model
 
 All parties share one random oracle on bit strings. A new input gets an independent uniform
-256-bit answer; equal inputs always receive the same answer. There are no implicit labels,
-tweaks or domain separation. Every call costs one compression per started 512-bit input block,
+256-bit answer; equal inputs always receive the same answer across all uses. Every call costs
+one compression per started 512-bit input block,
 with a minimum of one. Computation and private randomness are free.
 
 DAG signatures contain a 256-bit nonce and at most 5,248 bits of disclosed node values.
 The message-and-nonce hash selects a cut; verification reconstructs the root and compares its
 low 128 bits with the public key. Whole-word DAGs add only their operation restriction.
-Generic algorithms have no mandatory graph, nonce or disclosure pattern.
+An algorithm scheme consists of three terminating oracle programs for key generation, signing
+and verification, with an injective signature encoding.
 
 The lower certificates cover weak unforgeability: a forgery must use a new message, or signing
 must have failed. Upper certificates require strong unforgeability. Both count the cost of the
@@ -52,13 +52,13 @@ python3 verifier/verify.py disclosure-lower --source .
 
 Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the
 Upper bound construction, and `upper` or
-`disclosure-upper` for the historical references. macOS verification checks proofs but does
-not sandbox untrusted code. Hosted verification requires the Linux isolation described in
+`disclosure-upper` for the historical references. macOS verification runs unsandboxed for trusted
+local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
 For the website, run `uv sync --frozen` and `./run-local.sh` in `service/`.
-The local preview includes clearly marked fictional Satoshi/Vitalik submissions by default;
-these are separate from the checked results above. See [service development](service/README.md)
+The local preview includes clearly marked fictional Satoshi/Vitalik submissions by default.
+See [service development](service/README.md)
 and the [production review](docs/production-readiness.md) for checks and deployment gates.
 
 ## Find the contract and proofs

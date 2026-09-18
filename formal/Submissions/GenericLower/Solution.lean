@@ -2,10 +2,11 @@ import Submissions.GenericLower.Proof
 
 namespace OptimalOTS.Challenge.GenericLower
 
-/-- No admissible, weakly secure algorithm under the paper limits has a verification budget below one. -/
+/-- Every admissible, weakly secure algorithm under the paper limits needs at least one compression. -/
 theorem candidate :
-    AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1 :=
-  OptimalOTS.GenericLower.candidate
+    AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) 1 := by
+  apply OptimalOTS.GenericLower.paper_lowerBound_one
+  norm_num
 
 end OptimalOTS.Challenge.GenericLower
 
