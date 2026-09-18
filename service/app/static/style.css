@@ -2,7 +2,7 @@
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6d67; --line: #e6e5e1;
   --accent: #2a78d6; --accent-track: #cde2fb; --accent-ink: #1c5cab;
   --good: #21812a; --warning: #fab219; --serious: #ac4f29; --critical: #d03b3b;
-  --art-faint: #cfcdc6;
+  --art-faint: #8e9fb4;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
