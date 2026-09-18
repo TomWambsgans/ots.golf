@@ -1,0 +1,131 @@
+import Submissions.RiscvUpper.DecoderProof
+import Submissions.RiscvUpper.TableLoader
+import Submissions.RiscvUpper.NodeProgram
+
+/-! Input buffers and node slots survive index selection and position decoding. -/
+
+namespace OptimalOTS.RiscvUpperProgram
+
+open RiscvZkvm.Rv64
+
+/-- Preserving aligned words in a byte interval preserves the represented vector. -/
+theorem memBits_frame_interval {width : ℕ} (s t : MachineState) (base : Word)
+    (value : BitVec width) (aligned : base.toNat % 8 = 0)
+    (bounded : base.toNat + (width + 7) / 8 < 2 ^ 64)
+    (represented : MemBits s base value)
+    (frame : ∀ addr, base.toNat ≤ addr.toNat → addr.toNat < base.toNat + (width + 7) / 8 →
+      t.getMem addr = s.getMem addr) : MemBits t base value := by
+  intro i hi
+  have ha : (base + BitVec.ofNat 64 (i / 8)).toNat = base.toNat + i / 8 := by
+    simp only [BitVec.toNat_add, BitVec.toNat_ofNat]
+    rw [Nat.mod_eq_of_lt (by omega : i / 8 < 2 ^ 64), Nat.mod_eq_of_lt (by omega)]
+  have address := alignToDword_toNat (base + BitVec.ofNat 64 (i / 8))
+  rw [ha] at address
+  have same := frame (alignToDword (base + BitVec.ofNat 64 (i / 8))) (by omega) (by omega)
+  simp only [MachineState.getByte, same]
+  exact represented i hi
+
+/-- The index query changes only its scratch input and output interval. -/
+theorem indexHash_frame (image : Riscv.Image) (pk : PublicKey paperParams)
+    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256) (addr : Word)
+    (outside : addr.toNat < scratchBase ∨ scratchBase + 160 ≤ addr.toNat) :
+    (Riscv.writeHash (indexInputState image pk m bits) answer).getMem addr =
+      (Riscv.initialState image pk m bits).getMem addr := by
+  rw [writeHash_frame, indexInput_frame_interval]
+  · rcases outside with h | h
+    · exact Or.inl h
+    · exact Or.inr (by omega)
+  · intro j hj heq
+    rw [(indexInput_registers image pk m bits).2.2.2.1] at heq
+    have h := congrArg BitVec.toNat heq
+    simp only [BitVec.toNat_add, BitVec.toNat_ofNat] at h
+    norm_num only [scratchBase, Nat.reduceAdd, Nat.reducePow] at h outside
+    omega
+
+/-- Position decoding modifies only its 36-word array. -/
+theorem decoderBlock_frame (s : MachineState) (index : Fin (2 ^ 115))
+    (rankEq : rankOf s = index.val) (table : TableLoaded s) (addr : Word)
+    (outside : addr.toNat < positionsBase ∨ positionsBase + 288 ≤ addr.toNat) :
+    (decoderBlock.eval s).getMem addr = s.getMem addr := by
+  have hm := congrFun (decoderBlock_correct s index rankEq table).2 addr
+  change (decoderBlock.eval s).getMem addr = _ at hm
+  rw [hm]
+  apply writePositions_outside
+  intro j hj heq
+  have hlen := (Forest.unrankComposition_spec 36 121 index.val
+    (index.isLt.trans_le Forest.fixed_count)).1
+  have hj36 : j < 36 := by simpa only [List.length_map, hlen] using hj
+  have h := congrArg BitVec.toNat heq
+  simp only [Nat.zero_add, BitVec.toNat_add, BitVec.toNat_ofNat] at h
+  norm_num only [positionsBase, Nat.reduceAdd, Nat.reducePow] at h outside
+  omega
+
+/-- Node workspaces start at zero after the index HASH. -/
+theorem indexHash_nodes_zero (image : Riscv.Image) (pk : PublicKey paperParams)
+    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
+    (hdata : image.data.length ≤ 1048576) (n : Forest.Name) :
+    MemBits (Riscv.writeHash (indexInputState image pk m bits) answer)
+      (BitVec.ofNat 64 (Direct.slotAddress n)) (0 : BitVec n.len) := by
+  have hn : n.len ≤ 912 := by cases n <;> simp [Forest.Name.len]
+  have bounds := Direct.slotAddress_bounds n
+  have aligned : alignToDword (BitVec.ofNat 64 (Direct.slotAddress n)) =
+      BitVec.ofNat 64 (Direct.slotAddress n) := by
+    apply (aligned_iff _).mpr
+    have h := Direct.slotAddress_aligned n
+    simp only [BitVec.toNat_ofNat]
+    omega
+  apply memBits_of_words _ _ _ aligned
+  intro j hj
+  rw [indexHash_frame, initialState_workspace_zero _ _ _ _ hdata]
+  · exact (BitVec.extractLsb'_zero (w := n.len) (start := 64 * j) (len := 64)).symm
+  all_goals
+    simp only [BitVec.toNat_add, BitVec.toNat_ofNat]
+    try right
+    try unfold scratchBase
+    omega
+
+/-- Position decoding preserves a represented vector outside the position array. -/
+theorem decoderBlock_memBits (s : MachineState) (index : Fin (2 ^ 115))
+    (rankEq : rankOf s = index.val) (table : TableLoaded s)
+    {width : ℕ} (base : Word) (value : BitVec width) (aligned : base.toNat % 8 = 0)
+    (bounded : base.toNat + (width + 7) / 8 < 2 ^ 64)
+    (outside : base.toNat + (width + 7) / 8 ≤ positionsBase ∨
+      positionsBase + 288 ≤ base.toNat) (represented : MemBits s base value) :
+    MemBits (decoderBlock.eval s) base value := by
+  apply memBits_frame_interval s _ base value aligned bounded represented
+  intro addr lo hi
+  apply decoderBlock_frame s index rankEq table addr
+  omega
+
+/-- The index query preserves the transmitted public key. -/
+theorem indexHash_publicKey (image : Riscv.Image) (pk : PublicKey paperParams)
+    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256) :
+    MemBits (Riscv.writeHash (indexInputState image pk m bits) answer) Riscv.publicKeyBase pk := by
+  apply memBits_frame_interval (Riscv.initialState image pk m bits) _ _ _ (by decide)
+    (by decide) (initialState_publicKey image pk m bits)
+  intro addr lo hi
+  apply indexHash_frame
+  left
+  change addr.toNat < 4194304 + (128 + 7) / 8 at hi
+  unfold scratchBase
+  omega
+
+/-- The index query preserves all 41 transmitted disclosure words. -/
+theorem indexHash_payload (image : Riscv.Image) (pk : PublicKey paperParams)
+    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
+    (hdata : image.data.length ≤ 1048576) :
+    MemBits (Riscv.writeHash (indexInputState image pk m bits) answer)
+      (Riscv.signatureBase + 32) (ofBits 5248 (bits.drop 256)) := by
+  have payload := memBits_extract (start := 256) (len := 5248)
+    (initialState_signature image pk m bits hdata) (by decide) (by decide)
+  rw [ofBits_extract _ (by decide), ofBits_drop_take _ (by decide)] at payload
+  apply memBits_frame_interval (Riscv.initialState image pk m bits) _ _ _ (by decide)
+    (by decide) payload
+  intro addr lo hi
+  apply indexHash_frame
+  left
+  change addr.toNat < 4194384 + (5248 + 7) / 8 at hi
+  unfold scratchBase
+  omega
+
+end OptimalOTS.RiscvUpperProgram

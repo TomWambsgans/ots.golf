@@ -71,16 +71,28 @@ comp 36 121 = 41695891754464226932279920354981492 ≥ 2^115.
 
 `ForestAlgorithm.certificate` proves all OTS requirements and a 141-compression bound;
 `Wire.certificate` transfers them to raw signature bits. The official verifier accepted the
-141-compression specification through the algorithm upper interface. `Program.lean` contains
-29697 RV64IM instructions and 70272 bytes of table data, with kernel-checked image validity.
-`MachineCost.lean` proves a reusable bound from a preserved per-step cost invariant.
-`LengthGuard.execution_cost` proves that any successful execution with the image's 29697-step
-fuel costs at most **59393 virtual cycles**. The first instruction initializes the hash length;
-the invariant then bounds every instruction by two cycles. The theorem covers every input and
-oracle-answer path, with no testing assumption.
+141-compression specification through the algorithm upper interface. The current implementation,
+`NodeProgram.lean`, follows the graph one node at a time, using a separate memory slot for each
+value. Its image has **114557 RV64IM instructions** and **70272 bytes of table data**, with
+kernel-checked validity. `DirectCost.execution_cost` bounds every successful execution with
+114557-step fuel by **229113 virtual cycles**. The first instruction initializes the hash length;
+the invariant then bounds every instruction by two cycles.
 
-This is **not yet a RISC-V certificate**: assembly refinement, including termination on every
-input, remains to be proved. The cycle theorem alone does not establish that executions succeed.
+The checked refinement components now include:
+
+- Exact raw-input and composition-table loading, memory copies and hash output representation.
+- The complete 36-position assembly decoder, equal to the specification's composition unranking.
+- Equality of the sequential forest interpreter and the secured raw-signature specification,
+  preserving every oracle query and rejection.
+- Compositional execution rules for branches and ordinary instructions, and correctness and
+  termination of the final public-key comparison.
+
+`Program.lean` retains the earlier fused reconstruction image and its 59393-cycle conditional
+bound. The direct implementation makes each graph operation's refinement obligation explicit.
+
+This is **not yet a RISC-V certificate**: the per-node memory refinement and composition of the
+whole program, including termination on every input, remain to be proved. A successful-execution
+cycle theorem alone does not establish that executions succeed.
 No RISC-V numeric record is registered from the specification alone. Once checked,
 its proof belongs in `ots.golf-submissions` and its Satoshi demo attribution belongs in the
 [versioned website fixtures](../service/demo/submissions.json).

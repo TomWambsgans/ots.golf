@@ -5,10 +5,11 @@ admissibility, 127-bit strong security, and verification within 141 **compressio
 `FixedChoice.lean` and `Unrank.lean` give an executable, injective selector for its cuts.
 The security and graph proofs are adapted from the checked GenericUpper forest.
 
-`Wire.certificate` transfers the OTS proof to raw signature bits. `Program.lean` supplies a
-29697-instruction RV64IM image with kernel-checked validity. `MachineCost.lean` supplies the
-general cost rule.
+`Wire.certificate` transfers the OTS proof to raw signature bits. `NodeProgram.lean` supplies a
+114557-instruction RV64IM image with kernel-checked validity. `DirectCost.execution_cost` bounds
+successful executions by 229113 virtual cycles. The loader, 36-position assembly decoder,
+high-level forest interpreter and final key comparison have checked refinement proofs.
 
 This directory is in development. It has no cycle claim or public submission export yet.
-Exact oracle-program refinement and the program's accepting-cycle bound remain to be proved
+The per-node memory refinement and complete termination/equivalence proof remain to be assembled
 under `OptimalOTS.Riscv`. See [the track notes](../../../docs/riscv-upper.md).
