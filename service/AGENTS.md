@@ -81,7 +81,7 @@ retries and merge-before-verification handling. Never bypass Linux isolation or 
 checks to make a host pass. See `deploy/README.md` for the launch gates.
 
 Use `browser_check.py` for repeatable Firefox checks of the seeded local preview. Keep demo labels
-visible before scores and on submission/profile pages; fictional rows must not present kernel
+on individual entries and submission/profile pages; fictional rows must not present kernel
 verification badges or fabricated commit links. A passing macOS proof check does not establish
 production sandbox safety.
 
@@ -90,6 +90,7 @@ Keep the homepage headline “Think one-time signatures are easy? Prove it.” a
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”
 Keep the heading “One upper bound. Three lower bounds.” removed from the homepage.
+Keep the “Local demo leaderboard” explanatory banner removed; retain individual demo tags.
 
 Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Keep the
 existing `generic-upper` identifier for URLs, data and verification. Show its score card before

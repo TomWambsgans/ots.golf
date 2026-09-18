@@ -306,11 +306,10 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(sub.claim, old[sub.id][0])
         self.assertEqual(seed_demo.refresh(self.session), 0)
 
-    def test_fictional_submissions_are_disclosed_before_scores_and_not_called_verified(self):
+    def test_fictional_submissions_keep_demo_labels_and_are_not_called_verified(self):
         seed_demo.refresh(self.session)
         home = self.client.get('/').text
-        self.assertLess(home.index('Local demo leaderboard.'), home.index('class="framework-cards"'))
-        self.assertIn('They are not verified submissions.', home)
+        self.assertIn('<span class="tag">demo</span>', home)
         for sub in self.session.scalars(select(Submission)):
             detail = self.client.get(f'/submissions/{sub.id}').text
             self.assertIn('<span class="status">demo</span>', detail)

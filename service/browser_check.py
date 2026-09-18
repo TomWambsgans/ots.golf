@@ -185,7 +185,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     generic_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'generic-lower')
     expected_label = json.dumps(f"Generality 3/3 lower {generic_claim}")
     assert js('return document.querySelector(".chart-series[data-series=generic-lower]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=generic-lower] .label").textContent === ' + expected_label + ';')
-    assert js('return document.querySelector(".demo-note") !== null;'), 'This check requires the seeded local preview (service/run-local.sh).'
+    assert js('return [...document.querySelectorAll(".framework-overview .tag")].some(tag => tag.textContent === "demo");'), 'This check requires the seeded local preview (service/run-local.sh).'
 
     assert js('return document.querySelector(".board-track[data-track=upper]").hidden;')
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')

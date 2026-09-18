@@ -309,9 +309,8 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     series.insert(0, {"slug": "generic-upper", "framework": "generic", "kind": "upper",
                    "label": "Upper bound", "baseline": upper_config["baseline"] if upper_config else None,
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
-    demo = any(b["state"]["record_demo"] for model in models for b in model["boards"].values())
     return render(request, "home.html", models=models, selected_framework=framework,
-                  generic_upper=upper, demo=demo or bool(upper and upper["state"]["record_demo"]),
+                  generic_upper=upper,
                   chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())
 
 
