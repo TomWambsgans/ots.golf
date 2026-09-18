@@ -1,9 +1,8 @@
 import OptimalOTS.Riscv
 import Submissions.RiscvUpper.Wire
-import Submissions.RiscvUpper.DirectCost
-import Submissions.RiscvUpper.VerifierProof
+import Submissions.RiscvUpper.CompactVerifier
 
-/-! The proved OTS specification and its direct RV64IM implementation. -/
+/-! The proved OTS specification and its compact RV64IM implementation. -/
 
 namespace OptimalOTS.RiscvUpperForest
 
@@ -14,8 +13,8 @@ noncomputable def submission : Riscv.Submission where
   keygen := Wire.scheme.keygen
   sign := Wire.scheme.sign
   verify := Wire.scheme.verify
-  image := RiscvUpperProgram.Direct.image
-  fuel := fun _ _ _ => 114557
+  image := RiscvUpperProgram.Compact.image
+  fuel := fun _ _ _ => 24058
 
 theorem submission_scheme : submission.scheme = Wire.scheme := rfl
 
@@ -31,19 +30,19 @@ theorem submission_secure : submission.scheme.Secure := by
 /-- The machine's complete oracle computation is the certified verifier on every input, so
 every execution terminates within the fixed fuel and issues exactly the specified queries. -/
 theorem submission_implements : submission.Implements := by
-  refine ⟨RiscvUpperProgram.Direct.image_valid, fun pk m bits => ?_⟩
-  change Riscv.observe 114557 (Riscv.initialState RiscvUpperProgram.Direct.image pk m bits) =
+  refine ⟨RiscvUpperProgram.Compact.image_valid, fun pk m bits => ?_⟩
+  change Riscv.observe 24058 (Riscv.initialState RiscvUpperProgram.Compact.image pk m bits) =
     some <$> Wire.scheme.verify pk m bits
-  rw [RiscvUpperProgram.Direct.image_observe pk m bits 114557 le_rfl,
-    ForestVerifier.directVerify_eq]
+  rw [(RiscvUpperProgram.Compact.image_refines pk m bits).1, ForestVerifier.directVerify_eq]
 
-/-- The accepting-cycle obligation is independent of implementation refinement. -/
-theorem submission_cost : submission.AcceptCostAtMost 229113 := by
+/-- Every accepting run executes at most 24053 cycles: one per instruction, two for the
+912-bit root hash. -/
+theorem submission_cost : submission.AcceptCostAtMost 24053 := by
   intro pk m bits cycles accepted
-  exact RiscvUpperProgram.Direct.execution_cost pk m bits true cycles accepted
+  exact (RiscvUpperProgram.Compact.image_refines pk m bits).2 true cycles accepted
 
-/-- Every requirement of a scored RISC-V submission, at 229113 virtual cycles. -/
-theorem machineCertificate : submission.Certificate 229113 :=
+/-- Every requirement of a scored RISC-V submission, at 24053 virtual cycles. -/
+theorem machineCertificate : submission.Certificate 24053 :=
   ⟨submission_admissible, submission_secure, submission_implements, submission_cost⟩
 
 /--

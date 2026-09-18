@@ -339,3 +339,25 @@ the current Generality 2/3 demo record (21, after Satoshi's 20), a Generality 1/
 that did not beat the earlier record, an Upper bound row at the checked 106, and one mid-history
 102 record on each legacy upper reference. No earlier row, ID, date or record changes; the demo
 count tests now expect 27 rows with every track admitted.
+
+## Compact RISC-V certificate at 24053 cycles (2026-09-18)
+
+The RISC-V root now certifies a compact image: `CompactProgram.lean` keeps one 32-byte slot per
+chain, group and subtree, hashes in place, runs one guarded hash sweep and one guarded read sweep
+per chain level, and assembles the tree inputs in a scratch buffer. The image has 24058
+instructions and the same 70272-byte decoder table. `CompactVerifier.image_refines` proves
+`Riscv.Refines 24058 (initialState image pk m bits) (some <$> directVerify pk m bits) 24053`:
+the observed oracle computation equals the certified verifier on every input, so every
+execution terminates, and every terminating execution costs at most **24053 virtual cycles**
+(one per instruction, two for the 912-bit root hash; guarded blocks and the 14619-instruction
+decoder are charged in full). `Solution.lean` exports the certificate at 24053 with `claim.txt`
+24053, using only `propext`, `Classical.choice` and `Quot.sound`. The proof map is in
+[the track notes](riscv-upper.md); the earlier 229113-cycle image and proof remain in the root
+as references.
+
+`challenges.json` sets the `riscv-upper` baseline to 24053; the protected pin was regenerated and
+the contract id is now `0bb4dcd5b2cafa898516b79c464b5f75fb862e35c76d8c7824e779892ca4ae95`. The
+Satoshi demo fixture keeps zero improvement, so the local preview shows the new baseline. The
+official verifier accepted `riscv-upper` at 24053 in 353.6 seconds on macOS
+(`/private/tmp/ots-riscv-compact.log`); the policy check reports 79 files and 1,086,640 bytes.
+61 verifier tests, 75 service tests and 7 tooling tests pass. Nothing was pushed or deployed.

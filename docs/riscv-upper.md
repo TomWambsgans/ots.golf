@@ -58,11 +58,11 @@ The first 5504 signature bits are loaded; the length sentinel distinguishes over
 The image contains at most 262144 instructions and 1 MiB of fixed data, loaded at `0x200000`.
 Code is immutable. Parsing, arithmetic, copying and comparison run inside the machine.
 
-## First certified submission
+## Certified submission
 
 `formal/Submissions/RiscvUpper/` contains the checked certificate
-`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 229113`, exported from
-`Solution.lean` with `claim.txt` at 229113. It uses only `propext`, `Classical.choice` and
+`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 24053`, exported from
+`Solution.lean` with `claim.txt` at 24053. It uses only `propext`, `Classical.choice` and
 `Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
 
 The OTS retains the existing forest graph and uses a fixed disclosure layout: two subtree digests,
@@ -74,10 +74,33 @@ comp 36 121 = 41695891754464226932279920354981492 ≥ 2^115.
 ```
 
 `ForestAlgorithm.certificate` proves all OTS requirements and a 141-compression bound;
-`Wire.certificate` transfers them to raw signature bits. The implementation, `NodeProgram.lean`,
-follows the graph one node at a time, using a separate 128-byte memory slot for each value. Its
-image has **114557 RV64IM instructions** and **70272 bytes of table data**, with kernel-checked
-validity. The fuel witness is the instruction count: every instruction executes at most once.
+`Wire.certificate` transfers them to raw signature bits. The implementation,
+`CompactProgram.lean`, keeps one 32-byte slot per chain, group and subtree and hashes in place:
+each chain level is one guarded hash sweep over the 36 chains followed by one guarded read sweep
+that copies the disclosed values for the next level, and the tree inputs are assembled in a
+160-byte scratch buffer. Its image has **24058 RV64IM instructions** and **70272 bytes of table
+data**, with kernel-checked validity. The fuel witness is the instruction count.
+
+### Cycle accounting
+
+Every ordinary instruction costs one cycle and every hash call costs `max(1, ⌈bits / 512⌉)`, so
+the certificate charges each block by its instruction count plus one for each 512-bit block of
+hash input beyond the first. All 141 hash inputs fit one block except the 912-bit root input,
+which costs two. Guarded blocks are charged their full length whether or not they run, and the
+decoder is charged its full 14619 instructions; the exact executed count is lower, and the
+remaining gap between 24053 and the 141 hash compressions is the copying, tagging and decoding
+work of the machine.
+
+| Region | Instructions | Certified cycles |
+|---|---:|---:|
+| Index query and input checks | 42 | 36 |
+| Position decoder | 14619 | 14619 |
+| Chain setup, 15 read sweeps and 14 hash sweeps | 9010 | 9010 |
+| Group inputs, hashes and reads | 240 | 240 |
+| Subtree hashes and reads | 100 | 100 |
+| Root input and 912-bit hash | 35 | 36 |
+| Decision | 12 | 12 |
+| Total | 24058 | 24053 |
 
 ### Proof structure
 
@@ -85,37 +108,39 @@ The certificate bundles four facts about `RiscvUpperForest.submission`:
 
 - **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
   `Submission.scheme` definitionally.
-- **Exact refinement** (`Candidate.submission_implements`) states that the machine's observed
-  oracle computation, `Option.map Prod.fst <$> execute 114557 (initialState image pk m bits)`,
-  equals `some <$> Wire.scheme.verify pk m bits` for every public key, message and raw signature
-  bit string. `VerifierProof.image_observe` proves it against the explicit forest interpreter
-  `ForestVerifier.directVerify`, and `ForestVerifierProof.directVerify_eq` identifies that
-  interpreter with the certified verifier. Because the result is `some` on every path, no
-  execution traps or exhausts fuel, so every input terminates, including every rejection.
-- **Accepting cost** (`DirectCost.execution_cost`) bounds every successful execution at the fixed
-  fuel by 229113 virtual cycles: the first instruction zeroes the hash length register and an
-  invariant then charges at most two cycles per instruction.
+- **Exact refinement and accepting cost** are both read off `CompactVerifier.image_refines`, which
+  proves `Riscv.Refines 24058 (initialState image pk m bits) (some <$> directVerify pk m bits) 24053`.
+  `Riscv.Refines fuel s q c` (`Refines.lean`) states that the observed oracle computation of `s`
+  under `fuel` equals `q` and that every terminating execution costs at most `c` cycles.
+  `ForestVerifierProof.directVerify_eq` identifies the explicit forest interpreter with the certified
+  verifier. Because the result is `some` on every path, no execution traps or exhausts fuel, so
+  every input terminates, including every rejection.
 
-The refinement composes four verified regions of the straight-line image with continuation
-lemmas that quantify over any remaining fuel:
+The refinement composes the straight-line image with continuation lemmas that quantify over the
+remaining fuel and add the cycle costs of each block:
 
-1. `IndexExecution.indexAndChecks_continuation`: the 512-bit message-and-nonce query, the
-   115-bit index range check and the exact 5504-bit length check, rejecting exactly as specified.
-2. `DecoderExecution.decodePositions_continuation`: the composition unranking decoder, whose
-   memory result equals `fixedPositions` (`DecodedInput`, `ExecutionContext`).
-3. `ReconstructionExecution.runNodes_observe`: induction over the 2795 named nodes. Each node's
-   effect (`NodeExecution.nodeEffect_eq`) equals `transitionState <$> cursorStep`, the
-   specification's sequential reader with a disclosure cursor, so every hash query is issued on the
-   same bit string in the same order. `NodeRefinement` and `NodeValueProof` prove the exact
-   concatenation and tag layout in memory, slot isolation and pointer preservation;
-   `CursorBudget` proves that the cursor consumes exactly the 5248 payload bits.
-4. `DecisionProof.decision_observe`: the final 128-bit comparison with the public key and HALT.
+1. `IndexRefines.indexAndChecks_refines`: the 512-bit message-and-nonce query, the 115-bit index
+   range check and the exact 5504-bit length check, rejecting exactly as specified, at 36 cycles.
+2. `DecoderProof.decoderBlock_correct` through `Riscv.Refines.block`: the composition unranking
+   decoder, whose memory result equals `fixedPositions` (`DecodedInput`, `ExecutionContext`),
+   charged its code length.
+3. `CompactLevels.chains_refines`: the chain phase. `SweepRefines` gives a generic per-node
+   segment framework (`Segment.NodeRefines`, `sweep_refines`) matching the specification's
+   sequential reader `runNodes'` over `order`; `CompactChains` proves the source reads, the
+   guarded chain hashes (`ch_refines`) and the guarded reads (`cv_refines`), each hash issued on
+   the same tagged 144-bit input in the same order as the specification.
+4. `CompactTree.groups_refines`, `subtrees_refines` and `rootDecision_refines`: the tagged
+   400-bit group and subtree inputs assembled in scratch by `tripleInput_effect`, the 912-bit
+   root input by `rootLin_effect`, in-place hash outputs in the 32-byte slots, and the final
+   128-bit comparison with the public key (`decision_refines`) ending in HALT.
 
-The specification side is `ForestVerifierProof.directReconstruct_eq`, which shows that reading
-disclosures sequentially agrees with the graph's offset-addressed decoding.
+`CursorBudget` proves that the cursor consumes exactly the 5248 payload bits, and
+`ForestVerifierProof.directReconstruct_eq` shows that reading disclosures sequentially agrees
+with the graph's offset-addressed decoding.
 
-`Program.lean` retains the earlier fused reconstruction image and its 59393-cycle conditional
-bound as a reference; it is not the certified submission.
+`NodeProgram.lean` and `VerifierProof.image_observe` retain the earlier one-slot-per-node image and
+its refinement at 229113 cycles; `Program.lean` retains the fused reconstruction image and its
+59393-cycle conditional bound. Neither is the certified submission.
 
 The official verifier accepts this root through the RISC-V challenge stub; its wall time is
 recorded in [the production review](production-readiness.md). The website presents the checked
