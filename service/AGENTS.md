@@ -98,8 +98,12 @@ the three lower cards and draw its chart line solid. Explain in the rules that a
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
 budgets, with worst-case verification cost as the quantity to minimize. Present the two tracks,
 then the three lower classes; do not invent percentages for their degree of generality. Keep the
-WOTS+ chain illustration, including the checksum and per-step key/mask explanation. Do not restore
+WOTS+ illustration as a list of chains, showing a selected signature value on each message and
+checksum chain, with the remaining verification steps and per-step key/mask explanation. Do not restore
 the removed background-reading disclaimer or historical-certificate paragraph in the rules.
+Keep the compression-cost rationale crediting Justin Drake: a per-key public parameter can be
+absorbed once as a full prefix block and its hash state reused. This motivates no implicit
+per-query surcharge; it does not exempt bits explicitly present in an oracle input from cost.
 
 Name the lower frameworks “Generality 3/3” (any oracle algorithm), “Generality 2/3” (a DAG with
 arbitrary deterministic functions), and “Generality 1/3” (a DAG built from whole words). Use these

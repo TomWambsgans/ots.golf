@@ -1,37 +1,59 @@
-<figure class="rules-diagram">
-  <div class="rules-diagram-scroll" tabindex="0" aria-label="WOTS+ hash chain; scroll horizontally on small screens">
-    <svg viewBox="0 0 760 240" role="img" aria-labelledby="wots-figure-title wots-figure-desc">
-      <title id="wots-figure-title">Sign partway along a chain; verify the rest</title>
-      <desc id="wots-figure-desc">One WOTS+ chain with four positions, numbered zero through three.
-      Key generation computes all three steps from secret x zero to public endpoint x three.
-      For a message digit of one, signing reveals x one. Verification applies the remaining
-      two steps to recover x three. Each step uses its own derived key and mask.</desc>
-      <defs><marker id="wots-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
-      <text class="diagram-heading" x="380" y="24" text-anchor="middle">Example: one base-4 digit equal to 1</text>
-      <g class="diagram-edges" marker-end="url(#wots-arrow)">
-        <path d="M111 80 H252"/><path d="M318 80 H459"/><path d="M511 80 H638"/>
-      </g>
-      <circle class="diagram-node diagram-hidden" cx="85" cy="80" r="26"/>
-      <rect class="diagram-node diagram-reveal" x="252" y="54" width="66" height="52" rx="6"/>
-      <circle class="diagram-node" cx="485" cy="80" r="26"/>
-      <rect class="diagram-node" x="638" y="54" width="94" height="52" rx="6"/>
-      <g class="diagram-text" text-anchor="middle">
-        <text x="85" y="85">x₀</text><text x="285" y="85">x₁</text>
-        <text x="485" y="85">x₂</text><text x="685" y="85">x₃</text>
-        <text x="182" y="66">F₀</text><text x="388" y="66">F₁</text><text x="574" y="66">F₂</text>
-      </g>
+<figure class="rules-diagram wots-diagram">
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="WOTS+ message and checksum chains; scroll horizontally on small screens">
+    <svg viewBox="0 0 760 466" role="img" aria-labelledby="wots-figure-title wots-figure-desc">
+      <title id="wots-figure-title">A signature reveals one value from each chain</title>
+      <desc id="wots-figure-desc">A small base-4 example with five independent chains, each three
+      steps long. The three message digits are 1, 3 and 0. Their checksum is 5, written as the
+      base-4 digits 1 and 1, giving two more chains. Each row highlights the signature value
+      at the position selected by its digit. Verification hashes forward from that value to
+      the public endpoint: two, zero, three, two and two steps respectively. Numbers in the
+      nodes are chain positions, not hash values.</desc>
+      <defs>
+        <marker id="wots-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
+        <marker id="wots-verify-arrow" class="wots-verify-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
+      </defs>
+      <text class="diagram-heading" x="16" y="24">One chain per digit · a small base-4 example</text>
       <g class="diagram-note" text-anchor="middle">
-        <text x="85" y="128">secret</text>
-        <text x="285" y="128">signature value</text>
-        <text x="685" y="128">public endpoint</text>
+        <text x="238" y="60">Secret</text>
+        <text x="445" y="60">Chain positions</text>
+        <text x="652" y="60">Public endpoint</text>
       </g>
-      <path class="diagram-bracket" d="M85 144 V154 H285 V144"/>
-      <text class="diagram-note" x="185" y="177" text-anchor="middle">Sign: one step</text>
-      <path class="diagram-bracket" d="M285 190 V200 H685 V190"/>
-      <text class="diagram-note" x="485" y="223" text-anchor="middle">Verify: two steps</text>
+      {% for label, digit, y in [
+        ('Message digit 1', 1, 108),
+        ('Message digit 2', 3, 170),
+        ('Message digit 3', 0, 232),
+        ('Checksum digit 1', 1, 330),
+        ('Checksum digit 2', 1, 392)
+      ] %}
+      <g class="wots-chain">
+        <text class="diagram-text" x="16" y="{{ y - 6 }}">{{ label }}</text>
+        <text class="diagram-note" x="16" y="{{ y + 14 }}">digit = {{ digit }}</text>
+        {% for step in range(3) %}
+        <path class="diagram-edges{% if step >= digit %} wots-verify{% endif %}"
+              d="M{{ 266 + 138 * step }} {{ y }} H{{ 347 + 138 * step }}"
+              marker-end="url(#{{ 'wots-verify-arrow' if step >= digit else 'wots-arrow' }})"/>
+        {% endfor %}
+        {% for step in range(4) %}
+        {% set x = 238 + 138 * step %}
+        {% if step == digit %}
+        <rect class="diagram-node diagram-reveal" x="{{ x - 27 }}" y="{{ y - 20 }}" width="54" height="40" rx="6"/>
+        {% else %}
+        <circle class="diagram-node" cx="{{ x }}" cy="{{ y }}" r="20"/>
+        {% endif %}
+        <text class="{{ 'diagram-emphasis' if step == digit else 'diagram-text' }}" x="{{ x }}" y="{{ y + 5 }}" text-anchor="middle">{{ step }}</text>
+        {% endfor %}
+      </g>
+      {% endfor %}
+      <path class="diagram-edges" d="M16 272 H724"/>
+      <text class="diagram-note" x="16" y="297">Checksum: (3 − 1) + (3 − 3) + (3 − 0) = 5 = (11)₄</text>
+      <rect class="diagram-node diagram-reveal" x="138" y="440" width="22" height="16" rx="3"/>
+      <text class="diagram-note" x="170" y="453">Revealed signature value</text>
+      <path class="diagram-edges wots-verify" d="M422 448 H464" marker-end="url(#wots-verify-arrow)"/>
+      <text class="diagram-note" x="478" y="453">Verifier hashes forward</text>
     </svg>
   </div>
-  <figcaption>Key generation builds the complete chain. Signing reveals the position selected by
-  a digit; verification finishes the chain. A full WOTS+ signature uses a chain for each digit
-  of the message and its checksum. Each step F uses its own derived key and mask.</figcaption>
+  <figcaption>Each row starts from a separate secret. Signing reveals one value per chain;
+  verification follows the blue arrows to recover the public endpoints. Numbers mark positions
+  along each chain. WOTS+ uses a chain for every message and checksum digit, with a derived key
+  and mask for each step.</figcaption>
 </figure>

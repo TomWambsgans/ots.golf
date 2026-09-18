@@ -9,6 +9,11 @@
     with a minimum of one, even for empty or repeated queries. Explicit distinguishing bits count
     as input. Deterministic computation and randomness are free, including for the attacker.
     Every cost bound is worst-case over all execution paths.</p>
+    <p>We add no implicit per-query cost for a public parameter chosen once per key. As
+    Justin Drake observed, a block-based implementation can pad that parameter to a full block,
+    absorb it once, and reuse the resulting hash state for later queries under the same key.
+    The setup is paid once, rather than repeated for every query. Any parameter or tweak explicitly
+    included in an oracle input still counts toward its length.</p>
   </div>
 </details>
 <details id="security">

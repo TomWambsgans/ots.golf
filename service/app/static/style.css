@@ -162,6 +162,8 @@ table.params th:first-child { width: 44%; }
 .diagram-heading { font-weight: 600; }
 .diagram-text { fill: var(--ink); font: 15px system-ui, sans-serif; }
 .diagram-emphasis { fill: var(--accent-ink); font: 600 15px system-ui, sans-serif; }
+.wots-diagram .wots-verify { stroke: var(--accent); stroke-width: 2; }
+.wots-diagram .wots-verify-arrow path { fill: var(--accent); }
 
 /* rules page: each rule is a line that unfolds into its explanation */
 .rules-list { max-width: 86ch; margin: 6px 0 8px; border-top: 1px solid var(--line); }
