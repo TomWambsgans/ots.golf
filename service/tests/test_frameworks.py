@@ -97,7 +97,7 @@ class FrameworkTests(unittest.TestCase):
         bound_y = float(re.search(r'M[\d.]+,([\d.]+)', generic.find('path').get('d')).group(1))
         self.assertLess(bound_y, axis_y)
         self.assertIn('verified bound', generic.find('path/title').text)
-        self.assertIn('Honest signatures verify; signing succeeds at least half the time.', response.text)
+        self.assertIn('<p>Any oracle algorithm.</p>', response.text)
         self.assertIn('<table class="lb-table" data-track="generic-lower">', response.text)
         self.assertIn('0 records, 0 solvers', response.text)
         self.assertNotIn('baseline', response.text.lower())

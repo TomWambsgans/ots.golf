@@ -29,7 +29,7 @@
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm.</p>
       {% elif model.slug == 'dag' %}
-      <p>A fixed graph with arbitrary deterministic functions. Reveal a cut; recompute the public key.</p>
+      <p>A fixed DAG with arbitrary deterministic functions.</p>
       {% else %}
       <p>A DAG built from <strong>whole 128-bit words</strong>. Split each hash into two words;
       concatenate words into new inputs. Reveal at most 41 words.</p>
