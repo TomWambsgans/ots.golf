@@ -245,6 +245,16 @@ restarted with the new settings. All 21 demo rows retain their IDs, dates and sc
 Evidence: `/private/tmp/ots-repo-split-checks.log`, `/private/tmp/ots-repo-split-browser.log`
 and `/private/tmp/ots-repo-split-browser/`.
 
+All four exported roots pass policy checks; their 83 files match the core references byte for byte.
+The official verifier accepts submissions commit `da16887`, using core commit `402365c`:
+`generic-lower` at 1 in 81.8 seconds and `generic-upper` at 106 in 173.3 seconds. These macOS
+checks validate the proofs, not production isolation. Results:
+`/private/tmp/ots-repo-split-official-{lower,upper}.json`.
+
+The empty GitHub submissions repository was cloned locally, then populated with that same
+verified commit and pinned core submodule. The new commits remain local; no remote branches
+were changed.
+
 These checks use mocked GitHub APIs; webhook installation, token permissions and real GitHub
 acceptance remain launch tasks. This change does not deploy or publish either repository.
 
