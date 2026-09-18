@@ -23,7 +23,7 @@ class ChartTests(unittest.TestCase):
     @staticmethod
     def series(claim=93, points=None):
         return {'slug': 'disclosure-lower', 'framework': 'disclosure', 'kind': 'lower',
-                'label': 'Whole words lower', 'baseline': claim, 'points': points or []}
+                'label': 'Generality 1/3 lower', 'baseline': claim, 'points': points or []}
 
     def test_attribution_cannot_escape_svg_or_json_script(self):
         stamp = datetime(2026, 1, 1)

@@ -90,7 +90,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual({s.get('data-series') for s in lower}, {'generic-lower', 'lower', 'disclosure-lower'})
         generic = svg.find("./g[@data-series='generic-lower']")
         self.assertEqual(generic.get('data-status'), 'certified')
-        self.assertEqual(generic.find("text[@class='label']").text, 'Generic algorithms lower 1')
+        self.assertEqual(generic.find("text[@class='label']").text, 'Generality 3/3 lower 1')
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertEqual(self.chart(response.text), [])
         axis_y = float(svg.find("./line[@class='axis']").get('y1'))
@@ -139,7 +139,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertNotIn('baseline', detail.lower())
         profile = self.client.get('/solvers/vitalik-buterin').text
         self.assertIn(f'href="/submissions/{sub.id}"', profile)
-        self.assertIn('href="/?framework=generic#lower">Generic algorithms</a>', profile)
+        self.assertIn('href="/?framework=generic#lower">Generality 3/3</a>', profile)
         self.assertNotIn('baseline', profile.lower())
 
     def test_single_generic_upper_uses_its_own_records_and_attribution(self):
@@ -151,7 +151,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'generic-upper')
         self.assertEqual(uppers[0].get('data-status'), 'certified')
-        self.assertEqual(uppers[0].find("text[@class='label']").text, 'Generic upper 105')
+        self.assertEqual(uppers[0].find("text[@class='label']").text, 'Upper bound 105')
         self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 2)
         self.assertNotIn('admission pending', html.lower())
         self.assertNotIn('candidate', html.lower())
@@ -168,7 +168,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertIn('href="/#upper"', detail)
             self.assertNotIn('signing success at least 1/2', detail)
             self.assertNotIn('s-verified', detail)
-        self.assertIn('href="/#upper">Generic algorithms</a>',
+        self.assertIn('href="/#upper">Upper bound</a>',
                       self.client.get('/solvers/satoshi-nakamoto').text)
 
     def test_legacy_upper_records_do_not_initialize_generic_upper(self):
@@ -176,7 +176,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/').text
         generic = self.chart_svg(html).find("./g[@data-series='generic-upper']")
-        self.assertEqual(generic.find("text[@class='label']").text, 'Generic upper 106')
+        self.assertEqual(generic.find("text[@class='label']").text, 'Upper bound 106')
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertIsNone(records.current_record(self.session, 'generic-upper'))
 
@@ -191,7 +191,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertIn('Admission pending', html)
             self.assertNotIn('data-track="generic-upper"', html)
             self.assertFalse(any(p['kind'] == 'upper' for p in self.chart(html)))
-            self.assertIn('<strong>Pending:</strong> generic upper', self.client.get('/rules').text)
+            self.assertIn('<strong>Pending:</strong> the upper-bound track', self.client.get('/rules').text)
             with self.assertRaises(HTTPException) as caught:
                 queue_submission(self.session, User(login='tester'), 'generic-upper', 'local', 'a' * 40,
                                  None, [], None, None, None)
@@ -229,7 +229,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse('framework-comparison' in body)
         self.assertTrue('whole 128-bit words' in body)
         self.assertTrue('id="generic-algorithms"' in body)
-        self.assertTrue('One upper track: generic algorithms' in body)
+        self.assertTrue('<strong>Upper bound.</strong>' in body)
 
     def test_refresh_preserves_existing_rows_and_adds_missing_tracks_once(self):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
@@ -265,7 +265,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f"/submissions/{sub.id}").text
-        self.assertTrue('href="/?framework=disclosure#lower">Whole words</a>' in html)
+        self.assertTrue('href="/?framework=disclosure#lower">Generality 1/3</a>' in html)
         self.assertIn('Hash inputs and disclosures contain only whole 128-bit words.', html)
         self.assertTrue('Illustrative local submission with fictional attribution' in html)
 
@@ -273,9 +273,9 @@ class FrameworkTests(unittest.TestCase):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
         self.session.commit()
         html = self.client.get('/solvers/satoshi-nakamoto').text
-        self.assertTrue('href="/?framework=dag#lower">DAG</a>' in html)
+        self.assertTrue('href="/?framework=dag#lower">Generality 2/3</a>' in html)
         self.assertTrue('href="/rules#legacy-certificates">Historical partial disclosures reference</a>' in html)
-        self.assertIn('href="/?framework=disclosure#lower">Whole words</a>', html)
+        self.assertIn('href="/?framework=disclosure#lower">Generality 1/3</a>', html)
         self.assertTrue('Lower bound' in html and 'Legacy upper certificate' in html)
 
     def test_historical_partial_upper_is_not_relabelled_whole_words(self):
@@ -284,7 +284,7 @@ class FrameworkTests(unittest.TestCase):
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('Historical partial disclosures reference certificate', html)
-        self.assertIn('16-bit input tweaks do not satisfy the whole-word framework', html)
+        self.assertIn('16-bit input tweaks do not satisfy Generality 1/3', html)
         self.assertNotIn('Whole words reference certificate', html)
         self.assertNotIn('href="/?framework=disclosure#upper"', html)
 

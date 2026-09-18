@@ -89,3 +89,18 @@ Keep the homepage headline “Think one-time signatures are easy? Prove it.” a
 80% of its containing column's width. Keep the homepage concise: the generic upper card shows
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”
+
+Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Keep the
+existing `generic-upper` identifier for URLs, data and verification. Show its score card before
+the three lower cards and draw its chart line solid. Explain in the rules that any oracle algorithm
+is allowed. Introduce the competition through fixed size, security and key-generation/signing
+budgets, with worst-case verification cost as the quantity to minimize. Present the two tracks,
+then the three lower classes; do not invent percentages for their degree of generality. Keep the
+WOTS+ chain illustration, including the checksum and per-step key/mask explanation. Do not restore
+the removed background-reading disclaimer or historical-certificate paragraph in the rules.
+
+Name the lower frameworks “Generality 3/3” (any oracle algorithm), “Generality 2/3” (a DAG with
+arbitrary deterministic functions), and “Generality 1/3” (a DAG built from whole words). Use these
+names in cards, charts, filters, leaderboards, rules and submission/profile pages; explain the
+restrictions in the descriptions. Keep the existing slugs and Lean names. Historical upper
+references retain their historical names; the generality levels apply only to lower bounds.

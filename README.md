@@ -2,24 +2,25 @@
 
 How cheaply can a hash-based one-time signature be verified?
 
-ots.golf compares **three lower-bound classes** and admits upper constructions through a
-**single generic algorithm interface**. A submission is a Lean proof about a pinned contract.
+ots.golf compares **three lower-bound classes** and has one **Upper bound** track for arbitrary
+oracle algorithms. All four tracks are open. A submission is a Lean proof about a pinned contract.
 The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
 contract's random-oracle experiment.
 
-| Lower framework | Admitted schemes | Checked lower bound |
+| Lower class | Admitted schemes | Checked lower bound |
 |---|---|---:|
-| Generic algorithms | Arbitrary oracle programs with correctness, availability and resource guarantees | 1 |
-| DAGs | Fixed computation graphs, arbitrary deterministic operations and disclosure cuts | 18 |
-| Whole words | DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
+| Generality 3/3 | Arbitrary oracle programs with correctness, availability and resource guarantees | 1 |
+| Generality 2/3 | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 1/3 | Whole-word DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
 
 These bounds apply to different classes. The whole-word result does not establish 93 for
 arbitrary DAGs or generic algorithms. The whole-word track retains its earlier
 `disclosure-lower` identifier for URL and submission-root compatibility.
 
-The generic upper track has a verified **106-compression construction**, with perfect correctness,
-signing failure at most `2^-128`, 127-bit strong security, and the required size and cost proofs. The original DAG and historical partial-disclosure upper certificates
-remain locally verifiable references; neither is an admitted generic upper record.
+The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
+perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
+size and cost proofs. The original DAG and historical partial-disclosure upper certificates
+remain locally verifiable references; neither contributes records to the Upper bound track.
 
 ## Model
 
@@ -49,8 +50,8 @@ cd ..
 python3 verifier/verify.py disclosure-lower --source .
 ```
 
-Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the generic
-upper construction, and `upper` or
+Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the
+Upper bound construction, and `upper` or
 `disclosure-upper` for the historical references. macOS verification checks proofs but does
 not sandbox untrusted code. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
@@ -65,11 +66,11 @@ and the [production review](docs/production-readiness.md) for checks and deploym
 - [Submission rules](AGENTS.md), [track metadata](challenges.json) and [verifier](verifier/verify.py).
 - [DAG contract](formal/OptimalOTS/Statement.lean), [generic interface](formal/OptimalOTS/Algorithm.lean)
   and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
-- [Generic lower proof](docs/generic-lower.md), [DAG lower proof](docs/lower-bound-proof.md)
-  and [whole-word lower proof](docs/whole-words.md).
-- [Generic upper proof](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
+- [Generality 3/3 proof](docs/generic-lower.md), [Generality 2/3 proof](docs/lower-bound-proof.md)
+  and [Generality 1/3 proof](docs/whole-words.md).
+- [Upper bound proof](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
 - `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
-- `formal/Submissions/GenericUpper/`: the admitted generic upper root.
+- `formal/Submissions/GenericUpper/`: the admitted Upper bound root.
 - `formal/Submissions/{Upper,DisclosureUpper}/`: historical upper references.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 

@@ -82,7 +82,8 @@
         "OptimalOTS.Statement"
       ],
       "framework": "dag",
-      "kind": "upper"
+      "kind": "upper",
+      "historical_framework_title": "Historical DAG"
     },
     {
       "slug": "disclosure-lower",
@@ -184,7 +185,7 @@
   "frameworks": [
     {
       "slug": "generic",
-      "title": "Generic algorithms",
+      "title": "Generality 3/3",
       "status": "active",
       "description": "Arbitrary oracle algorithms with perfect correctness, signing success at least one half and the fixed size, resource and security requirements.",
       "lower_track": "generic-lower",
@@ -192,14 +193,14 @@
     },
     {
       "slug": "dag",
-      "title": "DAG",
+      "title": "Generality 2/3",
       "status": "active",
       "lower_track": "lower",
       "description": "Any fixed computation DAG, with arbitrary sharing, deterministic operations and disclosure cuts."
     },
     {
       "slug": "disclosure",
-      "title": "Whole words",
+      "title": "Generality 1/3",
       "status": "active",
       "lower_track": "disclosure-lower",
       "description": "DAGs built from independent 128-bit secrets, 256-bit hashes, fixed output halves and concatenation. Inputs and disclosures contain only whole words.",

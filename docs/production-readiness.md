@@ -178,6 +178,24 @@ Logs: `/private/tmp/ots-generic-admission-checks.log` and
 `/private/tmp/ots-ui-generic-upper/`. These results do not replace the actual-host Linux isolation
 or staging GitHub acceptance gates below. Nothing was pushed or deployed.
 
+## Generality labels and rules presentation (2026-09-17)
+
+The three lower classes are now displayed as Generality 3/3, 2/3 and 1/3. The Upper bound card
+comes first and its chart line is solid. Rules explain the fixed budgets before the two tracks,
+retain all admission requirements, and add a WOTS+ chain diagram. All nine sections start folded.
+
+Only display metadata changed in the protected contract: framework titles and a historical title
+for the original DAG upper reference. The new 22-file pin is
+`491d82d7f56ef5885d2b1da0416063658f0b4cadb9f0c0353aec8a4a0ca6f644`.
+Lean sources, challenges, claims and verifier requirements are unchanged; the official proof runs
+above used the preceding pin and were not repeated for these presentation changes.
+
+All 59 service tests and 59 verifier tests pass. Firefox checks pass on desktop and at 320/390
+pixels, including the new labels, upper-card ordering, solid upper line, folded rules, three
+diagrams, tooltips, filters and light/dark themes. Logs are in
+`/private/tmp/ots-rules-generality-tests.log`, `/private/tmp/ots-generality-verifier-tests.log`
+and `/private/tmp/ots-ui-generality.log`; screenshots are in `/private/tmp/ots-ui-generality/`.
+
 ## Gates before public launch
 
 Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any

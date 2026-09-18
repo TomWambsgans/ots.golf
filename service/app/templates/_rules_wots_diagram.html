@@ -1,0 +1,37 @@
+<figure class="rules-diagram">
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="WOTS+ hash chain; scroll horizontally on small screens">
+    <svg viewBox="0 0 760 240" role="img" aria-labelledby="wots-figure-title wots-figure-desc">
+      <title id="wots-figure-title">Sign partway along a chain; verify the rest</title>
+      <desc id="wots-figure-desc">One WOTS+ chain with four positions, numbered zero through three.
+      Key generation computes all three steps from secret x zero to public endpoint x three.
+      For a message digit of one, signing reveals x one. Verification applies the remaining
+      two steps to recover x three. Each step uses its own derived key and mask.</desc>
+      <defs><marker id="wots-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <text class="diagram-heading" x="380" y="24" text-anchor="middle">Example: one base-4 digit equal to 1</text>
+      <g class="diagram-edges" marker-end="url(#wots-arrow)">
+        <path d="M111 80 H252"/><path d="M318 80 H459"/><path d="M511 80 H638"/>
+      </g>
+      <circle class="diagram-node diagram-hidden" cx="85" cy="80" r="26"/>
+      <rect class="diagram-node diagram-reveal" x="252" y="54" width="66" height="52" rx="6"/>
+      <circle class="diagram-node" cx="485" cy="80" r="26"/>
+      <rect class="diagram-node" x="638" y="54" width="94" height="52" rx="6"/>
+      <g class="diagram-text" text-anchor="middle">
+        <text x="85" y="85">x₀</text><text x="285" y="85">x₁</text>
+        <text x="485" y="85">x₂</text><text x="685" y="85">x₃</text>
+        <text x="182" y="66">F₀</text><text x="388" y="66">F₁</text><text x="574" y="66">F₂</text>
+      </g>
+      <g class="diagram-note" text-anchor="middle">
+        <text x="85" y="128">secret</text>
+        <text x="285" y="128">signature value</text>
+        <text x="685" y="128">public endpoint</text>
+      </g>
+      <path class="diagram-bracket" d="M85 144 V154 H285 V144"/>
+      <text class="diagram-note" x="185" y="177" text-anchor="middle">Sign: one step</text>
+      <path class="diagram-bracket" d="M285 190 V200 H685 V190"/>
+      <text class="diagram-note" x="485" y="223" text-anchor="middle">Verify: two steps</text>
+    </svg>
+  </div>
+  <figcaption>Key generation builds the complete chain. Signing reveals the position selected by
+  a digit; verification finishes the chain. A full WOTS+ signature uses a chain for each digit
+  of the message and its checksum. Each step F uses its own derived key and mask.</figcaption>
+</figure>

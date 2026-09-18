@@ -11,22 +11,31 @@
 
 <section class="framework-overview" aria-labelledby="framework-title">
   <div class="section-heading">
-    <h2 id="framework-title">Three lower bounds. One generic upper bound.</h2>
+    <h2 id="framework-title">One upper bound. Three lower bounds.</h2>
   </div>
-  <p class="section-intro">Prove a lower bound for any of three classes, or build a fully generic algorithm for the upper bound.
+  <p class="section-intro">Construct an OTS for the upper bound, or prove a lower bound for one of three classes.
   Every class uses the same hash-cost model and 127-bit security target.</p>
   {% if demo %}<p class="demo-note"><strong>Local demo leaderboard.</strong> Entries marked “demo” have fictional attribution and scores.
   They are not verified submissions.</p>{% endif %}
+  <article class="generic-upper-card" aria-labelledby="generic-upper-title">
+    <div>
+      <h3 id="generic-upper-title"><a href="/rules#generic-upper">Upper bound</a></h3>
+      {% if generic_upper and generic_upper.state.record_submission_id %}
+      <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a>
+      {% if generic_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      {% else %}<p>{% if generic_upper %}<a href="/rules#play">Submit a construction ↗</a>{% else %}Admission pending{% endif %}</p>{% endif %}
+    </div>
+    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
+  </article>
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
-      <div class="framework-card-heading"><span class="framework-number">0{{ loop.index }}</span></div>
       <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">{{ model.title }}</a></h3>
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm. Honest signatures verify; signing succeeds at least half the time.
       No required graph or disclosure cut.</p>
       {% elif model.slug == 'dag' %}
-      <p>A fixed computation graph. Reveal a cut; recompute the public key.</p>
+      <p>A fixed graph with arbitrary deterministic functions. Reveal a cut; recompute the public key.</p>
       {% else %}
       <p>A DAG built from <strong>whole 128-bit words</strong>. Split each hash into two words;
       concatenate words into new inputs. Reveal at most 41 words.</p>
@@ -44,16 +53,6 @@
     </article>
     {% endfor %}
   </div>
-  <article class="generic-upper-card" aria-labelledby="generic-upper-title">
-    <div>
-      <h3 id="generic-upper-title"><a href="/rules#generic-upper">Generic upper bound</a></h3>
-      {% if generic_upper and generic_upper.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a>
-      {% if generic_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
-      {% else %}<p>{% if generic_upper %}<a href="/rules#play">Submit a construction ↗</a>{% else %}Admission pending{% endif %}</p>{% endif %}
-    </div>
-    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
-  </article>
 </section>
 
 <section class="dashboard" aria-labelledby="dash-title">
@@ -66,7 +65,7 @@
   <figure class="chart">
     <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption>Lower records are separate for each framework. The dashed line shows the generic upper bound.
+    <figcaption>Lower records are separate for each framework. The orange line shows the upper bound.
     Hover or focus a record for details; select it to open the submission.</figcaption>
   </figure>
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
@@ -78,7 +77,7 @@
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
         <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bounds ↑</button>
-        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Generic upper ↓</button>
+        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound ↓</button>
       </div>
     </div>
     <nav class="framework-tabs board-filters lower-only" aria-label="Filter lower leaderboard by framework">
@@ -87,7 +86,7 @@
       <a href="/?framework={{ f.slug }}#board-title"{% if selected_framework == f.slug %} aria-current="page"{% endif %}>{{ f.title }}</a>
       {% endfor %}
     </nav>
-    <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. The upper track admits fully generic algorithms only.</p>
+    <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. The upper track accepts any oracle algorithm.</p>
     {% set kind = 'lower' %}
     <div class="board-track" data-track="lower">
       {% for model in models if selected_framework == 'all' or selected_framework == model.slug %}
@@ -123,7 +122,7 @@
       <section class="generic-upper-board" aria-labelledby="upper-board-title">
         {% set b = generic_upper %}
         <div class="framework-board-head">
-          <div><h3 id="upper-board-title">Fully generic algorithms</h3>
+          <div><h3 id="upper-board-title">Upper bound</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compression{{ '' if b.state.record_claim == 1 else 's' }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
@@ -131,7 +130,7 @@
         {% if b %}
         <div class="board-scroll" role="region" tabindex="0" aria-labelledby="upper-board-title">
           <table class="lb-table" data-track="{{ b.cfg.slug }}">
-            <caption class="visually-hidden">Generic upper-bound records</caption>
+            <caption class="visually-hidden">Upper-bound records</caption>
             <thead><tr>
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
@@ -141,8 +140,8 @@
             <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
         </div>
-        {% else %}<p class="foundation-note">The generic upper challenge is not yet admitted.
-        <a href="/rules#generic-upper">Generic upper requirements ↗</a></p>{% endif %}
+        {% else %}<p class="foundation-note">The upper-bound challenge is not yet admitted.
+        <a href="/rules#generic-upper">Upper-bound requirements ↗</a></p>{% endif %}
       </section>
     </div>
   </div>

@@ -143,7 +143,8 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 .board-stats { margin: 0 0 8px; font-size: 14px; }
 
 table.params { max-width: 78ch; }
-table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
+table.params th { color: var(--ink-2); font-weight: 500; }
+table.params th:first-child { width: 44%; }
 
 /* Small explanatory diagrams use the page palette and remain readable on narrow screens. */
 .rules-diagram { margin: 22px 0 28px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
@@ -183,7 +184,7 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .framework-tabs a[aria-current="page"] { color: var(--accent-ink); background: var(--accent-track); }
 .framework-status { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
 
-/* Framework comparison: color names the class, dashes distinguish upper tracks. */
+/* Each lower class has its own color; orange identifies the upper bound. */
 :root { --generic: #8057bd; --dag: #246dc2; --disclosure: #14816b; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --generic: #b797ed; --dag: #79b0f2; --disclosure: #53c7a8; }
@@ -199,9 +200,7 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .framework-overview { margin: 20px 0 36px; }
 .framework-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .framework-card { display: flex; flex-direction: column; min-width: 0; padding: 18px; border: 1px solid var(--line); border-top: 3px solid var(--framework-color); border-radius: 8px; background: var(--surface); }
-.framework-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.framework-number { color: var(--framework-color); font: 13px ui-monospace, monospace; }
-.framework-card h3 { margin: 12px 0 8px; font-size: 19px; }
+.framework-card h3 { margin: 0 0 8px; font-size: 19px; }
 .framework-card h3 a { color: var(--ink); }
 .framework-card > p { margin: 0 0 18px; font-size: 14px; color: var(--ink-2); }
 .framework-bounds { display: grid; grid-template-columns: 1fr; gap: 16px; margin: auto 0 12px; padding-top: 8px; }
@@ -212,15 +211,14 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
 .demo-note { color: var(--ink-2); font-size: 13px; margin: 10px 0; }
 .chart-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 0; margin: 16px 0 12px; font-size: 12px; }
 .series-swatch { display: inline-block; width: 24px; border-top: 2px solid var(--framework-color); margin-right: 7px; vertical-align: middle; }
-.upper .series-swatch { border-top-style: dashed; }
 .pending .series-swatch { border-top-style: dotted; opacity: .65; }
 .chart figcaption { color: var(--ink-2); padding: 6px 4px; }
 .chart-plot { overflow-x: auto; }
 .chart-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .record-chart .chart-series .line, .record-chart .chart-series .connector { stroke: var(--framework-color); }
 .record-chart .chart-series .connector { fill: none; stroke-width: 1; opacity: .6; }
-.record-chart .chart-series.upper .line { stroke-dasharray: 8 5; }
 .record-chart .chart-series .line.reference { stroke-dasharray: 3 5; opacity: .85; }
+.record-chart .chart-series.upper .line { stroke-dasharray: none; }
 .record-chart .chart-series .mark { fill: var(--framework-color); }
 .record-chart .chart-series.upper .mark { fill: var(--surface); stroke: var(--framework-color); }
 .record-chart .chart-series .label { font-size: 12px; }
@@ -254,7 +252,7 @@ table.params th { width: 260px; color: var(--ink-2); font-weight: 500; }
   .chart-legend { gap: 6px 12px; }
   .lb-table { min-width: 620px; }
 }
-.generic-upper-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 20px 22px; margin-top: 16px; border: 1px solid var(--line); border-left: 3px solid var(--series-2); border-radius: 8px; background: var(--surface); }
+.generic-upper-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 20px 22px; margin: 16px 0; border: 1px solid var(--line); border-left: 3px solid var(--series-2); border-radius: 8px; background: var(--surface); }
 .generic-upper-card h3 { margin: 7px 0; font-size: 19px; }
 .generic-upper-card p { margin: 0; color: var(--ink-2); font-size: 14px; }
 .generic-upper-card h3 a { color: var(--ink); }

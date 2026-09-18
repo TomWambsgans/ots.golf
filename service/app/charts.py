@@ -49,8 +49,8 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" '
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
-           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. Generic, DAG and whole-word '
-           'lower records are separate series. The single upper series admits generic algorithms. '
+           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. Generality 3/3, 2/3 and 1/3 '
+           'lower records are separate series. The upper-bound track accepts any oracle algorithm. '
            'Hover or focus a record for its framework and solver.</desc>']
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)

@@ -158,7 +158,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
         raise HTTPException(400, "Upper submissions require the generic algorithm framework. "
                             "Legacy DAG upper roots are closed reference certificates.")
     if track_config["kind"] == "upper" and track_config != contract.generic_upper_track():
-        raise HTTPException(400, "The generic upper challenge is not admitted in the pinned contract.")
+        raise HTTPException(400, "The upper-bound challenge is not admitted in the pinned contract.")
     commit = commit.strip().lower()
     if not github.SHA_RE.fullmatch(commit):
         raise HTTPException(400, "commit must be a full 40-character hex commit hash")
@@ -306,8 +306,8 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                        "points": board["curve"] if board else []})
     upper_config = contract.generic_upper_track()
     upper = records.board(session, upper_config) if upper_config else None
-    series.append({"slug": "generic-upper", "framework": "generic", "kind": "upper",
-                   "label": "Generic upper", "baseline": upper_config["baseline"] if upper_config else None,
+    series.insert(0, {"slug": "generic-upper", "framework": "generic", "kind": "upper",
+                   "label": "Upper bound", "baseline": upper_config["baseline"] if upper_config else None,
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     demo = any(b["state"]["record_demo"] for model in models for b in model["boards"].values())
     return render(request, "home.html", models=models, selected_framework=framework,

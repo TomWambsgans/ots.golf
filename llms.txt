@@ -2,54 +2,58 @@
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> Lower bounds have three frameworks: generic algorithms, DAGs and whole words.
-> There is one upper track, for fully generic algorithms. Certificates are checked by the Lean kernel.
+> Three lower classes and one Upper bound track are open. Certificates are checked by the Lean kernel.
 
-Oracle model: one random oracle on bare bit strings, with no labels, tweaks or separation
-condition. Equal strings share an answer across all uses. Cost: one compression per started
-512-bit block of the actual input, at least one; the message-and-nonce index costs one. The
-upper scheme includes and pays for 16-bit node tweaks. The unrestricted DAG baselines:
-lower bound 18 (repeated reconstruction patterns), upper bound 106 (63 chains of length 14 under 21 group digests, 7 subtree digests
-and the root). Both live in this repository as ordinary submissions; current records are in
-the claim.txt files of the submission roots. The DAG lower proof covers every weakly secure scheme
-without a separation hypothesis. Bounds above 18 remain open; see docs/bare-oracle-port.md.
-The former labeled-model bound 25 is not a bare-oracle certificate.
+Public tracks, from broadest to most restricted lower class:
 
-Whole-word DAGs use independent 128-bit sources, 256-bit hashes, fixed 128-bit output halves,
-and concatenation of any number of earlier whole words. Disclosures contain complete values.
-The 5248-bit payload implies at most 41 hash origins, yielding the lower bound 93. There is no
-additional provenance cap and no arbitrary encoding or partial-word disclosure. The unrestricted
-DAG contract remains unchanged. See docs/whole-words.md. The retained disclosure-upper proof
-is a historical partial-disclosure reference, not a whole-word construction.
+| Track | Slug | Schemes | Checked claim |
+|---|---|---|---:|
+| Generality 3/3 | generic-lower | Any admissible oracle algorithm | 1 |
+| Generality 2/3 | lower | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 1/3 | disclosure-lower | Whole-word DAGs: 128-bit secrets, 256-bit hashes, fixed halves and concatenation | 93 |
+| Upper bound | generic-upper | Any admissible oracle algorithm | 106 |
 
-Generic algorithms have a Lean-checked interface and exact 106-cost adapter, but upper submissions
-are not yet admitted: correctness and signing availability remain to be proved for that adapter.
-See docs/generic-upper.md. The open generic lower track has a certified bound of 1 for every correct,
-weakly secure algorithm whose signing succeeds with probability at least one half. See
-docs/generic-lower.md. Its ordinary submission root is formal/Submissions/GenericLower; the
-generic-lower challenge pins the one-half signing-failure allowance and checks claims with comparator.
+Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
+smaller is better. Restricted lower records do not improve broader classes. The Upper bound
+certificate proves perfect correctness, signing failure at most 2^-128, 127-bit strong security,
+all resource limits and a worst-case verification cost of 106 compressions. Generality 3/3 lower
+fixes signing failure at most 1/2 and uses weak unforgeability. Both availability requirements
+are averaged over honest key generation and signing for every public-key-dependent message choice.
 
-The site plots three numeric lower series, including the checked generic bound of 1, and one
-generic upper candidate. The generic upper adapter
-has checked cost/security proofs at 106, but is not an admitted record until the remaining
-admissibility proofs and challenge are complete. Framework filters affect only lower leaderboards.
-Rules describe requirements without scores. Local Satoshi/Vitalik demo records are marked illustrative.
-Legacy DAG upper roots and their historical rows remain references, not generic records; the public
-queue rejects new submissions to those upper roots.
+All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
+an answer. There are no implicit labels, tweaks or separation conditions; explicit tweaks cost
+input bits. Each query costs one compression per started 512-bit input block, at least one.
+Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^21.
+Deterministic computation and randomness are free. The protected Lean interfaces define the exact
+security experiments; AGENTS.md lists submission requirements.
+
+Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower and GenericUpper,
+respectively. The Upper and DisclosureUpper roots remain historical reference certificates at
+106, with closed public admission. Their historical rows are never relabelled as Upper bound records.
+
+Submit a pull request changing only one admitted submission root. It must be flat, include
+Solution.lean and claim.txt, obey import and size limits, and use the pinned toolchain. Exported
+proofs may use only propext, Quot.sound and Classical.choice: no sorry or native_decide.
+Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution.
+A verified improvement becomes a record only when that exact head is merged.
+
+Local checks, replacing generic-upper with another track slug as needed:
+
+    verifier/setup_tools.sh
+    cd formal && lake exe cache get && lake build OptimalOTS Submissions
+    cd ..
+    python3 verifier/check_submission.py generic-upper
+    python3 verifier/verify.py generic-upper --source .
+
+macOS checks proofs without sandboxing untrusted code. Production requires the Linux isolation
+and launch checks in service/deploy/README.md. Lower filters affect only lower leaderboards;
+the chart has three lower series and one Upper bound series. Rules contain no current scores.
+Local Satoshi/Vitalik rows are clearly fictional demos, never verified submissions; preserve them
+and refresh localhost after commits. Never push or deploy without authorization.
 
 - Repository: https://github.com/TomWambsgans/ots.golf (site: https://ots.golf)
-- Rules and the exact exported declarations: AGENTS.md
-- Machine-readable tracks, limits and protected files: challenges.json
-- The contract: formal/OptimalOTS/Statement.lean (audit notes in docs/AUDIT.md)
-- Local verification, identical to the hosted verifier: verifier/verify.py
-- Lower track root: formal/Submissions/Lower (module prefix Submissions.Lower)
-- Generic lower root: formal/Submissions/GenericLower (claim 1; module prefix Submissions.GenericLower)
-- Legacy DAG upper reference root: formal/Submissions/Upper (module prefix Submissions.Upper)
-- Whole-word lower root: formal/Submissions/DisclosureLower (claim 93)
-- Legacy partial-disclosure upper reference root: formal/Submissions/DisclosureUpper (claim 106)
-- Whole-word contract: formal/OptimalOTS/WholeWords.lean
-
-The one submission channel: a pull request against the contract repository changing only one
-submission root (`gh pr create` works). Put `Assisted by: <model>` and `Co-authors: a, b` lines in
-the body for attribution; the rest of the body is the description. The verifier answers on the
-pull request.
+- Exact submission requirements and exports: AGENTS.md
+- Track metadata, limits and protected files: challenges.json
+- Interfaces: formal/OptimalOTS/{Algorithm,AlgorithmWeak,Statement,WholeWords}.lean
+- Proof guides: docs/{generic-lower,lower-bound-proof,whole-words,generic-upper}.md
+- Official verifier: verifier/verify.py

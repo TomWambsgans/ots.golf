@@ -13,12 +13,12 @@ the hosted verifier. Public admission follows the framework status below.
 formal/                      the Lean project (lake root)
   OptimalOTS/Statement.lean  the contract: Scheme, Secure, verifyCost, paperParams
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
-  Submissions/Lower/         lower-track root; baseline: repeated reconstruction patterns, claim 18
+  Submissions/Lower/         Generality 2/3 lower root; checked claim 18
   Submissions/Upper/         legacy upper reference: a forest of 63 chains, claim 106
-  Submissions/DisclosureLower/  whole-word lower-track root
+  Submissions/DisclosureLower/  Generality 1/3 lower root; checked claim 93
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
-  Submissions/GenericLower/     generic lower-track root; baseline claim 1
-  Submissions/GenericUpper/     generic upper-track root; verified forest, claim 106
+  Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
+  Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -29,36 +29,38 @@ nothing else.
 
 ## Frameworks
 
-The three frameworks apply to lower bounds only. A restricted lower bound does not improve a
-broader class's lower record. The single upper track uses arbitrary oracle algorithms; there are no
-separate DAG or whole-word upper leaderboards.
+The three public lower classes are **Generality 3/3**, **Generality 2/3** and **Generality 1/3**,
+from broadest to most restricted. A restricted lower bound does not improve a broader class's
+lower record. The single **Upper bound** track uses arbitrary oracle algorithms; there are no
+separate DAG or whole-word upper leaderboards. All four public tracks are open.
 
-- **Generic lower** (`generic-lower`): arbitrary oracle programs, with certified baseline 1.
+- **Generality 3/3** (`generic-lower`): arbitrary oracle programs, with certified lower bound 1.
   `Algorithm.lean` and `AlgorithmWeak.lean` define the protected interface. The lower challenge fixes
   perfect correctness, signing failure at most one half for every public-key-dependent message
   choice, the paper size and resource limits, and 127-bit weak unforgeability. Proofs live in
   `formal/Submissions/GenericLower/`; see `docs/generic-lower.md`.
-- **Generic upper** (`generic-upper`): arbitrary oracle programs, with a verified construction at
-  106 compressions. The challenge fixes perfect correctness, signing failure at most `2^-128`
-  for every public-key-dependent message choice, the paper size and resource limits, and 127-bit
-  strong unforgeability. Proofs live in `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
-- **DAG lower** (`lower`): the unrestricted DAG model, with certified lower baseline 18.
-- **Whole-word lower** (`disclosure-lower`, retained slug): DAG schemes with a certified lower
+- **Generality 2/3** (`lower`): fixed DAGs with arbitrary deterministic functions and disclosure
+  cuts, with certified lower bound 18.
+- **Generality 1/3** (`disclosure-lower`, retained slug): whole-word DAGs with a certified lower
   bound of 93. Secret sources are 128 bits. Hash outputs are 256 bits, with either fixed 128-bit
   half available. The only other deterministic operation is concatenation, with any number of
   earlier words, including repetition and reordering. Grouping whole words into longer values is
   permitted; disclosures reveal complete node values. There are no other deterministic functions
   or nonempty constant nodes. The syntax itself implies at most 41 disclosed hash origins from
   the 5248-bit payload budget; this is a proved consequence, not an additional admission condition.
+- **Upper bound** (`generic-upper`): arbitrary oracle programs, with a verified construction at
+  106 compressions. The challenge fixes perfect correctness, signing failure at most `2^-128`
+  for every public-key-dependent message choice, the paper size and resource limits, and 127-bit
+  strong unforgeability. Proofs live in `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
 
-The 256-bit nonce, 127-bit security target, DAG cuts, forward reconstruction and actual-input
-compression costs are unchanged. Frameworks 1 and 2 retain their existing contracts. Arbitrary
+The DAG classes share the 256-bit nonce, 127-bit security target, cuts, forward reconstruction
+and actual-input compression costs. Arbitrary
 bit fragments and Reed–Solomon transformations remain available in the unrestricted DAG class,
 not in whole words. See `docs/whole-words.md` for the definition and proof.
 
 The existing `upper` and `disclosure-upper` roots are retained as reference certificates, both at 106.
 Their pinned exports and local verifier commands remain available. The website rejects new submissions
-to these legacy upper roots; their historical rows are not generic upper records.
+to these legacy upper roots; their historical rows are not records in the Upper bound track.
 
 ## Oracle model
 
@@ -77,7 +79,7 @@ open; research notes are in `docs/bare-oracle-port.md`. A numerical search is no
 The verifier renders the track's stub with your claim and compares your declarations against it.
 Names and statements must match exactly; copy them from the rendered stub.
 
-**Lower track** (`formal/Submissions/Lower/`, larger is better; a record needs claim ≥ record + 1):
+**Generality 2/3 lower track** (`formal/Submissions/Lower/`, larger is better; a record needs claim ≥ record + 1):
 
 ```lean
 theorem OptimalOTS.Challenge.Lower.candidate :
@@ -85,7 +87,7 @@ theorem OptimalOTS.Challenge.Lower.candidate :
 ```
 
 `VerificationLowerBound` quantifies over `WeaklySecure` schemes (forgeries on a new message only),
-a larger class than the `Secure` schemes of the upper track, so a lower bound also covers malleable
+a larger class than the strongly `Secure` DAG schemes, so a lower bound also covers malleable
 schemes. The attacker of a lower-bound proof must therefore forge on a message other than the signed one.
 
 **Legacy DAG upper reference** (`formal/Submissions/Upper/`, retained for local verification):
@@ -100,14 +102,14 @@ theorem OptimalOTS.Challenge.Upper.cost :
 `scheme` is a definition hole: any term of type `Scheme paperParams` is admissible, and the two
 theorems pin it down. This is the preserved DAG certificate; generic upper has its own export below.
 
-**Whole-word lower track** (`formal/Submissions/DisclosureLower/`):
+**Generality 1/3 lower track** (`formal/Submissions/DisclosureLower/`):
 
 ```lean
 theorem OptimalOTS.Challenge.DisclosureLower.candidate :
     WholeWordVerificationLowerBound paperParams <claim> := ...
 ```
 
-**Generic lower track** (`formal/Submissions/GenericLower/`):
+**Generality 3/3 lower track** (`formal/Submissions/GenericLower/`):
 
 ```lean
 theorem OptimalOTS.Challenge.GenericLower.candidate :
@@ -118,7 +120,7 @@ This theorem must cover every admissible, weakly secure algorithm and every path
 budget. The one-half signing-failure allowance is fixed by the challenge; a submission cannot
 narrow the class to obtain a larger bound. It also covers every stricter availability allowance.
 
-**Generic upper track** (`formal/Submissions/GenericUpper/`, smaller is better):
+**Upper bound track** (`formal/Submissions/GenericUpper/`, smaller is better):
 
 ```lean
 noncomputable def OptimalOTS.Challenge.GenericUpper.scheme : AlgorithmScheme paperParams := ...

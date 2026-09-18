@@ -9,36 +9,63 @@
     <summary><h2>What is a one-time signature?</h2></summary>
     <div class="more prose">
       <p>A <a href="https://en.wikipedia.org/wiki/Hash-based_cryptography#One-time_signature_schemes">one-time
-      signature</a> uses a key pair to sign one message securely. For examples, see
+      signature</a> (OTS) uses a key pair to sign one message securely. For examples, see
       <a href="https://en.wikipedia.org/wiki/Lamport_signature#Example">Lamport signatures</a>, which
       reveal selected secrets, and <a href="https://www.rfc-editor.org/rfc/rfc8391.html#section-3.1">Winternitz
-      signatures (WOTS+)</a>, which use hash chains. These are background reading; this competition's
-      model and limits are below.</p>
+      signatures (WOTS+)</a>, which use hash chains.</p>
+      {% include "_rules_wots_diagram.html" %}
     </div>
   </details>
 
   <details id="bounds">
-    <summary><h2>What do upper and lower bounds tell us?</h2></summary>
+    <summary><h2>What are we optimizing?</h2></summary>
     <div class="more prose">
-      <p>We seek the lowest worst-case verification cost. An <strong>upper bound</strong> constructs
-      a secure scheme that never exceeds the claimed cost; smaller is better. A <strong>lower bound</strong>
-      proves that every admissible scheme in a chosen class has worst-case cost at least as large;
-      larger is better. Both require a Lean-kernel-checked proof.</p>
-      <p id="model"><strong id="tracks">Three lower-bound frameworks</strong> have separate records:
-      <a href="#generic-algorithms">generic algorithms</a>, <a href="#graph">DAGs</a> and
-      <a href="#whole-words">whole words</a>. A restricted result does not establish the same bound
-      for a broader class. <span id="generic-upper"><strong>One upper track: generic algorithms.</strong>
-      An upper construction must prove correctness, signing availability, strong security and all
-      size and resource bounds, with no required DAG or disclosure pattern.</span></p>
-      <p class="muted" id="legacy-certificates">Legacy DAG and Historical partial disclosures upper
-      certificates are references, not generic or whole-word certificates. Their submission roots are closed.</p>
+      <span id="legacy-certificates"></span>
+      <p>A one-time signature scheme has public-key and signature sizes, a security level, and
+      costs for key generation, signing and verification. We measure those costs in
+      <a href="#hash">hash compressions</a>. We fix the following requirements and ask how few
+      compressions verification can require in the worst case.</p>
+      <table class="params" id="params">
+        <caption class="visually-hidden">Fixed requirements and the verification objective</caption>
+        <thead><tr><th scope="col">Parameter</th><th scope="col">Requirement</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Public key</th><td>128 bits</td></tr>
+          <tr><th scope="row">Message</th><td>256 bits</td></tr>
+          <tr><th scope="row">Signature</th><td>At most 5,504 bits</td></tr>
+          <tr><th scope="row">Key generation</th><td>At most 1,024 compressions</td></tr>
+          <tr><th scope="row">Signing</th><td>At most 2<sup>21</sup> compressions</td></tr>
+          <tr><th scope="row">Security</th><td>127 bits</td></tr>
+          <tr><th scope="row">Verification</th><td><strong>Minimize worst-case compressions</strong></td></tr>
+        </tbody>
+      </table>
+      <p id="tracks">There are two tracks, both requiring a Lean-kernel-checked proof:</p>
+      <ul>
+        <li id="generic-upper"><strong>Upper bound.</strong> Construct a provably secure OTS using
+        as few verification compressions as possible, and prove it never exceeds the claimed cost.
+        Any oracle algorithm is allowed; it must
+        also meet the correctness, signing availability and resource requirements below.
+        Smaller claims are better.</li>
+        <li><strong>Lower bound.</strong> Prove that <em>every</em> admissible OTS in a chosen class
+        needs at least the claimed worst-case verification cost. Larger claims are better.</li>
+      </ul>
+      <p id="model">A lower bound for all possible algorithms is difficult to prove. The lower
+      track therefore offers three levels of generality, each with its own record:</p>
+      <ul>
+        <li><a href="#generic-algorithms"><strong>Generality 3/3.</strong></a> Any oracle algorithm.</li>
+        <li><a href="#graph"><strong>Generality 2/3.</strong></a> A fixed computation graph, allowing arbitrary
+        deterministic functions.</li>
+        <li><a href="#whole-words"><strong>Generality 1/3.</strong></a> DAGs built from whole 128-bit
+        words, hashes, hash halves and concatenation.</li>
+      </ul>
+      <p>A bound for a restricted class does not establish
+      the same bound for a broader class.</p>
     </div>
   </details>
 
   {% include "_how.html" %}
 
   <details id="generic-admissibility">
-    <summary><h2>Generic algorithms: what is allowed?</h2></summary>
+    <summary><h2>Generality 3/3: any algorithm</h2></summary>
     <div class="more prose" id="generic-algorithms">
       <p>Any terminating oracle programs, with private randomness and adaptive queries; no graph,
       disclosure pattern or nonce format is required. Honest signing and verification share the
@@ -56,11 +83,12 @@
   </details>
 
   <details id="dag-model">
-    <summary><h2 id="graph">DAGs: how do signing and verification work?</h2></summary>
+    <summary><h2 id="graph">Generality 2/3: a DAG with arbitrary functions</h2></summary>
     <div class="more prose">
       <p>A DAG is a fixed, public computation graph with no cycles. Sources are independent uniform
-      bit strings of fixed lengths; deterministic nodes use only their declared parents; hash nodes
-      hash one parent's entire value. Lengths and functions are fixed, parents precede children,
+      bit strings of fixed lengths; deterministic nodes apply arbitrary fixed functions to their
+      declared parents; hash nodes hash one parent's entire value. Lengths and functions are fixed;
+      parents precede children,
       and sharing is unrestricted. Key generation evaluates every node once and stores all values.
       The public key is the low 128 bits of the root hash.</p>
       <p>A signature reveals a <strong>cut</strong>: stored values meeting every source-to-root path,
@@ -84,7 +112,7 @@
   </details>
 
   <details id="whole-word-model">
-    <summary><h2 id="whole-words">Whole words: which operations are allowed?</h2></summary>
+    <summary><h2 id="whole-words">Generality 1/3: whole words</h2></summary>
     <div class="more prose" id="partial-disclosures">
       <p>These DAGs use <strong>whole 128-bit words</strong>. Each source is one independent uniform
       word; each hash returns 256 bits. A deterministic node selects the fixed low or high half
@@ -102,8 +130,9 @@
   <details id="play">
     <summary><h2 id="rules">How do I submit a proof?</h2></summary>
     <div class="more prose">
-      <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower{% if generic_upper_track %}, plus generic upper{% endif %}.
-      {% if not generic_upper_track %}<strong>Pending:</strong> generic upper, until its challenge is pinned.{% endif %}</p>
+      <p>{% if generic_upper_track %}Submit an upper-bound construction, or a lower-bound proof for
+      one of the three classes.{% else %}Submit a lower-bound proof for one of the three classes.
+      <strong>Pending:</strong> the upper-bound track, until its challenge is pinned.{% endif %}</p>
       <ol>
         <li>Fork <a href="{{ repo }}">the repository</a>. Change only
         <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
