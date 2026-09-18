@@ -37,9 +37,10 @@ for a missing generic certificate. Lower leaderboards have separate
 rankings for generic algorithms, DAGs and whole words; `?framework=dag|disclosure|generic`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
-There is exactly one upper track, for fully generic algorithms. Until generic admissibility is
-proved and pinned, show the checked 106-cost adapter as a candidate, not an admitted record.
-Do not relabel legacy DAG upper submissions as generic. The chart has one upper candidate line;
+There is exactly one upper track, `generic-upper`, for fully generic algorithms. Its pinned
+106-cost construction proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong
+security and all size and resource bounds. Its chart, card and leaderboard use normal records
+from that track's metadata. Do not relabel legacy DAG upper submissions as generic. The chart has one upper line;
 the upper leaderboard has no framework filter. Reject public submissions to legacy DAG upper roots.
 Retain their proof files and historical pages as references, and preserve all existing demo rows.
 The `disclosure-upper` reference belongs to Historical partial disclosures, not Whole words.
@@ -49,6 +50,9 @@ The lower demo rows remain visible by default; legacy upper demos remain in hist
 Preserve Satoshi/Vitalik's existing demos. Generic lower includes Vitalik's demo at the checked
 claim, with no invented improvement beyond it. The card, chart point, leaderboard, submission page
 and solver profile must all refer to this same row.
+Generic upper adds its own Vitalik demo at the checked claim and a later Satoshi demo one compression
+lower. Preserve the previous 19 rows, their IDs and dates. These new scores are also fictional,
+clearly marked as demos; they never receive verified badges or fabricated commit links.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
@@ -83,5 +87,5 @@ production sandbox safety.
 
 Keep the homepage headline “Think one-time signatures are easy? Prove it.” and the mandala at
 80% of its containing column's width. Keep the homepage concise: the generic upper card shows
-its linked title, candidate/admission status and cost; detailed requirements belong in the rules.
+its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”

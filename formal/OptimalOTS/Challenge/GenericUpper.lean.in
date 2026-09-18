@@ -1,0 +1,22 @@
+import OptimalOTS.Algorithm
+
+/-! A generic upper submission supplies arbitrary oracle programs and proves their
+admissibility, 127-bit strong unforgeability, and worst-case verification cost.
+The signing-failure allowance is fixed by the challenge, not chosen by the submission. -/
+
+namespace OptimalOTS.Challenge.GenericUpper
+
+/-- The submitted key-generation, signing, and verification algorithms. -/
+noncomputable def scheme : AlgorithmScheme paperParams := sorry
+
+/-- Perfect correctness, signing failure at most `2⁻¹²⁸`, and the paper's size and cost limits. -/
+theorem admissible :
+    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := sorry
+
+/-- Strong unforgeability in the shared random-oracle experiment. -/
+theorem secure : scheme.Secure := sorry
+
+/-- Verification costs at most `{{CLAIM}}` compressions on every input and oracle-answer path. -/
+theorem cost : scheme.VerifyCostAtMost {{CLAIM}} := sorry
+
+end OptimalOTS.Challenge.GenericUpper

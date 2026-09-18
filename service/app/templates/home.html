@@ -47,9 +47,12 @@
   <article class="generic-upper-card" aria-labelledby="generic-upper-title">
     <div>
       <h3 id="generic-upper-title"><a href="/rules#generic-upper">Generic upper bound</a></h3>
-      <p>Candidate · admission pending</p>
+      {% if generic_upper and generic_upper.state.record_submission_id %}
+      <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a>
+      {% if generic_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      {% else %}<p>{% if generic_upper %}<a href="/rules#play">Submit a construction ↗</a>{% else %}Admission pending{% endif %}</p>{% endif %}
     </div>
-    <div class="upper-candidate"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.claim }}</strong><span>compressions</span></div>
+    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
   </article>
 </section>
 
@@ -63,9 +66,8 @@
   <figure class="chart">
     <div class="chart-plot" tabindex="0" aria-label="Chart; scroll horizontally on small screens">{{ chart.svg|safe }}</div>
     <div class="tooltip" id="tooltip" hidden></div>
-    <figcaption>Lower records are separate for each framework. The dashed upper line is the
-    {{ generic_upper.claim }}-cost generic candidate, pending admission. Hover or focus a lower record
-    for details; select it to open the submission.</figcaption>
+    <figcaption>Lower records are separate for each framework. The dashed line shows the generic upper bound.
+    Hover or focus a record for details; select it to open the submission.</figcaption>
   </figure>
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
 </section>
@@ -119,20 +121,28 @@
     </div>
     <div class="board-track" data-track="upper" hidden>
       <section class="generic-upper-board" aria-labelledby="upper-board-title">
-        <div class="framework-board-head"><h3 id="upper-board-title">Fully generic algorithms</h3><span class="status">Admission pending</span></div>
-        <p class="foundation-note">One upper track for arbitrary oracle programs. A construction needs proofs of
-        127-bit security, correctness, signing availability, signature size and cost. There are no separate DAG
-        or whole-word upper leaderboards.</p>
+        {% set b = generic_upper %}
+        <div class="framework-board-head">
+          <div><h3 id="upper-board-title">Fully generic algorithms</h3>
+          {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
+          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compression{{ '' if b.state.record_claim == 1 else 's' }}</span></p></div>
+          {% else %}<span class="status">Admission pending</span>{% endif %}
+        </div>
+        {% if b %}
         <div class="board-scroll" role="region" tabindex="0" aria-labelledby="upper-board-title">
-          <table class="candidate-table">
-            <caption class="visually-hidden">Generic upper candidate; no admitted records yet</caption>
-            <thead><tr><th scope="col">Candidate</th><th scope="col">Verification cost</th><th scope="col">Proof status</th></tr></thead>
-            <tbody><tr><th scope="row">Forest algorithm adapter</th><td>{{ generic_upper.claim }} compressions</td><td>Cost and security checked; correctness and signing availability pending</td></tr></tbody>
+          <table class="lb-table" data-track="{{ b.cfg.slug }}">
+            <caption class="visually-hidden">Generic upper-bound records</caption>
+            <thead><tr>
+              <th class="l" scope="col">Solver</th>
+              <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
+              <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
+              <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="date" data-dir="desc" aria-pressed="false">Date <span class="arr">↕</span></button></th>
+            </tr></thead>
+            <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
         </div>
-        <p class="foundation-note">The adapter is not yet an admitted generic record. Existing DAG certificates remain
-        reference proofs; their submission histories do not become generic records.
-        <a href="/rules#generic-upper">Generic upper requirements ↗</a></p>
+        {% else %}<p class="foundation-note">The generic upper challenge is not yet admitted.
+        <a href="/rules#generic-upper">Generic upper requirements ↗</a></p>{% endif %}
       </section>
     </div>
   </div>

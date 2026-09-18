@@ -77,6 +77,7 @@ Run these with the public webhook disconnected and the production configuration 
      python3 verifier/verify.py lower --source . &&
      python3 verifier/verify.py disclosure-lower --source . &&
      python3 verifier/verify.py upper --source . &&
+     python3 verifier/verify.py generic-upper --source . &&
      python3 verifier/verify.py disclosure-upper --source .'
    ```
 
@@ -101,7 +102,7 @@ Run these with the public webhook disconnected and the production configuration 
    root without printing secret values and confirm that neither GitHub credential variable is set.
    Test the site on narrow and desktop screens, keyboard navigation and both light/dark schemes.
 
-3. Queue the three checked lower certificates as ordinary attributed submissions, using the same
+3. Queue the four public certificates as ordinary attributed submissions, using the same
    database and a restrictive umask:
 
    ```sh
@@ -110,11 +111,12 @@ Run these with the public webhook disconnected and the production configuration 
      cd /srv/ots/repo/service
      .venv/bin/python -m app.queue generic-lower --baseline &&
      .venv/bin/python -m app.queue lower --baseline &&
-     .venv/bin/python -m app.queue disclosure-lower --baseline'
+     .venv/bin/python -m app.queue disclosure-lower --baseline &&
+     .venv/bin/python -m app.queue generic-upper --baseline'
    ```
 
    Do not seed fictional localhost rows into production. The legacy upper roots are reference
-   certificates, not public upper leaderboards. Generic upper admission remains pending.
+   certificates, not public upper leaderboards. The public upper track is `generic-upper`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
@@ -160,5 +162,5 @@ their intentional status.
 
 Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
 merge event. A merge marker received before verification is stored and applied after a successful
-check. The service never merges PRs, updates the trusted checkout, or publishes a generic upper record
-automatically.
+check. The service never merges PRs or updates the trusted checkout. Generic upper records, like
+lower records, require successful verification and confirmation that the same head was merged.

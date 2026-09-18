@@ -2,8 +2,8 @@
 
 Scope: the pinned DAG, generic-algorithm and whole-word contracts, their oracle/cost semantics,
 and the submission certificates. The lower bounds are generic **1**, unrestricted DAG **18**,
-and whole-word DAG **93**. The two historical upper references remain **106**; generic upper
-admission is still pending correctness and signing availability. This document distinguishes
+and whole-word DAG **93**. Generic upper has a complete **106** certificate, including perfect
+correctness and signing failure at most `2^-128`. The two historical upper references remain **106**. This document distinguishes
 mathematical scope from operational deployment. See [production-readiness.md](production-readiness.md)
 for the service and verifier audit, tests, and remaining environment checks.
 The [final Lean statement review](lean-statement-review.md) covers every project-owned Lean file
@@ -69,6 +69,16 @@ Availability is averaged over honest key generation and signing; it does not pro
 after arbitrary adversarial oracle preprocessing. The verified lower bound of 1 rules out zero-query
 verification for this entire admissible class. No graph or mandatory index query is assumed.
 
+The generic upper challenge fixes signing failure at most `2^-128` and requires separate proofs
+of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
+same programs and exact security experiment as the historical DAG construction. Correctness is
+proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
+the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 512-bit signing
+inputs are fresh. Failure is `(8191/8192)^(2^21) ≤ 2^-256 ≤ 2^-128`, for every message chosen as a
+function of the public key. These input lengths are construction properties, not generic model
+assumptions. All new proofs reside in the independent `GenericUpper` submission root; the original
+`Upper` root is unchanged. See [the proof map](generic-upper.md).
+
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, 256-bit hashes,
 fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions enforce exact lengths and functions;
@@ -78,7 +88,7 @@ additional assumption. The resulting certificate proves 93, using the same weak-
 There is no checked whole-word upper construction.
 
 `formal/scripts/check-axioms.lean` now imports every protected model module, rejects declared axioms
-throughout those modules, and audits 46 declarations fixing the meaning of all five certificates.
+throughout those modules, and audits 46 declarations fixing the meaning of all six certificates.
 It supplements each submission's axiom guard and the official comparator; it does not replace either.
 
 ## DAG certificate status and open proof work
@@ -132,7 +142,8 @@ prove 19. Conditional numerical searches do not establish a stronger bound.
 - Index and public-key truncation use the low bits, matching `setWidth`.
 - The adversary's other computation and private randomness are unbounded and free.
 - The secure DAG upper certificate establishes non-vacuity of the DAG strong and weak security
-  classes. It does not establish generic admissibility or a whole-word upper construction.
+  classes. Its generic adapter separately proves admissibility, including correctness and signing
+  availability. No whole-word upper construction is claimed.
 
 ## Contract changes and verification
 

@@ -76,7 +76,7 @@ python3 verifier/verify.py generic-lower --source .
 ```
 
 The generic lower challenge and one-half failure allowance are pinned independently of the
-unfinished generic upper candidate. A stricter upper availability requirement remains inside
+generic upper certificate. Its stricter `2^-128` availability requirement remains inside
 the class covered by this lower theorem.
 
 The separate [one-query argument](generic-one-query.md) is research toward 2, not a certificate.
@@ -85,11 +85,12 @@ Its normal form and transcript arguments have not yet been ported to Lean. No sc
 ## Local website
 
 The generic lower card, chart and leaderboard show claim 1 as an ordinary Vitalik demo submission.
-All three lower tracks are open; only generic upper admission remains pending. The generic lower
+All three lower tracks and the generic upper track are open. The generic lower
 row uses the checked claim with fictional attribution and no invented improvement. Its chart point,
 detail page and solver profile link to the same persistent row. Website copy has no special baseline
 labels. Existing Satoshi/Vitalik demo rows remain intact. Rules specify
-the one-half signing-success threshold and all three submission roots, without current scores.
+the one-half lower signing-success threshold, the stricter upper allowance, and all four public
+submission roots, without current scores.
 The top navigation contains only the logo and Rules.
 The rules keep scores out of the overview, illustrate cuts and shared hash origins, and preserve
 the exact admissibility, encoding, DAG and submission requirements in expandable sections.

@@ -109,6 +109,38 @@ class VerifierTests(unittest.TestCase):
         (self.sub / "Solution.lean").write_text("import Submissions.GenericLower.Helper\n")
         self.assertTrue(check(self.root, "generic-lower")["ok"])
 
+    def test_generic_upper_root_is_self_contained(self):
+        sub = self.root / "formal/Submissions/GenericUpper"
+        sub.mkdir(parents=True)
+        (sub / "claim.txt").write_text("106\n")
+        (sub / "Helper.lean").write_text("import OptimalOTS.Algorithm\n")
+        solution = sub / "Solution.lean"
+        solution.write_text("import Submissions.GenericUpper.Helper\n")
+        self.assertTrue(check(self.root, "generic-upper")["ok"])
+        for module in ("Submissions.Upper.Main", "OptimalOTS.AlgorithmForest",
+                       "OptimalOTS.Algorithm.Extra", "Submissions.GenericLower.Proof"):
+            with self.subTest(module=module):
+                solution.write_text(f"import {module}\n")
+                self.assertFalse(check(self.root, "generic-upper")["ok"])
+
+    def test_generic_upper_requires_admissibility_security_and_cost(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "generic-upper")
+        template = self.root / track["challenge_template"]
+        template.parent.mkdir(parents=True)
+        template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
+        rendered, claim = render(self.root, "generic-upper", 105)
+        self.assertEqual(claim, 105)
+        source = rendered.read_text()
+        self.assertIn("scheme.VerifyCostAtMost 105", source)
+        self.assertIn("scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)", source)
+        self.assertEqual(track["signing_failure_allowance"],
+                         {"numerator": 1, "denominator": 2**128})
+        comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
+        prefix = "OptimalOTS.Challenge.GenericUpper."
+        self.assertEqual(set(comparator["theorem_names"]),
+                         {prefix + name for name in ("admissible", "secure", "cost")})
+        self.assertEqual(comparator["definition_names"], [prefix + "scheme"])
+
     def test_invalid_utf8_source(self):
         (self.sub / "Solution.lean").write_bytes(b"\xff")
         self.assertFalse(check(self.root, "generic-lower")["ok"])

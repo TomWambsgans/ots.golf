@@ -3,14 +3,14 @@ import OptimalOTS.Statement
 /-!
 # Generic oracle algorithms for one-time signatures
 
-The generic lower contract and the interface for a future generic upper challenge. All parties
+The interface for generic lower and upper submissions. All parties
 share the bare random oracle and its compression cost. Deterministic computation and private
 randomness are free; no graph, nonce, index query, or disclosure family is prescribed.
 
 Public keys and messages have the lengths in `P`. Signatures have an injective bit-string encoding.
 `Admissible` fixes correctness, signing availability, signature size, and honest-party cost limits;
-security is separate. The generic lower challenge allows signing failure with probability at most
-one half.
+security is separate. The generic lower challenge allows signing failure at most one half;
+the generic upper challenge requires failure at most `2⁻¹²⁸`.
 -/
 
 open OracleSpec OracleComp ENNReal

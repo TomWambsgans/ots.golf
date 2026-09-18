@@ -42,10 +42,11 @@
     <div class="more prose" id="generic-algorithms">
       <p>Any terminating oracle programs, with private randomness and adaptive queries; no graph,
       disclosure pattern or nonce format is required. Honest signing and verification share the
-      oracle, and returned signatures are rejected with probability zero. Signing succeeds with
-      probability at least <strong>1/2</strong> for every public-key-dependent message choice,
-      averaged over honest key generation and signing. This availability threshold is fixed for generic lower submissions.
-      It is neither a per-key guarantee nor a guarantee after adversarial oracle queries.</p>
+      oracle, and returned signatures are rejected with probability zero. For every public-key-dependent
+      message choice, signing failure is at most <strong>1/2 for lower bounds</strong> and
+      <strong>2<sup>−128</sup> for upper constructions</strong>, averaged over honest key generation
+      and signing. These fixed allowances are neither per-key guarantees nor guarantees after
+      adversarial oracle queries.</p>
       <p>Signature encodings must be injective: different signatures have different bit strings.
       Every possible signer output fits in 5,504 bits; oversized signatures are always rejected.
       Cost bounds hold on every path: signing for every secret key and message, verification for
@@ -101,18 +102,18 @@
   <details id="play">
     <summary><h2 id="rules">How do I submit a proof?</h2></summary>
     <div class="more prose">
-      <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower.
-      <strong>Pending:</strong> generic upper, until its admissibility requirements and
-      signing-failure allowance are pinned.</p>
+      <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower{% if generic_upper_track %}, plus generic upper{% endif %}.
+      {% if not generic_upper_track %}<strong>Pending:</strong> generic upper, until its challenge is pinned.{% endif %}</p>
       <ol>
         <li>Fork <a href="{{ repo }}">the repository</a>. Change only
-        <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>
-        or <code>formal/Submissions/DisclosureLower/</code>.</li>
+        <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
+        <code>formal/Submissions/DisclosureLower/</code>{% if generic_upper_track %} or
+        <code>formal/Submissions/GenericUpper/</code>{% endif %}.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
         from <code>Solution.lean</code>.</li>
         <li>Run <code>python3 verifier/verify.py lower --source .</code>
-        (or <code>generic-lower</code> or <code>disclosure-lower</code>), then open a pull request.
+        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %} or <code>generic-upper</code>{% endif %}), then open a pull request.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified strict improvement becomes the record when merged.</li>

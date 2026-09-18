@@ -34,8 +34,8 @@ def framework_tracks(slug: str) -> dict[str, dict]:
     model = framework(slug)
     if model is None:
         return {}
-    return {kind: track(model[f"{kind}_track"]) for kind in ("lower", "upper")
-            if f"{kind}_track" in model}
+    return {kind: certificate for kind in ("lower", "upper")
+            if f"{kind}_track" in model and (certificate := track(model[f"{kind}_track"])) is not None}
 
 
 def track_framework_title(t: dict) -> str:
@@ -43,13 +43,12 @@ def track_framework_title(t: dict) -> str:
     return t.get("historical_framework_title") or framework(t["framework"])["title"]
 
 
-def generic_upper_candidate() -> dict:
-    """AlgorithmForest.cost is checked at 106; generic admissibility remains unproved.
-
-    This is a reference candidate, not a record inherited from either DAG upper track.
-    """
-    return {"claim": 106, "status": "candidate", "framework": "generic",
-            "title": "Generic algorithms", "proof": "formal/OptimalOTS/AlgorithmForest.lean"}
+def generic_upper_track() -> dict | None:
+    """Only the explicitly pinned generic certificate opens the public upper track."""
+    certificate = framework_tracks("generic").get("upper")
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generic":
+        return certificate
+    return None
 
 
 def contract_id() -> str:

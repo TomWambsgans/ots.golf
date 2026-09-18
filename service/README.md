@@ -40,11 +40,16 @@ leaderboards are independent. `/?framework=generic|dag|disclosure` filters the l
 `#lower` and `#upper` select the direction. Scores appear as attributed submissions, without a
 special baseline presentation. Rules explain the contract without current scores or proof history.
 
-The only upper track is fully generic algorithms. Its security-preserving adapter remains a
-candidate until correctness, signing availability and the generic challenge are complete.
+The only upper track is `generic-upper`, for fully generic algorithms. Its pinned construction
+proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong security, all size and
+resource limits, and a worst-case verification cost of 106 compressions. It has its own records,
+chart and leaderboard; the lower framework filter never filters upper submissions.
 Legacy `upper` and `disclosure-upper` certificates remain accessible as historical references,
 including their demo rows; they are not generic upper records. The latter belongs to Historical
 partial disclosures, not Whole words. New public submissions to both legacy roots are rejected.
+Default localhost demos preserve the existing 19 rows and add a fictional Vitalik submission at
+the generic upper certificate's cost, followed by a fictional Satoshi improvement of one compression.
+Both are marked as demos, without verified badges or commit links.
 
 Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
@@ -61,7 +66,7 @@ retries delivery without repeating the proof. Attribution comes from the PR auth
 `Assisted by:` and `Co-authors:` lines, and the remaining description.
 
 For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
-use `.venv/bin/python -m app.queue lower`, substituting `generic-lower` or `disclosure-lower` as
+use `.venv/bin/python -m app.queue lower`, substituting `generic-lower`, `disclosure-lower` or `generic-upper` as
 needed. `--baseline` initializes a checked certificate locally; it does not bypass verification.
 The two legacy upper slugs also work for local reference checks. Only one worker may use a data
 directory; lock files enforce this across processes on the same host.
@@ -100,5 +105,5 @@ python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --
 Service tests use isolated databases. The optional browser check uses Firefox against the seeded
 localhost preview and exercises desktop/mobile layouts, both color schemes, keyboard controls,
 filters, tooltips, reduced motion and error pages. See [numerical tool setup](../tools/README.md)
-for NumPy and the repository runner; add `--official` to run all five certificate pipelines.
+for NumPy and the repository runner; add `--official` to run all six certificate pipelines.
 The [production review](../docs/production-readiness.md) records results and remaining launch gates.

@@ -4,7 +4,7 @@
     python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
 
 Requires the service environment and NumPy for the research-tool tests. --official runs all
-five certificate pipelines after building Lean. Linux sandbox acceptance and the browser check
+configured certificate pipelines after building Lean. Linux sandbox acceptance and the browser check
 are separate commands: verifier/check_linux_sandbox.py and service/browser_check.py.
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ def main() -> int:
     parser.add_argument('--numerics-python', default=sys.executable)
     parser.add_argument('--node', help='Node.js executable for JavaScript syntax checks (otherwise found on PATH)')
     parser.add_argument('--formal', action='store_true', help='build Lean and audit all protected model declarations')
-    parser.add_argument('--official', action='store_true', help='also run all five official certificate pipelines')
+    parser.add_argument('--official', action='store_true', help='also run every configured official certificate pipeline')
     parser.add_argument('--paper', action='store_true', help='compile the DAG paper with latexmk')
     args = parser.parse_args()
     service_python = shutil.which(args.service_python)

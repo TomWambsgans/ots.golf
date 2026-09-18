@@ -1,154 +1,144 @@
-# Generic upper-track foundation
+# Generic upper bound
 
-The generic algorithm interface and the adapter for the existing forest are proved in Lean.
-The wrapped forest retains the exact 127-bit strong-unforgeability experiment, verifies within
-106 compressions on every input, uses at most 1024 key-generation compressions and `2^21` signing
-compressions, and produces signatures of at most 5504 bits.
+The `generic-upper` track admits arbitrary oracle algorithms with perfect correctness,
+signing failure at most `2⁻¹²⁸`, 127-bit strong unforgeability, and the fixed size and resource
+limits. Its forest construction verifies within **106 compressions** on every input and
+oracle-answer path. All proofs live in `formal/Submissions/GenericUpper/`.
 
-This is the first step toward generic upper submissions. The pinned contract, challenge stubs,
-submission import policy, and both submission roots are unchanged. At that milestone the leaderboard certified DAG schemes with bounds 18 and 106. The later website
-structure has three lower-bound classes and only this generic upper track. It labels the 106-cost
-adapter as a candidate pending admission; the old DAG upper certificates remain local references.
+The three lower tracks are unchanged: generic algorithms, unrestricted DAGs, and whole-word
+DAGs. The original `Upper` and `DisclosureUpper` roots remain historical reference certificates;
+the generic submission is a separate, self-contained root. Historical submissions are not
+reclassified as generic records.
 
-The third lower framework now uses [whole-word DAGs](whole-words.md), replacing the historical
-partial-disclosure class. This restriction does not change the generic upper interface or
-complete the generic admission requirements below.
+## What the challenge requires
 
-A separate [generic lower theorem](generic-lower.md) now proves at least one compression for every
-correct, weakly secure oracle algorithm whose signing succeeds with probability at least one half.
-The generic lower track is now open with a pinned challenge and ordinary submission root. This
-does not supply the upper adapter's missing correctness or availability proofs. Lower and upper
-admission are independent.
+A submission chooses an `AlgorithmScheme paperParams`: a secret-key type, a signature type
+with injective bit-string encoding, and three terminating oracle programs for key generation,
+signing, and verification. There is no required graph, nonce, index query, word size, or
+revelation pattern. Deterministic computation and private randomness are free; all programs
+share the same bare random oracle and compression-cost model.
 
-## Interface
-
-`formal/OptimalOTS/Algorithm.lean` introduces `AlgorithmScheme P`:
+`OptimalOTS.Challenge.GenericUpper` exports exactly:
 
 ```lean
-structure AlgorithmScheme (P : Params) where
-  SecretKey : Type
-  Signature : Type
-  encodeSignature : Signature → List Bool
-  encodeSignature_injective : Function.Injective encodeSignature
-  keygen : OracleComp (Spec P) (PublicKey P × SecretKey)
-  sign : SecretKey → Message P → OracleComp (Spec P) (Option Signature)
-  verify : PublicKey P → Message P → Signature → OracleComp (Spec P) Bool
+noncomputable def scheme : AlgorithmScheme paperParams
+
+theorem admissible :
+    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
+
+theorem secure : scheme.Secure
+
+theorem cost : scheme.VerifyCostAtMost 106
 ```
 
-There is no graph, disclosure family, required nonce, or required index query. Programs may
-branch and choose later queries from earlier answers. They use the same bare random oracle;
-private randomness and deterministic computation remain free. This retains the present
-mathematical query-complexity model, including noncomputable descriptions, rather than imposing
-machine-time bounds or claiming executable implementations.
+The challenge substitutes a submission's claim for 106. `Admissible` requires:
 
-The signature type is chosen by the scheme. Injective serialization makes its information fit
-in the counted wire data: two different signatures cannot hide behind the same bit string.
-`SignatureSizeAtMost` bounds every returned signature's encoded length; `RejectsOversized`
-requires rejection of larger signatures. Public keys and messages still have the widths
-specified by `Params`. The generic programs never use the DAG-specific nonce/index/family
-parameters unless the scheme chooses to use them.
+- Perfect correctness: an honest returned signature is rejected with probability zero.
+- Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
+  message chosen as a function of the public key. This is not availability after adversarial
+  oracle preprocessing.
+- Signatures of at most 5,504 encoded bits, and rejection of oversized signatures.
+- At most 1,024 key-generation compressions and `2²¹` signing compressions on every path.
 
-`AlgorithmScheme.Secure` quantifies over generic two-stage adversaries, allows the first message
-to depend on the public key and oracle queries, and requires
+Public keys are 128 bits and messages are 256 bits. The separate security theorem gives
+strict strong-unforgeability probability below `B / 2¹²⁷` for every pathwise budget `B` of the
+entire attack experiment, including honest operations and final verification. The verification
+cost theorem covers all inputs, including malformed signatures and rejecting paths.
 
-```
-CostAtMost P (scheme.experiment attacker) B
-  → probTrue P (scheme.experiment attacker) < B / 2^P.securityBits.
-```
+The upper availability threshold is stricter than the generic lower challenge's one-half
+allowance, so this upper construction lies within the class covered by the generic lower bound.
+Neither the generic model nor any lower statement acquires a graph or separation assumption.
 
-The cost includes key generation, signing, both attacker stages, and final verification. The
-winning condition is unchanged: acceptance of a message/signature pair different from the one
-returned by the signer, or any accepted pair when signing failed. At `paperParams`, the exponent
-is still 127. `VerifyCostAtMost c` is a pathwise bound for every public key, message and signature,
-including rejecting inputs.
+## Correctness proof
 
-## Exact embedding and forest certificate
+The proof establishes correctness for **every DAG adapter**, not just the forest.
 
-`AlgorithmAdapter.lean` defines `Scheme.toAlgorithm` with exactly the original three programs.
-Its serialization is the fixed-width nonce followed by the disclosed bits. It proves the
-serialization injective and gives translations of adversaries in both directions.
+Key generation leaves an assignment satisfying every deterministic-node equation and a shared
+cache containing every hash-node answer. This holds even when hash inputs coincide. Successful
+signing returns the encoding of one disclosure cut and records its index query in that cache.
+Subsequent operations only extend the cache, so verification repeats the same index and selects
+the same cut.
 
-For every DAG scheme `S`:
+Decoding recovers every disclosed value. A topological induction over visited nodes recovers
+the original assignment: the cut contains every visited source, deterministic nodes obey the
+same equations, and hash nodes receive the recorded answers. The reconstructed public key
+therefore equals the generated key. This is a statement about every supported execution, so
+it also proves probability-zero rejection for every public-key-dependent message choice.
 
-```lean
-AlgorithmAdapter.experiment_eq :
-  S.toAlgorithm.experiment A = experiment S (AlgorithmAdapter.toDAGAdversary S A)
+## Signing availability proof
 
-AlgorithmAdapter.secure_iff : S.toAlgorithm.Secure ↔ S.Secure
-```
+The forest's explicit hash inputs have lengths 144, 400, or 912 bits. Thus its key-generation
+cache contains no 512-bit message-and-nonce input. This is a proved property of this construction's
+actual bit strings, not an extra oracle label or a condition imposed on generic algorithms.
 
-These are equalities of oracle programs before random-oracle interpretation. They preserve
-all queries, every pathwise cost bound, and success probability exactly. There is no additional
-failure term or security loss. The equality handles the different decidable-equality instances
-at the final winning predicate explicitly.
-
-`AlgorithmCosts.lean` proves structural cost rules and bounds for DAG key generation, signing
-and verification in a namespace independent of the submission libraries. Its generic cost
-arguments are adapted from the lower proof, without importing either submission root.
-`AlgorithmResources.lean` proves size bounds, oversized rejection, and adapter resource bounds.
-
-`AlgorithmForest.lean` is the integration module. It imports the upper baseline's existing
-theorems and exports:
-
-```lean
-AlgorithmForest.scheme : AlgorithmScheme paperParams
-AlgorithmForest.secure : AlgorithmForest.scheme.Secure
-AlgorithmForest.cost : AlgorithmForest.scheme.VerifyCostAtMost 106
-```
-
-The combined `AlgorithmForest.certificate` additionally proves key-generation cost at most
-1024, signing cost at most `2^21`, signature size at most 5504 bits, and rejection of larger
-signatures. Its checked axiom closure is exactly `propext`, `Classical.choice`, and `Quot.sound`.
-No additional axiom or admitted proof is used. The integration module is outside both submission
-roots; it is a checked adapter of the existing baseline, not a newly accepted generic challenge.
-
-## What remains before admitting generic upper submissions
-
-Security alone does not establish that an algorithm is a useful signature scheme. The interface
-therefore also defines `Correct`, `SigningFailureAtMost`, and `Admissible` independently of security.
-Correctness rules out verification failures when honest signing returns a signature. Availability
-bounds the probability of `none` after honest key generation. Both permit the message to be any
-function of the public key. Availability after arbitrary adversarial oracle preprocessing is not
-asserted by this definition.
-
-The forest's correctness and signing-failure bound have **not** been proved against these new
-predicates in this foundation step, so no `AlgorithmForest.scheme.Admissible` certificate is
-claimed. Before changing the actual upper challenge:
-
-1. Choose and pin a suitably small upper signing-failure allowance and finalize its message-selection
-   semantics. The parameter `ε < 1` in the interface is only a placeholder for that contract choice.
-2. Prove correctness and the chosen availability bound for the forest, obtaining an admissible
-   baseline at 106 in the generic interface.
-3. Build on the generic definitions now pinned for lower, adapt the upper challenge/import policy/comparator declarations,
-   and retain the current DAG lower statement.
-4. Update the site's track descriptions: a lower bound for DAG schemes need not bound generic
-   algorithms. A generic result below 18 would not contradict the existing lower theorem.
-
-## Validation
-
-The focused command is `cd formal && lake build OptimalOTS.AlgorithmForest`. The module's
-`#guard_msgs` checks the combined certificate's permitted axiom closure.
-
-Completed checks:
-
-- `lake build OptimalOTS.AlgorithmForest`: passed.
-- `lake build OptimalOTS Submissions`: passed (8842 jobs).
-- `python3 verifier/pin_contract.py check`: passed; the pin remains `9564de9198acd655`.
-- Both submission-policy checks passed at lower 18 and upper 106.
-- Both submission roots, the statement, challenge metadata, and pin are unchanged from `main`.
-- `git diff --check`: passed.
-
-Official regression results (`python3 verifier/verify.py <track> --source . --keep`):
+Signing samples distinct 256-bit nonces. Each resulting 512-bit index query is fresh, including
+when the message depends on the public key. Its low 128 answer bits are uniform; `2¹¹⁵` of the
+`2¹²⁸` possible indices are accepted. Every trial therefore fails with probability `8191/8192`.
+After `2²¹` trials, the failure probability is exactly
 
 ```text
-verified: track=lower claim=18 commit=worktree in 118.2s
-verified: track=upper claim=106 commit=worktree in 167.8s
+(8191 / 8192)^(2^21).
 ```
 
-Logs:
+The reciprocal Bernoulli inequality gives `(8191/8192)^8192 ≤ 1/2`. Since
+`2²¹ = 8192 × 256`, total failure is at most `2⁻²⁵⁶`, hence at most the challenge allowance
+`2⁻¹²⁸`. A separate exact-integer check confirms `2 × 8191^8192 ≤ 8192^8192`; the Lean proof,
+not the numerical check, certifies the claim.
 
-- Lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-pq9racsp/verify.log`.
-- Upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-hoziuc6i/verify.log`.
+## Security and resource preservation
 
-These official runs check the existing challenge exports. The new adapter certificate is checked
-by the Lean build and its axiom guard; it is not yet an export accepted by the competition verifier.
+`Adapter.lean` wraps the original DAG programs unchanged. The encoded signature is the
+256-bit nonce followed by at most 5,248 disclosed bits. Serialization is injective. Translations
+of adversaries in both directions establish equality of the generic and DAG oracle experiments
+before oracle interpretation. All queries, costs and success probabilities agree exactly;
+there is no security loss or extra failure term.
+
+The forest has 63 chains, grouped through a fixed hash tree. Its explicit 16-bit tweaks are
+charged in the actual input lengths. The copied security proof establishes all internal
+construction properties before proving strong security; the generic challenge imposes none
+of those properties on other submissions. The construction uses 912 key-generation compressions,
+at most `2²¹` signing compressions, and at most 106 verification compressions.
+
+`Resources.lean` establishes the size, rejection, and pathwise cost bounds.
+`CorrectKeygen.lean` and `Correctness.lean` establish correctness. `Availability.lean` establishes
+signing availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
+the challenge declarations. `OptimalOTS/AlgorithmForest.lean` provides compatibility aliases.
+The original `formal/Submissions/Upper` files are unchanged.
+
+## Verification
+
+```sh
+cd formal
+lake build OptimalOTS Submissions
+lake env lean scripts/check-axioms.lean
+cd ..
+python3 verifier/check_submission.py generic-upper
+python3 verifier/verify.py generic-upper --source .
+```
+
+The protected generic definitions are unchanged; their introduction now describes both tracks. The new challenge fixes the allowance and
+requires all three proofs; comparator checks those declarations and their shared scheme against
+the pinned contract. Permitted axioms remain `propext`, `Classical.choice`, and `Quot.sound`.
+
+The official verifier accepted `generic-upper` at 106 in 157.3 seconds. The complete Lean build
+passes (8,927 jobs), all 46 protected model declarations pass the axiom audit, and every submission
+root passes policy. The verifier, service, and numerical suites pass 59, 59, and 5 tests respectively;
+JavaScript and shell syntax checks also pass.
+
+The contract pin is `b2b1ffdeb02aa410fe2133b6b7e652f6f55ddf357eb0c5cd58dbb877792303b2`
+with 22 protected files. The new root contains 30 files and imports no other submission root.
+All 20 inherited construction/security modules match the original Upper files exactly except
+for sibling import paths. The original Upper root and all three lower statements are unchanged.
+
+Localhost now uses normal generic upper admission, records, chart points and leaderboard rows.
+The rules retain the distinct lower and upper availability thresholds. Firefox checks pass on
+desktop and at 320/390-pixel widths, in light/dark mode, including keyboard controls, sorting,
+filters, tooltips, collapsed rules and both diagrams. All 19 existing demo rows are preserved;
+two new, clearly fictional generic upper rows use 106 and 105. Those demo scores are not proof
+certificates.
+
+Local artifacts: `/private/tmp/ots-generic-admission-checks.log`,
+`/private/tmp/ots-generic-admission-verify-generic-upper.json`, and
+`/private/tmp/ots-ui-generic-upper/`. These macOS results establish proof acceptance and local
+application behavior; deployment still requires the Linux and staging checks in
+[the production review](production-readiness.md).

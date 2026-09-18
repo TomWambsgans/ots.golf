@@ -1,67 +1,37 @@
-import OptimalOTS.AlgorithmResources
-import Submissions.Upper.Main
+import Submissions.GenericUpper.Solution
 
-/-!
-# The verified forest under the generic algorithm interface
-
-The DAG forest retains its 106-compression verification bound and 127-bit strong security.
-This certificate also establishes size and honest-party cost bounds. Generic admission still
-requires correctness and signing-availability proofs, and a pinned generic upper challenge.
--/
-
-open OracleSpec OracleComp ENNReal
-noncomputable section
-open scoped Classical
+/-! Compatibility names for the complete generic upper certificate. The submission root
+contains all proofs of correctness, availability, security, and resource bounds. -/
 
 namespace OptimalOTS.AlgorithmForest
 
 attribute [local irreducible] Forest.forestScheme
-attribute [local irreducible] Scheme.sign Scheme.signLoop
-attribute [local irreducible] AlgorithmScheme.Secure AlgorithmScheme.VerifyCostAtMost
-  AlgorithmScheme.KeygenCostAtMost AlgorithmScheme.SignCostAtMost
-  AlgorithmScheme.SignatureSizeAtMost AlgorithmScheme.RejectsOversized
+attribute [local irreducible] AlgorithmScheme.SignCostAtMost AlgorithmScheme.SignatureSizeAtMost
 
-def scheme : AlgorithmScheme paperParams := Forest.forestScheme.toAlgorithm
+noncomputable abbrev scheme := GenericUpperForest.scheme
 
 theorem experiment_eq (A : scheme.Adversary) :
-    scheme.experiment A =
-      OptimalOTS.experiment Forest.forestScheme
-        (AlgorithmAdapter.toDAGAdversary Forest.forestScheme A) :=
-  AlgorithmAdapter.experiment_eq Forest.forestScheme A
+    scheme.experiment A = OptimalOTS.experiment Forest.forestScheme
+      (AlgorithmAdapter.toDAGAdversary Forest.forestScheme A) := GenericUpperForest.experiment_eq A
 
-theorem secure : scheme.Secure :=
-  (AlgorithmAdapter.secure_iff Forest.forestScheme).2 Forest.forestScheme_secure
-
-/-- This bound covers all public keys, messages and signatures, including rejecting inputs. -/
-theorem cost : scheme.VerifyCostAtMost 106 := by
-  apply AlgorithmAdapter.verifyCost Forest.forestScheme (v := 105) (by decide)
-  intro i
-  have h := Forest.forestScheme_verifyCost i
-  change 1 + Forest.forestScheme.graph.reconstructCost (Forest.forestScheme.sets i) = 106 at h
-  omega
-
+theorem correct : scheme.Correct := GenericUpperForest.correct
+theorem signing_failure : scheme.SigningFailureAtMost (1 / 2 ^ 128) :=
+  GenericUpperForest.signing_failure
+theorem admissible : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) :=
+  GenericUpperForest.admissible
+theorem secure : scheme.Secure := GenericUpperForest.secure
+theorem cost : scheme.VerifyCostAtMost 106 := GenericUpperForest.cost
 theorem keygen_cost : scheme.KeygenCostAtMost AlgorithmScheme.paperLimits.keygenCost :=
-  AlgorithmAdapter.keygenCost Forest.forestScheme
-
+  GenericUpperForest.keygen_cost
 theorem sign_cost : scheme.SignCostAtMost AlgorithmScheme.paperLimits.signCost :=
-  AlgorithmAdapter.signCost Forest.forestScheme (by decide)
-
+  GenericUpperForest.sign_cost
 theorem signature_size : scheme.SignatureSizeAtMost AlgorithmScheme.paperLimits.signatureBits :=
-  AlgorithmAdapter.signatureSize Forest.forestScheme
-
+  GenericUpperForest.signature_size
 theorem rejects_oversized : scheme.RejectsOversized AlgorithmScheme.paperLimits.signatureBits :=
-  AlgorithmAdapter.rejectsOversized Forest.forestScheme
+  GenericUpperForest.rejects_oversized
 
-/-- Security, cost, and size bounds for the adapter. This does not assert `Admissible`. -/
-theorem certificate : scheme.Secure ∧ scheme.VerifyCostAtMost 106 ∧
-    scheme.KeygenCostAtMost 1024 ∧ scheme.SignCostAtMost (2 ^ 21) ∧
-    scheme.SignatureSizeAtMost 5504 ∧ scheme.RejectsOversized 5504 :=
-  ⟨secure, cost, keygen_cost, sign_cost, signature_size, rejects_oversized⟩
-
-/--
-info: 'OptimalOTS.AlgorithmForest.certificate' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms certificate
+theorem certificate :
+    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) ∧
+    scheme.Secure ∧ scheme.VerifyCostAtMost 106 := GenericUpperForest.certificate
 
 end OptimalOTS.AlgorithmForest

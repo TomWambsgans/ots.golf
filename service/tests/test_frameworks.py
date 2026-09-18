@@ -42,12 +42,13 @@ class FrameworkTests(unittest.TestCase):
 
     def test_frameworks_have_three_pinned_lower_tracks(self):
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("dag").items()},
-                         {"lower": "lower", "upper": "upper"})
+                         {"lower": "lower"})
+        self.assertIsNone(records.interval(self.session, "dag")["upper"])
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("disclosure").items()},
                          {"lower": "disclosure-lower"})
         self.assertIsNone(records.interval(self.session, "disclosure")["upper"])
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("generic").items()},
-                         {"lower": "generic-lower"})
+                         {"lower": "generic-lower", "upper": "generic-upper"})
         self.assertEqual(records.interval(self.session, "generic")["lower"]["baseline"], 1)
         self.assertEqual(contract.framework("generic")["status"], "active")
 
@@ -67,7 +68,7 @@ class FrameworkTests(unittest.TestCase):
             html = response.text
             points = self.chart(html)
             self.assertEqual({p['framework'] for p in points}, {'generic', 'dag', 'disclosure'})
-            self.assertEqual({p['kind'] for p in points}, {'lower'})
+            self.assertEqual({p['kind'] for p in points}, {'lower', 'upper'})
             for point in points:
                 sub = self.session.get(Submission, point["id"])
                 self.assertEqual(contract.track(sub.track)["framework"], point['framework'])
@@ -75,10 +76,10 @@ class FrameworkTests(unittest.TestCase):
                 self.assertTrue(point['demo'])
             tables = set(re.findall(r'<table class="lb-table" data-track="([^"]+)"', html))
             expected = {t['slug'] for t in contract.tracks()
-                        if t['kind'] == 'lower' and (framework == 'all' or t['framework'] == framework)}
+                        if t['kind'] == 'lower' and (framework == 'all' or t['framework'] == framework)} | {'generic-upper'}
             self.assertEqual(tables, expected)
         html = self.client.get('/').text
-        self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 3)
+        self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 4)
         self.assertEqual(len(re.findall(r'<article class="framework-card ', html)), 3)
 
     def test_generic_lower_is_certified_and_uses_normal_leaderboard(self):
@@ -125,7 +126,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn(f'href="/submissions/{sub.id}"', html)
         self.assertIn('href="/solvers/vitalik-buterin"', html)
         self.assertNotIn('baseline', html.lower())
-        points = [p for p in self.chart(html) if p['framework'] == 'generic']
+        points = [p for p in self.chart(html) if p['framework'] == 'generic' and p['kind'] == 'lower']
         self.assertEqual([(p['id'], p['claim'], p['login']) for p in points],
                          [(sub.id, 1, 'vitalik-buterin')])
         self.assertTrue(points[0]['demo'])
@@ -141,7 +142,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('href="/?framework=generic#lower">Generic algorithms</a>', profile)
         self.assertNotIn('baseline', profile.lower())
 
-    def test_single_generic_upper_is_a_candidate_not_an_inherited_record(self):
+    def test_single_generic_upper_uses_its_own_records_and_attribution(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
         self.session.commit()
         html = self.client.get('/').text
@@ -149,16 +150,70 @@ class FrameworkTests(unittest.TestCase):
         uppers = svg.findall("./g[@data-kind='upper']")
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'generic-upper')
-        self.assertEqual(uppers[0].get('data-status'), 'candidate')
-        self.assertEqual(uppers[0].find("text[@class='label']").text, 'Generic upper candidate 106')
-        self.assertEqual(uppers[0].findall('.//circle'), [])
-        self.assertTrue('Cost and security checked; correctness and signing availability pending' in html)
+        self.assertEqual(uppers[0].get('data-status'), 'certified')
+        self.assertEqual(uppers[0].find("text[@class='label']").text, 'Generic upper 105')
+        self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 2)
+        self.assertNotIn('admission pending', html.lower())
+        self.assertNotIn('candidate', html.lower())
         self.assertFalse('data-track="disclosure-upper"' in html)
+        points = [p for p in self.chart(html) if p['kind'] == 'upper']
+        self.assertEqual([(p['claim'], p['login']) for p in points],
+                         [(106, 'vitalik-buterin'), (105, 'satoshi-nakamoto')])
+        for point in points:
+            sub = self.session.get(Submission, point['id'])
+            self.assertEqual(sub.track, 'generic-upper')
+            detail = self.client.get(f'/submissions/{sub.id}').text
+            self.assertIn('perfect correctness, signing failure at most 2<sup>−128</sup>', detail)
+            self.assertIn('127-bit strong security', detail)
+            self.assertIn('href="/#upper"', detail)
+            self.assertNotIn('signing success at least 1/2', detail)
+            self.assertNotIn('s-verified', detail)
+        self.assertIn('href="/#upper">Generic algorithms</a>',
+                      self.client.get('/solvers/satoshi-nakamoto').text)
+
+    def test_legacy_upper_records_do_not_initialize_generic_upper(self):
+        seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
+        self.session.commit()
+        html = self.client.get('/').text
+        generic = self.chart_svg(html).find("./g[@data-series='generic-upper']")
+        self.assertEqual(generic.find("text[@class='label']").text, 'Generic upper 106')
+        self.assertEqual(generic.findall('.//circle'), [])
+        self.assertIsNone(records.current_record(self.session, 'generic-upper'))
+
+    def test_missing_generic_upper_metadata_stays_pending_and_does_not_seed_or_admit(self):
+        cfg = copy.deepcopy(contract.load())
+        cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'generic-upper']
+        with patch.object(contract, 'load', return_value=cfg):
+            self.assertIsNone(contract.generic_upper_track())
+            self.assertEqual(seed_demo.refresh(self.session), 19)
+            self.assertEqual(seed_demo.refresh(self.session), 0)
+            html = self.client.get('/').text
+            self.assertIn('Admission pending', html)
+            self.assertNotIn('data-track="generic-upper"', html)
+            self.assertFalse(any(p['kind'] == 'upper' for p in self.chart(html)))
+            self.assertIn('<strong>Pending:</strong> generic upper', self.client.get('/rules').text)
+            with self.assertRaises(HTTPException) as caught:
+                queue_submission(self.session, User(login='tester'), 'generic-upper', 'local', 'a' * 40,
+                                 None, [], None, None, None)
+            self.assertEqual(caught.exception.status_code, 400)
+
+    def test_generic_upper_migration_preserves_all_nineteen_existing_demo_rows(self):
+        seed_demo.add_rows(self.session, seed_demo.ROWS[:-len(seed_demo.GENERIC_UPPER_ROWS)])
+        self.session.commit()
+        before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track)
+                  for s in self.session.scalars(select(Submission))}
+        self.assertEqual(len(before), 19)
+        self.assertEqual(seed_demo.refresh(self.session), 2)
+        self.assertEqual(seed_demo.refresh(self.session), 0)
+        for identifier, old in before.items():
+            s = self.session.get(Submission, identifier)
+            self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 21)
 
     def test_baselines_render_without_records(self):
         html = self.client.get('/').text
         svg = self.chart_svg(html)
-        for track in [t for t in contract.tracks() if t['kind'] == 'lower']:
+        for track in [t for t in contract.tracks() if t['kind'] == 'lower' or t['slug'] == 'generic-upper']:
             slug, baseline = track['slug'], track['baseline']
             group = svg.find(f"./g[@data-series='{slug}']")
             self.assertEqual(group.get('data-status'), 'certified')
@@ -190,7 +245,7 @@ class FrameworkTests(unittest.TestCase):
         demo = next(s for s in self.session.scalars(select(Submission)) if s.detail_dict.get("demo"))
         demo.claim = 999
         self.session.commit()
-        self.assertEqual(seed_demo.refresh(self.session), 11)
+        self.assertEqual(seed_demo.refresh(self.session), 13)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), len(seed_demo.ROWS) + 1)
@@ -284,7 +339,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertTrue('generic algorithm framework' in caught.exception.detail)
         self.assertEqual(list(self.session.scalars(select(Submission))), [])
 
-    def test_public_submission_queue_admits_generic_lower_and_preserves_scope(self):
+    def test_public_submission_queue_admits_both_generic_tracks_and_preserves_scope(self):
         user = User(login="generic-solver")
         self.session.add(user)
         self.session.commit()
@@ -296,10 +351,11 @@ class FrameworkTests(unittest.TestCase):
         html = self.client.get("/?framework=generic").text
         self.assertIn(f'href="/submissions/{sub.id}"', html)
         self.assertIn("1 in verification", html)
-        with self.assertRaises(HTTPException) as caught:
-            queue_submission(self.session, user, "generic-upper", "local", "b" * 40,
-                             None, [], None, None, None)
-        self.assertEqual(caught.exception.status_code, 400)
+        upper = queue_submission(self.session, user, "generic-upper", "local", "b" * 40,
+                                 None, [], None, None, None)
+        self.assertEqual((upper.track, upper.status, upper.user_id), ('generic-upper', 'pending', user.id))
+        html = self.client.get('/?framework=dag').text
+        self.assertIn(f'href="/submissions/{upper.id}"', html)
 
     def test_webhook_root_mapping_includes_new_tracks_and_rejects_mixed_roots(self):
         with patch("app.github.httpx.Client") as client:
@@ -310,6 +366,10 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(github.pr_track("local/repo", 1), (None, []))
             response.json.return_value = [{"filename": "formal/Submissions/GenericLower/Solution.lean"}]
             self.assertEqual(github.pr_track("local/repo", 1), ("generic-lower", []))
+            response.json.return_value = [{"filename": "formal/Submissions/GenericUpper/Solution.lean"}]
+            self.assertEqual(github.pr_track("local/repo", 1), ("generic-upper", []))
+            response.json.return_value += [{"filename": "formal/Submissions/Upper/Solution.lean"}]
+            self.assertEqual(github.pr_track("local/repo", 1), (None, []))
 
 
 if __name__ == "__main__":

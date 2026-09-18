@@ -17,9 +17,8 @@ These bounds apply to different classes. The whole-word result does not establis
 arbitrary DAGs or generic algorithms. The whole-word track retains its earlier
 `disclosure-lower` identifier for URL and submission-root compatibility.
 
-The generic upper interface has a checked **106-compression candidate** with security, size
-and cost proofs. Its correctness and signing-availability proofs are still required before
-upper submissions open. The original DAG and historical partial-disclosure upper certificates
+The generic upper track has a verified **106-compression construction**, with perfect correctness,
+signing failure at most `2^-128`, 127-bit strong security, and the required size and cost proofs. The original DAG and historical partial-disclosure upper certificates
 remain locally verifiable references; neither is an admitted generic upper record.
 
 ## Model
@@ -50,7 +49,8 @@ cd ..
 python3 verifier/verify.py disclosure-lower --source .
 ```
 
-Use `generic-lower` or `lower` for the other lower certificates, and `upper` or
+Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the generic
+upper construction, and `upper` or
 `disclosure-upper` for the historical references. macOS verification checks proofs but does
 not sandbox untrusted code. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
@@ -67,8 +67,9 @@ and the [production review](docs/production-readiness.md) for checks and deploym
   and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
 - [Generic lower proof](docs/generic-lower.md), [DAG lower proof](docs/lower-bound-proof.md)
   and [whole-word lower proof](docs/whole-words.md).
-- [Generic upper status](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
+- [Generic upper proof](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
 - `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
+- `formal/Submissions/GenericUpper/`: the admitted generic upper root.
 - `formal/Submissions/{Upper,DisclosureUpper}/`: historical upper references.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 

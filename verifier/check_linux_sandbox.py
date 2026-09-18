@@ -3,7 +3,7 @@
 
 This exercises the same mandatory systemd properties and Landrun restrictions as the
 verifier. It is deliberately unavailable on macOS: local certificate checks do not test
-Linux process, filesystem or network isolation. Run the five certificate checks afterward.
+Linux process, filesystem or network isolation. Run all configured certificate checks afterward.
 """
 from __future__ import annotations
 

@@ -175,7 +175,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     command('WebDriver:Navigate', {'url': base_url + '/'})
     print('Home:', js('return {title: document.title, cards: document.querySelectorAll(".framework-card").length, lowerSeries: document.querySelectorAll(".chart-series[data-kind=lower]").length, tables: document.querySelectorAll(".lb-table").length, width: innerWidth, scrollWidth: document.documentElement.scrollWidth};'))
     assert js('return document.querySelectorAll(".chart-series[data-kind=lower]").length === 3;')
-    assert js('return document.querySelectorAll(".lb-table").length === 3;')
+    assert js('return document.querySelectorAll(".lb-table").length === 4;')
     assert js('return document.querySelector("#framework-disclosure h3").textContent.trim() === "Whole words";')
     assert js('return [...document.querySelectorAll("header.top nav a")].map(a => a.textContent.trim()).join(",") === "Rules";')
     assert js('return !document.querySelector(".board-track[data-track=lower]").innerText.includes("Admission pending");')
@@ -188,6 +188,15 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return document.querySelector(".board-track[data-track=upper]").hidden;')
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
     assert js('return !document.querySelector(".board-track[data-track=upper]").hidden && document.querySelector(".board-track[data-track=lower]").hidden && location.hash === "#upper";')
+    assert js('return document.querySelector(".board-filters").hidden;')
+    upper_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'generic-upper')
+    upper_scores = js('return [...document.querySelectorAll(".lb-table[data-track=generic-upper] .lb-row")].map(r => Number(r.dataset.score));')
+    assert upper_scores == [upper_claim - 1, upper_claim], upper_scores
+    js('document.querySelector(".lb-table[data-track=generic-upper] .sort-btn[data-key=score]").click(); return true;')
+    assert js('return document.querySelector(".lb-table[data-track=generic-upper] th[aria-sort=descending]") !== null;')
+    js('document.querySelector(".chart-series[data-kind=upper] .chart-record").focus(); return true;')
+    assert js('return !document.querySelector(".tooltip").hidden && document.querySelector(".tooltip").textContent.includes("Generic upper") && document.querySelector(".tooltip").textContent.includes("demo");')
+    js('document.activeElement.blur(); return true;')
     assert js('return [...document.querySelectorAll(".board-filters a")].every(a => a.hash === "#lower");')
     js('document.querySelector(".seg-btn[data-track=lower]").click(); return true;')
     js('document.querySelector(".lb-table[data-track=lower] .sort-btn[data-key=score]").click(); return true;')
@@ -197,12 +206,12 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return !document.querySelector(".tooltip").hidden;')
     js('document.activeElement.blur(); window.scrollTo(0, 0); return true;')
     (output / 'home-desktop.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
-    assert js('return document.querySelectorAll(".chart-series[data-kind=upper]").length === 1 && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper";')
+    assert js('return document.querySelectorAll(".chart-series[data-kind=upper]").length === 1 && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
     js('document.documentElement.dataset.theme = "light"; document.getElementById("dash-title").scrollIntoView(); return true;')
     (output / 'chart-light.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
     print('Desktop chart, direction toggle, sorting, and keyboard tooltip passed')
     command('WebDriver:Navigate', {'url': base_url + '/?framework=disclosure#upper'})
-    assert js('return document.querySelectorAll(".lb-table").length === 1 && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden;')
+    assert js('return document.querySelectorAll(".lb-table").length === 2 && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden;')
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.querySelectorAll(".rules-diagram svg[role=img]").length === 2;')
     assert js('return document.querySelectorAll("details[open]").length === 0;')
@@ -218,7 +227,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     print('Rules summary words:', js(r'return document.querySelector("main").innerText.trim().split(/\s+/).length;'))
     (output / 'rules-summary.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
     js('document.documentElement.dataset.theme = "light"; return true;')
-    for anchor in ('generic-admissibility', 'generic-algorithms', 'dag-model', 'graph', 'cut',
+    for anchor in ('generic-admissibility', 'generic-algorithms', 'generic-upper', 'dag-model', 'graph', 'cut',
                    'whole-word-model', 'whole-words', 'partial-disclosures', 'submission-format',
                    'limits', 'legacy-certificates', 'model', 'params', 'hash', 'security'):
         command('WebDriver:Navigate', {'url': base_url + '/rules#' + anchor})

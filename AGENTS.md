@@ -18,6 +18,7 @@ formal/                      the Lean project (lake root)
   Submissions/DisclosureLower/  whole-word lower-track root
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
   Submissions/GenericLower/     generic lower-track root; baseline claim 1
+  Submissions/GenericUpper/     generic upper-track root; verified forest, claim 106
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -37,9 +38,10 @@ separate DAG or whole-word upper leaderboards.
   perfect correctness, signing failure at most one half for every public-key-dependent message
   choice, the paper size and resource limits, and 127-bit weak unforgeability. Proofs live in
   `formal/Submissions/GenericLower/`; see `docs/generic-lower.md`.
-- **Generic upper** remains in preparation. The security-preserving 106-cost adapter is a candidate,
-  not an admitted record. Its correctness and signing-availability proofs and the upper challenge
-  remain prerequisites for admission. This does not block generic lower submissions.
+- **Generic upper** (`generic-upper`): arbitrary oracle programs, with a verified construction at
+  106 compressions. The challenge fixes perfect correctness, signing failure at most `2^-128`
+  for every public-key-dependent message choice, the paper size and resource limits, and 127-bit
+  strong unforgeability. Proofs live in `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
 - **DAG lower** (`lower`): the unrestricted DAG model, with certified lower baseline 18.
 - **Whole-word lower** (`disclosure-lower`, retained slug): DAG schemes with a certified lower
   bound of 93. Secret sources are 128 bits. Hash outputs are 256 bits, with either fixed 128-bit
@@ -96,7 +98,7 @@ theorem OptimalOTS.Challenge.Upper.cost :
 ```
 
 `scheme` is a definition hole: any term of type `Scheme paperParams` is admissible, and the two
-theorems pin it down. This is the preserved DAG certificate, not the future generic upper export.
+theorems pin it down. This is the preserved DAG certificate; generic upper has its own export below.
 
 **Whole-word lower track** (`formal/Submissions/DisclosureLower/`):
 
@@ -116,6 +118,23 @@ This theorem must cover every admissible, weakly secure algorithm and every path
 budget. The one-half signing-failure allowance is fixed by the challenge; a submission cannot
 narrow the class to obtain a larger bound. It also covers every stricter availability allowance.
 
+**Generic upper track** (`formal/Submissions/GenericUpper/`, smaller is better):
+
+```lean
+noncomputable def OptimalOTS.Challenge.GenericUpper.scheme : AlgorithmScheme paperParams := ...
+theorem OptimalOTS.Challenge.GenericUpper.admissible :
+    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := ...
+theorem OptimalOTS.Challenge.GenericUpper.secure : scheme.Secure := ...
+theorem OptimalOTS.Challenge.GenericUpper.cost : scheme.VerifyCostAtMost <claim> := ...
+```
+
+Admissibility includes perfect correctness, signing failure at most `2^-128`, an injective signature
+encoding of at most 5504 bits, rejection of oversized signatures, and pathwise limits of 1024
+key-generation compressions and `2^21` signing compressions. Availability is averaged over honest
+key generation and signing, for every message chosen as a function of the public key; it does not
+assert availability after adversarial oracle preprocessing. Verification cost covers every input
+and oracle-answer path, including rejection. A record needs claim ≤ record − 1.
+
 **Legacy partial-disclosure upper reference** (`formal/Submissions/DisclosureUpper/`):
 
 ```lean
@@ -129,9 +148,9 @@ theorem OptimalOTS.Challenge.DisclosureUpper.disclosure : scheme.DisclosureBound
 The whole-word lower direction and record rules are the same as for the DAG lower track.
 The restricted lower root may additionally import `OptimalOTS.WholeWords` and
 `OptimalOTS.Disclosure`; the legacy partial-disclosure upper root may import `OptimalOTS.Disclosure`. Generic lower may
-additionally import `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak`. Generic upper
-declarations will require `AlgorithmScheme` and proofs of admissibility, security and verification
-cost; that challenge is not yet pinned or open for submission.
+additionally import `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak`. Generic upper may
+additionally import `OptimalOTS.Algorithm`; all its construction and proof helpers must be siblings
+in its own submission root.
 
 ## Rules for the submission root
 
@@ -139,7 +158,7 @@ cost; that challenge is not yet pinned or open for submission.
    subdirectories. `Solution.lean` is required: it is the module the verifier exports from.
 2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, `OptimalOTS.Disclosure` for the two
    historically named disclosure roots, `OptimalOTS.WholeWords` for whole-word lower,
-   `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak` for generic lower,
+   `OptimalOTS.Algorithm` for both generic tracks and `OptimalOTS.AlgorithmWeak` for generic lower,
    and sibling files of the same root as `Submissions.<Track>.<File>`.
    Nothing else: not `OptimalOTS`, not the stubs, not the other
    track.
@@ -164,7 +183,8 @@ python3 verifier/check_submission.py lower     # policy checks
 python3 verifier/verify.py lower --source .    # the full pipeline
 ```
 
-Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks. The commands for `upper`
+Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks, or by
+`generic-upper` for the upper track. The commands for `upper`
 and `disclosure-upper` still verify the preserved reference certificates locally.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on

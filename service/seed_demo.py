@@ -49,7 +49,11 @@ BASE_ROWS = [
 # The generic proof is shown as a normal submission with fictional Vitalik attribution.
 # Zero offset keeps its claim equal to the checked repository result when that result changes.
 GENERIC_ROWS = [("generic-lower", "vitalik-buterin", 0, 20, "verified", True, "LLaMA 7B", [])]
-ROWS = BASE_ROWS + [("disclosure-" + track, *rest) for track, *rest in BASE_ROWS] + GENERIC_ROWS
+GENERIC_UPPER_ROWS = [
+    ("generic-upper", "vitalik-buterin", 0, 18, "verified", True, "LLaMA 7B", []),
+    ("generic-upper", "satoshi-nakamoto", 1, 6, "verified", True, "GPT-2", []),
+]
+ROWS = BASE_ROWS + [("disclosure-" + track, *rest) for track, *rest in BASE_ROWS] + GENERIC_ROWS + GENERIC_UPPER_ROWS
 
 
 def demo_claim(track: str, improvement: int) -> int:
@@ -65,7 +69,7 @@ def refresh(session) -> int:
         detail = sub.detail_dict
         if detail.get("demo"):
             existing_tracks.add(sub.track)
-        if detail.get("demo") and "improvement" in detail:
+        if detail.get("demo") and "improvement" in detail and contract.track(sub.track):
             claim = demo_claim(sub.track, detail["improvement"])
             if sub.claim != claim:
                 sub.claim = claim
@@ -111,6 +115,8 @@ def demo_users(session) -> dict:
 
 def add_rows(session, rows) -> int:
     """Insert only the requested demo rows; leave real submissions and baselines untouched."""
+    # Metadata is the admission gate. A new demo track appears only after its certificate is pinned.
+    rows = [row for row in rows if contract.track(row[0])]
     users = demo_users(session)
     for track, login, improvement, hours_ago, status, is_record, assisted, coauthors in rows:
         claim = demo_claim(track, improvement)

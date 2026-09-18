@@ -28,8 +28,7 @@ class RulesTests(unittest.TestCase):
         config = copy.deepcopy(contract.load())
         for track in config['tracks']:
             track['baseline'] = 987654
-        with patch.object(contract, 'load', return_value=config), \
-             patch.object(contract, 'generic_upper_candidate', return_value={'claim': 876543}):
+        with patch.object(contract, 'load', return_value=config):
             html = self.rules_body()
         self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|106|987654|876543|765432)\b')
         self.assertNotIn('Certified lower baselines', html)
@@ -50,10 +49,12 @@ class RulesTests(unittest.TestCase):
         self.assertIn('No other deterministic', html)
         self.assertNotIn('hash origins', html)
         self.assertNotIn('Reed–Solomon', html)
-        self.assertIn('<strong>Open:</strong> generic lower, DAG lower and whole-word lower.', html)
-        self.assertIn('<strong>Pending:</strong> generic upper', html)
-        self.assertIn('This availability threshold is fixed for generic lower submissions.', html)
-        self.assertIn('at least <strong>1/2</strong>', html)
+        self.assertIn('<strong>Open:</strong> generic lower, DAG lower and whole-word lower, plus generic upper.', html)
+        self.assertNotIn('<strong>Pending:</strong>', html)
+        self.assertIn('signing failure is at most <strong>1/2 for lower bounds</strong>', html)
+        self.assertIn('<strong>2<sup>−128</sup> for upper constructions</strong>', html)
+        self.assertIn('returned signatures are rejected with probability zero', html)
+        self.assertIn('formal/Submissions/GenericUpper/', html)
         self.assertIn('formal/Submissions/GenericLower/', html)
         self.assertIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)

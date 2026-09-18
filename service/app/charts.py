@@ -49,10 +49,9 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" '
            'aria-labelledby="record-chart-title record-chart-desc">',
            '<title id="record-chart-title">Verification bounds across three frameworks</title>',
-           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. DAG and whole-word '
-           'lower records are separate series. Generic lower submissions cover correct signing with success '
-           'at least one half and are open. The single upper series is the generic candidate, '
-           'with admission still pending. Hover or focus a record for its framework and solver.</desc>']
+           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. Generic, DAG and whole-word '
+           'lower records are separate series. The single upper series admits generic algorithms. '
+           'Hover or focus a record for its framework and solver.</desc>']
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
         out.append(f'<line class="grid" x1="{ML}" x2="{W - MR}" y1="{y:.1f}" y2="{y:.1f}"/>')
@@ -89,8 +88,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
             d += f' H{sx(t1):.1f}'
             out.append(f'<path class="line" d="{d}"/>')
         else:
-            reference_label = "adapter; admission pending" if status == "candidate" else "verified bound"
-            out.append(f'<path class="line reference" d="M{ML},{sy(baseline):.1f} H{sx(t1):.1f}"><title>{label}: {baseline} · {reference_label}</title></path>')
+            out.append(f'<path class="line reference" d="M{ML},{sy(baseline):.1f} H{sx(t1):.1f}"><title>{label}: {baseline} · verified bound</title></path>')
         for p in pts:
             x, y = sx(p["t"]), sy(p["claim"])
             point = {"x": round(x, 1), "y": round(y, 1), "track": s["label"], "framework": s["framework"],

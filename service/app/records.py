@@ -78,9 +78,13 @@ def overview(session: Session) -> list[dict]:
         for kind, track in contract.framework_tracks(framework["slug"]).items():
             if kind != "lower":
                 continue
-            boards[kind] = {"cfg": track, "state": track_state(session, track),
-                            "frontier": frontier(session, track["slug"]),
-                            "in_flight": in_flight(session, track["slug"]),
-                            "curve": curve(session, track["slug"])}
+            boards[kind] = board(session, track)
         result.append({**framework, "boards": boards})
     return result
+
+
+def board(session: Session, track: dict) -> dict:
+    return {"cfg": track, "state": track_state(session, track),
+            "frontier": frontier(session, track["slug"]),
+            "in_flight": in_flight(session, track["slug"]),
+            "curve": curve(session, track["slug"])}

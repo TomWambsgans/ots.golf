@@ -31,7 +31,9 @@
     "formal/OptimalOTS/AlgorithmWeak.lean",
     "formal/OptimalOTS/Challenge/GenericLower.lean.in",
     "verifier/comparator-generic-lower.json",
-    "formal/OptimalOTS/WholeWords.lean"
+    "formal/OptimalOTS/WholeWords.lean",
+    "formal/OptimalOTS/Challenge/GenericUpper.lean.in",
+    "verifier/comparator-generic-upper.json"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -151,6 +153,31 @@
         "numerator": 1,
         "denominator": 2
       }
+    },
+    {
+      "slug": "generic-upper",
+      "title": "Upper bound",
+      "framework": "generic",
+      "kind": "upper",
+      "direction": "-",
+      "baseline": 106,
+      "submission_root": "formal/Submissions/GenericUpper",
+      "module_prefix": "Submissions.GenericUpper",
+      "solution_module": "Submissions.GenericUpper.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/GenericUpper.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/GenericUpper.lean",
+      "challenge_module": "OptimalOTS.Challenge.GenericUpper",
+      "comparator_config": "verifier/comparator-generic-upper.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement",
+        "OptimalOTS.Algorithm"
+      ],
+      "signing_failure_allowance": {
+        "numerator": 1,
+        "denominator": 340282366920938463463374607431768211456
+      }
     }
   ],
   "lean_root": "formal",
@@ -160,14 +187,14 @@
       "title": "Generic algorithms",
       "status": "active",
       "description": "Arbitrary oracle algorithms with perfect correctness, signing success at least one half and the fixed size, resource and security requirements.",
-      "lower_track": "generic-lower"
+      "lower_track": "generic-lower",
+      "upper_track": "generic-upper"
     },
     {
       "slug": "dag",
       "title": "DAG",
       "status": "active",
       "lower_track": "lower",
-      "upper_track": "upper",
       "description": "Any fixed computation DAG, with arbitrary sharing, deterministic operations and disclosure cuts."
     },
     {

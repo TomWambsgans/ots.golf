@@ -30,7 +30,7 @@ python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --
 ```
 
 Node.js is used only for static JavaScript syntax checks (`--node /path/to/node` overrides PATH).
-`--official` adds all five official certificate pipelines. These commands use the existing warm
+`--official` adds every configured official certificate pipeline. These commands use the existing warm
 Lean/tool caches and do not install packages, refresh demos, push, or deploy. Browser checks use
 `service/browser_check.py` against the seeded local preview. Linux sandbox acceptance must run
 on the actual deployment host with `verifier/check_linux_sandbox.py`; a macOS pass cannot replace it.

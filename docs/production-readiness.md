@@ -3,12 +3,15 @@
 The checked certificates, service regressions, numerical checks and local browser audit pass.
 The website and worker run the reviewed code on localhost. **Public deployment still requires
 acceptance on the actual Linux host and a staging GitHub repository.** This review does not claim
-that macOS testing establishes production isolation. Nothing was pushed or deployed. The implementation is committed locally as `1000826` on `main`.
+that macOS testing establishes production isolation. Nothing was pushed or deployed. The original
+operational review was committed locally as `1000826` on `main`; the later generic upper addition
+is documented in [the generic proof report](generic-upper.md).
 
 The review covered the formal contract and exports, verifier, queue/webhook/reporting service,
 website, numerical tools, deployment configuration and documentation. Parallel reviewers owned
-separate service, verifier and website files. No protected contract, certificate, claim, toolchain
-or contract pin changed. The historical `Submissions/Upper` construction is untouched.
+separate service, verifier and website files. That operational review did not change the protected
+contract, certificates, claims, toolchain or pin. The subsequent generic upper addition changes
+the challenge metadata and pin, with the underlying generic definitions preserved. The historical `Submissions/Upper` construction is untouched.
 
 ## Changes that matter
 
@@ -58,9 +61,9 @@ or contract pin changed. The historical `Submissions/Upper` construction is unto
 - Light/dark contrast, keyboard navigation, narrow tables, chart targets, tooltip placement and
   reduced-motion behavior were checked and improved. Chart ticks stay bounded even for maximum
   allowed claims. Rules remain independent of scores, with the explanatory diagrams intact.
-- Three lower frameworks and one generic upper candidate remain distinct. Legacy upper references
-  are not relabeled. Generic upper admission still needs correctness and signing-availability
-  proofs and its pinned challenge; this review does not establish them.
+- Three lower frameworks and one generic upper track remain distinct. Legacy upper references
+  are not relabeled. The subsequent generic upper certificate completes correctness, signing
+  availability, security and cost; its challenge is pinned and the track is open.
 - Inline scripts were moved into static files for the content security policy. Readable error
   pages and a database-aware health endpoint were added. Unused diagram code and obsolete CSS
   were removed. Demo tooling now refuses production mode and non-loopback origins.
@@ -68,7 +71,7 @@ or contract pin changed. The historical `Submissions/Upper` construction is unto
   a repeatable Firefox audit. Numerical search now charges node tweaks separately from the fixed
   message-and-nonce index, correctly reproducing the existing 106-cost forest.
 
-## Validation evidence
+## Original operational-review evidence
 
 All checks used the existing trusted local Lean/tool caches. Unit tests use isolated databases
 and temporary repositories. Browser checks read localhost and exercise its controls.
@@ -132,7 +135,7 @@ The browser runner requires Firefox and a running seeded localhost preview.
 Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any
 of the following from a successful local proof check:
 
-1. Run the Linux isolation probe and all five official certificates under the deployed identities.
+1. Run the Linux isolation probe and every configured official certificate under the deployed identities.
    Exercise memory exhaustion, timeout and a full work volume. Confirm complete process cleanup,
    preserved website/database availability and refusal when isolation is unavailable.
 2. Confirm web credentials are unreadable to the verifier identity, effective systemd restrictions,
