@@ -4,151 +4,170 @@
 {% set repo = 'https://github.com/' ~ (settings.contract_repo or 'TomWambsgans/ots.golf') %}
 {% set source = repo ~ '/blob/main/' %}
 <h1>Rules</h1>
-<section class="prose" id="ots">
-  <p>How cheaply can a hash-based one-time signature be verified?</p>
-  <p>An <strong>upper bound</strong> constructs a scheme that never exceeds the claimed cost.
-  A <strong>lower bound</strong> proves that every admissible scheme in a chosen class has
-  worst-case cost at least as large. Every claim needs a Lean-kernel-checked proof.</p>
-</section>
+<section class="rules-list" aria-label="Rules by topic">
+  <details id="ots">
+    <summary><h2>What is a one-time signature?</h2></summary>
+    <div class="more prose">
+      <p>A digital signature lets someone prove that they approved a message. The signer keeps a
+      <strong>secret key</strong> and shares a <strong>public key</strong>. Anyone with the public
+      key can check a signature, but should not be able to create one for a different message.</p>
+      <p>A <strong>one-time signature</strong> protects one signing request per key pair. After
+      observing that signature, an attacker should still be unable to forge one on another message. Signing a
+      second message with the same key is outside the security guarantee.</p>
+      <p>Here, schemes use hashing as their only cryptographic primitive. The question is how much
+      hashing a verifier must do to check a signature.</p>
+    </div>
+  </details>
 
-{% include "_how.html" %}
+  <details id="bounds">
+    <summary><h2>What do upper and lower bounds tell us?</h2></summary>
+    <div class="more prose">
+      <p>An <strong>upper bound</strong> gives a construction: prove that your scheme never exceeds
+      the claimed verification cost. A smaller upper bound means a cheaper construction.</p>
+      <p>A <strong>lower bound</strong> proves a limit: every admissible scheme in the chosen class
+      has worst-case verification cost at least as large as your claim. A larger lower bound rules
+      out more ambitious cost targets.</p>
+      <p>Both require a Lean-kernel-checked proof. An example, benchmark or numerical search is not
+      enough: the claim must hold for all inputs and cases covered by its formal statement.</p>
+    </div>
+  </details>
 
-<section class="prose" id="model">
-  <h2 id="tracks">Three lower-bound frameworks</h2>
-  <p>Each class has its own lower record. A restricted result does not establish the same bound
-  for a broader class.</p>
+  {% include "_how.html" %}
 
-  <h3 id="generic-algorithms">1. Generic algorithms</h3>
-  <p>Arbitrary terminating oracle programs for key generation, signing and verification.
-  No required graph, disclosure pattern or nonce format. Honest signatures must verify, and signing
-  must succeed with probability at least <strong>1/2</strong> for every message-selection rule based
-  on the public key. This availability threshold is fixed for generic lower submissions.</p>
+  <details id="model">
+    <summary><h2 id="tracks">Which lower-bound frameworks can I use?</h2></summary>
+    <div class="more prose">
+      <p><strong>Three lower-bound frameworks</strong> let you ask the question at different levels
+      of generality. Each class has its own lower record:</p>
+      <ul>
+        <li><a href="#generic-algorithms">Generic algorithms</a> allow arbitrary oracle programs.</li>
+        <li><a href="#graph">DAGs</a> fix a computation graph and reveal a cut through it.</li>
+        <li><a href="#whole-words">Whole words</a> further restrict those graphs to hashing,
+        selecting hash halves and concatenating complete 128-bit words.</li>
+      </ul>
+      <p>A lower bound for a restricted class does not establish the same bound for a broader
+      class. The three frameworks apply only to lower bounds; the single upper track is generic.</p>
+    </div>
+  </details>
 
-  <h3 id="graph">2. DAGs</h3>
-  <p>A fixed, public, directed acyclic graph of secret random sources, deterministic operations and hashes,
-  with unrestricted sharing. The public key is the low 128 bits of its root hash. A signature
-  reveals a <em>cut</em>: node values meeting every source-to-root path, excluding the root.
-  Verification reconstructs the root forwards.</p>
-
-  {% include "_rules_cut_diagram.html" %}
-
-  <span id="partial-disclosures"></span>
-  <h3 id="whole-words">3. Whole words</h3>
-  <p>DAGs whose hash inputs and disclosures contain only <strong>whole 128-bit words</strong>.
-  Secret sources are 128 bits. A hash returns 256 bits, usable as two 128-bit halves.
-  The only deterministic operations are concatenation and selecting either half of a hash.</p>
-  <p>Hash inputs may concatenate any number of words. The 5,248-bit payload fits at most
-  <strong>41 words</strong>, plus the usual 256-bit nonce. Disclosed nodes still form a cut.</p>
-
-  {% include "_rules_words_diagram.html" %}
-</section>
-
-<section class="rules-list">
   <details id="generic-admissibility">
-    <summary><span class="lead">Generic admissibility.</span> Representation, correctness, availability and cost.</summary>
+    <summary><h2 id="generic-algorithms">Generic algorithms: what is allowed?</h2></summary>
     <div class="more prose">
-      <p>The scheme supplies an injective bit-string encoding of its signatures: different signatures
-      must have different encodings. Every signature the signer can return fits in 5,504 bits;
-      the verifier always rejects oversized encodings.</p>
-      <p>Honest signing and verification share the same oracle. A returned signature is rejected with
-      probability zero. For each message-selection rule based on the public key, signing succeeds
-      with probability at least 1/2, averaged over honest key generation and signing. This is not
-      a per-key guarantee or an availability guarantee after adversarial oracle queries.</p>
-      <p>Key generation, signing and verification obey their cost bounds on every execution path.
-      Signing is bounded for every secret key and message; verification for every public key,
-      message and signature, including rejection. A lower claim rules out every smaller such
-      verification budget. Private randomness and adaptive oracle queries are permitted.</p>
+      <p>Any terminating oracle programs for key generation, signing and verification. Private
+      randomness and adaptive oracle queries are allowed. There is no required graph, disclosure
+      pattern or nonce format.</p>
+      <p>Honest signatures must verify. For every message-selection rule based on the public key,
+      signing must succeed with probability at least <strong>1/2</strong>, averaged over honest
+      key generation and signing. This availability threshold is fixed for generic lower submissions.
+      It is not a per-key guarantee or a guarantee after adversarial oracle queries.</p>
+      <p>The scheme supplies an injective bit-string encoding: different signatures have different
+      encodings. Every signature the signer can return fits in 5,504 bits, and the verifier always
+      rejects oversized encodings. Honest signing and verification share the same oracle; a returned
+      honest signature is rejected with probability zero.</p>
+      <p>Cost bounds hold on every execution path. Signing is bounded for every secret key and
+      message; verification for every public key, message and signature, including rejection.
+      A lower claim rules out every smaller verification budget that covers all these cases.</p>
     </div>
   </details>
+
   <details id="dag-model">
-    <summary><span class="lead">Exact DAG model.</span> Fixed dependencies; stored values; forward evaluation.</summary>
+    <summary><h2 id="graph">DAGs: how does revealing a cut work?</h2></summary>
     <div class="more prose">
-      <p>The finite graph, node lengths and deterministic functions are public and fixed. Sources are
-      independent uniform bit strings of arbitrary fixed lengths. A deterministic node uses only its
-      declared parents; a hash node hashes one parent's entire bit string. Concatenation or encoding
-      is a deterministic operation. Parents precede children, and sharing is unrestricted.</p>
-      <p>Whole-word schemes further restrict source lengths and deterministic operations, as described below.</p>
-      <p>Key generation evaluates every node once and stores all values as the secret key. Signing
-      reveals stored values. To reconstruct, walk backwards from the root along every declared
-      parent edge, stopping at disclosed nodes; then evaluate the required nodes forwards, once each.
-      No undisclosed source may remain on a required path, and the root itself cannot be disclosed.</p>
+      <p>A <strong>directed acyclic graph</strong> (DAG) describes a computation with no loops.
+      Its nodes are secret random sources, deterministic operations or hashes. Its structure,
+      node lengths and deterministic functions are public and fixed. Values may be shared by
+      several later nodes.</p>
+      <p>The sources are independent uniform bit strings of fixed lengths. Each deterministic
+      node uses only its declared parents; each hash node hashes one parent's entire value.
+      Concatenation and other encodings are deterministic operations. Parents precede children.</p>
+      <p>Key generation evaluates every node once and stores all values as the secret key.
+      The public key is the low 128 bits of the root hash. A signature reveals a <strong>cut</strong>:
+      stored node values that meet every source-to-root path, without revealing the root.</p>
+      <p>The verifier walks backwards from the root along every declared parent edge, stopping at
+      the disclosed values. It then evaluates the required nodes forwards, once each. No
+      undisclosed source may remain on a required path.</p>
+      {% include "_rules_cut_diagram.html" %}
     </div>
   </details>
+
   <details id="cut">
-    <summary><span class="lead">DAG signature format.</span> A message-and-nonce hash selects the cut.</summary>
+    <summary><h2>DAG signing: how is the cut chosen?</h2></summary>
     <div class="more prose">
-      <p>The scheme supplies <code>2<sup>115</sup></code> indexed cuts; cuts may repeat. Read the low
-      128 bits of <code>H(message ‖ nonce)</code> as an integer; it is valid when below
-      <code>2<sup>115</sup></code>. Signing tries up to <code>2<sup>21</sup></code> uniformly sampled
-      256-bit nonces without replacement and stops at the first valid index, otherwise it fails.</p>
-      <p>The signature contains the nonce followed by the cut's node values, in node order,
-      totaling at most 5,248 payload bits. Verification rejects an invalid index or a payload
-      of the wrong length. Otherwise it reconstructs the root and compares its low 128 bits
-      with the public key.</p>
-      <p>Verification costs one compression for the message-and-nonce query plus the costs of all
-      reconstructed hash nodes. The score is the maximum over every indexed cut, even a cut that
-      is unlikely to be selected.</p>
+      <p>The scheme supplies <code>2<sup>115</sup></code> indexed cuts; cuts may repeat. The message
+      and a random <strong>nonce</strong> select one: read the low 128 bits of
+      <code>H(message ‖ nonce)</code> as an integer. It is a valid index when below
+      <code>2<sup>115</sup></code>.</p>
+      <p>Signing tries up to <code>2<sup>21</sup></code> uniformly sampled 256-bit nonces without
+      replacement. It stops at the first valid index, otherwise it fails. The signature contains
+      that nonce followed by the cut's node values, in node order, with at most 5,248 payload bits.</p>
+      <p>Verification rejects an invalid index or a payload of the wrong length. Otherwise it
+      reconstructs the root and compares its low 128 bits with the public key.</p>
+      <p>The cost is one compression for the message-and-nonce query, plus the costs of all
+      reconstructed hash nodes. The score is the maximum over every indexed cut, even one
+      that is unlikely to be selected.</p>
     </div>
   </details>
+
   <details id="whole-word-model">
-    <summary><span class="lead">Whole-word operations.</span> Hash, split a digest, concatenate; keep every word intact.</summary>
-    <div class="more prose">
-      <p>Each source is an independent uniform 128-bit word. A hash node returns its full 256-bit
-      answer. A deterministic node either selects the fixed low or high 128-bit half of a hash
-      node, or concatenates earlier node values. Those values may contain several whole words.</p>
-      <p>Concatenation may reorder or repeat values, and may be empty. No other deterministic
-      operation is allowed: no smaller bit fragments, XOR, encoding or nonempty constant nodes.
-      Sharing between nodes remains unrestricted.</p>
-      <p>A signature discloses complete node values, which may group several words. The total
-      payload is at most 41 words. Hashing <code>n</code> words costs
-      <code>max(1, ⌈n / 4⌉)</code> compressions; there is no bound on the number of input words
-      apart from the existing cost budgets. An empty input still costs one compression.
-      Cuts, signing, the public key and the message-and-nonce
-      index follow the same DAG rules.</p>
+    <summary><h2 id="whole-words">Whole words: which operations are allowed?</h2></summary>
+    <div class="more prose" id="partial-disclosures">
+      <p>This class uses the same DAG rules, with values built from <strong>whole 128-bit words</strong>.
+      Each source is an independent uniform 128-bit word. A hash returns 256 bits, usable as two
+      128-bit halves.</p>
+      <p>A deterministic node either selects the fixed low or high half directly from a hash node,
+      or concatenates earlier node values. Those values may contain several words. Concatenation
+      may reorder or repeat values, and may be empty. No other deterministic operation is allowed:
+      no smaller bit fragments, XOR, encoding or nonempty constant nodes. Sharing remains unrestricted.</p>
+      {% include "_rules_words_diagram.html" %}
+      <p>A signature discloses complete node values, which may group several words. The 5,248-bit
+      payload fits at most <strong>41 words</strong>, plus the usual 256-bit nonce. Disclosed nodes
+      still form a cut.</p>
+      <p>Hash inputs may concatenate any number of words. Hashing <code>n</code> words costs
+      <code>max(1, ⌈n / 4⌉)</code> compressions: four words fit in one block, and an empty input
+      still costs one compression. The existing cost budgets apply; there is no fixed input arity.</p>
     </div>
   </details>
-</section>
 
-<section class="prose" id="generic-upper">
-  <h2>One upper track: generic algorithms</h2>
-  <p>Submit any oracle algorithm. Prove that honest signatures verify, signing succeeds with the
-  required probability, and security, size and resource bounds hold. The claimed verification cost
-  must cover every input and execution path,
-  including rejection. There is no DAG or disclosure restriction.</p>
-</section>
+  <details id="generic-upper">
+    <summary><h2>What must an upper-bound construction prove?</h2></summary>
+    <div class="more prose">
+      <p><strong>One upper track: generic algorithms.</strong> Submit any oracle algorithm, with
+      no required DAG or disclosure pattern.</p>
+      <p>Prove that honest signatures verify, signing succeeds with the required probability, and
+      strong security, size and resource bounds hold. The claimed verification cost must cover
+      every input and execution path, including rejection. The exact admissibility requirements
+      and signing-failure allowance must be pinned before this track opens.</p>
+      <p class="muted" id="legacy-certificates">Legacy DAG upper certificates remain available as
+      references, including <em>Historical partial disclosures</em>. They are not certificates for
+      the whole-word class or the generic upper track. Their submission roots are closed.</p>
+    </div>
+  </details>
 
-<section class="prose" id="play">
-  <h2 id="rules">How to submit</h2>
-  <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower.
-  <strong>Pending:</strong> generic upper, until its admissibility requirements and
-  signing-failure allowance are pinned.</p>
-  <ol>
-    <li>Fork <a href="{{ repo }}">the repository</a>. Change only
-    <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>
-    or <code>formal/Submissions/DisclosureLower/</code>.</li>
-    <li>Put your integer claim in <code>claim.txt</code> and export the required declarations from
-    <code>Solution.lean</code>. Follow the
-    <a href="{{ source }}AGENTS.md#what-a-submission-exports">exact submission requirements</a>.</li>
-    <li>Run <code>python3 verifier/verify.py lower --source .</code>
-    (or <code>generic-lower</code> or <code>disclosure-lower</code>), then open a pull request. A verified strict improvement
-    is merged and becomes the record.</li>
-  </ol>
-  <p id="limits">No <code>sorry</code> or extra axioms: only
-  <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code>.
-  Verification has {{ cfg.limits.wall_clock_seconds // 60 }} minutes and
-  {{ cfg.limits.memory_bytes // 1073741824 }} GiB. The
-  <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
-  <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
-  <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
-  <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a> and
-  <a href="{{ source }}challenges.json">verifier configuration</a> define the exact requirements.</p>
-  <p class="muted" id="legacy-certificates">Legacy DAG upper certificates remain available as
-  references, including <em>Historical partial disclosures</em>. They are not certificates for the
-  whole-word class. Their submission roots are closed.</p>
-</section>
-<section class="rules-list">
+  <details id="play">
+    <summary><h2 id="rules">How do I submit a proof?</h2></summary>
+    <div class="more prose">
+      <p><strong>Open:</strong> generic lower, DAG lower and whole-word lower.
+      <strong>Pending:</strong> generic upper, until its admissibility requirements and
+      signing-failure allowance are pinned.</p>
+      <ol>
+        <li>Fork <a href="{{ repo }}">the repository</a>. Change only
+        <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>
+        or <code>formal/Submissions/DisclosureLower/</code>.</li>
+        <li>Put your integer claim in <code>claim.txt</code> and export the required declarations from
+        <code>Solution.lean</code>. Follow the
+        <a href="{{ source }}AGENTS.md#what-a-submission-exports">exact submission requirements</a>.</li>
+        <li>Run <code>python3 verifier/verify.py lower --source .</code>
+        (or <code>generic-lower</code> or <code>disclosure-lower</code>), then open a pull request.
+        A verified strict improvement is merged and becomes the record.</li>
+      </ol>
+      <p>The pull request supplies your attribution and description. Optional <code>Assisted by:</code>
+      and <code>Co-authors:</code> lines credit collaborators. Updating the PR queues its new head
+      for verification; merging the verified improvement promotes it to a record.</p>
+    </div>
+  </details>
+
   <details id="submission-format">
-    <summary><span class="lead">Submission format.</span> Files, imports and the pinned toolchain.</summary>
+    <summary><h2>What does the verifier check?</h2></summary>
     <div class="more prose">
       <p>Use one flat root: identifier-named <code>.lean</code> files, <code>claim.txt</code>, and an
       optional <code>README.md</code>. <code>Solution.lean</code> is required. The claim is a
@@ -158,10 +177,20 @@
       Protected definitions cannot be changed by a submission. Use the pinned Lean toolchain and
       dependency manifest. Limits: {{ cfg.limits.max_files }} files,
       {{ cfg.limits.max_file_bytes // 1048576 }} MiB per file and
-      {{ cfg.limits.max_total_bytes // 1048576 }} MiB total. Verification runs without network access.</p>
-      <p><code>native_decide</code> introduces an unpermitted axiom. The exported declarations must
-      match the rendered challenge exactly; a numerical search alone is not a proof. See the
-      <a href="{{ source }}AGENTS.md#rules-for-the-submission-root">full submission specification</a>.</p>
+      {{ cfg.limits.max_total_bytes // 1048576 }} MiB total.</p>
+      <p id="limits">No <code>sorry</code> or extra axioms: only
+      <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code>.
+      <code>native_decide</code> introduces an unpermitted axiom. The exported declarations must
+      match the rendered challenge exactly. Verification runs without network access, with
+      {{ cfg.limits.wall_clock_seconds // 60 }} minutes and
+      {{ cfg.limits.memory_bytes // 1073741824 }} GiB.</p>
+      <p>The <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
+      <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
+      <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
+      <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a> and
+      <a href="{{ source }}challenges.json">verifier configuration</a> define the exact requirements.
+      See the <a href="{{ source }}AGENTS.md#rules-for-the-submission-root">full submission specification</a>
+      for the permitted imports and file rules.</p>
     </div>
   </details>
 </section>

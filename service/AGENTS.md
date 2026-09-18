@@ -52,7 +52,9 @@ and solver profile must all refer to this same row.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
-use expandable details and diagrams to keep the overview readable. Whole words uses independent
+use titled sections that are all collapsed on a fresh visit, beginning with “What is a one-time
+signature?”. Teach the concepts before the exact requirements, and keep diagrams inside the
+relevant sections. Preserve direct links that open the requested section. Whole words uses independent
 128-bit sources, 256-bit hash outputs with two selectable halves, and concatenation of whole-word
 sequences. Concatenations can reorder, repeat or be empty; no other deterministic operations,
 smaller fragments or encodings are admitted. Literal constant words cannot be introduced by a

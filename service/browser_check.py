@@ -205,12 +205,24 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return document.querySelectorAll(".lb-table").length === 1 && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden;')
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.querySelectorAll(".rules-diagram svg[role=img]").length === 2;')
+    assert js('return document.querySelectorAll("details[open]").length === 0;')
+    assert js('return document.querySelector("summary").textContent === "What is a one-time signature?";')
+    assert js('return [...document.querySelectorAll("main p, main table, main figure, main ol, main ul")].every(e => e.closest("details"));')
+    js('document.querySelector("#ots summary").focus(); return true;')
+    enter = {'actions': [{'type': 'key', 'id': 'keyboard', 'actions': [
+        {'type': 'keyDown', 'value': '\ue007'}, {'type': 'keyUp', 'value': '\ue007'}]}]}
+    command('WebDriver:PerformActions', enter)
+    assert js('return document.querySelector("#ots").open;')
+    command('WebDriver:PerformActions', enter)
+    assert js('return !document.querySelector("#ots").open;')
     print('Rules summary words:', js(r'return document.querySelector("main").innerText.trim().split(/\s+/).length;'))
     (output / 'rules-summary.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
     js('document.documentElement.dataset.theme = "light"; return true;')
-    for anchor in ('generic-admissibility', 'dag-model', 'cut', 'whole-word-model', 'submission-format'):
+    for anchor in ('generic-admissibility', 'generic-algorithms', 'dag-model', 'graph', 'cut',
+                   'whole-word-model', 'whole-words', 'partial-disclosures', 'submission-format',
+                   'limits', 'legacy-certificates', 'model', 'params', 'hash', 'security'):
         command('WebDriver:Navigate', {'url': base_url + '/rules#' + anchor})
-        assert js('return document.querySelector("#' + anchor + '").open;')
+        assert js('return document.querySelector("#' + anchor + '").closest("details").open;')
     js('document.querySelectorAll("details").forEach(d => d.open = true); return true;')
     assert js('return [...document.querySelectorAll(".rules-diagram svg")].every(s => document.getElementById(s.getAttribute("aria-labelledby").split(" ")[0]));')
     assert js('return document.querySelector("#cut").open;')
@@ -226,8 +238,11 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     (output / 'home-narrow.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.documentElement.scrollWidth <= innerWidth;')
-    assert js('return [...document.querySelectorAll(".rules-diagram-scroll")].every(d => d.scrollWidth > d.clientWidth);')
+    assert js('return document.querySelectorAll("details[open]").length === 0;')
     (output / 'rules-narrow.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
+    js('document.querySelectorAll("details").forEach(d => d.open = true); return true;')
+    assert js('return document.documentElement.scrollWidth <= innerWidth;')
+    assert js('return [...document.querySelectorAll(".rules-diagram-scroll")].every(d => d.scrollWidth > d.clientWidth);')
     print('Filtered deep link, rules expansion, diagrams, and mobile overflow checks passed')
     # Audit actual phone widths in a same-origin viewport; Firefox's desktop window stops at 500px.
     for width in (320, 390):
@@ -243,6 +258,10 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
             viewport = js("return {width: document.getElementById('test-frame').contentWindow.innerWidth, scroll: document.getElementById('test-frame').contentDocument.documentElement.scrollWidth};")
             assert viewport['width'] == width and viewport['scroll'] <= width, (path, viewport)
             print('Phone viewport:', path, viewport)
+            if path == '/rules':
+                assert js("return document.getElementById('test-frame').contentDocument.querySelectorAll('details[open]').length === 0;")
+                js("document.getElementById('test-frame').contentDocument.querySelectorAll('details').forEach(d => d.open = true); return true;")
+                assert js("return document.getElementById('test-frame').contentDocument.documentElement.scrollWidth <= " + str(width) + ";")
     command('WebDriver:SetWindowRect', {'width': 1360, 'height': 1700})
     command('WebDriver:Navigate', {'url': base_url + '/'})
     assert js("return matchMedia('(prefers-reduced-motion: reduce)').matches;")
