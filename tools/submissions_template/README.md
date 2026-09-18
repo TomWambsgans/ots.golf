@@ -44,3 +44,18 @@ Submission PRs change only their chosen root; the hosted verifier uses its own t
 
 The initial roots contain checked reference certificates. Subsequent merged improvements live in
 this repository; merging a submission does not modify the model or website in the core repository.
+
+## Local website
+
+The core submodule includes the website and the committed Satoshi/Vitalik demo fixtures.
+After cloning with `--recurse-submodules`, start the preview with:
+
+```sh
+cd .contract/service
+uv sync --frozen
+./run-local.sh
+```
+
+Open `http://localhost:8000`. Startup populates a fresh database and preserves existing demo
+rows on subsequent runs. Set `OTS_DEMO_DATA=0` to start without seeding the fictional entries.
+The fixtures live with the website; checked submission proofs live in this repository.

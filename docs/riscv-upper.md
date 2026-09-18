@@ -74,9 +74,14 @@ comp 36 121 = 41695891754464226932279920354981492 ≥ 2^115.
 141-compression specification through the algorithm upper interface. `Program.lean` contains
 29697 RV64IM instructions and 70272 bytes of table data, with kernel-checked image validity.
 `MachineCost.lean` proves a reusable bound from a preserved per-step cost invariant.
+`LengthGuard.execution_cost` proves that any successful execution with the image's 29697-step
+fuel costs at most **59393 virtual cycles**. The first instruction initializes the hash length;
+the invariant then bounds every instruction by two cycles. The theorem covers every input and
+oracle-answer path, with no testing assumption.
 
-This is **not yet a RISC-V certificate**: assembly refinement and the program's accepting-cycle
-theorem remain to be proved. No RISC-V numeric record is registered from the specification alone. Once checked,
+This is **not yet a RISC-V certificate**: assembly refinement, including termination on every
+input, remains to be proved. The cycle theorem alone does not establish that executions succeed.
+No RISC-V numeric record is registered from the specification alone. Once checked,
 its proof belongs in `ots.golf-submissions` and its Satoshi demo attribution belongs in the
 [versioned website fixtures](../service/demo/submissions.json).
 

@@ -11,7 +11,8 @@ structure CostInvariant (I : MachineState → Prop) (limit : ℕ) : Prop where
   hashCost : ∀ s, I s → blockCost paperParams (s.getReg .x11).toNat ≤ limit
   hashStep : ∀ s, I s → ∀ answer, I (writeHash s answer)
   randomStep : ∀ s, I s → ∀ word, I ((s.setReg .x10 word).setPC (s.pc + 4))
-  ordinaryStep : ∀ s, I s → ∀ next, step s = some next → I next
+  ordinaryStep : ∀ s, I s → s.code s.pc ≠ some .ECALL →
+    ∀ next, step s = some next → I next
 
 theorem execute_regular (fuel : ℕ) (s : MachineState) (i : Instr)
     (fetch : s.code s.pc = some i) (admitted : admittedInstruction i = true)
@@ -88,7 +89,8 @@ theorem execute_cost_of_invariant {I : MachineState → Prop} {limit : ℕ}
           | none => simp [next] at accepted
           | some state =>
             rw [next] at accepted
-            exact advance 1 state positive (invariant.ordinaryStep s hs state next) accepted
+            exact advance 1 state positive
+              (invariant.ordinaryStep s hs (by simpa [fetch] using system) state next) accepted
       · simp [execute, fetch, admitted] at accepted
 
 end OptimalOTS.Riscv
