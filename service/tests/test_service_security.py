@@ -50,7 +50,7 @@ class ServiceSecurityTests(unittest.TestCase):
         headers = {'x-github-event': 'pull_request', 'x-hub-signature-256': 'sha256=' + digest}
         if not signature:
             headers['x-hub-signature-256'] = 'sha256=' + '0' * 64
-        with patch.object(settings, 'github_webhook_secret', 'test-secret'), patch.object(settings, 'contract_repo', repo):
+        with patch.object(settings, 'github_webhook_secret', 'test-secret'), patch.object(settings, 'submissions_repo', repo):
             return self.client.post('/webhooks/github', content=body, headers=headers)
 
     def test_webhook_rejects_bad_signatures_before_any_github_call(self):
@@ -86,6 +86,19 @@ class ServiceSecurityTests(unittest.TestCase):
             response = self.send_event(self.event())
             self.assertEqual(response.status_code, 200)
             handle.assert_called_once_with('owner/repo', 7, 'a' * 40)
+
+    def test_core_repository_webhooks_do_not_queue_or_promote_proofs(self):
+        with patch.object(settings, 'contract_repo', 'owner/core'), \
+             patch('app.main.handle_pull_request') as queue, patch('app.main.handle_merged_pull_request') as merge:
+            for action in ('opened', 'closed'):
+                event = self.event()
+                event['action'] = action
+                event['repository']['full_name'] = 'owner/core'
+                response = self.send_event(event)
+                self.assertTrue(response.json()['ignored'])
+                self.assertEqual(response.json()['reason'], 'not the submissions repository')
+            queue.assert_not_called()
+            merge.assert_not_called()
 
     def test_merge_events_use_separate_authenticated_handler(self):
         event = self.event()
@@ -157,7 +170,8 @@ class ServiceSecurityTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 409)
 
     def test_production_requires_distinct_secret_free_worker_configuration(self):
-        kwargs = {'environment': 'production', 'base_url': 'https://ots.example', 'contract_repo': 'owner/repo',
+        kwargs = {'environment': 'production', 'base_url': 'https://ots.example', 'contract_repo': 'owner/core',
+                  'submissions_repo': 'owner/repo',
                   'data_dir': Path(self.temp.name), 'github_token': '', 'github_webhook_secret': ''}
         with self.assertRaises(ValueError):
             Settings(**kwargs, role='web')
@@ -165,7 +179,9 @@ class ServiceSecurityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Settings(**(kwargs | {'github_token': 'token'}), role='worker')
         Settings(**(kwargs | {'github_token': 'token', 'github_webhook_secret': 's' * 32}), role='web')
-        for override in ({'base_url': 'http://ots.example'}, {'queue_cap': 0}, {'contract_repo': '../repo'}):
+        for override in ({'base_url': 'http://ots.example'}, {'queue_cap': 0}, {'contract_repo': '../repo'},
+                         {'submissions_repo': '../repo'}, {'submissions_repo': ''}, {'contract_repo': ''},
+                         {'submissions_repo': 'OWNER/CORE'}):
             with self.assertRaises(ValueError):
                 Settings(**(kwargs | override), role='worker')
 

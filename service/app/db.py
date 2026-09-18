@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import fcntl
+import re
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -79,6 +80,15 @@ class Submission(Base):
     def commit_url(self) -> str | None:
         if self.source_repo.startswith("https://github.com/"):
             return f"{self.source_repo.removesuffix('.git')}/commit/{self.commit}"
+        return None
+
+    @property
+    def pr_repository(self) -> str | None:
+        """The PR's base repository, retained in its URL even after configuration changes."""
+        match = re.fullmatch(r"https://github\.com/([A-Za-z0-9][A-Za-z0-9-]{0,38}/"
+                             r"[A-Za-z0-9_.-]{1,100})/pull/([1-9][0-9]*)", self.pr_url or "")
+        if match and int(match[2]) == self.pr_number:
+            return match[1]
         return None
 
 

@@ -225,6 +225,29 @@ on desktop and at 320/390 pixels, with light/dark themes, controls, filters, too
 horizontal scrolling. Screenshots and logs: `/private/tmp/ots-ui-concise/` and
 `/private/tmp/ots-ui-concise.log`. Card measurements: `/private/tmp/ots-cards-{before,after}.json`.
 
+## Separate core and proof repositories (2026-09-18)
+
+The core is `leanEthereum/ots.golf-dev`; proof PRs, result reporting and record promotion use
+`leanEthereum/ots.golf-submissions`. `OTS_REPO_ROOT` still selects the trusted core checkout.
+`OTS_SUBMISSIONS_REPO` is a separate, explicit admission setting. Rules, source links, setup
+instructions and PR templates distinguish the repositories. The protected contract is unchanged.
+
+Each PR's base repository is retained in its stored URL. Tests cover core-repository webhook
+rejection, a forked submission checked by the core verifier, identical PR numbers and heads in
+different repositories, and old outbox jobs remaining separate without blocking new reports.
+The workspace preparation tool creates only the four public roots and a pinned core submodule,
+refuses dirty sources or existing destinations, and performs no network or publishing operations.
+
+Local validation: `tools/check_repo.py` passes 68 service tests, 60 verifier tests and 7 tooling
+tests, plus JavaScript and shell syntax checks. The Firefox audit passes desktop and 320/390-pixel
+layouts, rules, filters, keyboard controls and demo presentation. Both localhost processes were
+restarted with the new settings. All 21 demo rows retain their IDs, dates and scores.
+Evidence: `/private/tmp/ots-repo-split-checks.log`, `/private/tmp/ots-repo-split-browser.log`
+and `/private/tmp/ots-repo-split-browser/`.
+
+These checks use mocked GitHub APIs; webhook installation, token permissions and real GitHub
+acceptance remain launch tasks. This change does not deploy or publish either repository.
+
 ## Gates before public launch
 
 Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any

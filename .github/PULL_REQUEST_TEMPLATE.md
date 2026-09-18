@@ -1,9 +1,10 @@
-<!-- A submission changes exactly one submission root under formal/Submissions/:
-     GenericLower (arbitrary algorithms), Lower (DAG), or DisclosureLower (whole words),
-     and nothing else. The verifier fetches this pull request's head commit, keeps only that root, and
-     answers below as a commit status and a comment. Keep the two lines below; the rest is your description. -->
+<!-- This repository develops the model, verifier and website.
+     Submit competition proofs to https://github.com/leanEthereum/ots.golf-submissions. -->
 
-Assisted by:
-Co-authors:
+## Change
 
-<!-- What was improved, and how. Markdown is fine. Generic upper submissions are not open yet. -->
+<!-- Describe the problem and resulting behavior. -->
+
+## Validation
+
+<!-- List the relevant checks and results. -->

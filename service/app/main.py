@@ -17,7 +17,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -33,7 +33,7 @@ async def lifespan(_app):
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
     task = None
-    if settings.github_token and settings.contract_repo:
+    if settings.github_token and settings.submissions_repo:
         async def report_loop():
             from .worker import retry_reports
             while True:
@@ -216,10 +216,10 @@ async def webhook(request: Request):
         raise HTTPException(400, "malformed event")
     if action not in ("opened", "synchronize", "reopened", "closed"):
         return {"ignored": True}
-    if not settings.contract_repo:
+    if not settings.submissions_repo:
         raise HTTPException(503, "GitHub submission admission is not configured")
-    if owner_repo.lower() != settings.contract_repo.lower():
-        return {"ignored": True, "reason": "not the contract repository"}
+    if owner_repo.lower() != settings.submissions_repo.lower():
+        return {"ignored": True, "reason": "not the submissions repository"}
     if action == "closed":
         return await run_in_threadpool(handle_merged_pull_request, owner_repo, number, head_sha)
     return await run_in_threadpool(handle_pull_request, owner_repo, number, head_sha)   # GitHub calls block
@@ -229,6 +229,8 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
     """The event only says where to look. Author, head and changed files are read from GitHub's API,
     and the head must still be the event's commit before and after the files are listed, so the
     commit that gets the verdict is the commit whose files were checked."""
+    if not settings.submissions_repo or owner_repo.lower() != settings.submissions_repo.lower():
+        return {"queued": False, "reason": "not the submissions repository"}
     try:
         pr = github.get_pr(owner_repo, number)
         slug, outside = github.pr_track(owner_repo, number, expected_files=pr.get("changed_files"))
@@ -254,7 +256,7 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
         try:
             sub = queue_submission(session, submitter, slug, head_repo["clone_url"], head_sha,
                                    fields["description"], fields["co_authors"], fields["assisted_by"],
-                                   number, pr["html_url"])
+                                   number, f"https://github.com/{owner_repo}/pull/{number}")
         except HTTPException as exc:
             github.post_comment(owner_repo, number, f"**ots.golf verifier:** not queued: {exc.detail}")
             return {"queued": False, "reason": exc.detail}
@@ -264,6 +266,8 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
 
 def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
     """A verified proof becomes a record only after GitHub confirms this exact head was merged."""
+    if not settings.submissions_repo or owner_repo.lower() != settings.submissions_repo.lower():
+        return {"promoted": False, "reason": "not the submissions repository"}
     try:
         pr = github.get_pr(owner_repo, number)
     except httpx.HTTPError as exc:
@@ -273,7 +277,9 @@ def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> d
     head_repo = pr["head"].get("repo")
     from .worker import promote
     with local_lock("results"), SessionLocal() as session:
-        query = select(Submission).where(Submission.pr_number == number, Submission.commit == head_sha)
+        pr_url = f"https://github.com/{owner_repo}/pull/{number}"
+        query = select(Submission).where(Submission.pr_number == number, Submission.commit == head_sha,
+                                         func.lower(Submission.pr_url) == pr_url.lower())
         if head_repo is not None:
             query = query.where(Submission.source_repo == head_repo["clone_url"])
         submissions = list(session.scalars(query))
@@ -358,8 +364,10 @@ def llms():
     return text + f"""
 ## Where the state is
 
-The contract repository is the source of truth: the submission root of each track holds the
-current record, and its claim.txt holds the number. Open pull requests are the submissions in
-flight; the verifier's verdict is on each one as a commit status and a comment linking to
+The model, verifier and reference certificates are maintained in {settings.contract_url}.
+Proof pull requests and merged record submissions belong in {settings.submissions_url}.
+The verifier checks only the submitted root against its trusted core checkout. A verified
+improvement becomes a record after its exact head is confirmed merged in the submissions repository.
+The verdict is posted there as a commit status and a comment linking to
 {base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
 """

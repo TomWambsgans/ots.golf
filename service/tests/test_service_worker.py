@@ -30,7 +30,8 @@ class ServiceWorkerTests(unittest.TestCase):
         self.sessions = sessionmaker(self.engine, expire_on_commit=False)
         self.patches = [patch.object(settings, 'data_dir', self.data),
                         patch.object(settings, 'work_dir', self.data / 'work'),
-                        patch.object(settings, 'contract_repo', 'owner/repo'),
+                        patch.object(settings, 'contract_repo', 'owner/core'),
+                        patch.object(settings, 'submissions_repo', 'owner/repo'),
                         patch.object(settings, 'github_token', ''),
                         patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions)]
         for p in self.patches:
@@ -51,7 +52,8 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             sub = Submission(user_id=self.user_id, track='lower', claim=claim, status=status,
                              commit='a' * 40, source_repo='https://github.com/author/repo.git',
-                             pr_number=pr, baseline=baseline, is_record=record,
+                             pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}' if pr else None,
+                             baseline=baseline, is_record=record,
                              record_at=utcnow() if record else None)
             session.add(sub)
             session.commit()
@@ -82,6 +84,49 @@ class ServiceWorkerTests(unittest.TestCase):
         self.merge(sub)
         with self.sessions() as session:
             self.assertEqual(records.current_record(session, 'lower').claim, 19)
+
+    def test_same_pr_number_and_head_in_core_cannot_receive_submission_merge(self):
+        old = self.submission()
+        with self.sessions() as session:
+            session.get(Submission, old.id).pr_url = 'https://github.com/owner/core/pull/7'
+            session.commit()
+        new = self.submission()
+        self.assertTrue(self.merge(new)['promoted'])
+        with self.sessions() as session:
+            self.assertFalse(session.get(Submission, old.id).is_record)
+            self.assertNotIn('merge', session.get(Submission, old.id).detail_dict)
+            self.assertIsNone(session.get(GithubReport, old.id))
+            self.assertEqual(records.current_record(session, 'lower').id, new.id)
+
+    def test_core_handlers_never_contact_github_for_proof_intake(self):
+        with patch('app.main.github.get_pr') as get_pr:
+            self.assertFalse(main.handle_pull_request('owner/core', 7, 'a' * 40)['queued'])
+            self.assertFalse(main.handle_merged_pull_request('owner/core', 7, 'a' * 40)['promoted'])
+            get_pr.assert_not_called()
+
+    def test_submission_pr_queues_its_fork_head_against_the_core_verifier(self):
+        pr = {'state': 'open', 'changed_files': 1, 'body': 'A proof.',
+              'user': {'login': 'alice', 'id': 42},
+              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('generic-lower', [])):
+            queued = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+        self.assertTrue(queued['queued'])
+        with self.sessions() as session:
+            sub = session.get(Submission, queued['id'])
+            self.assertEqual(sub.pr_repository, 'owner/repo')
+            self.assertEqual(sub.source_repo, 'https://github.com/alice/entries.git')
+            self.assertEqual(sub.commit, 'b' * 40)
+            result = {'status': 'verified', 'track': sub.track, 'commit': sub.commit, 'claim': 1}
+            proc = Mock(returncode=0)
+            proc.communicate.return_value = (json.dumps(result), '')
+            with patch('app.worker.subprocess.Popen', return_value=proc) as launch:
+                self.assertEqual(worker.run_pipeline(sub)[0]['status'], 'verified')
+                command = launch.call_args.args[0]
+                self.assertEqual(command[1], str(settings.repo_root / 'verifier/verify.py'))
+                self.assertEqual(command[command.index('--source') + 1], sub.source_repo)
+                self.assertEqual(command[command.index('--commit') + 1], sub.commit)
+                self.assertEqual(launch.call_args.kwargs['cwd'], settings.repo_root)
 
     def test_wrong_head_or_unmerged_close_never_promotes(self):
         sub = self.submission()
@@ -178,7 +223,47 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(worker.report(sub), 123)
             status.assert_called_once()
             update.assert_called_once()
+            self.assertEqual(status.call_args.args[0], 'owner/repo')
+            self.assertEqual(update.call_args.args[:2], ('owner/repo', 123))
             post.assert_not_called()
+
+    def test_reports_never_retarget_an_old_core_pr(self):
+        sub = self.submission()
+        sub.pr_url = 'https://github.com/owner/core/pull/7'
+        with patch('app.worker.github.post_status') as status, patch('app.worker.github.post_comment') as post:
+            with self.assertRaises(ValueError):
+                worker.report(sub)
+            status.assert_not_called()
+            post.assert_not_called()
+
+    def test_old_repository_outbox_does_not_block_current_reports(self):
+        for n in range(25):
+            sub = self.submission(pr=n + 100)
+            with self.sessions() as session:
+                old = session.get(Submission, sub.id)
+                old.pr_url = f'https://github.com/owner/core/pull/{old.pr_number}'
+                schedule_report(session, old)
+                session.commit()
+        current = self.submission()
+        with self.sessions() as session:
+            schedule_report(session, session.get(Submission, current.id))
+            session.commit()
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.report', return_value=456) as report:
+            worker.deliver_report(sub.id)
+            report.assert_not_called()
+            worker.retry_reports()
+            report.assert_called_once()
+            self.assertEqual(report.call_args.args[0].id, current.id)
+        with self.sessions() as session:
+            self.assertIsNotNone(session.get(GithubReport, sub.id))
+            self.assertIsNone(session.get(GithubReport, current.id))
+
+    def test_pr_identity_requires_a_matching_github_pull_request_url(self):
+        sub = self.submission()
+        for url in ('https://example.com/owner/repo/pull/7', 'https://github.com/owner/repo/pull/8',
+                    'https://github.com/owner/repo/pull/7/extra', None):
+            sub.pr_url = url
+            self.assertIsNone(sub.pr_repository)
 
     def test_deleted_result_comment_is_recreated(self):
         sub = self.submission()

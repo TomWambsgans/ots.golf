@@ -18,7 +18,9 @@ services stopped.
 1. As root, run:
 
    ```sh
-   OTS_REPO_URL=https://github.com/<org>/<repo> OTS_DOMAIN=ots.golf bash service/deploy/setup-server.sh
+   OTS_REPO_URL=https://github.com/leanEthereum/ots.golf-dev \
+     OTS_SUBMISSIONS_REPO=leanEthereum/ots.golf-submissions \
+     OTS_DOMAIN=ots.golf bash service/deploy/setup-server.sh
    ```
 
    The script installs the tools, warms the trusted Lean project, and installs Caddy and the two
@@ -26,8 +28,9 @@ services stopped.
    this bootstrap is not a hermetic operating-system image. The repository pins the proof tool commits
    and the Python dependency lockfile.
 
-2. Add a fine-grained repository token to `/etc/ots/secrets.env`: commit statuses and pull requests,
-   read and write, without contents write. The file already contains a generated webhook secret.
+2. Add a fine-grained token for `leanEthereum/ots.golf-submissions` to `/etc/ots/secrets.env`:
+   contents read, commit statuses and pull requests read/write, without contents write.
+   No core-repository write access is needed. The file already contains a generated webhook secret.
    Keep it `root:root 0600`. Do not put credentials in `/etc/ots/public.env`, the checkout, Git
    configuration, the `ots` account's home, or the verifier environment.
 
@@ -59,8 +62,11 @@ services stopped.
    ```
 
    The units set `OTS_ENV=production` and their respective `OTS_ROLE=web|worker`. Production web
-   startup requires an HTTPS origin, repository, token and webhook secret of at least 32 characters.
-   The data/work paths, SQLite URL, domain and repository are in `/etc/ots/public.env`.
+   startup requires an HTTPS origin, two distinct repositories, token and webhook secret of at least 32 characters.
+   The data/work paths, SQLite URL, domain, `OTS_CONTRACT_REPO=leanEthereum/ots.golf-dev` and
+   `OTS_SUBMISSIONS_REPO=leanEthereum/ots.golf-submissions` are in `/etc/ots/public.env`.
+   Existing environment files are preserved: update both repository settings explicitly when migrating.
+   The trusted checkout and its Git remote must refer to the core repository.
 
 ## Linux acceptance checks
 
@@ -125,10 +131,11 @@ Run these with the public webhook disconnected and the production configuration 
    Verify that result statuses/comments eventually arrive without rerunning the proof after a
    reporting outage. These GitHub mutations are staging tests, never part of local repository tests.
 
-5. Connect GitHub's **Pull requests** webhook to `https://<domain>/webhooks/github`, with JSON content
+5. On `leanEthereum/ots.golf-submissions`, connect GitHub's **Pull requests** webhook to
+   `https://<domain>/webhooks/github`, with JSON content
    and the configured secret. Keep `closed` events enabled: merged heads are promoted from these
    events after GitHub's API confirms the merge. The service ignores other repositories and refuses
-   admission when the repository setting is missing.
+   admission when `OTS_SUBMISSIONS_REPO` is missing. Core-repository PRs are not proof submissions.
 
 ## Operations, upgrades and recovery
 

@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 # One-shot setup of the verifier + site on a fresh Ubuntu 24.04 host (run as root once).
 #
-#   OTS_REPO_URL=https://github.com/<org>/<repo> OTS_DOMAIN=ots.golf bash deploy/setup-server.sh
+#   OTS_DOMAIN=ots.golf bash deploy/setup-server.sh
 #
 # What it does: creates the unprivileged user `ots`, installs elan, Go (for landrun), uv and Caddy,
 # clones the contract repository, builds the verification tools and the warm Lean build, installs
 # the two systemd units (web, worker) and the Caddy site. Secrets go in /etc/ots/secrets.env.
 set -euo pipefail
 
-: "${OTS_REPO_URL:?set OTS_REPO_URL}"
+: "${OTS_REPO_URL:=https://github.com/leanEthereum/ots.golf-dev}"
+: "${OTS_SUBMISSIONS_REPO:=leanEthereum/ots.golf-submissions}"
 : "${OTS_DOMAIN:=localhost}"
 OTS_HOME=/srv/ots
 [[ "${EUID}" == 0 ]] || { echo 'run this installer as root' >&2; exit 1; }
 [[ "${OTS_REPO_URL}" =~ ^https://github\.com/[A-Za-z0-9-]+/[A-Za-z0-9_.-]+/?$ ]] || {
   echo 'OTS_REPO_URL must be a GitHub HTTPS repository URL' >&2; exit 1;
+}
+[[ "${OTS_SUBMISSIONS_REPO}" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_.-]{1,100}$ ]] || {
+  echo 'OTS_SUBMISSIONS_REPO must be owner/repository' >&2; exit 1;
+}
+core_repo="${OTS_REPO_URL#https://github.com/}"
+core_repo="${core_repo%/}"
+core_repo="${core_repo%.git}"
+[[ "${core_repo,,}" != "${OTS_SUBMISSIONS_REPO,,}" ]] || {
+  echo 'the core and submissions repositories must be different' >&2; exit 1;
 }
 [[ "${OTS_DOMAIN}" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || {
   echo 'OTS_DOMAIN must be a hostname' >&2; exit 1;
@@ -47,7 +57,8 @@ loginctl enable-linger ots   # systemd --user for the sandbox scope of the worke
 mkdir -p /etc/ots
 [[ -f /etc/ots/public.env ]] || cat > /etc/ots/public.env <<ENV
 OTS_BASE_URL=https://${OTS_DOMAIN}
-OTS_CONTRACT_REPO=$(echo "${OTS_REPO_URL}" | sed -E 's#^https://github.com/##; s#/$##; s#\.git$##')
+OTS_CONTRACT_REPO=${core_repo}
+OTS_SUBMISSIONS_REPO=${OTS_SUBMISSIONS_REPO}
 OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
 OTS_WORK_DIR=/srv/ots-work

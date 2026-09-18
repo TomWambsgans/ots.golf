@@ -34,3 +34,10 @@ Node.js is used only for static JavaScript syntax checks (`--node /path/to/node`
 Lean/tool caches and do not install packages, refresh demos, push, or deploy. Browser checks use
 `service/browser_check.py` against the seeded local preview. Linux sandbox acceptance must run
 on the actual deployment host with `verifier/check_linux_sandbox.py`; a macOS pass cannot replace it.
+
+## Submissions repository
+
+`python3 tools/prepare_submissions_repo.py .build/ots.golf-submissions` prepares a separate local
+repository containing the four public submission roots and a pinned core submodule. It requires
+a clean committed core checkout and a new destination, and never pushes. See
+[repository setup](../docs/repositories.md) for the workflow and service settings.

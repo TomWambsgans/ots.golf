@@ -9,6 +9,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app import contract
+from app.config import settings
 from app.main import app
 
 
@@ -73,6 +74,23 @@ class RulesTests(unittest.TestCase):
         self.assertIn('fixed low or high half directly from a hash output', section)
         self.assertIn('A hash accepts any number of words', section)
         self.assertIn('max(1, ⌈n / 4⌉)', section)
+
+    def test_rules_separate_proof_prs_from_core_sources(self):
+        with patch.object(settings, 'contract_repo', 'org/core'), \
+             patch.object(settings, 'submissions_repo', 'org/entries'):
+            html = self.rules_body()
+        self.assertIn('href="https://github.com/org/entries">the submissions repository</a>', html)
+        self.assertIn('href="https://github.com/org/core/blob/main/formal/OptimalOTS/Statement.lean"', html)
+        self.assertNotIn('https://github.com/org/entries/blob/', html)
+        self.assertIn('python3 .contract/verifier/verify.py lower --source .', html)
+
+    def test_localhost_links_use_the_new_repositories_without_opening_admission(self):
+        with patch.object(settings, 'submissions_repo', ''):
+            html = self.rules_body()
+            self.assertEqual(settings.submissions_repo, '')
+        self.assertIn('https://github.com/leanEthereum/ots.golf-submissions', html)
+        self.assertIn('https://github.com/leanEthereum/ots.golf-dev/blob/main/', html)
+        self.assertNotIn('TomWambsgans', html)
 
 
 if __name__ == '__main__':

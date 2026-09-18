@@ -7,6 +7,11 @@ oracle algorithms. All four tracks are open. A submission is a Lean proof about 
 The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
 contract's random-oracle experiment.
 
+This is [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev), the core repository for the
+model, verifier, website and reference certificates. Submit competition proof PRs to
+[ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions).
+That repository contains the four submission roots and a pinned core submodule for local checking.
+
 | Lower class | Admitted schemes | Checked lower bound |
 |---|---|---:|
 | Generality 3/3 | Arbitrary oracle programs with correctness, availability and resource guarantees | 1 |
@@ -60,6 +65,11 @@ For the website, run `uv sync --frozen` and `./run-local.sh` in `service/`.
 The local preview includes clearly marked fictional Satoshi/Vitalik submissions by default.
 See [service development](service/README.md)
 and the [production review](docs/production-readiness.md) for checks and deployment gates.
+
+To check a separate submissions checkout using this core's verifier, pass its path as `--source`,
+for example `python3 verifier/verify.py generic-lower --source ../ots.golf-submissions`.
+The verifier takes only that track's root; the contract and tooling come from this checkout.
+See [repository setup](docs/repositories.md) for preparing the submissions workspace.
 
 ## Find the contract and proofs
 

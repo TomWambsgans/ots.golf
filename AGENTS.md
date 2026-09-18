@@ -190,9 +190,14 @@ development only: its proof result does not certify production isolation or reso
 
 ## Submitting
 
-There is one way in: a pull request against the contract repository that changes only your admitted track's
-submission root. The verifier fetches the head commit, keeps only that root, verifies it on the
-trusted tree, and answers on the pull request with a commit status and a comment linking to the
+The core repository is `leanEthereum/ots.golf-dev`: model, verifier, website and reference certificates.
+Competition PRs go to `leanEthereum/ots.golf-submissions`, which contains the four admitted roots
+and a `.contract` submodule pinned to the core for local checking. From that repository, run
+`python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.
+
+There is one way in: a pull request against the submissions repository that changes only your admitted
+track's submission root. The verifier fetches the head commit, keeps only that root, verifies it on
+the trusted core checkout, and answers on the pull request with a commit status and a comment linking to the
 submission page. Pushing to the pull request re-queues its new head.
 
 Attribution comes from the pull request: its author, plus two optional lines in the body (the
@@ -204,8 +209,10 @@ Co-authors: alice, bob
 ```
 
 The rest of the body is the public description. A verified claim that strictly beats the record is
-merged, and the merge is the promotion: the submission root in the repository is always the current
-record. Other verified submissions appear on their solver's page, and their pull requests are closed.
+merged in the submissions repository, and the merge is the promotion. Its roots hold the merged
+record submissions; the core retains its reference certificates. Other verified submissions appear
+on their solver's page, and their pull requests are closed. Submission merges never update the
+trusted core checkout. See `docs/repositories.md` for workspace preparation and configuration.
 
 ## Maintaining the website
 

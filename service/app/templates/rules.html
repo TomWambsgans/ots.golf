@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Rules · ots.golf{% endblock %}
 {% block content %}
-{% set repo = 'https://github.com/' ~ (settings.contract_repo or 'TomWambsgans/ots.golf') %}
-{% set source = repo ~ '/blob/main/' %}
+{% set source = settings.contract_url ~ '/blob/main/' %}
 <h1>Rules</h1>
 <section class="rules-list" aria-label="Rules by topic">
   <details id="ots">
@@ -127,15 +126,16 @@
       one of the three classes.{% else %}Submit a lower-bound proof for one of the three classes.
       <strong>Pending:</strong> the upper-bound track, until its challenge is pinned.{% endif %}</p>
       <ol>
-        <li>Fork <a href="{{ repo }}">the repository</a>. Change only
+        <li>Fork <a href="{{ settings.submissions_url }}">the submissions repository</a> and follow its
+        setup instructions. Change only
         <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
         <code>formal/Submissions/DisclosureLower/</code>{% if generic_upper_track %} or
         <code>formal/Submissions/GenericUpper/</code>{% endif %}.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
         from <code>Solution.lean</code>.</li>
-        <li>Run <code>python3 verifier/verify.py lower --source .</code>
-        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %} or <code>generic-upper</code>{% endif %}), then open a pull request.
+        <li>Run <code>python3 .contract/verifier/verify.py lower --source .</code>
+        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %} or <code>generic-upper</code>{% endif %}), then open a pull request to the submissions repository.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified strict improvement becomes the record when merged.</li>
@@ -158,7 +158,8 @@
       {{ cfg.limits.max_total_bytes // 1048576 }} MiB total,
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
       {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
-      <p>Exact definitions: <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
+      <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
+      <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
       <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
       <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
       <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a>,

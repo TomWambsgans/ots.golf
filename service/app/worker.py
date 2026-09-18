@@ -15,7 +15,7 @@ import time
 import traceback
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from . import contract, github
 from .config import settings
@@ -95,7 +95,9 @@ def promote(session, sub: Submission) -> None:
     merge = sub.detail_dict.get("merge") or {}
     if not sub.baseline and not (
         merge.get("head") == sub.commit and merge.get("number") == sub.pr_number
-        and settings.contract_repo and merge.get("repository", "").lower() == settings.contract_repo.lower()
+        and settings.submissions_repo
+        and (sub.pr_repository or "").lower() == settings.submissions_repo.lower()
+        and merge.get("repository", "").lower() == settings.submissions_repo.lower()
     ):
         return
     t = contract.track(sub.track)
@@ -112,6 +114,9 @@ def promote(session, sub: Submission) -> None:
 
 def report(sub: Submission) -> int | None:
     """Publish a verdict; retain the comment ID so later updates edit the same comment."""
+    repo = sub.pr_repository
+    if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
+        raise ValueError("the submission does not belong to the configured submissions repository")
     url = f"{settings.base_url}/submissions/{sub.id}"
     if sub.status in {"pending", "verifying"}:
         state, what = "pending", "queued for verification" if sub.status == "pending" else "verification in progress"
@@ -125,26 +130,28 @@ def report(sub: Submission) -> int | None:
         state = "error" if sub.status == "failed" else "failure"
         quoted = failure[:600].replace("```", "'''")
         body = f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
-    github.post_status(settings.contract_repo, sub.commit, state, what, url)
+    github.post_status(repo, sub.commit, state, what, url)
     comment_id = sub.detail_dict.get("github_comment_id")
     if type(comment_id) is int:
         try:
-            github.update_comment(settings.contract_repo, comment_id, body)
+            github.update_comment(repo, comment_id, body)
             return comment_id
         except github.httpx.HTTPStatusError as exc:
             if exc.response.status_code != 404:
                 raise
             # A maintainer may have deleted the earlier comment. Recreate it on the same PR.
-    return github.post_comment(settings.contract_repo, sub.pr_number, body)
+    return github.post_comment(repo, sub.pr_number, body)
 
 
 def deliver_report(sub_id: str) -> None:
-    if not settings.contract_repo or not settings.github_token:
+    if not settings.submissions_repo or not settings.github_token:
         return
     with SessionLocal() as session:
         pending = session.get(GithubReport, sub_id)
         sub = session.get(Submission, sub_id)
         if pending is None or sub is None or pending.next_attempt > utcnow():
+            return
+        if (sub.pr_repository or "").lower() != settings.submissions_repo.lower():
             return
         version = pending.version
     error, comment_id = None, None
@@ -172,14 +179,17 @@ def deliver_report(sub_id: str) -> None:
 
 
 def retry_reports() -> None:
-    if not settings.contract_repo or not settings.github_token:
+    if not settings.submissions_repo or not settings.github_token:
         return
     # Web processes own GitHub credentials; only one of them delivers the shared outbox at a time.
     try:
         with local_lock("reports", blocking=False):
             with SessionLocal() as session:
-                ids = list(session.scalars(select(GithubReport.submission_id).where(
-                    GithubReport.next_attempt <= utcnow()).order_by(GithubReport.next_attempt).limit(20)))
+                ids = list(session.scalars(select(GithubReport.submission_id).join(Submission).where(
+                    GithubReport.next_attempt <= utcnow(),
+                    func.lower(Submission.pr_url).startswith(
+                        f"https://github.com/{settings.submissions_repo.lower()}/pull/", autoescape=True)
+                ).order_by(GithubReport.next_attempt).limit(20)))
             for sub_id in ids:
                 deliver_report(sub_id)
     except BlockingIOError:

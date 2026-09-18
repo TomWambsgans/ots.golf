@@ -1,7 +1,8 @@
 # Website and hosted verifier
 
 The FastAPI website accepts pull requests and reports their results. A separate worker checks
-proofs against the trusted checkout. The repository defines the contract; the website displays it.
+proofs against the trusted `leanEthereum/ots.golf-dev` checkout. Proof PRs and merged records live
+in `leanEthereum/ots.golf-submissions`; the core defines the contract and supplies the website.
 
 ## Local development
 
@@ -55,10 +56,12 @@ rules and documentation together, then refresh and inspect localhost.
 
 ## Admission and records
 
-A public pull request must change exactly one admitted submission root. The authenticated webhook
+A public pull request to the submissions repository must change exactly one admitted submission root. The authenticated webhook
 checks the repository, files and current head; the worker verifies that exact commit on the trusted
 tree. A verified improvement becomes a record only after GitHub's API confirms that the verified
 head was merged. Merges received before verification are remembered. The service never merges PRs.
+The trusted core checkout remains independent of submission merges. Historical result reports
+retain the PR's repository and are never redirected to the same PR number in another repository.
 
 The web process sends commit statuses and result comments from a durable outbox. A reporting outage
 retries delivery without repeating the proof. Attribution comes from the PR author, optional
@@ -81,16 +84,18 @@ directory; lock files enforce this across processes on the same host.
 | `OTS_WORK_DIR` | `<data>/work` | disposable verification jobs; dedicated bounded mount on Linux |
 | `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | database connection; deployment uses SQLite |
 | `OTS_BASE_URL` | `http://localhost:8000` | site origin, without a path |
-| `OTS_CONTRACT_REPO` | empty | `owner/name`; required for public admission |
+| `OTS_CONTRACT_REPO` | `leanEthereum/ots.golf-dev` | core repository; source and specification links |
+| `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
 | `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
 | `OTS_QUEUE_CAP` | `20` | pending jobs overall |
 
-Production web startup requires HTTPS, a repository, a token and a webhook secret of at least
+Production web startup requires HTTPS, two distinct repositories, a token and a webhook secret of at least
 32 characters. Production workers refuse GitHub credentials. Deploy the web and worker under
 different Unix identities, sharing only the state group. See [deployment](deploy/README.md) for
 storage, isolation, backups and mandatory launch checks. Local macOS verification is unsandboxed.
+See [repository setup](../docs/repositories.md) for preparing the separate submissions workspace.
 
 ## Checks
 
