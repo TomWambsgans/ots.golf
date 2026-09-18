@@ -302,8 +302,22 @@ interfaces and every other track's statement, claim and root are unchanged.
 
 The official verifier accepted `riscv-upper` at 229113 against this pin in 547.2
 seconds on macOS; the run compiles the whole root, including the kernel-checked image validity
-and cycle-cap decisions, well inside the 20-minute limit. Result:
-`/private/tmp/ots-riscv-official-verify.json`. The policy check reports 69 files and 816,043 bytes in the root.
+and cycle-cap decisions, well inside the 20-minute limit. The policy check reports 69 files and
+816,043 bytes in the root. Every other configured certificate was re-verified against the same pin:
+
+| Slug | Claim | Wall time |
+|---|---:|---:|
+| `riscv-upper` | 229113 | 547.2 s |
+| `generic-upper` | 106 | 142.3 s |
+| `generic-lower` | 1 | 70.6 s |
+| `lower` | 18 | 119.4 s |
+| `disclosure-lower` | 93 | 116.7 s |
+| `upper` | 106 | 139.1 s |
+| `disclosure-upper` | 106 | 141.7 s |
+
+Results: `/private/tmp/ots-riscv-official-verify.json` and
+`/private/tmp/ots-riscv-official-verify-<slug>.json`. The workspace preparation tool and its
+test now export five public roots.
 
 The website shows the checked claim as a separate "RISC-V upper bound" card, leaderboard and
 chart with an independent cycle axis; compression bounds are never combined with cycles. Rules

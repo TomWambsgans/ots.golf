@@ -42,7 +42,8 @@ class SubmissionsRepositoryTests(unittest.TestCase):
     def test_export_is_a_separate_repo_with_an_exact_core_pin(self):
         destination = Path(self.temp.name) / 'entries'
         result = prepare(self.root, destination)
-        self.assertEqual(set(result['tracks']), {'generic-lower', 'lower', 'disclosure-lower', 'generic-upper'})
+        self.assertEqual(set(result['tracks']),
+                         {'generic-lower', 'lower', 'disclosure-lower', 'generic-upper', 'riscv-upper'})
         self.assertEqual(git(destination, 'remote', 'get-url', 'origin'), SUBMISSIONS_URL)
         self.assertEqual(git(destination, 'config', '-f', '.gitmodules', 'submodule.contract.url'), CORE_URL)
         self.assertEqual(git(destination / '.contract', 'remote', 'get-url', 'origin'), CORE_URL)
@@ -56,6 +57,7 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         self.assertNotIn('formal/Submissions/Upper/Solution.lean', names)
         self.assertNotIn('formal/Submissions/DisclosureUpper/Solution.lean', names)
         self.assertIn('formal/Submissions/GenericUpper/Solution.lean', names)
+        self.assertIn('formal/Submissions/RiscvUpper/Solution.lean', names)
         self.assertIn('.github/PULL_REQUEST_TEMPLATE.md', names)
         self.assertEqual((destination / 'LICENSE').read_text(), 'Fixture license\n')
         self.assertIn(commit, (destination / 'README.md').read_text())
