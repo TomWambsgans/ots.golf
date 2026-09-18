@@ -16,7 +16,7 @@ theorem. A demo score can match a checked certificate by using `improvement: 0`.
 Hal Finney's rows never change an earlier record: his Generality 2/3 record follows Satoshi's,
 his other rows match without beating the record before them, and his legacy records sit between
 existing ones. The RISC-V fixtures appear only when that track is admitted in the core metadata:
-Hal and Vitalik trade records from 324053 down to 32053 cycles, with one non-record attempt, and
+Hal and Vitalik trade records from 30053 down to 25053 cycles, with one non-record attempt, and
 Satoshi's current record has zero improvement so it matches the checked certificate. Their scores
 use cycles; the existing entries keep their original units.
 

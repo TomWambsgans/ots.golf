@@ -22,7 +22,8 @@ def track(slug: str) -> dict | None:
 
 
 def frameworks() -> list[dict]:
-    return load()["frameworks"]
+    """The lower frameworks from the least to the most general, as the site lists them."""
+    return sorted(load()["frameworks"], key=lambda f: f["title"])
 
 
 def framework(slug: str) -> dict | None:

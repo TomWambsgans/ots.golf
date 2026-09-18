@@ -58,9 +58,9 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 24053 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(324053, 'hal-finney', 'cycles'), (229113, 'vitalik-buterin', 'cycles'),
-                          (214053, 'hal-finney', 'cycles'), (59393, 'vitalik-buterin', 'cycles'),
-                          (32053, 'vitalik-buterin', 'cycles'), (24053, 'satoshi-nakamoto', 'cycles')])
+                         [(30053, 'hal-finney', 'cycles'), (28513, 'vitalik-buterin', 'cycles'),
+                          (27253, 'hal-finney', 'cycles'), (26113, 'vitalik-buterin', 'cycles'),
+                          (25053, 'vitalik-buterin', 'cycles'), (24053, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
@@ -80,8 +80,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertIn('24053 cycles', detail)
         self.assertIn('every accepting execution', detail)
         self.assertIn('href="/rules#riscv-upper"', detail)
-        self.assertIn('Verification status: unverified.', detail)
-        self.assertNotIn('s-verified', detail)
+        self.assertNotIn('demo', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertIn('RISC-V upper bound</a>', profile)
         self.assertIn('cycles', profile)

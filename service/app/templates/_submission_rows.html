@@ -5,10 +5,9 @@
   {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generic' %}<a href="/rules#legacy-certificates">{{ t.framework_title }} reference</a><br><span class="muted">Legacy upper certificate</span>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ t.framework }}{% endif %}#{{ t.kind }}">{{ t.title if t.kind == 'upper' else t.framework_title }}</a><br><span class="muted">{{ 'Any oracle algorithm' if t.kind == 'upper' else t.title }}</span>{% endif %}</td>{% endif %}
   <td>
     <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
-    {% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% endif %}
   </td>
   <td class="muted">{{ s.assisted_by or '' }}</td>
-  <td><span class="status{% if not s.detail_dict.get('demo') %} s-{{ s.status }}{% endif %}">{{ 'demo' if s.detail_dict.get('demo') else s.status.replace('_', ' ') }}</span></td>
+  <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
   <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
 </tr>
 {% else %}
@@ -23,7 +22,6 @@
     <span class="lb-rank">{% if rank %}{{ '%02d'|format(rank) }}{% endif %}</span>
     <span class="lb-avatar">{% if s.user.avatar_url %}<img src="{{ s.user.avatar_url }}" alt="">{% else %}<span class="lb-avatar-blank"></span>{% endif %}</span>
     <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
-    {% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% endif %}
     {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
   </td>
   <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">{{ cfg|cost_unit(s.claim) }}</span>{% else %}–{% endif %}</a></td>

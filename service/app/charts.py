@@ -100,7 +100,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
                      "date": p["t"].strftime("%Y-%m-%d %H:%M UTC"), "id": p["id"], "demo": p.get("demo", False),
                      "unit": unit[:-1] if p["claim"] == 1 else unit}
             point_title = escape(f'{s["label"]}: {p["claim"]} {point["unit"]} · {p["login"]} · {point["date"]}'
-                           + (' · demo' if point["demo"] else ''))
+                           )
             out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{point_title}">'
                        f'<circle class="hit-area" cx="{x:.1f}" cy="{y:.1f}" r="16"/>'
                        f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{point_title}</title></circle></a>')

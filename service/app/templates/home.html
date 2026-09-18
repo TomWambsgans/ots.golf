@@ -12,56 +12,61 @@
 <section class="framework-overview" aria-label="Verification bounds">
   <p class="section-intro">Build an OTS that is cheaper to verify, or prove that a lower cost is
   impossible.</p>
+  <section class="bound-group" aria-labelledby="upper-row-title">
+  <h2 class="bound-row-title" id="upper-row-title">Upper bound <span class="bound-row-hint">lower is better</span></h2>
+  <div class="upper-cards">
   <article class="generic-upper-card" aria-labelledby="generic-upper-title">
     <div>
-      <h3 id="generic-upper-title"><a href="/rules#generic-upper">Upper bound</a></h3>
+      <h3 id="generic-upper-title"><a href="/rules#generic-upper">By compressions</a></h3>
       {% if generic_upper and generic_upper.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a>
-      {% if generic_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a></p>
       {% else %}<p>{% if generic_upper %}<a href="/rules#play">Submit a construction ↗</a>{% else %}Admission pending{% endif %}</p>{% endif %}
     </div>
-    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
+    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
   </article>
   {% if riscv_upper %}
   <article class="generic-upper-card riscv-upper-card" aria-labelledby="riscv-upper-title">
     <div>
-      <h3 id="riscv-upper-title"><a href="/rules#riscv-upper">RISC-V upper bound</a></h3>
+      <h3 id="riscv-upper-title"><a href="/rules#riscv-upper">By RISC-V cycles</a></h3>
       {% if riscv_upper.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ riscv_upper.state.record_submission_id }}">{{ riscv_upper.state.record_setter }}</a>
-      {% if riscv_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      <p>By <a href="/submissions/{{ riscv_upper.state.record_submission_id }}">{{ riscv_upper.state.record_setter }}</a></p>
       {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
     </div>
-    <div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>cycles</span></div>
+    <div class="upper-score"><span class="muted">Verification cost</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>cycles</span></div>
   </article>
   {% endif %}
+  </div>
+  </section>
+  <section class="bound-group" aria-labelledby="lower-row-title">
+  <h2 class="bound-row-title" id="lower-row-title">Lower bound <span class="bound-row-hint">higher is better</span></h2>
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
-      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}">Lower bound <span class="framework-generality">{{ model.title }}</span></a></h3>
+      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'disclosure' else 'generic-algorithms' if model.slug == 'generic' else 'graph' }}"><span class="framework-generality">{{ model.title }}</span></a></h3>
       {% if model.slug == 'generic' %}
       <p>Any oracle algorithm.</p>
       {% elif model.slug == 'dag' %}
-      <p>A fixed DAG with arbitrary deterministic functions.</p>
+      <p>A DAG with arbitrary functions.</p>
       {% else %}
-      <p>A DAG built from <strong>whole 128-bit words</strong>.</p>
+      <p>A DAG built from whole 128-bit words.</p>
       {% endif %}
       <dl class="framework-bounds">
-        <div><dt>Verification cost <span aria-hidden="true">↑</span></dt>
+        <div><dt>Verification cost</dt>
         <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards and model.boards.lower.state.record_submission_id %}
-      <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a>
-      {% if model.boards.lower.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a></p>
       {% else %}
       <p class="framework-record"><a href="/rules#play">Submit a proof ↗</a></p>
       {% endif %}
     </article>
     {% endfor %}
   </div>
+  </section>
 </section>
 
 <section class="dashboard" aria-labelledby="dash-title">
-  <div class="section-heading"><h2 id="dash-title">Bounds over time</h2>
+  <div class="section-heading"><h2 id="dash-title">Progress over time</h2>
     {% if riscv_chart %}<div class="seg chart-switch" role="group" aria-label="Chart">
       <button type="button" class="chart-btn" data-chart="compressions" aria-pressed="true">Compressions</button>
       <button type="button" class="chart-btn" data-chart="cycles" aria-pressed="false">RISC-V cycles</button>
@@ -97,21 +102,21 @@
     <div class="board-title-row">
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
-        <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bounds ↑</button>
-        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound{{ "s" if riscv_upper else "" }} ↓</button>
+        <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bounds</button>
+        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound{{ "s" if riscv_upper else "" }}</button>
       </div>
     </div>
-    <nav class="framework-tabs board-filters lower-only" aria-label="Filter lower leaderboard by framework">
-      <a href="/#board-title"{% if selected_framework == 'all' %} aria-current="page"{% endif %}>All lower frameworks</a>
-      {% for f in frameworks %}
-      <a href="/?framework={{ f.slug }}#board-title"{% if selected_framework == f.slug %} aria-current="page"{% endif %}>{{ f.title }}</a>
+    {% set shown_framework = selected_framework if selected_framework in models|map(attribute='slug')|list else models[0].slug %}
+    <div class="seg lower-switch lower-only" role="group" aria-label="Lower bound framework">
+      {% for model in models %}
+      <button type="button" class="lower-btn" data-framework="{{ model.slug }}" aria-pressed="{{ 'true' if shown_framework == model.slug else 'false' }}">{{ model.title }}</button>
       {% endfor %}
-    </nav>
+    </div>
     <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. Upper constructions may use any oracle algorithm.</p>
     {% set kind = 'lower' %}
     <div class="board-track" data-track="lower">
-      {% for model in models if selected_framework == 'all' or selected_framework == model.slug %}
-      <section class="framework-board f-{{ model.slug }}" data-framework="{{ model.slug }}" aria-labelledby="{{ model.slug }}-{{ kind }}-title">
+      {% for model in models %}
+      <section class="framework-board f-{{ model.slug }}" data-framework="{{ model.slug }}" aria-labelledby="{{ model.slug }}-{{ kind }}-title"{% if shown_framework != model.slug %} hidden{% endif %}>
         {% set b = model.boards.get(kind) %}
         <div class="framework-board-head">
           <div><h3 id="{{ model.slug }}-{{ kind }}-title"><span class="framework-dot" aria-hidden="true"></span>{{ model.title }}</h3>
@@ -140,11 +145,17 @@
       {% endfor %}
     </div>
     <div class="board-track" data-track="upper" hidden>
+      {% if riscv_upper %}
+      <div class="seg upper-switch" role="group" aria-label="Upper bound track">
+        <button type="button" class="upper-btn" data-upper="generic-upper" aria-pressed="true">Compressions</button>
+        <button type="button" class="upper-btn" data-upper="riscv-upper" aria-pressed="false">RISC-V cycles</button>
+      </div>
+      {% endif %}
       {% for b in [generic_upper] + ([riscv_upper] if riscv_upper else []) %}
       {% set is_riscv = b and b.cfg.slug == 'riscv-upper' %}
-      {% set upper_title = 'RISC-V upper bound' if is_riscv else 'Upper bound' %}
+      {% set upper_title = 'By RISC-V cycles' if is_riscv else 'By compressions' %}
       {% set upper_id = 'riscv-upper-board-title' if is_riscv else 'upper-board-title' %}
-      <section class="generic-upper-board" aria-labelledby="{{ upper_id }}">
+      <section class="generic-upper-board" data-upper="{{ 'riscv-upper' if is_riscv else 'generic-upper' }}" aria-labelledby="{{ upper_id }}"{% if is_riscv %} hidden{% endif %}>
         <div class="framework-board-head">
           <div><h3 id="{{ upper_id }}">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>

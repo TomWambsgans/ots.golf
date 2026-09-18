@@ -369,7 +369,7 @@ segmented switch to the RISC-V cycles chart, the chart headings lost their direc
 the RISC-V caption, the tagline no longer mentions the three frameworks, and the RISC-V card
 says "Verification cost", and the rules page frames the objective as the worst-case verification
 cost in compressions or RISC-V cycles rather than compressions alone. Six fictional RISC-V rows give that chart a history: Hal Finney and
-Vitalik Buterin trade records from 324053 down to 32053 cycles with one non-record attempt, and
+Vitalik Buterin trade records from 30053 down to 25053 cycles with one non-record attempt, and
 Satoshi's zero-improvement record stays the current one, so the demo now seeds 33 rows with every
 track admitted. The Firefox audit passes with the switch exercised
 (`/private/tmp/ots-ui-cycles/`).

@@ -84,9 +84,11 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(sub.claim, point['claim'])
                 self.assertTrue(point['demo'])
             tables = set(re.findall(r'<table class="lb-table" data-track="([^"]+)"', html))
-            expected = {t['slug'] for t in contract.tracks()
-                        if t['kind'] == 'lower' and (framework == 'all' or t['framework'] == framework)} | {'generic-upper'}
+            expected = {t['slug'] for t in contract.tracks() if t['kind'] == 'lower'} | {'generic-upper'}
             self.assertEqual(tables, expected)
+            shown = re.findall(r'<section class="framework-board f-(\w+)" data-framework="\w+" aria-labelledby="[^"]+">', html)
+            self.assertEqual(shown, [framework if framework != 'all' else 'disclosure'])
+            self.assertEqual(re.findall(r'class="lower-btn" data-framework="(\w+)" aria-pressed="true"', html), shown)
         html = self.client.get('/').text
         self.assertEqual(len(re.findall(r'<table class="lb-table"', html)), 4)
         self.assertEqual(len(re.findall(r'<article class="framework-card ', html)), 3)
@@ -143,7 +145,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('1 compression', detail)
         self.assertIn('arbitrary oracle algorithms', detail)
         self.assertIn('href="/rules#generic-algorithms"', detail)
-        self.assertIn('Fictional local demo', detail)
+        self.assertNotIn('demo', detail)
         self.assertNotIn('DAG framework', detail)
         self.assertNotIn('baseline', detail.lower())
         profile = self.client.get('/solvers/vitalik-buterin').text
@@ -176,8 +178,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertIn('127-bit strong security', detail)
             self.assertIn('href="/#upper"', detail)
             self.assertNotIn('signing success at least 1/2', detail)
-            self.assertNotIn('s-verified', detail)
-        self.assertIn('href="/#upper">Upper bound</a>',
+            self.assertIn('href="/#upper">Upper bound</a>',
                       self.client.get('/solvers/satoshi-nakamoto').text)
 
     def test_legacy_upper_records_do_not_initialize_generic_upper(self):
@@ -307,7 +308,7 @@ class FrameworkTests(unittest.TestCase):
         html = self.client.get(f"/submissions/{sub.id}").text
         self.assertTrue('href="/?framework=disclosure#lower">Generality 1/3</a>' in html)
         self.assertIn('Hash inputs and disclosures contain only whole 128-bit words.', html)
-        self.assertIn('Fictional local demo', html)
+        self.assertNotIn('Fictional local demo', html)
 
     def test_solver_page_names_framework_and_bound_kind(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
@@ -346,18 +347,17 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(sub.claim, old[sub.id][0])
         self.assertEqual(seed_demo.refresh(self.session), 0)
 
-    def test_fictional_submissions_keep_demo_labels_and_are_not_called_verified(self):
+    def test_fictional_submissions_carry_no_demo_label_and_hide_their_commit(self):
         seed_demo.refresh(self.session)
         home = self.client.get('/').text
-        self.assertIn('<span class="tag">demo</span>', home)
+        self.assertNotIn('<span class="tag">demo</span>', home)
+        self.assertNotIn('· demo', home)
         for sub in self.session.scalars(select(Submission)):
             detail = self.client.get(f'/submissions/{sub.id}').text
-            self.assertIn('<span class="status">demo</span>', detail)
-            self.assertIn('Verification status: unverified.', detail)
-            self.assertNotIn('s-verified', detail)
+            self.assertNotIn('demo', detail)
             self.assertNotIn(sub.commit_url, detail)
         profile = self.client.get('/solvers/vitalik-buterin').text
-        self.assertNotIn('s-verified', profile)
+        self.assertNotIn('demo', profile)
 
     def test_dashboard_uses_external_scripts_and_precise_sort_timestamps(self):
         seed_demo.refresh(self.session)
