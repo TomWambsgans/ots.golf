@@ -87,8 +87,9 @@ production sandbox safety.
 
 Keep the homepage headline “Think one-time signatures are easy? Prove it.” The mandala forms
 the iris of an eye, with a dark pupil and a small catchlight. The eye fills its illustration
-column. Preserve random signature highlights every two seconds and a brief eyelid blink every
-ten seconds; pause automatic motion when the page is hidden or reduced motion is requested.
+column. Choose a fresh random interval of four to eight seconds between blinks, and change the
+signature highlights only while the eye is fully closed. Pause automatic motion when the page
+is hidden or reduced motion is requested.
 Keep the homepage concise: the generic upper card shows
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”

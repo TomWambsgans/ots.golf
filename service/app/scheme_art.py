@@ -6,7 +6,7 @@ it (revealed values, recomputed nodes, untouched beads), drawn uniformly from th
 of `Cuts.lean`: the cuts of reconstruction cost 105 with at most 41 revealed values, of the three
 shapes (revealed subtrees, revealed groups, chain cost) = (2, 3, 86), (1, 7, 86), (2, 4, 87).
 Every element carries its role and indices as data attributes, so the page's script can light a
-fresh uniform signature on load and every two seconds; the server-rendered one is the first frame.
+fresh uniform signature on load and while the eye blinks; the server-rendered one is the first frame.
 """
 from __future__ import annotations
 

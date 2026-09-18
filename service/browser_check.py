@@ -277,7 +277,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     command('WebDriver:Navigate', {'url': base_url + '/'})
     assert js("return matchMedia('(prefers-reduced-motion: reduce)').matches;")
     before = js("return [...document.querySelectorAll('.scheme-art [data-r]')].map(e => e.getAttribute('class')).join('|');")
-    time.sleep(2.2)
+    time.sleep(8.5)
     after = js("return [...document.querySelectorAll('.scheme-art [data-r]')].map(e => e.getAttribute('class')).join('|');")
     assert before == after
     assert js("return getComputedStyle(document.querySelector('.scheme-art .n')).transitionDuration === '0s';")
@@ -310,25 +310,41 @@ def audit_eye_motion(browser: Marionette, base_url: str) -> None:
         const svg = document.querySelector('.scheme-art');
         const aperture = svg.querySelector('[data-eye-aperture]');
         const started = performance.now();
-        const audit = {patterns: [], blinks: [], closed: false, open: aperture.getAttribute('d')};
+        const audit = {patterns: [], blinks: [], completed: 0, changesWhileOpen: 0, open: aperture.getAttribute('d')};
+        let blinking = false;
+        svg.dataset.motionAudit = JSON.stringify(audit);
         new MutationObserver(changes => {
-            if (changes.some(c => c.attributeName === 'class')) audit.patterns.push(performance.now() - started);
+            const path = aperture.getAttribute('d');
+            const closed = path === 'M 22 280 C 196 280 664 280 838 280 M 838 280 C 664 280 196 280 22 280 Z';
+            if (changes.some(c => c.attributeName === 'class')) {
+                audit.patterns.push(performance.now() - started);
+                if (!closed) audit.changesWhileOpen++;
+            }
             if (changes.some(c => c.target === aperture)) {
-                audit.blinks.push(performance.now() - started);
-                if (aperture.getAttribute('d') === 'M 22 280 C 196 280 664 280 838 280 M 838 280 C 664 280 196 280 22 280 Z') audit.closed = true;
+                if (!blinking && path !== audit.open) {
+                    audit.blinks.push(performance.now() - started);
+                    blinking = true;
+                } else if (blinking && path === audit.open) {
+                    audit.completed++;
+                    blinking = false;
+                }
             }
             svg.dataset.motionAudit = JSON.stringify(audit);
         }).observe(svg, {subtree: true, attributes: true, attributeFilter: ['class', 'd']});
         return true;
     """)
-    time.sleep(11)
+    deadline = time.monotonic() + 26
+    while time.monotonic() < deadline:
+        time.sleep(.25)
+        if browser.js("return JSON.parse(document.querySelector('.scheme-art').dataset.motionAudit).completed >= 3;"):
+            break
     result = browser.js("const audit = JSON.parse(document.querySelector('.scheme-art').dataset.motionAudit); return {...audit, reopened: document.querySelector('[data-eye-aperture]').getAttribute('d') === audit.open};")
-    assert len(result['patterns']) >= 5, result
-    assert 1500 <= result['patterns'][0] <= 2500, result
-    assert all(1500 <= b - a <= 2500 for a, b in zip(result['patterns'], result['patterns'][1:])), result
-    assert result['blinks'] and 9500 <= result['blinks'][0] <= 10500, result
-    assert result['closed'] and result['reopened'], result
-    print('Eye: random signature every two seconds; full blink and reopening at ten seconds passed')
+    assert len(result['patterns']) == result['completed'] == len(result['blinks']) == 3, result
+    assert 3500 <= result['blinks'][0] <= 8500, result
+    assert all(3500 <= b - a <= 8500 for a, b in zip(result['blinks'], result['blinks'][1:])), result
+    assert result['changesWhileOpen'] == 0 and result['reopened'], result
+    assert browser.js("return getComputedStyle(document.querySelector('.scheme-art .n')).transitionDuration === '0s';")
+    print('Eye: three blinks 4–8 seconds apart, each changing the pattern only while closed, passed')
 
 
 def main() -> None:

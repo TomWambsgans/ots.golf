@@ -127,7 +127,6 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; margin: 16px 0 20px; }
 .art-wrap { pointer-events: none; width: 100%; }
 .scheme-art { width: 100%; height: auto; display: block; margin: 0 auto; }
-.scheme-art .e, .scheme-art .n { transition: fill .6s ease, stroke .6s ease, stroke-width .6s ease, opacity .6s ease; }
 .scheme-art .e { stroke: var(--art-faint); stroke-width: 1.02; }
 .scheme-art .e.recomputed { stroke: var(--series-1); stroke-width: 1.42; opacity: 0.9; }
 .scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.12; }
