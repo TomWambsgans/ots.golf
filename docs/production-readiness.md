@@ -130,6 +130,54 @@ python3 service/browser_check.py --output-dir /tmp/ots-ui
 The runner requires Node.js for syntax checks; `--node /path/to/node` selects an existing binary.
 The browser runner requires Firefox and a running seeded localhost preview.
 
+## Generic upper admission update
+
+Commit `8a4afb5` adds the complete generic upper certificate and opens the single public upper
+track. Perfect correctness is proved for every DAG adapter. The concrete forest's signing failure
+is at most `2^-256` for every public-key-dependent message choice, satisfying the pinned `2^-128`
+allowance. Strong 127-bit security and the 106-compression verification bound are preserved exactly.
+See [the mathematical argument and proof map](generic-upper.md).
+
+The new contract pin is `b2b1ffdeb02aa410fe2133b6b7e652f6f55ddf357eb0c5cd58dbb877792303b2`,
+covering 22 files. The protected generic definitions have only an introductory comment change;
+the three lower statements, original Upper root, toolchain and library manifest are unchanged.
+The independent GenericUpper root passes policy with 30 files and 446,047 bytes. All 20 inherited
+construction/security modules are exact copies except for sibling import paths.
+
+Current checks pass: 59 verifier tests, 59 service tests, 5 numerical tests, JavaScript and shell
+syntax, the complete Lean build (8,927 jobs), and the 46-declaration protected-model axiom audit.
+The official verifier accepted every configured certificate against this pin:
+
+| Slug | Claim | Wall time |
+|---|---:|---:|
+| `generic-upper` | 106 | 157.3 s |
+| `generic-lower` | 1 | 66.3 s |
+| `lower` | 18 | 107.4 s |
+| `disclosure-lower` | 93 | 103.6 s |
+| `upper` | 106 | 152.9 s |
+| `disclosure-upper` | 106 | 150.3 s |
+
+Two deliberate negative submissions also compiled successfully and were then rejected by
+comparator's statement matching: changing only the claim to 105 was rejected at `cost` (127.2 s),
+and replacing the admissibility theorem's fixed `2^-128` allowance with a proved one-half allowance
+was rejected at `admissible` (120.0 s). The latter leaves security and cost unchanged, confirming
+that availability is enforced independently. The test copies were outside the repository.
+Results are in `/private/tmp/ots-generic-admission-reject-claim-105.json` and
+`/private/tmp/ots-generic-admission-reject-failure-half.json`.
+
+Current Firefox checks pass on desktop and at 320/390-pixel widths, in light/dark mode, including
+keyboard controls, sorting, tooltips, lower-only filters, four normal leaderboard tables, collapsed
+rules, both diagrams, reduced motion and the HTML error page. The web process and worker were both
+restarted after the implementation commit. The live footer shows that commit; 15 linked local
+routes, including health, return successfully. All 19 prior demo rows retain their IDs, claims,
+dates and attribution; only two separate generic upper demos were added, at 106 and 105. Fictional
+rows remain labeled and are never presented as verified certificates.
+
+Logs: `/private/tmp/ots-generic-admission-checks.log` and
+`/private/tmp/ots-generic-admission-verify-<slug>.json`; browser screenshots:
+`/private/tmp/ots-ui-generic-upper/`. These results do not replace the actual-host Linux isolation
+or staging GitHub acceptance gates below. Nothing was pushed or deployed.
+
 ## Gates before public launch
 
 Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any

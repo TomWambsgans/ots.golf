@@ -142,3 +142,15 @@ Local artifacts: `/private/tmp/ots-generic-admission-checks.log`,
 `/private/tmp/ots-ui-generic-upper/`. These macOS results establish proof acceptance and local
 application behavior; deployment still requires the Linux and staging checks in
 [the production review](production-readiness.md).
+
+All six configured official certificates pass against the same pin: generic upper 106, generic
+lower 1, DAG lower 18, whole-word lower 93, and both historical upper references at 106. Timings
+and regression evidence are recorded in [the production review](production-readiness.md#generic-upper-admission-update).
+
+Two deliberate negative submissions also compiled successfully and were then rejected by
+comparator's statement matching: changing only the claim to 105 was rejected at `cost` (127.2 s),
+and replacing the admissibility theorem's fixed `2^-128` allowance with a proved one-half allowance
+was rejected at `admissible` (120.0 s). The latter leaves security and cost unchanged, confirming
+that availability is enforced independently. The test copies were outside the repository.
+Results are in `/private/tmp/ots-generic-admission-reject-claim-105.json` and
+`/private/tmp/ots-generic-admission-reject-failure-half.json`.
