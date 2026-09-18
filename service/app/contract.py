@@ -45,10 +45,34 @@ def track_framework_title(t: dict) -> str:
 
 def generic_upper_track() -> dict | None:
     """Only the explicitly pinned generic certificate opens the public upper track."""
-    certificate = framework_tracks("generic").get("upper")
+    certificate = track("generic-upper") if "generic-upper" in upper_track_slugs() else None
     if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generic":
         return certificate
     return None
+
+
+def riscv_upper_track() -> dict | None:
+    """A checked machine certificate opens the separate implementation track."""
+    certificate = track("riscv-upper") if "riscv-upper" in upper_track_slugs() else None
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generic":
+        return certificate
+    return None
+
+
+def upper_tracks() -> list[dict]:
+    return [t for t in (generic_upper_track(), riscv_upper_track()) if t is not None]
+
+
+def upper_track_slugs() -> list[str]:
+    cfg = load()
+    if "upper_tracks" in cfg:
+        return cfg["upper_tracks"]
+    return [f["upper_track"] for f in cfg["frameworks"] if "upper_track" in f]
+
+
+def cost_unit(t: dict, claim: int | None = None) -> str:
+    unit = t.get("cost_unit", "compressions")
+    return unit[:-1] if claim == 1 else unit
 
 
 def contract_id() -> str:

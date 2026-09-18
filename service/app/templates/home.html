@@ -22,6 +22,18 @@
     </div>
     {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost ↓</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
   </article>
+  {% if riscv_upper %}
+  <article class="generic-upper-card riscv-upper-card" aria-labelledby="riscv-upper-title">
+    <div>
+      <h3 id="riscv-upper-title"><a href="/rules#riscv-upper">RISC-V upper bound</a></h3>
+      {% if riscv_upper.state.record_submission_id %}
+      <p>By <a href="/submissions/{{ riscv_upper.state.record_submission_id }}">{{ riscv_upper.state.record_setter }}</a>
+      {% if riscv_upper.state.record_demo %}<span class="tag">demo</span>{% endif %}</p>
+      {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
+    </div>
+    <div class="upper-score"><span class="muted">Accepting verification cost ↓</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>virtual cycles</span></div>
+  </article>
+  {% endif %}
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
@@ -64,13 +76,25 @@
   <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
 </section>
 
+{% if riscv_chart %}
+<section class="dashboard riscv-dashboard" aria-labelledby="riscv-dash-title">
+  <div class="section-heading"><h2 id="riscv-dash-title">RISC-V cost over time</h2><span class="muted">Upper ↓</span></div>
+  <figure class="chart" data-points="riscv-chart-points">
+    <div class="chart-plot" tabindex="0" aria-label="RISC-V chart; scroll horizontally on small screens">{{ riscv_chart.svg|safe }}</div>
+    <div class="tooltip" hidden></div>
+    <figcaption>Certified accepting cost in virtual cycles. This chart has its own scale.</figcaption>
+  </figure>
+  <script id="riscv-chart-points" type="application/json">{{ riscv_chart.points|safe }}</script>
+</section>
+{% endif %}
+
 <section class="boards" aria-labelledby="board-title">
   <div class="board-panel">
     <div class="board-title-row">
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
         <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bounds ↑</button>
-        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound ↓</button>
+        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound{{ "s" if riscv_upper else "" }} ↓</button>
       </div>
     </div>
     <nav class="framework-tabs board-filters lower-only" aria-label="Filter lower leaderboard by framework">
@@ -79,7 +103,7 @@
       <a href="/?framework={{ f.slug }}#board-title"{% if selected_framework == f.slug %} aria-current="page"{% endif %}>{{ f.title }}</a>
       {% endfor %}
     </nav>
-    <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. The upper track accepts any oracle algorithm.</p>
+    <p class="board-explanation lower-only">Lower rankings and gains are measured within each framework. Upper constructions may use any oracle algorithm.</p>
     {% set kind = 'lower' %}
     <div class="board-track" data-track="lower">
       {% for model in models if selected_framework == 'all' or selected_framework == model.slug %}
@@ -88,7 +112,7 @@
         <div class="framework-board-head">
           <div><h3 id="{{ model.slug }}-{{ kind }}-title"><span class="framework-dot" aria-hidden="true"></span>{{ model.title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
-          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compression{{ '' if b.state.record_claim == 1 else 's' }}</span></p></div>
+          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
         </div>
         {% if b %}
@@ -112,18 +136,21 @@
       {% endfor %}
     </div>
     <div class="board-track" data-track="upper" hidden>
-      <section class="generic-upper-board" aria-labelledby="upper-board-title">
-        {% set b = generic_upper %}
+      {% for b in [generic_upper] + ([riscv_upper] if riscv_upper else []) %}
+      {% set is_riscv = b and b.cfg.slug == 'riscv-upper' %}
+      {% set upper_title = 'RISC-V upper bound' if is_riscv else 'Upper bound' %}
+      {% set upper_id = 'riscv-upper-board-title' if is_riscv else 'upper-board-title' %}
+      <section class="generic-upper-board" aria-labelledby="{{ upper_id }}">
         <div class="framework-board-head">
-          <div><h3 id="upper-board-title">Upper bound</h3>
+          <div><h3 id="{{ upper_id }}">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
-          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">compression{{ '' if b.state.record_claim == 1 else 's' }}</span></p></div>
+          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% else %}<span class="status">Admission pending</span>{% endif %}
         </div>
         {% if b %}
-        <div class="board-scroll" role="region" tabindex="0" aria-labelledby="upper-board-title">
+        <div class="board-scroll" role="region" tabindex="0" aria-labelledby="{{ upper_id }}">
           <table class="lb-table" data-track="{{ b.cfg.slug }}">
-            <caption class="visually-hidden">Upper-bound records</caption>
+            <caption class="visually-hidden">{{ upper_title }} records</caption>
             <thead><tr>
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
@@ -136,6 +163,7 @@
         {% else %}<p class="foundation-note">The upper-bound challenge is not yet admitted.
         <a href="/rules#generic-upper">Upper-bound requirements ↗</a></p>{% endif %}
       </section>
+      {% endfor %}
     </div>
   </div>
 </section>

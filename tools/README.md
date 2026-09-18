@@ -38,6 +38,6 @@ on the actual deployment host with `verifier/check_linux_sandbox.py`; a macOS pa
 ## Submissions repository
 
 `python3 tools/prepare_submissions_repo.py .build/ots.golf-submissions` prepares a separate local
-repository containing the four public submission roots and a pinned core submodule. It requires
+repository containing the five public submission roots and a pinned core submodule. It requires
 a clean committed core checkout and a new destination, and never pushes. See
 [repository setup](../docs/repositories.md) for the workflow and service settings.

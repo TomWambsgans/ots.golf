@@ -58,10 +58,14 @@ The first 5504 signature bits are loaded; the length sentinel distinguishes over
 The image contains at most 262144 instructions and 1 MiB of fixed data, loaded at `0x200000`.
 Code is immutable. Parsing, arithmetic, copying and comparison run inside the machine.
 
-## First submission in development
+## First certified submission
 
-`formal/Submissions/RiscvUpper/` contains a proved OTS specification for the first implementation.
-It retains the existing forest graph and uses a fixed disclosure layout: two subtree digests,
+`formal/Submissions/RiscvUpper/` contains the checked certificate
+`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 229113`, exported from
+`Solution.lean` with `claim.txt` at 229113. It uses only `propext`, `Classical.choice` and
+`Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
+
+The OTS retains the existing forest graph and uses a fixed disclosure layout: two subtree digests,
 three group digests and 36 chain values. The chain lengths sum to 121. The executable decoder
 selects distinct tuples for the `2^115` indices; the kernel checks that
 
@@ -70,34 +74,53 @@ comp 36 121 = 41695891754464226932279920354981492 ≥ 2^115.
 ```
 
 `ForestAlgorithm.certificate` proves all OTS requirements and a 141-compression bound;
-`Wire.certificate` transfers them to raw signature bits. The official verifier accepted the
-141-compression specification through the algorithm upper interface. The current implementation,
-`NodeProgram.lean`, follows the graph one node at a time, using a separate memory slot for each
-value. Its image has **114557 RV64IM instructions** and **70272 bytes of table data**, with
-kernel-checked validity. `DirectCost.execution_cost` bounds every successful execution with
-114557-step fuel by **229113 virtual cycles**. The first instruction initializes the hash length;
-the invariant then bounds every instruction by two cycles.
+`Wire.certificate` transfers them to raw signature bits. The implementation, `NodeProgram.lean`,
+follows the graph one node at a time, using a separate 128-byte memory slot for each value. Its
+image has **114557 RV64IM instructions** and **70272 bytes of table data**, with kernel-checked
+validity. The fuel witness is the instruction count: every instruction executes at most once.
 
-The checked refinement components now include:
+### Proof structure
 
-- Exact raw-input and composition-table loading, memory copies and hash output representation.
-- The complete 36-position assembly decoder, equal to the specification's composition unranking.
-- Equality of the sequential forest interpreter and the secured raw-signature specification,
-  preserving every oracle query and rejection.
-- Compositional execution rules for branches and ordinary instructions, and correctness and
-  termination of the final public-key comparison.
+The certificate bundles four facts about `RiscvUpperForest.submission`:
+
+- **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
+  `Submission.scheme` definitionally.
+- **Exact refinement** (`Candidate.submission_implements`) states that the machine's observed
+  oracle computation, `Option.map Prod.fst <$> execute 114557 (initialState image pk m bits)`,
+  equals `some <$> Wire.scheme.verify pk m bits` for every public key, message and raw signature
+  bit string. `VerifierProof.image_observe` proves it against the explicit forest interpreter
+  `ForestVerifier.directVerify`, and `ForestVerifierProof.directVerify_eq` identifies that
+  interpreter with the certified verifier. Because the result is `some` on every path, no
+  execution traps or exhausts fuel, so every input terminates, including every rejection.
+- **Accepting cost** (`DirectCost.execution_cost`) bounds every successful execution at the fixed
+  fuel by 229113 virtual cycles: the first instruction zeroes the hash length register and an
+  invariant then charges at most two cycles per instruction.
+
+The refinement composes four verified regions of the straight-line image with continuation
+lemmas that quantify over any remaining fuel:
+
+1. `IndexExecution.indexAndChecks_continuation`: the 512-bit message-and-nonce query, the
+   115-bit index range check and the exact 5504-bit length check, rejecting exactly as specified.
+2. `DecoderExecution.decodePositions_continuation`: the composition unranking decoder, whose
+   memory result equals `fixedPositions` (`DecodedInput`, `ExecutionContext`).
+3. `ReconstructionExecution.runNodes_observe`: induction over the 2795 named nodes. Each node's
+   effect (`NodeExecution.nodeEffect_eq`) equals `transitionState <$> cursorStep`, the
+   specification's sequential reader with a disclosure cursor, so every hash query is issued on the
+   same bit string in the same order. `NodeRefinement` and `NodeValueProof` prove the exact
+   concatenation and tag layout in memory, slot isolation and pointer preservation;
+   `CursorBudget` proves that the cursor consumes exactly the 5248 payload bits.
+4. `DecisionProof.decision_observe`: the final 128-bit comparison with the public key and HALT.
+
+The specification side is `ForestVerifierProof.directReconstruct_eq`, which shows that reading
+disclosures sequentially agrees with the graph's offset-addressed decoding.
 
 `Program.lean` retains the earlier fused reconstruction image and its 59393-cycle conditional
-bound. The direct implementation makes each graph operation's refinement obligation explicit.
+bound as a reference; it is not the certified submission.
 
-This is **not yet a RISC-V certificate**: the per-node memory refinement and composition of the
-whole program, including termination on every input, remain to be proved. A successful-execution
-cycle theorem alone does not establish that executions succeed.
-No RISC-V numeric record is registered from the specification alone. Once checked,
-its proof belongs in `ots.golf-submissions` and its Satoshi demo attribution belongs in the
-[versioned website fixtures](../service/demo/submissions.json).
-
-The existing public tracks and their records remain available while this implementation is built.
+The official verifier accepts this root through the RISC-V challenge stub; its wall time is
+recorded in [the production review](production-readiness.md). The website presents the checked
+claim as a separate RISC-V upper track measured in virtual cycles, with a Satoshi-attributed local
+demo fixture at zero improvement. The certificate's proof also belongs in `ots.golf-submissions`.
 
 ## Attribution
 

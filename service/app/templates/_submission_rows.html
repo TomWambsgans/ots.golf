@@ -1,8 +1,8 @@
 {% macro rows(subs, show_track=False) -%}
 {% for s in subs %}
 <tr>
-  <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }}{% else %}–{% endif %}</a></td>
-  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generic' %}<a href="/rules#legacy-certificates">{{ t.framework_title }} reference</a><br><span class="muted">Legacy upper certificate</span>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ t.framework }}{% endif %}#{{ t.kind }}">{{ 'Upper bound' if t.kind == 'upper' else t.framework_title }}</a><br><span class="muted">{{ 'Any oracle algorithm' if t.kind == 'upper' else t.title }}</span>{% endif %}</td>{% endif %}
+  <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }}{% if show_track %} <span class="lb-unit">{{ track_labels[s.track]|cost_unit(s.claim) }}</span>{% endif %}{% else %}–{% endif %}</a></td>
+  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generic' %}<a href="/rules#legacy-certificates">{{ t.framework_title }} reference</a><br><span class="muted">Legacy upper certificate</span>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ t.framework }}{% endif %}#{{ t.kind }}">{{ t.title if t.kind == 'upper' else t.framework_title }}</a><br><span class="muted">{{ 'Any oracle algorithm' if t.kind == 'upper' else t.title }}</span>{% endif %}</td>{% endif %}
   <td>
     <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
     {% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% endif %}
@@ -16,7 +16,7 @@
 {% endfor %}
 {%- endmacro %}
 
-{% macro lbrow(s, rank, prev, kind) -%}
+{% macro lbrow(s, rank, prev, kind, cfg) -%}
 {% set d = (s.claim - prev.claim) if (prev and s.claim is not none and prev.claim is not none) else none %}
 <tr class="lb-row {{ kind }}{% if rank == 1 %} current{% endif %}" data-score="{{ s.claim if s.claim is not none else '' }}" data-gain="{{ d if d is not none else '' }}" data-date="{{ (s.record_at or s.finished_at or s.created_at).isoformat() }}">
   <td class="lb-solver">
@@ -26,7 +26,7 @@
     {% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% endif %}
     {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
   </td>
-  <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">compression{{ '' if s.claim == 1 else 's' }}</span>{% else %}–{% endif %}</a></td>
+  <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">{{ cfg|cost_unit(s.claim) }}</span>{% else %}–{% endif %}</a></td>
   <td class="r lb-gain">
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
@@ -37,7 +37,7 @@
 
 {% macro lbrows(frontier, in_flight, cfg) -%}
 {# frontier is newest first; the gain of a record is measured against the record before it #}
-{% for s in frontier %}{{ lbrow(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record') }}{% endfor %}
-{% for s in in_flight %}{{ lbrow(s, none, none, 'pending') }}{% endfor %}
+{% for s in frontier %}{{ lbrow(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record', cfg) }}{% endfor %}
+{% for s in in_flight %}{{ lbrow(s, none, none, 'pending', cfg) }}{% endfor %}
 {% if not frontier and not in_flight %}<tr><td colspan="4" class="muted lb-empty">No submissions yet.</td></tr>{% endif %}
 {%- endmacro %}

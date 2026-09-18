@@ -1,0 +1,8 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.RiscvUpper",
+  "solution_module": "Submissions.RiscvUpper.Solution",
+  "theorem_names": ["OptimalOTS.Challenge.RiscvUpper.certificate"],
+  "definition_names": ["OptimalOTS.Challenge.RiscvUpper.submission"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

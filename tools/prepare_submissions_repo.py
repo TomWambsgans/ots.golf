@@ -44,7 +44,9 @@ def prepare(root: Path, destination: Path) -> dict:
     commit = git(root, "rev-parse", "HEAD")
     config = json.loads(blob(root, commit, "challenges.json"))
     pin = hashlib.sha256(blob(root, commit, config["contract"]["pin_file"])).hexdigest()
-    public = {f[key] for f in config["frameworks"] for key in ("lower_track", "upper_track") if key in f}
+    public = {f["lower_track"] for f in config["frameworks"] if "lower_track" in f}
+    public.update(config.get("upper_tracks", [f["upper_track"] for f in config["frameworks"]
+                                             if "upper_track" in f]))
     tracks = [t for t in config["tracks"] if t["slug"] in public]
 
     destination.mkdir(parents=True)

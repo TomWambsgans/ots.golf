@@ -108,7 +108,7 @@ Run these with the public webhook disconnected and the production configuration 
    root without printing secret values and confirm that neither GitHub credential variable is set.
    Test the site on narrow and desktop screens, keyboard navigation and both light/dark schemes.
 
-3. Queue the four public certificates as ordinary attributed submissions, using the same
+3. Queue the five public certificates as ordinary attributed submissions, using the same
    database and a restrictive umask:
 
    ```sh
@@ -118,11 +118,13 @@ Run these with the public webhook disconnected and the production configuration 
      .venv/bin/python -m app.queue generic-lower --baseline &&
      .venv/bin/python -m app.queue lower --baseline &&
      .venv/bin/python -m app.queue disclosure-lower --baseline &&
-     .venv/bin/python -m app.queue generic-upper --baseline'
+     .venv/bin/python -m app.queue generic-upper --baseline &&
+     .venv/bin/python -m app.queue riscv-upper --baseline'
    ```
 
    Do not seed fictional localhost rows into production. The legacy upper roots are reference
-   certificates, not public upper leaderboards. The public upper track is `generic-upper`.
+   certificates, not public upper leaderboards. The public upper tracks are `generic-upper` and
+   `riscv-upper`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.

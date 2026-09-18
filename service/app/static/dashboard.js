@@ -1,9 +1,11 @@
 (function () {
   'use strict';
-  var svg = document.querySelector('svg.record-chart');
-  var tip = document.getElementById('tooltip');
-  if (svg && tip) {
-    var points = JSON.parse(document.getElementById('chart-points').textContent);
+  document.querySelectorAll('figure.chart').forEach(function (figure) {
+    var svg = figure.querySelector('svg.record-chart');
+    var tip = figure.querySelector('.tooltip');
+    var data = document.getElementById(figure.dataset.points || 'chart-points');
+    if (!svg || !tip || !data) return;
+    var points = JSON.parse(data.textContent);
     var cross = svg.querySelector('.crosshair');
     var plot = svg.closest('.chart-plot');
     function hideTip() { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); }
@@ -12,7 +14,7 @@
       cross.setAttribute('visibility', 'visible');
       tip.textContent = '';
       var head = document.createElement('strong');
-      head.textContent = point.track + ' · ' + point.claim + ' compression' + (point.claim === 1 ? '' : 's');
+      head.textContent = point.track + ' · ' + point.claim + ' ' + point.unit;
       tip.appendChild(head); tip.appendChild(document.createElement('br'));
       tip.appendChild(document.createTextNode(point.login + ' · ' + point.date + (point.demo ? ' · demo' : '')));
       tip.hidden = false;
@@ -44,7 +46,7 @@
         if (event.pointerType === 'touch') showPoint(points[+link.dataset.point]);
       });
     });
-  }
+  });
 
   var buttons = document.querySelectorAll('.seg-btn');
   var panels = document.querySelectorAll('.board-track');

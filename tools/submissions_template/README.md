@@ -11,6 +11,7 @@ The model, verifier and website are developed in
 | Generality 2/3 lower | `formal/Submissions/Lower/` | Larger |
 | Generality 1/3 lower | `formal/Submissions/DisclosureLower/` | Larger |
 | Upper bound | `formal/Submissions/GenericUpper/` | Smaller |
+| RISC-V upper bound | `formal/Submissions/RiscvUpper/` | Smaller |
 
 Change only one directory per PR. Put the claim in `claim.txt` and export the required declarations
 from `Solution.lean`. Follow the [submission rules](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md), including import, file,
@@ -31,7 +32,8 @@ From this repository's root:
 python3 .contract/verifier/verify.py generic-lower --source .
 ```
 
-Replace `generic-lower` with `lower`, `disclosure-lower`, or `generic-upper` as appropriate.
+Replace `generic-lower` with `lower`, `disclosure-lower`, `generic-upper` or `riscv-upper` as
+appropriate.
 The verifier reads your edited submission root and checks it against the trusted contract.
 macOS verification is for trusted local development. Linux requires the bounded work storage
 and isolation described in the [deployment guide](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/service/deploy/README.md).

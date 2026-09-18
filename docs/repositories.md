@@ -3,7 +3,7 @@
 | Repository | Contents and role |
 |---|---|
 | [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev) | Trusted Lean model, challenge stubs, verifier, website, tooling and reference certificates |
-| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | The four public submission roots, proof PRs and merged records |
+| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | The five public submission roots, proof PRs and merged records |
 
 The local workspace contains both repositories:
 
@@ -37,8 +37,8 @@ Commit and check the core changes, then run:
 python3 tools/prepare_submissions_repo.py .build/ots.golf-submissions
 ```
 
-The destination must be new. The command creates a local Git repository, copies only the four
-admitted roots, adds the pinned core submodule, and stages the initial README, agent instructions
+The destination must be new. The command creates a local Git repository, copies only the
+admitted roots listed in the core metadata, adds the pinned core submodule, and stages the initial README, agent instructions
 and submission PR template. Its `origin` points to `leanEthereum/ots.golf-submissions`.
 It uses the local core checkout and does not contact GitHub or push anything.
 

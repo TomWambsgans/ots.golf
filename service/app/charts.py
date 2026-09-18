@@ -24,7 +24,8 @@ def _time_ticks(t0: datetime, t1: datetime, n: int = 5) -> list[datetime]:
     return [t0 + timedelta(seconds=span * i / (n - 1)) for i in range(n)]
 
 
-def record_chart(series: list[dict], now: datetime) -> dict:
+def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions",
+                 chart_id: str = "record-chart", title: str = "Verification bounds across three frameworks") -> dict:
     """Each series carries its own framework, kind, baseline (None if pending) and records."""
     numeric = [s for s in series if s["baseline"] is not None]
     pending = [s for s in series if s["baseline"] is None]
@@ -46,12 +47,14 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     def sy(v: float) -> float:
         return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
-    out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" '
-           'aria-labelledby="record-chart-title record-chart-desc">',
-           '<title id="record-chart-title">Verification bounds across three frameworks</title>',
-           '<desc id="record-chart-desc">Lower bounds rise and upper bounds fall. Generality 3/3, 2/3 and 1/3 '
-           'lower records are separate series. The upper-bound track accepts any oracle algorithm. '
-           'Hover or focus a record for its framework and solver.</desc>']
+    chart_id = escape(chart_id)
+    description = ("Certified bounds on accepting executions. Smaller is better. " if unit == "virtual cycles" else
+                   "Lower bounds rise and upper bounds fall. Each lower framework has its own series. ")
+    out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" data-unit="{escape(unit)}" '
+           f'aria-labelledby="{chart_id}-title {chart_id}-desc">',
+           f'<title id="{chart_id}-title">{escape(title)}</title>',
+           f'<desc id="{chart_id}-desc">{description}'
+           'Hover or focus a record for its track and solver.</desc>']
     for v in _nice_ticks(y_lo, y_hi):
         y = sy(v)
         out.append(f'<line class="grid" x1="{ML}" x2="{W - MR}" y1="{y:.1f}" y2="{y:.1f}"/>')
@@ -59,7 +62,7 @@ def record_chart(series: list[dict], now: datetime) -> dict:
     out.append(f'<line class="axis" x1="{ML}" x2="{W - MR}" y1="{H - bottom_margin}" y2="{H - bottom_margin}"/>')
     for t in _time_ticks(t0, t1):
         out.append(f'<text class="tick" x="{sx(t):.1f}" y="{H - bottom_margin + 20}" text-anchor="middle">{t.strftime(tick_fmt)}</text>')
-    out.append(f'<text class="tick" x="4" y="{MT - 14}">compressions</text>')
+    out.append(f'<text class="tick" x="4" y="{MT - 14}">{escape(unit)}</text>')
 
     # Keep endpoint labels distinct even when different series have equal costs.
     ends = sorted(((sy(s["points"][-1]["claim"] if s["points"] else s["baseline"]), s["slug"])
@@ -93,13 +96,13 @@ def record_chart(series: list[dict], now: datetime) -> dict:
             x, y = sx(p["t"]), sy(p["claim"])
             point = {"x": round(x, 1), "y": round(y, 1), "track": s["label"], "framework": s["framework"],
                      "kind": s["kind"], "claim": p["claim"], "login": p["login"],
-                     "date": p["t"].strftime("%Y-%m-%d %H:%M UTC"), "id": p["id"], "demo": p.get("demo", False)}
-            unit = "compression" if p["claim"] == 1 else "compressions"
-            title = escape(f'{s["label"]}: {p["claim"]} {unit} · {p["login"]} · {point["date"]}'
+                     "date": p["t"].strftime("%Y-%m-%d %H:%M UTC"), "id": p["id"], "demo": p.get("demo", False),
+                     "unit": unit[:-1] if p["claim"] == 1 else unit}
+            point_title = escape(f'{s["label"]}: {p["claim"]} {point["unit"]} · {p["login"]} · {point["date"]}'
                            + (' · demo' if point["demo"] else ''))
-            out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{title}">'
+            out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{point_title}">'
                        f'<circle class="hit-area" cx="{x:.1f}" cy="{y:.1f}" r="16"/>'
-                       f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{title}</title></circle></a>')
+                       f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{point_title}</title></circle></a>')
             points.append(point)
         end_y, text_y = sy(last_claim), label_y[s["slug"]]
         out.append(f'<path class="connector" d="M{sx(t1):.1f},{end_y:.1f} L{sx(t1) + 12:.1f},{text_y:.1f} H{sx(t1) + 18:.1f}"/>')

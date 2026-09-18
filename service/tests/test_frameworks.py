@@ -24,6 +24,15 @@ class FrameworkTests(unittest.TestCase):
     maxDiff = 1500
 
     def setUp(self):
+        # Preserve the original four-track preview as a compatibility fixture. The
+        # RISC-V suite separately checks the expanded contract and the migration.
+        cfg = copy.deepcopy(contract.load())
+        cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'riscv-upper']
+        if 'upper_tracks' in cfg:
+            cfg['upper_tracks'] = [t for t in cfg['upper_tracks'] if t != 'riscv-upper']
+        patcher = patch.object(contract, 'load', return_value=cfg)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(self.engine)
         self.session = Session(self.engine, expire_on_commit=False)
@@ -47,8 +56,8 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("disclosure").items()},
                          {"lower": "disclosure-lower"})
         self.assertIsNone(records.interval(self.session, "disclosure")["upper"])
-        self.assertEqual({k: t["slug"] for k, t in contract.framework_tracks("generic").items()},
-                         {"lower": "generic-lower", "upper": "generic-upper"})
+        self.assertEqual(contract.framework_tracks('generic')['lower']['slug'], 'generic-lower')
+        self.assertEqual(contract.generic_upper_track()['slug'], 'generic-upper')
         self.assertEqual(records.interval(self.session, "generic")["lower"]["baseline"], 1)
         self.assertEqual(contract.framework("generic")["status"], "active")
 
@@ -279,7 +288,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(seed_demo.refresh(self.session), 13)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
-        self.assertEqual(len(now), len(seed_demo.ROWS) + 1)
+        self.assertEqual(len(now), sum(bool(contract.track(r[0])) for r in seed_demo.ROWS) + 1)
         generic = [s for s in now if s.track == "generic-lower"]
         self.assertEqual(len(generic), 1)
         self.assertEqual((generic[0].claim, generic[0].user.login), (1, 'vitalik-buterin'))

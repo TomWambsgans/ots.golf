@@ -171,11 +171,13 @@ def assert_rules_have_no_scores(text: str, config: dict) -> None:
 
 def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> None:
     command, js = browser.command, browser.js
+    riscv_enabled = ('riscv-upper' in config.get('upper_tracks', [])
+                     and any(t['slug'] == 'riscv-upper' for t in config['tracks']))
     command('WebDriver:SetWindowRect', {'width': 1360, 'height': 1700})
     command('WebDriver:Navigate', {'url': base_url + '/'})
     print('Home:', js('return {title: document.title, cards: document.querySelectorAll(".framework-card").length, lowerSeries: document.querySelectorAll(".chart-series[data-kind=lower]").length, tables: document.querySelectorAll(".lb-table").length, width: innerWidth, scrollWidth: document.documentElement.scrollWidth};'))
     assert js('return document.querySelectorAll(".chart-series[data-kind=lower]").length === 3;')
-    assert js('return document.querySelectorAll(".lb-table").length === 4;')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {5 if riscv_enabled else 4};')
     assert js('return document.querySelector(".generic-upper-card").getBoundingClientRect().bottom <= document.querySelector(".framework-cards").getBoundingClientRect().top;')
     assert js('return document.querySelector("#generic-upper-title").textContent.trim() === "Upper bound" && getComputedStyle(document.querySelector(".chart-series[data-kind=upper] .line")).strokeDasharray === "none";')
     assert js('return document.querySelector("#framework-disclosure .framework-generality").textContent === "Generality 1/3" && [...document.querySelectorAll(".framework-card h3")].every(h => h.textContent.startsWith("Lower bound"));')
@@ -208,12 +210,19 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return !document.querySelector(".tooltip").hidden;')
     js('document.activeElement.blur(); window.scrollTo(0, 0); return true;')
     (output / 'home-desktop.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
-    assert js('return document.querySelectorAll(".chart-series[data-kind=upper]").length === 1 && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
+    assert js(f'return document.querySelectorAll(".chart-series[data-kind=upper]").length === {2 if riscv_enabled else 1} && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
+    if riscv_enabled:
+        riscv_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'riscv-upper')
+        assert js('return [...document.querySelectorAll(".lb-table[data-track=riscv-upper] .lb-row")].map(r => Number(r.dataset.score));') == [riscv_claim]
+        assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("riscv-chart-points").textContent).every(p => p.unit === "virtual cycles");')
+        js('document.querySelector(".riscv-dashboard .chart-record").focus(); return true;')
+        assert js('return !document.querySelector(".riscv-dashboard .tooltip").hidden && document.querySelector(".riscv-dashboard .tooltip").textContent.includes("virtual cycles");')
+        js('document.activeElement.blur(); return true;')
     js('document.documentElement.dataset.theme = "light"; document.getElementById("dash-title").scrollIntoView(); return true;')
     (output / 'chart-light.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
     print('Desktop chart, direction toggle, sorting, and keyboard tooltip passed')
     command('WebDriver:Navigate', {'url': base_url + '/?framework=disclosure#upper'})
-    assert js('return document.querySelectorAll(".lb-table").length === 2 && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden;')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {3 if riscv_enabled else 2} && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden;')
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.querySelectorAll(".rules-diagram svg[role=img]").length === 1;')
     assert js('return document.querySelectorAll("details[open]").length === 0;')

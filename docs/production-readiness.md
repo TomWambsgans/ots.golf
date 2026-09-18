@@ -279,3 +279,43 @@ The host bootstrap downloads system tooling and is not a reproducible operating-
 No online dependency-vulnerability scan, public load test, live GitHub mutation or Linux runtime
 acceptance was performed. This is a single-host deployment; the process locks are not a distributed
 queue protocol. Review those constraints before changing the deployment topology.
+
+## RISC-V upper bound track certified and admitted (2026-09-18)
+
+`formal/Submissions/RiscvUpper/` now holds a complete `Riscv.Submission.Certificate` at
+**229113 virtual cycles**: the fixed-layout forest OTS, its 114557-instruction RV64IM verifier
+image, a proof that the image's complete oracle computation equals the certified Lean verifier on
+every public key, message and raw signature bit string (so every execution terminates, including
+rejections, with the specified queries in the specified order), and the accepting-execution cycle
+bound. `Solution.lean` exports `OptimalOTS.Challenge.RiscvUpper.{submission,certificate}` with
+`claim.txt` 229113. The certificate uses only `propext`, `Classical.choice` and `Quot.sound`.
+The proof map is in [the track notes](riscv-upper.md).
+
+The metadata now admits two upper tracks through top-level `upper_tracks`
+(`generic-upper`, `riscv-upper`); the three frameworks classify lower bounds only, and
+`frameworks.generic.upper_track` was removed. The new track has `cost_unit` "virtual cycles",
+baseline 229113, the RISC-V challenge stub and comparator configuration as protected files, and
+imports limited to `Mathlib`, `VCVio`, `OptimalOTS.{Statement,Algorithm,RiscvMachine,Riscv}`
+plus siblings. The new 26-file pin is
+`c5d61d622981c63015fc2215817cdaf16efcc4b1be620dd4aee827cc0f690c41`. The protected Lean
+interfaces and every other track's statement, claim and root are unchanged.
+
+The official verifier accepted `riscv-upper` at 229113 against this pin in 547.2
+seconds on macOS; the run compiles the whole root, including the kernel-checked image validity
+and cycle-cap decisions, well inside the 20-minute limit. Result:
+`/private/tmp/ots-riscv-official-verify.json`. The policy check reports 69 files and 816,043 bytes in the root.
+
+The website shows the checked claim as a separate "RISC-V upper bound" card, leaderboard and
+chart with an independent cycle axis; compression bounds are never combined with cycles. Rules
+gained a folded RISC-V section stating the machine, refinement, termination and accepting-cycle
+requirements, without scores. One Satoshi-attributed demo fixture at zero improvement seeds only
+when the track is admitted; all 21 earlier demo rows keep their IDs, dates, claims and attribution.
+
+Checks: the complete Lean build (9008 jobs), the 65-declaration protected-model axiom audit and
+the RISC-V machine boundary checks pass (`/private/tmp/ots-riscv-{full-build,check-axioms,check-machine}.log`);
+61 verifier tests and 75 service tests pass (`/private/tmp/ots-riscv-activation-tests.log`);
+the Firefox audit passes on desktop and phone widths, both themes, the two upper charts and
+their tooltips, five leaderboard tables, folded rules and the eye animation
+(`/private/tmp/ots-final-browser.log`, screenshots in `/private/tmp/ots-final-browser/`).
+These macOS runs validate the proofs and presentation, not production isolation. Nothing was
+pushed or deployed; the submissions checkout is pinned to the local core commit.

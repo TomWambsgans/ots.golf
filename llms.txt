@@ -2,7 +2,8 @@
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> Three lower classes and one Upper bound track are open. Certificates are checked by the Lean kernel.
+> Three lower classes and two upper tracks are open: compressions for any algorithm, and virtual
+> cycles for a verified RISC-V implementation. Certificates are checked by the Lean kernel.
 
 Public tracks, from broadest to most restricted lower class:
 
@@ -12,6 +13,7 @@ Public tracks, from broadest to most restricted lower class:
 | Generality 2/3 | lower | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
 | Generality 1/3 | disclosure-lower | Whole-word DAGs: 128-bit secrets, 256-bit hashes, fixed halves and concatenation | 93 |
 | Upper bound | generic-upper | Any admissible oracle algorithm | 106 |
+| RISC-V upper bound | riscv-upper | An admissible OTS with an RV64IM verifier proved equivalent to its specification; virtual cycles on accepting executions | 229113 |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
 smaller is better. Each lower class has its own record. The Upper bound
@@ -19,6 +21,11 @@ certificate proves perfect correctness, signing failure at most 2^-128, 127-bit 
 all resource limits and a worst-case verification cost of 106 compressions. Generality 3/3 lower
 uses the same signing-failure limit of 2^-128 and weak unforgeability. Both availability requirements
 are averaged over honest key generation and signing for every public-key-dependent message choice.
+The RISC-V certificate additionally proves that the fixed machine image's complete oracle computation
+equals the Lean verifier on every public key, message and raw signature, that every execution
+terminates, and that accepting executions take at most 229113 virtual cycles. Ordinary instructions,
+RANDOM and HALT cost one cycle; HASH costs max(1, ceil(bits/512)) on the shared oracle. Rejecting
+executions are unscored.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
 an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
@@ -27,8 +34,8 @@ Messages are 256 bits; key generation costs at most 1024 compressions and signin
 Deterministic computation and randomness are free. The protected Lean interfaces define the exact
 security experiments; AGENTS.md lists submission requirements.
 
-Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower and GenericUpper,
-respectively. The Upper and DisclosureUpper roots remain historical reference certificates at
+Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower, GenericUpper and
+RiscvUpper, respectively. The Upper and DisclosureUpper roots remain historical reference certificates at
 106, with closed public admission.
 
 Submit a pull request to leanEthereum/ots.golf-submissions changing only one admitted submission root. It must be flat, include
@@ -38,7 +45,7 @@ Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide att
 A verified improvement becomes a record only when that exact head is merged.
 
 The model, verifier, website and reference certificates live in leanEthereum/ots.golf-dev.
-The submissions repository contains the four public roots and a pinned .contract submodule of
+The submissions repository contains the five public roots and a pinned .contract submodule of
 the core. Clone it with --recurse-submodules. Local checks from that repository, replacing
 generic-upper with another track slug as needed:
 
@@ -51,7 +58,8 @@ come from the core checkout; submission merges update records in the submissions
 
 macOS proof checks run unsandboxed for trusted local development. Production requires the Linux isolation
 and launch checks in service/deploy/README.md. Lower filters affect only lower leaderboards;
-the chart has three lower series and one Upper bound series. Rules contain no current scores.
+the compression chart has three lower series and one Upper bound series; the RISC-V chart has its
+own cycle axis. Rules contain no current scores.
 Local Satoshi/Vitalik rows are clearly fictional demos, never verified submissions; preserve them
 and refresh localhost after commits. Never push or deploy without authorization.
 
@@ -59,6 +67,6 @@ and refresh localhost after commits. Never push or deploy without authorization.
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
 - Exact submission requirements and exports: AGENTS.md
 - Track metadata, limits and protected files: challenges.json
-- Interfaces: formal/OptimalOTS/{Algorithm,AlgorithmWeak,Statement,WholeWords}.lean
-- Proof guides: docs/{generic-lower,lower-bound-proof,whole-words,generic-upper}.md
+- Interfaces: formal/OptimalOTS/{Algorithm,AlgorithmWeak,Statement,WholeWords,RiscvMachine,Riscv}.lean
+- Proof guides: docs/{generic-lower,lower-bound-proof,whole-words,generic-upper,riscv-upper}.md
 - Official verifier: verifier/verify.py

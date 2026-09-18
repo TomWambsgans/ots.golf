@@ -141,7 +141,33 @@ class VerifierTests(unittest.TestCase):
                          {prefix + name for name in ("admissible", "secure", "cost")})
         self.assertEqual(comparator["definition_names"], [prefix + "scheme"])
 
+    def test_riscv_upper_requires_one_bundled_certificate(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "riscv-upper")
+        self.assertIn("riscv-upper", self.cfg["upper_tracks"])
+        self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
+                         ("upper", "generic", "virtual cycles"))
+        self.assertFalse(any("upper_track" in f for f in self.cfg["frameworks"]))
+        template = self.root / track["challenge_template"]
+        template.parent.mkdir(parents=True, exist_ok=True)
+        template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
+        rendered, claim = render(self.root, "riscv-upper", 229112)
+        self.assertEqual(claim, 229112)
+        source = rendered.read_text()
+        self.assertIn("submission.Certificate 229112", source)
+        self.assertIn("def submission : Riscv.Submission", source)
+        comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
+        prefix = "OptimalOTS.Challenge.RiscvUpper."
+        self.assertEqual(comparator["theorem_names"], [prefix + "certificate"])
+        self.assertEqual(comparator["definition_names"], [prefix + "submission"])
+        self.assertEqual(set(track["allowed_import_prefixes"]),
+                         {"Mathlib", "VCVio", "OptimalOTS.Statement", "OptimalOTS.Algorithm",
+                          "OptimalOTS.RiscvMachine", "OptimalOTS.Riscv"})
+        for rel in (track["challenge_template"], track["comparator_config"]):
+            self.assertIn(rel, self.cfg["protected"])
+
     def test_algorithm_tracks_share_the_fixed_signing_failure_allowance(self):
+        riscv = next(t for t in self.cfg["tracks"] if t["slug"] == "riscv-upper")
+        self.assertEqual(riscv["signing_failure_allowance"], {"numerator": 1, "denominator": 2**128})
         for slug in ("generic-lower", "generic-upper"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)

@@ -2,15 +2,17 @@
 
 How cheaply can a hash-based one-time signature be verified?
 
-ots.golf compares **three lower-bound classes** and has one **Upper bound** track for arbitrary
-oracle algorithms. All four tracks are open. A submission is a Lean proof about a pinned contract.
+ots.golf compares **three lower-bound classes** and has two upper tracks: an **Upper bound** in
+compressions for arbitrary oracle algorithms, and a **RISC-V upper bound** in virtual cycles for
+verified machine implementations. All five tracks are open. A submission is a Lean proof about a
+pinned contract.
 The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
 contract's random-oracle experiment.
 
 This is [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev), the core repository for the
 model, verifier, website and reference certificates. Submit competition proof PRs to
 [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions).
-That repository contains the four submission roots and a pinned core submodule for local checking.
+That repository contains the five submission roots and a pinned core submodule for local checking.
 
 | Lower class | Admitted schemes | Checked lower bound |
 |---|---|---:|
@@ -23,8 +25,11 @@ Each lower record applies to its class. The whole-word track retains its earlier
 
 The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
 perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
-size and cost proofs. The original DAG and historical partial-disclosure upper certificates
-remain locally verifiable references.
+size and cost proofs. The **RISC-V upper bound** track (`riscv-upper`) has a verified
+**229113-cycle RV64IM verifier** for a fixed-layout forest OTS: the machine's oracle computation is
+proved equal to the Lean verifier on every input, every execution terminates, and accepting
+executions cost at most 229113 virtual cycles. The original DAG and historical partial-disclosure
+upper certificates remain locally verifiable references.
 
 ## Model
 
@@ -56,7 +61,7 @@ python3 verifier/verify.py disclosure-lower --source .
 ```
 
 Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the
-Upper bound construction, and `upper` or
+Upper bound construction, `riscv-upper` for the RISC-V implementation, and `upper` or
 `disclosure-upper` for the historical references. macOS verification runs unsandboxed for trusted
 local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
@@ -79,9 +84,11 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
   and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
 - [Generality 3/3 proof](docs/generic-lower.md), [Generality 2/3 proof](docs/lower-bound-proof.md)
   and [Generality 1/3 proof](docs/whole-words.md).
-- [Upper bound proof](docs/generic-upper.md) and [contract audit](docs/AUDIT.md).
+- [Upper bound proof](docs/generic-upper.md), [RISC-V track](docs/riscv-upper.md) and
+  [contract audit](docs/AUDIT.md).
 - `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
 - `formal/Submissions/GenericUpper/`: the admitted Upper bound root.
+- `formal/Submissions/RiscvUpper/`: the admitted RISC-V upper bound root.
 - `formal/Submissions/{Upper,DisclosureUpper}/`: historical upper references.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 

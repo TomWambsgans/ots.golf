@@ -35,7 +35,9 @@
     "formal/OptimalOTS/Challenge/GenericUpper.lean.in",
     "verifier/comparator-generic-upper.json",
     "formal/OptimalOTS/RiscvMachine.lean",
-    "formal/OptimalOTS/Riscv.lean"
+    "formal/OptimalOTS/Riscv.lean",
+    "formal/OptimalOTS/Challenge/RiscvUpper.lean.in",
+    "verifier/comparator-riscv-upper.json"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -181,7 +183,39 @@
         "numerator": 1,
         "denominator": 340282366920938463463374607431768211456
       }
+    },
+    {
+      "slug": "riscv-upper",
+      "title": "RISC-V upper bound",
+      "framework": "generic",
+      "kind": "upper",
+      "direction": "-",
+      "baseline": 229113,
+      "cost_unit": "virtual cycles",
+      "submission_root": "formal/Submissions/RiscvUpper",
+      "module_prefix": "Submissions.RiscvUpper",
+      "solution_module": "Submissions.RiscvUpper.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/RiscvUpper.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/RiscvUpper.lean",
+      "challenge_module": "OptimalOTS.Challenge.RiscvUpper",
+      "comparator_config": "verifier/comparator-riscv-upper.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Statement",
+        "OptimalOTS.Algorithm",
+        "OptimalOTS.RiscvMachine",
+        "OptimalOTS.Riscv"
+      ],
+      "signing_failure_allowance": {
+        "numerator": 1,
+        "denominator": 340282366920938463463374607431768211456
+      }
     }
+  ],
+  "upper_tracks": [
+    "generic-upper",
+    "riscv-upper"
   ],
   "lean_root": "formal",
   "frameworks": [
@@ -190,8 +224,7 @@
       "title": "Generality 3/3",
       "status": "active",
       "description": "Arbitrary oracle algorithms with perfect correctness, signing failure at most 2^-128 and the fixed size, resource and security requirements.",
-      "lower_track": "generic-lower",
-      "upper_track": "generic-upper"
+      "lower_track": "generic-lower"
     },
     {
       "slug": "dag",

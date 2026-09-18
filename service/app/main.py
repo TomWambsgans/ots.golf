@@ -59,6 +59,7 @@ templates = Jinja2Templates(directory=APP_DIR / "templates")
 templates.env.filters["dt"] = lambda d: d.strftime("%Y-%m-%d %H:%M UTC") if d else ""
 templates.env.filters["date"] = lambda d: d.strftime("%Y-%m-%d") if d else ""
 templates.env.filters["short"] = lambda s: (s or "")[:10]
+templates.env.filters["cost_unit"] = contract.cost_unit
 MD_TAGS = {"p", "br", "hr", "strong", "em", "del", "code", "pre", "blockquote", "ul", "ol", "li", "a",
            "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead", "tbody", "tr", "th", "td"}
 
@@ -100,6 +101,7 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
     ctx.setdefault("generic_upper_track", contract.generic_upper_track())
+    ctx.setdefault("riscv_upper_track", contract.riscv_upper_track())
     ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.track_framework_title(t)}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
@@ -157,7 +159,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
     if track_config["kind"] == "upper" and track_config["framework"] != "generic":
         raise HTTPException(400, "Upper submissions require the generic algorithm framework. "
                             "Legacy DAG upper roots are closed reference certificates.")
-    if track_config["kind"] == "upper" and track_config != contract.generic_upper_track():
+    if track_config["kind"] == "upper" and track_config not in contract.upper_tracks():
         raise HTTPException(400, "The upper-bound challenge is not admitted in the pinned contract.")
     commit = commit.strip().lower()
     if not github.SHA_RE.fullmatch(commit):
@@ -312,11 +314,18 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                        "points": board["curve"] if board else []})
     upper_config = contract.generic_upper_track()
     upper = records.board(session, upper_config) if upper_config else None
+    riscv_config = contract.riscv_upper_track()
+    riscv = records.board(session, riscv_config) if riscv_config else None
+    riscv_series = [{"slug": "riscv-upper", "framework": "generic", "kind": "upper",
+                     "label": "RISC-V upper bound", "baseline": riscv_config["baseline"],
+                     "status": "certified", "points": riscv["curve"]}] if riscv else []
     series.insert(0, {"slug": "generic-upper", "framework": "generic", "kind": "upper",
                    "label": "Upper bound", "baseline": upper_config["baseline"] if upper_config else None,
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
-                  generic_upper=upper,
+                  generic_upper=upper, riscv_upper=riscv,
+                  riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="virtual cycles",
+                      chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
                   chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())
 
 

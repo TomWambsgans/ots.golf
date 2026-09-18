@@ -2,15 +2,16 @@
 {% block title %}Submission {{ sub.id[:8] }} · ots.golf{% endblock %}
 {% block content %}
 {% set legacy_upper = t.kind == 'upper' and framework.slug != 'generic' %}
-<p class="muted"><a href="/">Leaderboard</a> / {% if legacy_upper %}<a href="/rules#legacy-certificates">{{ framework_title }} reference certificate</a>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ framework.slug }}{% endif %}#{{ t.kind }}">{{ 'Upper bound' if t.kind == 'upper' else framework_title }}</a>{% endif %}</p>
+<p class="muted"><a href="/">Leaderboard</a> / {% if legacy_upper %}<a href="/rules#legacy-certificates">{{ framework_title }} reference certificate</a>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ framework.slug }}{% endif %}#{{ t.kind }}">{{ t.title if t.kind == 'upper' else framework_title }}</a>{% endif %}</p>
 <h1>{{ t.title }} submission <span class="status{% if not sub.detail_dict.get('demo') %} s-{{ sub.status }}{% endif %}">{{ 'demo' if sub.detail_dict.get('demo') else sub.status.replace('_', ' ') }}</span></h1>
 {% if legacy_upper %}<p class="submission-scope">Historical reference in {{ framework_title }} under the earlier DAG upper requirements.</p>{% else %}
 <p class="submission-scope">{% if t.kind == 'upper' %}An upper-bound construction must prove perfect correctness, signing failure at most 2<sup>−128</sup>, 127-bit strong security and all size and resource bounds.{% elif framework.slug == 'generic' %}This claim covers arbitrary oracle algorithms with perfect correctness, signing failure at most 2<sup>−128</sup>, and the stated resource and security requirements (Generality 3/3).{% elif framework.slug == 'disclosure' %}This claim covers DAG schemes built from 128-bit sources, 256-bit hashes, hash halves and concatenation. Hash inputs and disclosures contain only whole 128-bit words. Its record belongs to Generality 1/3.{% else %}This claim covers Generality 2/3: DAG schemes with arbitrary sharing and deterministic operations.{% endif %}
-<a href="/rules#{{ 'generic-upper' if t.kind == 'upper' else 'generic-algorithms' if framework.slug == 'generic' else 'whole-words' if framework.slug == 'disclosure' else 'graph' }}">Framework rules</a>.</p>
+{% if t.slug == 'riscv-upper' %} Its RISC-V implementation must match the oracle specification, terminate on every input, and meet its cycle bound on every accepting execution.{% endif %}
+<a href="/rules#{{ t.slug if t.kind == 'upper' else 'generic-algorithms' if framework.slug == 'generic' else 'whole-words' if framework.slug == 'disclosure' else 'graph' }}">Framework rules</a>.</p>
 {% endif %}
 {% if sub.detail_dict.get('demo') %}<p class="demo-note">Fictional local demo: attribution, score and timestamps are illustrative. Verification status: unverified.</p>{% endif %}
 <dl class="facts">
-  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} compression{{ '' if sub.claim == 1 else 's' }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">{{ 'demo record' if sub.detail_dict.get('demo') else 'record' }}</span>{% endif %}</dd>
+  <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} {{ t|cost_unit(sub.claim) }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">{{ 'demo record' if sub.detail_dict.get('demo') else 'record' }}</span>{% endif %}</dd>
   <dt>Submitter</dt><dd><a href="/solvers/{{ sub.user.login }}">{{ sub.user.login }}</a>{% for c in sub.co_authors_list %}, {{ c }}{% endfor %}</dd>
   {% if sub.assisted_by %}<dt>Assisted by</dt><dd>{{ sub.assisted_by }}</dd>{% endif %}
   {% if not sub.detail_dict.get('demo') %}<dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>{% endif %}

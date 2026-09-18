@@ -40,6 +40,7 @@ def track_state(session: Session, t: dict) -> dict:
     rec = current_record(session, t["slug"])
     return {
         "slug": t["slug"], "title": t["title"], "direction": t["direction"], "baseline": t["baseline"],
+        "cost_unit": contract.cost_unit(t),
         "record_claim": rec.claim if rec else t["baseline"],
         "record_verified": rec is not None,
         "record_demo": bool(rec and rec.detail_dict.get("demo")),

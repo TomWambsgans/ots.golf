@@ -45,12 +45,16 @@ direction. Scores appear as attributed submissions. Rules define the contract's 
 The Upper bound track (`generic-upper`) accepts any oracle algorithm. Its pinned construction
 proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong security, all size and
 resource limits, and a worst-case verification cost of 106 compressions. It has its own records,
-chart and leaderboard. The framework filter applies to lower submissions.
+chart and leaderboard. The RISC-V upper bound track (`riscv-upper`) scores a verified RV64IM
+verifier by its proved accepting-execution cycle bound; its pinned certificate costs 229113 virtual
+cycles. It has its own card, leaderboard and chart with an independent cycle axis, never combined
+with compression bounds. The framework filter applies to lower submissions.
 Legacy `upper` and `disclosure-upper` certificates and demos remain accessible under Historical
 DAG and Historical partial disclosures. Public admission to those roots is closed.
 Default localhost demos preserve the existing 19 rows and add a fictional Vitalik submission at
 the generic upper certificate's cost, followed by a fictional Satoshi improvement of one compression.
-Both carry demo labels and unverified status.
+Both carry demo labels and unverified status. A further fictional Satoshi row shows the RISC-V
+certificate's own cost with zero improvement.
 
 Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
@@ -69,8 +73,8 @@ retries delivery without repeating the proof. Attribution comes from the PR auth
 `Assisted by:` and `Co-authors:` lines, and the remaining description.
 
 For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
-use `.venv/bin/python -m app.queue lower`, substituting `generic-lower`, `disclosure-lower` or `generic-upper` as
-needed. `--baseline` queues a certificate for verification and local initialization.
+use `.venv/bin/python -m app.queue lower`, substituting `generic-lower`, `disclosure-lower`,
+`generic-upper` or `riscv-upper` as needed. `--baseline` queues a certificate for verification and local initialization.
 The two legacy upper slugs also work for local reference checks. Only one worker may use a data
 directory; lock files enforce this across processes on the same host.
 

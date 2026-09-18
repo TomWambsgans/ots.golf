@@ -37,13 +37,16 @@
           <tr><th scope="row">Verification</th><td><strong>Minimize worst-case compressions</strong></td></tr>
         </tbody>
       </table>
-      <p id="tracks">There are two tracks, both requiring a Lean-kernel-checked proof:</p>
+      <p id="tracks">{% if riscv_upper_track %}Each track requires{% else %}There are two tracks, both requiring{% endif %} a Lean-kernel-checked proof:</p>
       <ul>
         <li id="generic-upper"><strong>Upper bound.</strong> Construct a provably secure OTS using
         as few verification compressions as possible, and prove its worst-case cost is at most the claim.
         Any oracle algorithm is allowed; it must
         also meet the correctness, signing availability and resource requirements below.
         Smaller claims are better.</li>
+        {% if riscv_upper_track %}<li><a href="#riscv-upper"><strong>RISC-V upper bound.</strong></a>
+        Implement an OTS verifier in RISC-V, prove it implements the scheme, and minimize a proved
+        cycle bound for accepting executions.</li>{% endif %}
         <li><strong>Lower bound.</strong> Prove that <em>every</em> admissible OTS in a chosen class
         needs at least the claimed worst-case verification cost. Larger claims are better.</li>
       </ul>
@@ -68,15 +71,41 @@
       verification. They may use private randomness and adaptive queries. Whenever honest signing
       returns a signature, verification accepts with probability one. For every message chosen as
       a function of the public key, signing failure is at most <strong>2<sup>−128</sup></strong>
-      in both tracks. This probability averages over
+      {% if riscv_upper_track %}for every algorithm track{% else %}in both tracks{% endif %}. This probability averages over
       honest key generation and signing, starting from a fresh oracle.</p>
       <p>Signature encodings must be lossless.
       Every possible signer output fits in 5,504 bits; oversized signatures are always rejected.
-      Cost bounds hold on every path: signing for every secret key and message, verification for
-      every public key, message and signature, including rejection. A lower claim rules out every
+      Key-generation and signing budgets cover every execution path, with signing bounded for
+      every secret key and message. Verification compression claims cover every public key,
+      message and signature, including rejection.{% if riscv_upper_track %}
+      The separate RISC-V score bounds accepting cycles, as specified below.{% endif %} A lower claim rules out every
       smaller budget covering all these cases.</p>
     </div>
   </details>
+
+  {% if riscv_upper_track %}
+  <details id="riscv-upper">
+    <summary><h2>RISC-V upper bound: verified implementations</h2></summary>
+    <div class="more prose">
+      <p>Submit an OTS meeting the algorithm requirements above, together with a fixed RV64IM
+      verifier. Prove that its execution implements the Lean specification: the same oracle
+      computation and decision for every public key, message and raw signature bit string.
+      Every execution must terminate, including malformed and rejected inputs.</p>
+      <p>The claim bounds <strong>virtual cycles on every accepting execution</strong>, for every
+      input, oracle answer and random choice. Each ordinary instruction, randomness call and halt
+      costs one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
+      an <code>n</code>-bit input, with no additional instruction charge. It uses the same random
+      oracle as the OTS security experiment. Smaller certified bounds are better.</p>
+      <p>The pinned <a href="{{ source }}formal/OptimalOTS/RiscvMachine.lean">machine and ABI</a>
+      specify the admitted instructions, memory and loading rules. Buffers store least-significant
+      bytes and bits first; the loader supplies the raw public key, message and signature.
+      <code>HASH</code> reads the input pointer and bit length from <code>a0</code> and <code>a1</code>,
+      then writes 256 output bits at the aligned pointer in <code>a2</code>.
+      The image contains at most 262,144 instructions and 1 MiB of initial data.
+      These virtual cycles measure the specified machine, independently of processor hardware.</p>
+    </div>
+  </details>
+  {% endif %}
 
   <details id="dag-model">
     <summary><h2 id="graph">Lower bound · Generality 2/3: DAGs</h2></summary>
@@ -130,12 +159,13 @@
         setup instructions. Change only
         <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
         <code>formal/Submissions/DisclosureLower/</code>{% if generic_upper_track %} or
-        <code>formal/Submissions/GenericUpper/</code>{% endif %}.</li>
+        <code>formal/Submissions/GenericUpper/</code>{% endif %}{% if riscv_upper_track %}, or
+        <code>formal/Submissions/RiscvUpper/</code>{% endif %}.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
         from <code>Solution.lean</code>.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower --source .</code>
-        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %} or <code>generic-upper</code>{% endif %}), then open a pull request to the submissions repository.
+        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %}, <code>generic-upper</code>{% endif %}{% if riscv_upper_track %}, <code>riscv-upper</code>{% endif %}), then open a pull request to the submissions repository.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified strict improvement becomes the record when merged.</li>

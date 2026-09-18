@@ -1,7 +1,8 @@
 # ots.golf — submission rules
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
-one-time signatures, with three lower-bound frameworks and one fully generic upper track. The DAG model is
+one-time signatures, with three lower-bound frameworks and two upper tracks: a fully generic
+compression bound and a RISC-V implementation bound in virtual cycles. The DAG model is
 `formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 Submission requirements and current admission status are below. `challenges.json` describes the
 pinned certificates, including legacy upper references; `verifier/` runs the same proof checks as
@@ -19,6 +20,7 @@ formal/                      the Lean project (lake root)
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
   Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
   Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
+  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 229113
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -29,8 +31,10 @@ the trusted contract. A submission consists of one submission root's contents.
 ## Frameworks
 
 The three public lower classes are **Generality 3/3**, **Generality 2/3** and **Generality 1/3**,
-from broadest to most restricted, each with its own record. The single **Upper bound** track uses
-arbitrary oracle algorithms. All four public tracks are open.
+from broadest to most restricted, each with its own record. The **Upper bound** track uses
+arbitrary oracle algorithms, and the **RISC-V upper bound** track scores a verified machine
+implementation. Upper admission is listed in the top-level `upper_tracks` metadata, independently
+of the lower frameworks. All five public tracks are open.
 
 - **Generality 3/3** (`generic-lower`): arbitrary oracle programs, with certified lower bound 1.
   `Algorithm.lean` and `AlgorithmWeak.lean` define the protected interface. The lower challenge fixes
@@ -49,6 +53,11 @@ arbitrary oracle algorithms. All four public tracks are open.
   106 compressions. The challenge fixes perfect correctness, signing failure at most `2^-128`
   for every public-key-dependent message choice, the paper size and resource limits, and 127-bit
   strong unforgeability. Proofs live in `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
+- **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
+  with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
+  every raw input. The score is a proved bound on the virtual cycles of every accepting execution;
+  the checked construction costs 229113. Proofs live in `formal/Submissions/RiscvUpper/`; see
+  `docs/riscv-upper.md`.
 
 The DAG classes share the 256-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. See `docs/whole-words.md` for the definition and proof.
@@ -131,6 +140,23 @@ key generation and signing from a fresh oracle, for every message chosen as a fu
 public key. Verification cost covers every input
 and oracle-answer path, including rejection. A record needs claim ≤ record − 1.
 
+**RISC-V upper bound track** (`formal/Submissions/RiscvUpper/`, smaller is better):
+
+```lean
+noncomputable def OptimalOTS.Challenge.RiscvUpper.submission : Riscv.Submission := ...
+theorem OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate <claim> := ...
+```
+
+`Riscv.Submission` bundles the OTS algorithms, a fixed RV64IM image and a per-input fuel witness.
+The certificate proves the Upper bound admissibility and 127-bit strong security of the OTS, exact
+refinement of its Lean verifier by the machine's complete oracle computation on every public key,
+message and raw signature bit string, and at most `<claim>` virtual cycles on every accepting
+execution. Refinement excludes traps and fuel exhaustion, so every execution terminates, including
+rejections, which have no cycle bound. Ordinary instructions, RANDOM and HALT cost one cycle; HASH
+costs `max(1, ⌈bits / 512⌉)` on its exact input and uses the competition's single oracle. The
+machine, loader and system calls are fixed in `formal/OptimalOTS/RiscvMachine.lean`. A record
+needs claim ≤ record − 1.
+
 **Legacy partial-disclosure upper reference** (`formal/Submissions/DisclosureUpper/`):
 
 ```lean
@@ -146,7 +172,8 @@ The restricted lower root may additionally import `OptimalOTS.WholeWords` and
 `OptimalOTS.Disclosure`; the legacy partial-disclosure upper root may import `OptimalOTS.Disclosure`. Generic lower may
 additionally import `OptimalOTS.Algorithm` and `OptimalOTS.AlgorithmWeak`. Generic upper may
 additionally import `OptimalOTS.Algorithm`; all its construction and proof helpers must be siblings
-in its own submission root.
+in its own submission root. RISC-V upper may additionally import `OptimalOTS.Algorithm`,
+`OptimalOTS.RiscvMachine` and `OptimalOTS.Riscv`, with the same sibling rule.
 
 ## Rules for the submission root
 
@@ -155,6 +182,7 @@ in its own submission root.
 2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, `OptimalOTS.Disclosure` for the two
    historically named disclosure roots, `OptimalOTS.WholeWords` for whole-word lower,
    `OptimalOTS.Algorithm` for both generic tracks and `OptimalOTS.AlgorithmWeak` for generic lower,
+   `OptimalOTS.Algorithm`, `OptimalOTS.RiscvMachine` and `OptimalOTS.Riscv` for RISC-V upper,
    and sibling files of the same root as `Submissions.<Track>.<File>`.
 3. **Claim.** `claim.txt` holds one non-negative integer without leading zeros, at most 1,000,000,
    with at most one trailing newline. The verifier embeds this integer in the theorem it checks.
@@ -177,7 +205,7 @@ python3 verifier/verify.py lower --source .    # the full pipeline
 ```
 
 Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks, or by
-`generic-upper` for the upper track. The commands for `upper`
+`generic-upper` or `riscv-upper` for the upper tracks. The commands for `upper`
 and `disclosure-upper` still verify the preserved reference certificates locally.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
@@ -191,7 +219,7 @@ development only: its proof result does not certify production isolation or reso
 ## Submitting
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier, website and reference certificates.
-Competition PRs go to `leanEthereum/ots.golf-submissions`, which contains the four admitted roots
+Competition PRs go to `leanEthereum/ots.golf-submissions`, which contains the five admitted roots
 and a `.contract` submodule pinned to the core for local checking. From that repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.
 

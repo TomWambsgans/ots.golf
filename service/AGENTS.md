@@ -37,12 +37,16 @@ for a missing generic certificate. Lower leaderboards have separate
 rankings for generic algorithms, DAGs and whole words; `?framework=dag|disclosure|generic`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
-There is exactly one upper track, `generic-upper`, for fully generic algorithms. Its pinned
-106-cost construction proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong
-security and all size and resource bounds. Its chart, card and leaderboard use normal records
-from that track's metadata. Do not relabel legacy DAG upper submissions as generic. The chart has one upper line;
-the upper leaderboard has no framework filter. Reject public submissions to legacy DAG upper roots.
-Retain their proof files and historical pages as references, and preserve all existing demo rows.
+Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
+three lower frameworks. `generic-upper` is “Upper bound”, measured in compressions. `riscv-upper`
+is “RISC-V upper bound”, measured in virtual cycles on accepting executions; every execution
+must still terminate and refine the Lean oracle specification. Render the second card, chart,
+leaderboard and rules section only after its checked certificate is pinned and admitted. Its chart
+has an independent cycle axis: never combine virtual cycles with compression bounds. The
+compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
+filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
+Preserve all existing demo entries. The additional Satoshi RISC-V fixture has zero improvement
+relative to the checked claim, retains its demo label, and seeds only after admission.
 The `disclosure-upper` reference belongs to Historical partial disclosures, not Whole words.
 Use its `historical_framework_title` metadata on submission and solver pages. Its 16-bit tweaks
 violate the whole-word restrictions; never present it as a whole-word upper construction.
@@ -90,7 +94,7 @@ the iris of an eye, with a dark pupil and a small catchlight. The eye fills its 
 column. Choose a fresh random interval of four to eight seconds between blinks, and change the
 signature highlights only while the eye is fully closed. Pause automatic motion when the page
 is hidden or reduced motion is requested.
-Keep the homepage concise: the generic upper card shows
+Keep the homepage concise: each upper card shows
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”
 Keep the heading “One upper bound. Three lower bounds.” removed from the homepage.
@@ -100,7 +104,7 @@ Use “Upper bound” as the public track name throughout the site, not “Gener
 existing `generic-upper` identifier for URLs, data and verification. Show its score card before
 the three lower cards and draw its chart line solid. Explain in the rules that any oracle algorithm
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
-budgets, with worst-case verification cost as the quantity to minimize. Present the two tracks,
+budgets, with worst-case verification cost as the quantity to minimize. Present the upper tracks and lower direction,
 then the three lower classes; do not invent percentages for their degree of generality. Keep the
 WOTS+ illustration as a list of chains, showing a selected signature value on each message and
 checksum chain, with the remaining verification steps and per-step key/mask explanation. Do not restore
@@ -115,7 +119,8 @@ names in cards, charts, filters, leaderboards, rules and submission/profile page
 restrictions in the descriptions. Keep the existing slugs and Lean names. Historical upper
 references retain their historical names; the generality levels apply only to lower bounds.
 
-Keep all four homepage score cards compact, with compression units beside each lower score.
+Keep the homepage score cards compact, with the correct cost unit beside every score.
 Use “lossless encoding” in public prose for the contract's injective signature encoding.
 Name the bound direction explicitly in each score-card and framework rule heading. The algorithm
-rule section covers both the Upper bound track and Generality 3/3 lower bounds.
+rule section covers upper constructions and Generality 3/3 lower bounds; the RISC-V section states
+its machine, refinement, termination and accepting-cycle requirements.
