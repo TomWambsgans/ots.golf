@@ -67,7 +67,7 @@ local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
 For the website, run `uv sync --frozen` and `./run-local.sh` in `service/`.
-The local preview loads the committed [Satoshi/Vitalik demo fixtures](service/demo/submissions.json)
+The local preview loads the committed [Satoshi/Vitalik/Hal demo fixtures](service/demo/submissions.json)
 by default, including on a fresh clone with no database.
 See [service development](service/README.md)
 and the [production review](docs/production-readiness.md) for checks and deployment gates.

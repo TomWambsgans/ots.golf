@@ -194,7 +194,7 @@ class FrameworkTests(unittest.TestCase):
         cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'generic-upper']
         with patch.object(contract, 'load', return_value=cfg):
             self.assertIsNone(contract.generic_upper_track())
-            self.assertEqual(seed_demo.refresh(self.session), 19)
+            self.assertEqual(seed_demo.refresh(self.session), 23)
             self.assertEqual(seed_demo.refresh(self.session), 0)
             html = self.client.get('/').text
             self.assertIn('Admission pending', html)
@@ -206,18 +206,18 @@ class FrameworkTests(unittest.TestCase):
                                  None, [], None, None, None)
             self.assertEqual(caught.exception.status_code, 400)
 
-    def test_generic_upper_migration_preserves_all_nineteen_existing_demo_rows(self):
+    def test_generic_upper_migration_preserves_all_existing_demo_rows(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS[:-len(seed_demo.GENERIC_UPPER_ROWS)])
         self.session.commit()
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 19)
-        self.assertEqual(seed_demo.refresh(self.session), 2)
+        self.assertEqual(len(before), 23)
+        self.assertEqual(seed_demo.refresh(self.session), 3)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         for identifier, old in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 21)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 26)
 
     def test_refresh_restores_one_missing_fixture_in_an_existing_track(self):
         seed_demo.refresh(self.session)
@@ -285,7 +285,7 @@ class FrameworkTests(unittest.TestCase):
         demo = next(s for s in self.session.scalars(select(Submission)) if s.detail_dict.get("demo"))
         demo.claim = 999
         self.session.commit()
-        self.assertEqual(seed_demo.refresh(self.session), 13)
+        self.assertEqual(seed_demo.refresh(self.session), 16)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), sum(bool(contract.track(r[0])) for r in seed_demo.ROWS) + 1)

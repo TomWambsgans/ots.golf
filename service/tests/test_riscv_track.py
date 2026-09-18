@@ -83,7 +83,7 @@ class RiscvTrackTests(unittest.TestCase):
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['generic-upper']
         self.assertIsNone(contract.riscv_upper_track())
-        self.assertEqual(seed_demo.refresh(self.session), 21)
+        self.assertEqual(seed_demo.refresh(self.session), 26)
         self.assertNotIn('riscv-upper', self.client.get('/').text)
         self.assertNotIn('id="riscv-upper"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
@@ -91,16 +91,16 @@ class RiscvTrackTests(unittest.TestCase):
                              None, [], None, None, None)
         self.assertEqual(caught.exception.status_code, 400)
 
-    def test_machine_demo_migration_preserves_all_twenty_one_existing_entries(self):
+    def test_machine_demo_migration_preserves_all_existing_entries(self):
         self.config['upper_tracks'] = ['generic-upper']
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 21)
+        self.assertEqual(len(before), 26)
         self.config['upper_tracks'].append('riscv-upper')
         self.assertEqual(seed_demo.refresh(self.session), 1)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 22)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 27)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)

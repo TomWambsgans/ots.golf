@@ -60,7 +60,7 @@ macOS proof checks run unsandboxed for trusted local development. Production req
 and launch checks in service/deploy/README.md. Lower filters affect only lower leaderboards;
 the compression chart has three lower series and one Upper bound series; the RISC-V chart has its
 own cycle axis. Rules contain no current scores.
-Local Satoshi/Vitalik rows are clearly fictional demos, never verified submissions; preserve them
+Local Satoshi/Vitalik/Hal Finney rows are clearly fictional demos, never verified submissions; preserve them
 and refresh localhost after commits. Never push or deploy without authorization.
 
 - Core: https://github.com/leanEthereum/ots.golf-dev (site: https://ots.golf)

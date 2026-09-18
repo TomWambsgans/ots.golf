@@ -319,3 +319,9 @@ their tooltips, five leaderboard tables, folded rules and the eye animation
 (`/private/tmp/ots-final-browser.log`, screenshots in `/private/tmp/ots-final-browser/`).
 These macOS runs validate the proofs and presentation, not production isolation. Nothing was
 pushed or deployed; the submissions checkout is pinned to the local core commit.
+
+Hal Finney joins Satoshi and Vitalik as the third fictional contributor, with five fixture rows:
+the current Generality 2/3 demo record (21, after Satoshi's 20), a Generality 1/3 attempt at 94
+that did not beat the earlier record, an Upper bound row at the checked 106, and one mid-history
+102 record on each legacy upper reference. No earlier row, ID, date or record changes; the demo
+count tests now expect 27 rows with every track admitted.

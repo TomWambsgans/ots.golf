@@ -12,6 +12,12 @@
       "name": "Vitalik Buterin",
       "colour": "#6d5ce7",
       "initials": "VB"
+    },
+    {
+      "login": "hal-finney",
+      "name": "Hal Finney",
+      "colour": "#2a9d8f",
+      "initials": "HF"
     }
   ],
   "submissions": [
@@ -56,6 +62,16 @@
       "co_authors": []
     },
     {
+      "id": "upper-hal-finney-40",
+      "track": "upper",
+      "login": "hal-finney",
+      "improvement": 4,
+      "hours_ago": 40,
+      "is_record": true,
+      "assisted_by": "ELIZA",
+      "co_authors": []
+    },
+    {
       "id": "upper-vitalik-buterin-26",
       "track": "upper",
       "login": "vitalik-buterin",
@@ -93,6 +109,16 @@
       "hours_ago": 49,
       "is_record": true,
       "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "lower-hal-finney-35",
+      "track": "lower",
+      "login": "hal-finney",
+      "improvement": 3,
+      "hours_ago": 35,
+      "is_record": true,
+      "assisted_by": "ELIZA",
       "co_authors": []
     },
     {
@@ -146,6 +172,16 @@
       "co_authors": []
     },
     {
+      "id": "disclosure-upper-hal-finney-40",
+      "track": "disclosure-upper",
+      "login": "hal-finney",
+      "improvement": 4,
+      "hours_ago": 40,
+      "is_record": true,
+      "assisted_by": "ELIZA",
+      "co_authors": []
+    },
+    {
       "id": "disclosure-upper-vitalik-buterin-26",
       "track": "disclosure-upper",
       "login": "vitalik-buterin",
@@ -173,6 +209,16 @@
       "hours_ago": 123,
       "is_record": true,
       "assisted_by": "LLaMA 7B",
+      "co_authors": []
+    },
+    {
+      "id": "disclosure-lower-hal-finney-80",
+      "track": "disclosure-lower",
+      "login": "hal-finney",
+      "improvement": 1,
+      "hours_ago": 80,
+      "is_record": false,
+      "assisted_by": "ELIZA",
       "co_authors": []
     },
     {
@@ -233,6 +279,16 @@
       "hours_ago": 6,
       "is_record": true,
       "assisted_by": "GPT-2",
+      "co_authors": []
+    },
+    {
+      "id": "generic-upper-hal-finney-12",
+      "track": "generic-upper",
+      "login": "hal-finney",
+      "improvement": 0,
+      "hours_ago": 12,
+      "is_record": false,
+      "assisted_by": "ELIZA",
       "co_authors": []
     }
   ]

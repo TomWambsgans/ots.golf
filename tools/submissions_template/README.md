@@ -49,7 +49,7 @@ this repository; merging a submission does not modify the model or website in th
 
 ## Local website
 
-The core submodule includes the website and the committed Satoshi/Vitalik demo fixtures.
+The core submodule includes the website and the committed Satoshi/Vitalik/Hal demo fixtures.
 After cloning with `--recurse-submodules`, start the preview with:
 
 ```sh

@@ -51,7 +51,7 @@ The `disclosure-upper` reference belongs to Historical partial disclosures, not 
 Use its `historical_framework_title` metadata on submission and solver pages. Its 16-bit tweaks
 violate the whole-word restrictions; never present it as a whole-word upper construction.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
-Preserve Satoshi/Vitalik's existing demos. Generic lower includes Vitalik's demo at the checked
+Preserve Satoshi/Vitalik/Hal's existing demos. Generic lower includes Vitalik's demo at the checked
 claim, with no invented improvement beyond it. The card, chart point, leaderboard, submission page
 and solver profile must all refer to this same row.
 Generic upper adds its own Vitalik demo at the checked claim and a later Satoshi demo one compression

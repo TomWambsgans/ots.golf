@@ -13,7 +13,9 @@ These are website fixtures, not proof submissions. Checked Lean certificates liv
 `ots.golf-submissions`; fictional attribution and invented improvements do not establish a
 theorem. A demo score can match a checked certificate by using `improvement: 0`.
 
-The RISC-V Satoshi fixture has zero improvement and appears only when that track is admitted
+Hal Finney's rows never change an earlier record: his Generality 2/3 record follows Satoshi's,
+his other rows match without beating the record before them, and his legacy records sit between
+existing ones. The RISC-V Satoshi fixture has zero improvement and appears only when that track is admitted
 in the core metadata. Its score uses virtual cycles; the existing entries keep their original units.
 
 `OTS_DEMO_DATA=0` skips automatic seeding. `seed_demo.py --refresh` reconciles the fixtures

@@ -12,7 +12,7 @@ uv sync --frozen
 ./run-local.sh
 ```
 
-Open `http://localhost:8000`. Startup refreshes the fictional Satoshi Nakamoto and Vitalik Buterin
+Open `http://localhost:8000`. Startup refreshes the fictional Satoshi Nakamoto, Vitalik Buterin and Hal Finney
 submissions, preserving their IDs and dates. The page labels this as demo data. Claims follow the
 contract through the offsets in the committed [demo fixtures](demo/submissions.json); generic lower
 has a zero-offset Vitalik submission. A fresh clone recreates the board without a database dump.
@@ -54,7 +54,9 @@ DAG and Historical partial disclosures. Public admission to those roots is close
 Default localhost demos preserve the existing 19 rows and add a fictional Vitalik submission at
 the generic upper certificate's cost, followed by a fictional Satoshi improvement of one compression.
 Both carry demo labels and unverified status. A further fictional Satoshi row shows the RISC-V
-certificate's own cost with zero improvement.
+certificate's own cost with zero improvement. Hal Finney is the third fictional contributor: a
+Generality 2/3 demo record, a matching Generality 1/3 attempt, an Upper bound row at the checked
+cost, and one mid-history record on each legacy upper reference.
 
 Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
