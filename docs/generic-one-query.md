@@ -313,3 +313,43 @@ This argument does **not** establish a bound of 3. With two verifier queries,
 the second query can depend on the first answer, and acceptance is no longer
 the additive single-query expression (1). Extending this method would require
 a new analysis of those dependencies.
+
+## Statement audit for higher generic lower claims (2026-09-18)
+
+The exported statement is `AlgorithmVerificationLowerBound paperParams paperLimits (1 / 2 ^ 128) c`:
+for every `AlgorithmScheme paperParams` that is `Admissible paperLimits (1 / 2 ^ 128)` and
+`WeaklySecure`, every pathwise verification budget `v` satisfies `c ≤ v`. The following facts
+were checked against the protected definitions and the library semantics, so that a proof of
+`2` (or more) targets a meaningful statement rather than a modeling artifact.
+
+- **Not vacuous.** `Admissible paperLimits (1 / 2 ^ 128)` and `WeaklySecure` are jointly
+  satisfiable: the kernel-checked forest (`GenericUpperForest.admissible`, `GenericUpperForest.secure`
+  with `Secure.weaklySecure`) meets both with `VerifyCostAtMost 106`. Hence every claim `c ≤ 106`
+  says something about real schemes, and `c ≥ 107` is false. A proof of `2` cannot come from
+  unsatisfiable hypotheses.
+- **Cost one means one short query.** `blockCost P k = max 1 ⌈k / 512⌉ ≥ 1`, so `CostAtMost 1`
+  allows at most one hash query per path, of at most 512 input bits; uniform sampling costs zero
+  and is never cached. The finite query universe `Q` in Section 1 is therefore exact.
+- **One shared lazy table.** `oracleImpl` answers every hash query through `randomOracle`: a cached
+  answer if the input was queried before by any party, otherwise a fresh uniform 256-bit answer
+  that is then cached. The "fresh answers remain uniform after conditioning on a complete
+  transcript" step is a property of this implementation, not an extra assumption.
+- **Perfect correctness.** `Correct` requires rejection probability exactly zero for every
+  deterministic public-key-dependent message choice; constant choices give uniform messages by
+  averaging. `SigningFailureAtMost (1 / 2 ^ 128)` gives honest signing success at least one half,
+  as used by the existing certificate of 1 through `paper_lowerBound_one`.
+- **Attack budgets include honest parties.** `WeaklySecure` bounds success by `B / 2 ^ 127` for
+  every pathwise budget `B` of the whole experiment. The three attacks of Section 3 cost at most
+  `2K + s + 2 < 2 ^ 22`, so each security inequality contributes less than `2 ^ -105`.
+- **Weak security is the right target.** Every attack forges on a message other than the signed
+  one, as `weakExperiment` requires; strong security implies weak security, so a proved bound also
+  covers strongly secure schemes.
+- **Finite candidate sets.** `encodeSignature` is injective and `RejectsOversized 5504` rejects
+  longer encodings on every path, so the candidate set `C` of Section 1 is finite and all maxima
+  exist. Selections may be classical: only hash queries are charged.
+- **One harmless quirk.** A scheme admitting an adversary whose whole experiment is query-free
+  would need success below `0 / 2 ^ 127`, which is impossible, so such a scheme is insecure by
+  definition. Any scheme whose key generation hashes on every path is unaffected.
+
+No definition change is needed. The remaining work is proof engineering: the one-query
+normal-form lemma and the transcript lemma listed above, then the accounting of Section 4.
