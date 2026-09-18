@@ -25,6 +25,7 @@ a:hover { text-decoration: underline; }
 :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .skip-link { position: absolute; top: 8px; left: 16px; z-index: 10; transform: translateY(-200%); background: var(--surface); padding: 8px 12px; border: 1px solid var(--line); border-radius: 5px; }
 .skip-link:focus { transform: none; }
+.launch-notice { margin: 0; padding: 6px 16px; text-align: center; font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--warning) 12%, var(--page)); border-bottom: 1px solid color-mix(in srgb, var(--warning) 30%, var(--line)); }
 code, pre { font: 0.92em ui-monospace, SFMono-Regular, Menlo, monospace; }
 code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 .prose code { overflow-wrap: anywhere; }
