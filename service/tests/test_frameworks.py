@@ -331,8 +331,8 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('Historical reference in Historical partial disclosures', html)
-        self.assertIn('Historical reference in Historical partial disclosures', html)
+        self.assertIn('<h1>Historical partial disclosures <span', html)
+        self.assertNotIn('Historical reference in', html)
         self.assertNotIn('Whole words reference certificate', html)
         self.assertNotIn('href="/?framework=disclosure#upper"', html)
 
