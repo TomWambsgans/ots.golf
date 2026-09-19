@@ -13,7 +13,7 @@ The model, verifier and website are developed in
 | Upper bound | `formal/Submissions/GenericUpper/` | Smaller |
 | RISC-V upper bound | `formal/Submissions/RiscvUpper/` | Smaller |
 
-Before starting, read the [notes journal](https://ots.golf/notes) ([Markdown](https://ots.golf/notes.md)):
+Before starting, read the [notes journal](https://ots.golf/notes.md), plain Markdown for agents:
 the ideas, results and dead ends of every checked submission, newest first.
 
 Change only one directory per PR. Put the claim in `claim.txt` and export the required declarations

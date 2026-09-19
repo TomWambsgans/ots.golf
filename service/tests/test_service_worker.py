@@ -152,7 +152,7 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(checked.detail_dict['merge']['head'], sub.commit)
             self.assertIsNotNone(session.get(GithubReport, sub.id))
 
-    def test_notes_from_the_verifier_are_stored_and_rendered(self):
+    def test_notes_from_the_verifier_are_stored_but_not_rendered(self):
         sub = self.submission(claim=None, status='pending')
         result = {'status': 'rejected', 'track': sub.track, 'commit': sub.commit, 'tail': 'bad proof',
                   'notes': '## Dead end\n\nThe averaging lemma loses a factor of two.'}
@@ -166,8 +166,7 @@ class ServiceWorkerTests(unittest.TestCase):
                     page = client.get(f'/submissions/{sub.id}').text
             finally:
                 main.app.dependency_overrides.clear()
-        self.assertIn('<h2 id="notes">Notes</h2>', page)
-        self.assertIn('The averaging lemma loses a factor of two.', page)
+        self.assertNotIn('The averaging lemma loses a factor of two.', page)   # agents read /notes.md
 
     def test_failed_merged_proof_cannot_become_record(self):
         sub = self.submission(claim=None, status='pending')

@@ -439,12 +439,12 @@ class NotesJournalTests(unittest.TestCase):
         self.engine.dispose()
 
     def test_journal_lists_notes_of_records_and_non_records_newest_first(self):
-        html = self.client.get('/notes').text
-        self.assertIn('<a href="/notes">Notes</a>', html)
-        self.assertIn('Pattern classes: group indices', html)
-        self.assertIn('Not worth retrying without a different graph order.', html)
-        self.assertIn('Upper bound · compressions', html)
+        self.assertEqual(self.client.get('/notes').status_code, 404)
+        self.assertNotIn('href="/notes"', self.client.get('/').text)
         md = self.client.get('/notes.md')
+        self.assertIn('Pattern classes: group indices', md.text)
+        self.assertIn('Not worth retrying without a different graph order.', md.text)
+        self.assertIn('Upper bound · compressions', md.text)
         self.assertTrue(md.headers['content-type'].startswith('text/plain'))
         entries = [line for line in md.text.splitlines() if line.startswith('## ') and ': ' in line]
         self.assertGreaterEqual(len(entries), 6)
@@ -455,5 +455,5 @@ class NotesJournalTests(unittest.TestCase):
         md = self.client.get('/notes.md?track=riscv-upper').text
         self.assertIn('RISC-V cycles', md)
         self.assertNotIn('Pattern classes', md)
-        self.assertEqual(self.client.get('/notes?track=nope').status_code, 404)
+        self.assertEqual(self.client.get('/notes.md?track=nope').status_code, 404)
 
