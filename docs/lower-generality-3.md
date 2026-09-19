@@ -1,6 +1,6 @@
 # Generality 3/3: a lower bound for arbitrary oracle algorithms
 
-The `generic-lower` track has a certified lower bound of 1 for every correct, available,
+The `lower-generality-3` track has a certified lower bound of 1 for every correct, available,
 weakly 127-bit-secure oracle algorithm satisfying the paper's size and resource limits.
 Both algorithm challenges fix signing failure at most `2^-128`.
 
@@ -35,13 +35,13 @@ depend on its answer, so a larger lower bound requires a different attack.
 ## Checked certificate
 
 ```lean
-OptimalOTS.GenericLower.candidate :
+OptimalOTS.LowerGenerality3.candidate :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
 
-OptimalOTS.Challenge.GenericLower.candidate :
+OptimalOTS.Challenge.LowerGenerality3.candidate :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) 1
 
-OptimalOTS.GenericLower.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
+OptimalOTS.LowerGenerality3.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
   AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits ε 1
 ```
 
@@ -51,17 +51,17 @@ budget is at least `c`. The attack forges on a fresh message; `AlgorithmScheme.S
 proved in the submission root, bridges the strong hypothesis to the weak experiment the proof
 analyses.
 
-Files (proofs in the reference proof's `GenericLower` submission root):
+Files (proofs in the reference proof's `LowerGenerality3` submission root):
 
-- Protected `Algorithm.lean`: arbitrary algorithm interface and lower statement. The challenge
+- Protected `OracleAlgorithm.lean`: arbitrary algorithm interface and lower statement. The challenge
   fixes the paper limits and failure allowance.
-- `GenericLower/WeakSecurity.lean`: the fresh-message experiment and the
+- `LowerGenerality3/WeakSecurity.lean`: the fresh-message experiment and the
   strong-to-weak bridge.
-- `GenericLower/Costs.lean`: structural cost rules.
-- `GenericLower/ZeroQuery.lean`: independence of zero-cost verification from the cache.
-- `GenericLower/Proof.lean`: availability, public signature selection, fresh-message
+- `LowerGenerality3/Costs.lean`: structural cost rules.
+- `LowerGenerality3/ZeroQuery.lean`: independence of zero-cost verification from the cache.
+- `LowerGenerality3/Proof.lean`: availability, public signature selection, fresh-message
   attack, experiment cost and success, and the numerical contradiction.
-- `GenericLower/Solution.lean`: official export; `claim.txt` contains 1.
+- `LowerGenerality3/Solution.lean`: official export; `claim.txt` contains 1.
 
 The in-file axiom guard for `candidate` accepts exactly `propext`, `Classical.choice` and
 `Quot.sound`. The protected file contains the definitions, not the lower-bound proof; all proof
@@ -70,7 +70,7 @@ code is in the ordinary submission root.
 Generic lower submission command, from the core with a submissions checkout:
 
 ```sh
-python3 verifier/verify.py generic-lower --source ../ots.golf-submissions
+python3 verifier/verify.py lower-generality-3 --source ../ots.golf-submissions
 ```
 
 The generic lower challenge pins the `2^-128` failure allowance. Its certificate applies the

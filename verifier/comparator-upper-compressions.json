@@ -1,0 +1,12 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.UpperCompressions",
+  "solution_module": "Submissions.UpperCompressions.Solution",
+  "theorem_names": [
+    "OptimalOTS.Challenge.UpperCompressions.admissible",
+    "OptimalOTS.Challenge.UpperCompressions.secure",
+    "OptimalOTS.Challenge.UpperCompressions.cost"
+  ],
+  "definition_names": ["OptimalOTS.Challenge.UpperCompressions.scheme"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

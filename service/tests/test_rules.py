@@ -33,7 +33,7 @@ class RulesTests(unittest.TestCase):
 
     def test_rules_preserve_framework_links_and_admission_scope(self):
         html = self.rules_body()
-        for anchor in ('generic-algorithms', 'generic-upper', 'graph', 'partial-disclosures', 'whole-words',
+        for anchor in ('generic-algorithms', 'upper-compressions', 'graph', 'partial-disclosures', 'whole-words',
                        'legacy-certificates', 'hash', 'security', 'params', 'cut', 'play', 'rules',
                        'generic-admissibility', 'dag-model', 'whole-word-model', 'submission-format'):
             self.assertIn(f'id="{anchor}"', html)
@@ -49,12 +49,12 @@ class RulesTests(unittest.TestCase):
         self.assertIn('with probability at most <strong>2<sup>−128</sup></strong>', html)
         self.assertIn('verification accepts with probability one', html)
         self.assertIn('for any message.</p>', html)
-        self.assertIn('formal/Submissions/GenericUpper/', html)
-        self.assertIn('formal/Submissions/GenericLower/', html)
+        self.assertIn('formal/Submissions/UpperCompressions/', html)
+        self.assertIn('formal/Submissions/LowerGenerality3/', html)
         self.assertNotIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
-        self.assertIn('formal/OptimalOTS/Statement.lean', html)
-        self.assertIn('formal/OptimalOTS/Algorithm.lean', html)
+        self.assertIn('formal/OptimalOTS/Dag.lean', html)
+        self.assertIn('formal/OptimalOTS/OracleAlgorithm.lean', html)
         self.assertIn('formal/OptimalOTS/WholeWords.lean', html)
 
     def test_whole_word_rules_keep_word_sizes_and_two_hash_halves(self):
@@ -71,9 +71,9 @@ class RulesTests(unittest.TestCase):
              patch.object(settings, 'submissions_repo', 'org/entries'):
             html = self.rules_body()
         self.assertIn('href="https://github.com/org/entries">the submissions repository</a>', html)
-        self.assertIn('href="https://github.com/org/core/blob/main/formal/OptimalOTS/Statement.lean"', html)
+        self.assertIn('href="https://github.com/org/core/blob/main/formal/OptimalOTS/Dag.lean"', html)
         self.assertNotIn('https://github.com/org/entries/blob/', html)
-        self.assertIn('python3 .contract/verifier/verify.py lower --source .', html)
+        self.assertIn('python3 .contract/verifier/verify.py lower-generality-2 --source .', html)
 
     def test_localhost_links_use_the_new_repositories_without_opening_admission(self):
         with patch.object(settings, 'submissions_repo', ''):

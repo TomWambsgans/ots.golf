@@ -1,4 +1,4 @@
-import OptimalOTS.Statement
+import OptimalOTS.Dag
 
 /-!
 # Whole-word DAG schemes
@@ -11,7 +11,7 @@ reorder or group values, including the empty list. Every value therefore consist
 complete value.
 
 Everything else (cuts, signing, verification, the oracle, costs, size limits and security) is
-the DAG model of `Statement.lean`; in particular a hash input of any length pays its full
+the DAG model of `Dag.lean`; in particular a hash input of any length pays its full
 compression cost.
 -/
 

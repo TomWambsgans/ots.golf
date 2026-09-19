@@ -61,9 +61,9 @@ Code is immutable. Parsing, arithmetic, copying and comparison run inside the ma
 
 ## Certified submission
 
-The reference proof, a `RiscvUpper` submission root in the submissions repository, contains the
+The reference proof, a `UpperRiscv` submission root in the submissions repository, contains the
 checked certificate
-`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 1628`, exported from
+`OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate 1628`, exported from
 `Solution.lean` with `claim.txt` at 1628. It uses only `propext`, `Classical.choice` and
 `Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
 

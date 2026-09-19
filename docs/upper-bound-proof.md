@@ -1,6 +1,6 @@
 # The upper-bound proof: architecture
 
-The legacy upper reference proof (the `Upper` submission root, in the submissions repository) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
+The legacy upper reference proof (the `ReferenceGenerality2` submission root, in the submissions repository) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
 21 group digests, 7 subtree digests, one root) with
 
 ```
@@ -8,7 +8,7 @@ theorem forestScheme_secure : forestScheme.Secure
 theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
-(exported as `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost` in `Solution.lean`).
+(exported as `OptimalOTS.Challenge.ReferenceGenerality2.scheme`, `secure`, `cost` in `Solution.lean`).
 
 The contract offers a single random oracle on bit strings: no labels, no tweaks. The scheme therefore
 prepends a 16-bit tweak `tw h` (the index of the hash node `h`) to every hash input, through one extra
@@ -88,4 +88,4 @@ assume `N ≤ 2^127`.
 
 ## Files
 
-See the table in the root's `Upper/README.md`; the module names are `Submissions.Upper.<File>`.
+See the table in the root's `ReferenceGenerality2/README.md`; the module names are `Submissions.ReferenceGenerality2.<File>`.

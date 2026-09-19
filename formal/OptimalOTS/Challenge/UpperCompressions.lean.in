@@ -1,8 +1,8 @@
-import OptimalOTS.Algorithm
+import OptimalOTS.OracleAlgorithm
 
-/-! Upper bound in compressions: an oracle-algorithm scheme (`Algorithm.lean`). -/
+/-! Upper bound in compressions: an oracle-algorithm scheme (`OracleAlgorithm.lean`). -/
 
-namespace OptimalOTS.Challenge.GenericUpper
+namespace OptimalOTS.Challenge.UpperCompressions
 
 /-- The submitted key-generation, signing, and verification algorithms. -/
 noncomputable def scheme : AlgorithmScheme paperParams := sorry
@@ -18,4 +18,4 @@ theorem secure : scheme.Secure := sorry
 /-- Verification costs at most `{{CLAIM}}` compressions on every input and oracle-answer path. -/
 theorem cost : scheme.VerifyCostAtMost {{CLAIM}} := sorry
 
-end OptimalOTS.Challenge.GenericUpper
+end OptimalOTS.Challenge.UpperCompressions

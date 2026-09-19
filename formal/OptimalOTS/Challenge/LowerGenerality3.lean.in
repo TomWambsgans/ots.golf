@@ -1,12 +1,12 @@
-import OptimalOTS.Algorithm
+import OptimalOTS.OracleAlgorithm
 
-/-! Generality 3/3 lower bound: oracle-algorithm schemes (`Algorithm.lean`). -/
+/-! Generality 3/3 lower bound: oracle-algorithm schemes (`OracleAlgorithm.lean`). -/
 
-namespace OptimalOTS.Challenge.GenericLower
+namespace OptimalOTS.Challenge.LowerGenerality3
 
 /-- Every admissible (signing failure at most `2⁻¹²⁸`, the competition's limits), secure scheme
 needs a verification budget of at least `{{CLAIM}}` compressions. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) {{CLAIM}} := sorry
 
-end OptimalOTS.Challenge.GenericLower
+end OptimalOTS.Challenge.LowerGenerality3

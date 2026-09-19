@@ -1,12 +1,15 @@
-import OptimalOTS.Statement
+import OptimalOTS.WholeWords
 
-/-! Reference certificate, closed to public submissions: a secure DAG scheme, showing that the
-Generality 2/3 class is not empty. -/
+/-! Reference certificate, closed to public submissions: a secure whole-word DAG scheme, showing
+that the Generality 1/3 class is not empty. -/
 
-namespace OptimalOTS.Challenge.Upper
+namespace OptimalOTS.Challenge.ReferenceGenerality1
 
 /-- A DAG scheme with the competition's parameters. -/
 noncomputable def scheme : Scheme paperParams := sorry
+
+/-- The scheme is in the whole-word class. -/
+theorem wholeWords : scheme.graph.WholeWords := sorry
 
 /-- Strong unforgeability in the shared random-oracle experiment. -/
 theorem secure : scheme.Secure := sorry
@@ -14,4 +17,4 @@ theorem secure : scheme.Secure := sorry
 /-- Verification at every signature index costs at most `{{CLAIM}}` compressions. -/
 theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ {{CLAIM}} := sorry
 
-end OptimalOTS.Challenge.Upper
+end OptimalOTS.Challenge.ReferenceGenerality1

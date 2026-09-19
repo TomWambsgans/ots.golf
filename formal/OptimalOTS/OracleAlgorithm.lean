@@ -1,10 +1,10 @@
-import OptimalOTS.Statement
+import OptimalOTS.Dag
 
 /-!
 # One-time signatures as oracle algorithms
 
 The model of the Generality 3/3 lower bound and of both upper bounds (compressions and RISC-V
-cycles). A scheme is three oracle programs that share the random oracle of `Statement.lean` and
+cycles). A scheme is three oracle programs that share the random oracle of `Dag.lean` and
 pay its compression costs; all other computation is free. Key generation and signing may use
 private randomness; verification may not. `Admissible` collects every requirement except
 security.

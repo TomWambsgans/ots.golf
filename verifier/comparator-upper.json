@@ -1,8 +1,0 @@
-{
-  "challenge_module": "OptimalOTS.Challenge.Upper",
-  "solution_module": "Submissions.Upper.Solution",
-  "theorem_names": ["OptimalOTS.Challenge.Upper.secure", "OptimalOTS.Challenge.Upper.cost"],
-  "definition_names": ["OptimalOTS.Challenge.Upper.scheme"],
-  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
-  "enable_nanoda": false
-}

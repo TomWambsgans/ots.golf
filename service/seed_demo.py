@@ -40,9 +40,9 @@ FIXTURE_IDS = {(r[0], r[1], r[3]): fixture["id"]
                for r, fixture in zip(ROWS, FIXTURES["submissions"])}
 if len(set(FIXTURE_IDS.values())) != len(ROWS) or len(FIXTURE_IDS) != len(ROWS):
     raise ValueError("demo fixtures must have unique IDs and dates per author/track")
-BASE_ROWS = [r for r in ROWS if r[0] in {"upper", "lower"}]
-GENERIC_ROWS = [r for r in ROWS if r[0] == "generic-lower"]
-GENERIC_UPPER_ROWS = [r for r in ROWS if r[0] == "generic-upper"]
+BASE_ROWS = [r for r in ROWS if r[0] in {"reference-generality-2", "lower-generality-2"}]
+GENERIC_ROWS = [r for r in ROWS if r[0] == "lower-generality-3"]
+UPPER_COMPRESSIONS_ROWS = [r for r in ROWS if r[0] == "upper-compressions"]
 
 
 def fixture_id(row) -> str:
@@ -115,7 +115,7 @@ def add_rows(session, rows) -> int:
     """Insert only the requested demo rows; leave real submissions untouched."""
     # Metadata is the admission gate. A new demo track appears only after its certificate is pinned.
     rows = [row for row in rows if contract.track(row[0])
-            and (row[0] != "riscv-upper" or contract.riscv_upper_track())]
+            and (row[0] != "upper-riscv" or contract.upper_riscv_track())]
     users = demo_users(session)
     for track, login, claim, hours_ago, status, is_record, assisted, coauthors in rows:
         t = NOW - timedelta(hours=hours_ago)

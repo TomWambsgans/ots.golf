@@ -82,7 +82,7 @@
   });
 
   var upperButtons = document.querySelectorAll('.upper-btn');
-  var upperBoards = document.querySelectorAll('.generic-upper-board[data-upper]');
+  var upperBoards = document.querySelectorAll('.upper-board[data-upper]');
   upperButtons.forEach(function (button) {
     button.addEventListener('click', function () {
       upperButtons.forEach(function (other) { other.setAttribute('aria-pressed', String(other === button)); });

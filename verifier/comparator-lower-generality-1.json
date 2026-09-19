@@ -1,0 +1,13 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.LowerGenerality1",
+  "solution_module": "Submissions.LowerGenerality1.Solution",
+  "theorem_names": [
+    "OptimalOTS.Challenge.LowerGenerality1.candidate"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

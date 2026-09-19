@@ -2,10 +2,10 @@ import OptimalOTS.WholeWords
 
 /-! Generality 1/3 lower bound: DAG schemes built from whole 128-bit words (`WholeWords.lean`). -/
 
-namespace OptimalOTS.Challenge.DisclosureLower
+namespace OptimalOTS.Challenge.LowerGenerality1
 
 /-- Every secure whole-word DAG scheme has a signature index whose verification costs at least
 `{{CLAIM}}` compressions. -/
 theorem candidate : WholeWordVerificationLowerBound paperParams {{CLAIM}} := sorry
 
-end OptimalOTS.Challenge.DisclosureLower
+end OptimalOTS.Challenge.LowerGenerality1

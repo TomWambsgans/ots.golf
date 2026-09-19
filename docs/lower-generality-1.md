@@ -1,8 +1,7 @@
 # Generality 1/3: whole-word DAGs
 
 Generality 1/3 is `WholeWordVerificationLowerBound paperParams c`, defined in
-`formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class; the historical
-`disclosure-lower` URL, submission root and export namespace are retained. There are two upper
+`formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class. There are two upper
 tracks, both for generic algorithms: compressions and RISC-V cycles.
 
 ## Exact restriction
@@ -54,11 +53,11 @@ fails at 94. The optimal bound remains open.
 ## Certificate and checks
 
 ```lean
-OptimalOTS.Challenge.DisclosureLower.candidate :
+OptimalOTS.Challenge.LowerGenerality1.candidate :
   WholeWordVerificationLowerBound paperParams 93
 ```
 
-The proof is the reference proof's `DisclosureLower` submission root.
+The proof is the reference proof's `LowerGenerality1` submission root.
 `WholeWordOrigins.lean` derives the origin bound. `DisclosurePatterns.lean` and
 `OrderedCounting.lean` prove the combinatorial bound. The `Averaged*` modules establish the
 exact attack probabilities and cost contradiction. `Solution.lean` assembles the theorem and
@@ -66,9 +65,9 @@ checks that its only axioms are `propext`, `Classical.choice`, and `Quot.sound`.
 
 Exact numerical check: `python3 tools/tune_lower_bound.py --method words --claims 93,94`.
 Official pipeline, from the core with a submissions checkout:
-`python3 verifier/verify.py disclosure-lower --source ../ots.golf-submissions`.
+`python3 verifier/verify.py lower-generality-1 --source ../ots.golf-submissions`.
 
 Constant words matter for the class to be non-empty: without them no hash input can carry a
 domain-separation tweak, and a revealed value hashed alone admits cheap second preimages. With
 them, the 106-cost forest uses 128-bit tweak words in place of its 16-bit tweaks; the
-`whole-words-upper` reference proof (a `WholeWordsUpper` root) proves such a scheme secure.
+`reference-generality-1` reference proof (a `ReferenceGenerality1` root) proves such a scheme secure.

@@ -1,9 +1,0 @@
-{
-  "challenge_module": "OptimalOTS.Challenge.WholeWordsUpper",
-  "solution_module": "Submissions.WholeWordsUpper.Solution",
-  "theorem_names": ["OptimalOTS.Challenge.WholeWordsUpper.wholeWords", "OptimalOTS.Challenge.WholeWordsUpper.secure",
-                    "OptimalOTS.Challenge.WholeWordsUpper.cost"],
-  "definition_names": ["OptimalOTS.Challenge.WholeWordsUpper.scheme"],
-  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
-  "enable_nanoda": false
-}

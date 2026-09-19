@@ -27,23 +27,23 @@ real submissions alone, so it is safe while the worker is running.
 
 The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
 plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
-`generic-lower`, with signing failure at most `2^-128` for every public-key-dependent
+`lower-generality-3`, with signing failure at most `2^-128` for every public-key-dependent
 message selection, matching the upper track. Do not hardcode a separate generic
 foundation certificate or show lower admission as pending. If a future framework has no checked
 certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
 for a missing generic certificate. Lower leaderboards have separate
-rankings for generic algorithms, DAGs and whole words; `?framework=dag|disclosure|generic`
+rankings for generic algorithms, DAGs and whole words; `?framework=generality-1|generality-2|generality-3`
 filters those lower tables only. Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
-three lower frameworks. `generic-upper` is “Upper bound”, measured in compressions. `riscv-upper`
+three lower frameworks. `upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv`
 is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
 execution must terminate and refine the Lean oracle specification. Render the second card, chart,
 leaderboard and rules section only while the track is admitted in the metadata. Its chart
 has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
-The legacy `upper` reference uses its `historical_framework_title` metadata on submission and
+The legacy `reference-generality-2` reference uses its `historical_framework_title` metadata on submission and
 solver pages.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
 Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,
@@ -64,7 +64,7 @@ deterministic operations, smaller fragments or encodings are admitted. Hashing a
 allowed and charged. Hash inputs have no fixed arity;
 charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 128-bit nonce.
 The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
-Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`DisclosureLower`, with
+Whole-word lower uses the slug/root `lower-generality-1`/`LowerGenerality1`, with
 demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.
@@ -92,8 +92,8 @@ Do not restore the removed paragraph beginning “Each lower-bound class has its
 Keep the heading “One upper bound. Three lower bounds.” removed from the homepage.
 Keep the “Local demo leaderboard” explanatory banner removed; retain individual demo tags.
 
-Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Keep the
-existing `generic-upper` identifier for URLs, data and verification. Show its score card before
+Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Use the
+`upper-compressions` identifier for URLs, data and verification. Show its score card before
 the three lower cards and draw its chart line solid. Explain in the rules that any oracle algorithm
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
 budgets, with worst-case verification cost as the quantity to minimize. Present the upper tracks and lower direction,

@@ -6,9 +6,9 @@ may declare an axiom.
     lake env lean scripts/check-axioms.lean
 -/
 import Lean
-import OptimalOTS.Statement
+import OptimalOTS.Dag
 import OptimalOTS.WholeWords
-import OptimalOTS.Algorithm
+import OptimalOTS.OracleAlgorithm
 import OptimalOTS.Riscv
 
 open Lean

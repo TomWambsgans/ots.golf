@@ -1,7 +1,7 @@
 # Historical partial disclosures from 46 hash outputs
 
 This document records the former third framework and its verification at commit `84c5fd2`.
-The active third lower framework is now [whole words](../whole-words.md). Its retained
+The active third lower framework is now [whole words](../lower-generality-1.md). Its retained
 `disclosure-lower` slug and root export a different, explicitly pinned contract. The historical
 `disclosure-upper` certificate remains locally verifiable and is not a whole-word construction.
 The scores, commands and website descriptions below describe that earlier milestone.
@@ -100,7 +100,7 @@ pages only. These invented claims are separate from the kernel-verified baseline
 refreshes localhost and adapts demo claims automatically.
 
 The website has three lower-bound frameworks and one fully generic upper track. The chart shows
-three lower series, now including the separate [checked generic lower bound of 1](../generic-lower.md)
+three lower series, now including the separate [checked generic lower bound of 1](../lower-generality-3.md)
 for correct schemes whose signing succeeds at least half the time, plus a single
 106-cost generic adapter candidate. The candidate is not an admitted upper record: correctness and
 signing availability remain to be proved. Lower framework filters do not split the upper track.

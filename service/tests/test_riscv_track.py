@@ -23,11 +23,11 @@ import seed_demo
 class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
         self.config = copy.deepcopy(contract.load())
-        machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
-        machine.update(slug='riscv-upper', title='RISC-V upper bound',
-                       cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
-        self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
-        self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
+        machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'upper-compressions'))
+        machine.update(slug='upper-riscv', title='RISC-V upper bound',
+                       cost_unit='cycles', submission_root='formal/Submissions/UpperRiscv')
+        self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'upper-riscv'] + [machine]
+        self.config['upper_tracks'] = ['upper-compressions', 'upper-riscv']
         for framework in self.config['frameworks']:
             framework.pop('upper_track', None)
         self.config_patch = patch.object(contract, 'load', return_value=self.config)
@@ -69,16 +69,16 @@ class RiscvTrackTests(unittest.TestCase):
                           (1628, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
-        self.assertIn('data-track="riscv-upper"', html)
-        self.assertIn('id="riscv-upper-title"', html)
+        self.assertIn('data-track="upper-riscv"', html)
+        self.assertIn('id="upper-riscv-title"', html)
         self.assertNotIn('lower-bound frameworks.</p>', html)
         self.assertNotIn('Accepting verification cost', html)
-        self.assertIn('id="riscv-upper-board-title"', html)
-        self.assertIn('id="generic-upper-title"', html)
+        self.assertIn('id="upper-riscv-board-title"', html)
+        self.assertIn('id="upper-compressions-title"', html)
         self.assertEqual(len(re.findall('class="framework-card ', html)), 3)
         charts = [ET.fromstring(svg) for svg in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)]
         self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'cycles'])
-        self.assertEqual(charts[1].find('./g').get('data-series'), 'riscv-upper')
+        self.assertEqual(charts[1].find('./g').get('data-series'), 'upper-riscv')
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
@@ -92,30 +92,30 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertIn('cycles', profile)
 
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
-        self.config['upper_tracks'] = ['generic-upper']
-        self.assertIsNone(contract.riscv_upper_track())
+        self.config['upper_tracks'] = ['upper-compressions']
+        self.assertIsNone(contract.upper_riscv_track())
         self.assertEqual(seed_demo.refresh(self.session), 47)
-        self.assertNotIn('riscv-upper', self.client.get('/').text)
-        self.assertNotIn('id="riscv-upper"', self.client.get('/rules').text)
+        self.assertNotIn('upper-riscv', self.client.get('/').text)
+        self.assertNotIn('id="upper-riscv"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
-            queue_submission(self.session, User(login='tester'), 'riscv-upper', 'local', 'a' * 40,
+            queue_submission(self.session, User(login='tester'), 'upper-riscv', 'local', 'a' * 40,
                              None, [], None, None, None)
         self.assertEqual(caught.exception.status_code, 400)
 
     def test_machine_demo_migration_preserves_all_existing_entries(self):
-        self.config['upper_tracks'] = ['generic-upper']
+        self.config['upper_tracks'] = ['upper-compressions']
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
         self.assertEqual(len(before), 47)
-        self.config['upper_tracks'].append('riscv-upper')
+        self.config['upper_tracks'].append('upper-riscv')
         self.assertEqual(seed_demo.refresh(self.session), 18)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         self.assertEqual(len(list(self.session.scalars(select(Submission)))), 65)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)
-        rows = list(self.session.scalars(select(Submission).where(Submission.track == 'riscv-upper')))
+        rows = list(self.session.scalars(select(Submission).where(Submission.track == 'upper-riscv')))
         self.assertEqual(len(rows), 18)
         machine = min(rows, key=lambda r: r.claim)
         self.assertEqual(machine.claim, 1628)
@@ -123,26 +123,26 @@ class RiscvTrackTests(unittest.TestCase):
 
     def test_rules_state_every_execution_bound_and_total_spec_refinement_without_scores(self):
         html = self.client.get('/rules').text
-        section = re.search(r'<details id="riscv-upper">.*?</details>', html, re.S).group(0)
+        section = re.search(r'<details id="upper-riscv">.*?</details>', html, re.S).group(0)
         for phrase in ('every execution, accepting or rejecting', 'Every execution must terminate',
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)
         self.assertNotIn('1628', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
-        self.assertIn('formal/Submissions/RiscvUpper/', html)
-        self.assertIn('<code>riscv-upper</code>', html)
+        self.assertIn('formal/Submissions/UpperRiscv/', html)
+        self.assertIn('<code>upper-riscv</code>', html)
 
     def test_machine_admission_is_independent_of_lower_framework_links(self):
         self.assertTrue(all(set(contract.framework_tracks(f['slug'])) == {'lower'}
                             for f in self.config['frameworks']))
-        self.assertEqual([t['slug'] for t in contract.upper_tracks()], ['generic-upper', 'riscv-upper'])
+        self.assertEqual([t['slug'] for t in contract.upper_tracks()], ['upper-compressions', 'upper-riscv'])
         user = User(login='machine-solver')
         self.session.add(user)
         self.session.commit()
-        sub = queue_submission(self.session, user, 'riscv-upper', 'local', 'a' * 40,
+        sub = queue_submission(self.session, user, 'upper-riscv', 'local', 'a' * 40,
                                'Machine proof', [], None, None, None)
-        self.assertEqual((sub.track, sub.status), ('riscv-upper', 'pending'))
+        self.assertEqual((sub.track, sub.status), ('upper-riscv', 'pending'))
         self.assertIn(f'href="/submissions/{sub.id}"', self.client.get('/').text)
 
 

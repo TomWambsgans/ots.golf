@@ -86,7 +86,7 @@ Run these with the public webhook disconnected and the production configuration 
      export PATH="$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin"
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
-     for t in generic-lower lower disclosure-lower upper whole-words-upper generic-upper riscv-upper; do
+     for t in lower-generality-1 lower-generality-2 lower-generality-3 reference-generality-2 reference-generality-1 upper-compressions upper-riscv; do
        python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
      done'
    ```
@@ -118,7 +118,7 @@ Run these with the public webhook disconnected and the production configuration 
    rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it adds nothing, and every
    board starts empty until the first verified, merged submission of its track becomes the record.
    The legacy upper tracks are local references, not public upper leaderboards; the public upper
-   tracks are `generic-upper` and `riscv-upper`.
+   tracks are `upper-compressions` and `upper-riscv`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.

@@ -63,7 +63,7 @@ malleability of a signature on the signed message.
 
 ## Generic and whole-word contracts
 
-`Algorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
+`OracleAlgorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
 perfect correctness, deterministic verification (`Admissible.verifyDeterministic`), signing
 availability, pathwise resource limits, oversized-signature rejection and the generic lower
 statement. The fresh-message experiment used by the generic lower proof lives in its submission
@@ -77,15 +77,15 @@ same programs and exact security experiment as the historical DAG construction. 
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
 the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
-function of the public key. Its proofs form an independent `GenericUpper` submission
-root; the legacy `Upper` root is separate. See [the proof map](generic-upper.md).
+function of the public key. Its proofs form an independent `UpperCompressions` submission
+root; the legacy `ReferenceGenerality2` root is separate. See [the proof map](upper-compressions.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
 words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
 Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
 The resulting certificate proves 93, using the same weak-security experiment.
-The `whole-words-upper` reference certificate is a checked whole-word upper construction at 106.
+The `reference-generality-1` reference certificate is a checked whole-word upper construction at 106.
 
 `formal/scripts/check-axioms.lean` imports every protected model module, rejects declared axioms
 throughout those modules, and audits the declarations (`contractDecls`) fixing the meaning of all
@@ -100,7 +100,7 @@ certificate proves Upper bound admissibility and strong security of the OTS, exa
 its Lean verifier by the machine's oracle computation on every raw input (no trap or fuel
 exhaustion), and a cycle bound on every execution, accepting or rejecting.
 `formal/scripts/check-riscv.lean` holds kernel-checked boundary tests of the machine. See
-[the track notes](riscv-upper.md).
+[the track notes](upper-riscv.md).
 
 ## DAG certificate status and open proof work
 
@@ -135,7 +135,7 @@ these counterexamples. Details:
 - [Construction analysis](research/bare-oracle-construction-analysis.md).
 - [Conditional numerics](research/bare-oracle-numerics.md): the simple proposed-24 point has
   numerical slack, but its missing mathematical hypotheses prevent certification.
-- [Final bare-oracle report](archive/bare-oracle-lower-report.md) and [proof map](lower-bound-proof.md).
+- [Final bare-oracle report](archive/bare-oracle-lower-report.md) and [proof map](lower-generality-2.md).
 
 The repeated-pattern proof establishes 18. Bounds 19 through 25 remain open in
 the bare model. In particular, the number of subsets of at most 16 non-root hash

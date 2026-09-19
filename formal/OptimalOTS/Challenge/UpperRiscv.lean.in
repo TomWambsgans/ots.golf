@@ -3,7 +3,7 @@ import OptimalOTS.Riscv
 /-! Upper bound in RISC-V cycles: an OTS and a machine image implementing its verifier
 (`Riscv.lean`). -/
 
-namespace OptimalOTS.Challenge.RiscvUpper
+namespace OptimalOTS.Challenge.UpperRiscv
 
 /-- The OTS, the machine image and the termination witness. -/
 noncomputable def submission : Riscv.Submission := sorry
@@ -12,4 +12,4 @@ noncomputable def submission : Riscv.Submission := sorry
 image, and at most `{{CLAIM}}` cycles on every execution. -/
 theorem certificate : submission.Certificate {{CLAIM}} := sorry
 
-end OptimalOTS.Challenge.RiscvUpper
+end OptimalOTS.Challenge.UpperRiscv

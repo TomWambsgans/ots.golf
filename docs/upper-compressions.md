@@ -1,13 +1,13 @@
 # Upper bound: arbitrary oracle algorithms
 
-The `generic-upper` track admits arbitrary oracle algorithms with perfect correctness,
+The `upper-compressions` track admits arbitrary oracle algorithms with perfect correctness,
 signing failure at most `2⁻¹²⁸`, 127-bit strong unforgeability, and the fixed size and resource
 limits. Its forest construction verifies within **106 compressions** on every input and
-oracle-answer path. All proofs form the reference proof's `GenericUpper` submission root, in the
+oracle-answer path. All proofs form the reference proof's `UpperCompressions` submission root, in the
 submissions repository; file names below are relative to it.
 
 The three lower tracks are Generality 3/3 (any algorithm), 2/3 (DAGs) and 1/3 (whole-word DAGs).
-The legacy `Upper` track remains a historical reference.
+The legacy `ReferenceGenerality2` track remains a historical reference.
 
 ## What the challenge requires
 
@@ -17,7 +17,7 @@ signing, and verification. Computation is free. Key generation and signing may u
 randomness; verification is deterministic. All programs share the same bare random oracle and
 compression-cost model.
 
-`OptimalOTS.Challenge.GenericUpper` exports exactly:
+`OptimalOTS.Challenge.UpperCompressions` exports exactly:
 
 ```lean
 noncomputable def scheme : AlgorithmScheme paperParams
@@ -99,7 +99,7 @@ at most `2²⁰` signing compressions, and at most 106 verification compressions
 `KeygenSupport.lean` and `Correctness.lean` establish correctness. `Deterministic.lean` proves that
 every DAG adapter's verifier makes only hash queries. `Availability.lean` establishes signing
 availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
-the challenge declarations. The legacy `Upper` root is independent of these files.
+the challenge declarations. The legacy `ReferenceGenerality2` root is independent of these files.
 
 ## Verification
 
@@ -108,7 +108,7 @@ cd formal
 lake build OptimalOTS
 lake env lean scripts/check-axioms.lean
 cd ..
-python3 verifier/verify.py generic-upper --source ../ots.golf-submissions
+python3 verifier/verify.py upper-compressions --source ../ots.golf-submissions
 ```
 
 Comparator checks the four declarations and their shared scheme against the rendered challenge.

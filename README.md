@@ -17,15 +17,14 @@ of any track.
 
 | Track | Slug | Admitted schemes | Reference proof |
 |---|---|---|---:|
-| Generality 1/3 lower | `disclosure-lower` | Whole-word DAGs using 128-bit secrets and constants, 256-bit hashes, fixed output halves and concatenation | 93 |
-| Generality 2/3 lower | `lower` | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
-| Generality 3/3 lower | `generic-lower` | Admissible oracle algorithms | 1 |
-| Upper bound | `generic-upper` | Admissible oracle algorithms | 106 |
-| RISC-V upper bound | `riscv-upper` | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier | 1628 cycles |
+| Generality 1/3 lower | `lower-generality-1` | Whole-word DAGs using 128-bit secrets and constants, 256-bit hashes, fixed output halves and concatenation | 93 |
+| Generality 2/3 lower | `lower-generality-2` | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 3/3 lower | `lower-generality-3` | Admissible oracle algorithms | 1 |
+| Upper bound | `upper-compressions` | Admissible oracle algorithms | 106 |
+| RISC-V upper bound | `upper-riscv` | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier | 1628 cycles |
 
 - **Generality 1/3 lower** proves that every 127-bit secure whole-word DAG scheme has worst-case
-  verification cost at least the claim, in compressions; its slug keeps the earlier
-  `disclosure-lower` name.
+  verification cost at least the claim, in compressions.
 - **Generality 2/3 lower** proves the same bound for every 127-bit secure DAG scheme.
 - **Generality 3/3 lower** proves it for every admissible, 127-bit secure oracle algorithm.
 - **Upper bound** constructs an admissible, 127-bit secure scheme whose verification costs at most
@@ -66,13 +65,13 @@ lake exe cache get
 lake build OptimalOTS
 lake env lean scripts/check-axioms.lean
 cd ..
-python3 verifier/verify.py disclosure-lower --source ../ots.golf-submissions
+python3 verifier/verify.py lower-generality-1 --source ../ots.golf-submissions
 ```
 
 `--source` is a submissions checkout; the verifier takes only that track's root, and the contract
-and tooling come from this checkout. Use `generic-lower` or `lower` for the other lower tracks,
-`generic-upper` for the Upper bound, `riscv-upper` for the RISC-V implementation, and `upper` or
-`whole-words-upper` for the historical references. macOS verification runs unsandboxed for trusted
+and tooling come from this checkout. Use `lower-generality-3` or `lower-generality-2` for the other lower tracks,
+`upper-compressions` for the Upper bound, `upper-riscv` for the RISC-V implementation, and `reference-generality-2` or
+`reference-generality-1` for the historical references. macOS verification runs unsandboxed for trusted
 local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
@@ -86,15 +85,15 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
 ## Find the contract and proofs
 
 - [Submission rules](AGENTS.md), [track metadata](challenges.json) and [verifier](verifier/verify.py).
-- [DAG contract](formal/OptimalOTS/Statement.lean), [generic interface](formal/OptimalOTS/Algorithm.lean)
+- [DAG contract](formal/OptimalOTS/Dag.lean), [generic interface](formal/OptimalOTS/OracleAlgorithm.lean)
   and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
-- [Generality 1/3 proof](docs/whole-words.md), [Generality 2/3 proof](docs/lower-bound-proof.md)
-  and [Generality 3/3 proof](docs/generic-lower.md).
-- [Upper bound proof](docs/generic-upper.md), [RISC-V track](docs/riscv-upper.md),
+- [Generality 1/3 proof](docs/lower-generality-1.md), [Generality 2/3 proof](docs/lower-generality-2.md)
+  and [Generality 3/3 proof](docs/lower-generality-3.md).
+- [Upper bound proof](docs/upper-compressions.md), [RISC-V track](docs/upper-riscv.md),
   [contract audit](docs/AUDIT.md) and the [documentation index](docs/README.md).
-- Submission roots (`formal/Submissions/<Root>/` in the submissions repository): `GenericLower`,
-  `Lower`, `DisclosureLower`, `GenericUpper` and `RiscvUpper`; the legacy `Upper` and
-  `WholeWordsUpper` references show that secure DAG and whole-word schemes exist.
+- Submission roots (`formal/Submissions/<Root>/` in the submissions repository): `LowerGenerality3`,
+  `LowerGenerality2`, `LowerGenerality1`, `UpperCompressions` and `UpperRiscv`; the legacy `ReferenceGenerality2` and
+  `ReferenceGenerality1` references show that secure DAG and whole-word schemes exist.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 
 The competition and chart were inspired by [better.codes](https://better.codes) and

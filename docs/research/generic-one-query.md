@@ -6,7 +6,7 @@ normal form below is moot. This note develops a route to a
 generic verification lower bound of **2**, including randomized verifiers. The
 normal-form and transcript lemmas below have not been formalized, so this is not
 an admitted submission or a website record. The separately checked generic
-lower certificate of 1 is documented in [generic-lower.md](../generic-lower.md).
+lower certificate of 1 is documented in [lower-generality-3.md](../lower-generality-3.md).
 
 The argument uses the current oracle-program interface and first-principles counting,
 including randomized verification. It assumes perfect correctness, signing success at

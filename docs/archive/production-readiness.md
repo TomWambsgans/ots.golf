@@ -5,7 +5,7 @@ The website and worker run the reviewed code on localhost. **Public deployment s
 acceptance on the actual Linux host and a staging GitHub repository.** This review does not claim
 that macOS testing establishes production isolation. Nothing was pushed or deployed. The original
 operational review was committed locally as `1000826` on `main`; the later generic upper addition
-is documented in [the generic proof report](../generic-upper.md).
+is documented in [the generic proof report](../upper-compressions.md).
 
 The review covered the formal contract and exports, verifier, queue/webhook/reporting service,
 website, numerical tools, deployment configuration and documentation. Parallel reviewers owned
@@ -136,7 +136,7 @@ Commit `8a4afb5` adds the complete generic upper certificate and opens the singl
 track. Perfect correctness is proved for every DAG adapter. The concrete forest's signing failure
 is at most `2^-256` for every public-key-dependent message choice, satisfying the pinned `2^-128`
 allowance. Strong 127-bit security and the 106-compression verification bound are preserved exactly.
-See [the mathematical argument and proof map](../generic-upper.md).
+See [the mathematical argument and proof map](../upper-compressions.md).
 
 The new contract pin is `b2b1ffdeb02aa410fe2133b6b7e652f6f55ddf357eb0c5cd58dbb877792303b2`,
 covering 22 files. The protected generic definitions have only an introductory comment change;
@@ -289,7 +289,7 @@ every public key, message and raw signature bit string (so every execution termi
 rejections, with the specified queries in the specified order), and the accepting-execution cycle
 bound. `Solution.lean` exports `OptimalOTS.Challenge.RiscvUpper.{submission,certificate}` with
 `claim.txt` 229113. The certificate uses only `propext`, `Classical.choice` and `Quot.sound`.
-The proof map is in [the track notes](../riscv-upper.md).
+The proof map is in [the track notes](../upper-riscv.md).
 
 The metadata now admits two upper tracks through top-level `upper_tracks`
 (`generic-upper`, `riscv-upper`); the three frameworks classify lower bounds only, and
@@ -352,7 +352,7 @@ execution terminates, and every terminating execution costs at most **24053 cycl
 (one per instruction, two for the 912-bit root hash; guarded blocks and the 14619-instruction
 decoder are charged in full). `Solution.lean` exports the certificate at 24053 with `claim.txt`
 24053, using only `propext`, `Classical.choice` and `Quot.sound`. The proof map is in
-[the track notes](../riscv-upper.md); the earlier 229113-cycle image and proof remain in the root
+[the track notes](../upper-riscv.md); the earlier 229113-cycle image and proof remain in the root
 as references.
 
 `challenges.json` sets the `riscv-upper` baseline to 24053; the protected pin was regenerated and

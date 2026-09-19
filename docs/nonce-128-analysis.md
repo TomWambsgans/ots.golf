@@ -9,14 +9,14 @@ kernel-checked at its claim (section 4). The sections below record the obstacle 
 
 ## Experiment
 
-With only `nonceBits := 128` changed in `OptimalOTS/Statement.lean`:
+With only `nonceBits := 128` changed in `OptimalOTS/Dag.lean`:
 
 | Root | Result |
 |---|---|
-| `Lower` (Generality 2/3, claim 18) | builds unchanged |
-| `DisclosureLower` (Generality 1/3, claim 93) | builds unchanged |
-| `GenericLower` (Generality 3/3, claim 1) | builds unchanged |
-| `GenericUpper` (106), `RiscvUpper` (1632), historical `Upper`, `DisclosureUpper` | fail |
+| `LowerGenerality2` (Generality 2/3, claim 18) | builds unchanged |
+| `LowerGenerality1` (Generality 1/3, claim 93) | builds unchanged |
+| `LowerGenerality3` (Generality 3/3, claim 1) | builds unchanged |
+| `UpperCompressions` (106), `UpperRiscv` (1632), historical `ReferenceGenerality2`, `DisclosureUpper` | fail |
 
 The lower bounds are attacks, and their counting never needs a long nonce. The upper roots first
 fail on a hard-coded 512-bit index-query length (`Values.lean`, easy to fix). The real obstacle
@@ -178,19 +178,19 @@ expected increase of `Ψ` on random multi-row states) all stay near `ε`, well b
    three class bounds, the row-budget sum, the inequality `T ≤ 11/6`, and `encTerm = θ Ψ` with its
    charge lemma replacing `cntV`/`pairs`.
 3. `Assembly`: apply the new signing lemma with `ρ = encTerm d`.
-4. Port to `RiscvUpper` (accepted set `validSet`), `Upper`, `DisclosureUpper`; fix the 512-bit
+4. Port to `UpperRiscv` (accepted set `validSet`), `ReferenceGenerality2`, `DisclosureUpper`; fix the 512-bit
    index-query length in `Values.lean`; set `nonceBits := 128`.
 
 ## 4. Result: the contract at 128 bits (2026-09-19)
 
 The plan of section 3 is carried out in all four upper roots. The contract changes are
-`paperParams.nonceBits := 128` (`Statement.lean`), `paperLimits.signatureBits := 5376`
-(`Algorithm.lean`), and the machine loading at most 5376 signature bits with the length capped at
+`paperParams.nonceBits := 128` (`Dag.lean`), `paperLimits.signatureBits := 5376`
+(`OracleAlgorithm.lean`), and the machine loading at most 5376 signature bits with the length capped at
 5377 (`RiscvMachine.lean`). `maxRevealBits` stays 5248: the payload budget, the cuts and every
 cost are unchanged, and the signature shrinks by the 128 nonce bits that are no longer sent.
 
-New modules, identical in `GenericUpper`, `Upper` and `DisclosureUpper` and ported to the
-accepted set `validSet` in `RiscvUpper`:
+New modules, identical in `UpperCompressions`, `ReferenceGenerality2` and `DisclosureUpper` and ported to the
+accepted set `validSet` in `UpperRiscv`:
 
 | Module | Content |
 |---|---|
@@ -206,13 +206,13 @@ accepted set `validSet` in `RiscvUpper`:
 
 | Root | Claim before | Claim after |
 |---|---:|---:|
-| `GenericUpper` | 106 | 106 |
-| `RiscvUpper` | 1632 cycles | **1628 cycles** |
-| `Upper` (historical) | 106 | 106 |
+| `UpperCompressions` | 106 | 106 |
+| `UpperRiscv` | 1632 cycles | **1628 cycles** |
+| `ReferenceGenerality2` (historical) | 106 | 106 |
 | `DisclosureUpper` (historical) | 106 | 106 |
-| `Lower` | 18 | 18 |
-| `DisclosureLower` | 93 | 93 |
-| `GenericLower` | 1 | 1 |
+| `LowerGenerality2` | 18 | 18 |
+| `LowerGenerality1` | 93 | 93 |
+| `LowerGenerality3` | 1 | 1 |
 
 The RISC-V index prefix now copies one 16-byte nonce block instead of two and hashes 384 bits,
 four instructions fewer: the image has 2647 instructions, the index phase costs 267 cycles, and the

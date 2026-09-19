@@ -35,10 +35,10 @@ class VerifierTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.cfg = json.loads((VERIFIER.parent / "challenges.json").read_text())
         (self.root / "challenges.json").write_text(json.dumps(self.cfg))
-        self.rel = "formal/Submissions/GenericLower"
+        self.rel = "formal/Submissions/LowerGenerality3"
         self.sub = self.root / self.rel
         self.sub.mkdir(parents=True)
-        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.Algorithm\n")
+        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.OracleAlgorithm\n")
         (self.sub / "claim.txt").write_bytes(b"1\n")
 
     def export(self, **kwargs):
@@ -55,7 +55,7 @@ class VerifierTests(unittest.TestCase):
         return export_submission(str(self.root), "HEAD", self.rel, self.root / "out", **kwargs)
 
     def test_valid_submission_and_export(self):
-        self.assertTrue(check(self.root, "generic-lower")["ok"])
+        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
         self.assertEqual(self.export(), "worktree")
         self.assertEqual((self.root / "out" / self.rel / "claim.txt").read_bytes(), b"1\n")
 
@@ -74,12 +74,12 @@ class VerifierTests(unittest.TestCase):
                 claim.write_bytes(data)
                 with self.assertRaises(ContractError):
                     read_claim(claim, 1000000)
-                self.assertFalse(check(self.root, "generic-lower")["ok"])
+                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_render_rejects_out_of_range_explicit_claim(self):
         for claim in (-1, 1000001):
             with self.subTest(claim=claim), self.assertRaises(ContractError):
-                render(self.root, "generic-lower", claim)
+                render(self.root, "lower-generality-3", claim)
 
     def test_ordinary_import_header(self):
         imports, error = header_imports("/- outer /- inner -/ -/\nimport Mathlib\n-- hi\nimport VCVio\nnamespace X")
@@ -91,54 +91,54 @@ class VerifierTests(unittest.TestCase):
                        "meta import Mathlib", "public meta import Mathlib", "module import Mathlib",
                        "prelude\timport Mathlib", "import Mathlib OptimalOTS.WholeWords"):
             with self.subTest(prefix=prefix):
-                (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.Upper.Solution\n")
-                self.assertFalse(check(self.root, "generic-lower")["ok"])
+                (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.ReferenceGenerality2.Solution\n")
+                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_bom_does_not_hide_imports(self):
-        (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.Upper.Solution\n")
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.ReferenceGenerality2.Solution\n")
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_notes_are_admitted_exported_and_read(self):
         (self.sub / "NOTES.md").write_text("# Idea\n\nTried a wider cut; dead end.\n")
-        self.assertTrue(check(self.root, "generic-lower")["ok"])
+        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
         self.export()
         self.assertEqual(read_notes(self.root / "out" / self.rel), "# Idea\n\nTried a wider cut; dead end.")
         self.assertIsNone(read_notes(self.sub.parent))
         (self.sub / "notes.txt").write_text("not admitted")
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_disallowed_and_missing_sibling_imports(self):
-        for module in ("OptimalOTS", "OptimalOTS.Statement.Extra", "Submissions.Upper.Solution",
-                       "OptimalOTS.Algorithm.Extra", "Submissions.GenericLower.Absent"):
+        for module in ("OptimalOTS", "OptimalOTS.Dag.Extra", "Submissions.ReferenceGenerality2.Solution",
+                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Absent"):
             with self.subTest(module=module):
                 (self.sub / "Solution.lean").write_text(f"import {module}\n")
-                self.assertFalse(check(self.root, "generic-lower")["ok"])
+                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_existing_sibling_import_is_allowed(self):
         (self.sub / "Helper.lean").write_text("import Mathlib\n")
-        (self.sub / "Solution.lean").write_text("import Submissions.GenericLower.Helper\n")
-        self.assertTrue(check(self.root, "generic-lower")["ok"])
+        (self.sub / "Solution.lean").write_text("import Submissions.LowerGenerality3.Helper\n")
+        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
 
-    def test_generic_upper_root_is_self_contained(self):
-        sub = self.root / "formal/Submissions/GenericUpper"
+    def test_upper_compressions_root_is_self_contained(self):
+        sub = self.root / "formal/Submissions/UpperCompressions"
         sub.mkdir(parents=True)
         (sub / "claim.txt").write_text("106\n")
-        (sub / "Helper.lean").write_text("import OptimalOTS.Algorithm\n")
+        (sub / "Helper.lean").write_text("import OptimalOTS.OracleAlgorithm\n")
         solution = sub / "Solution.lean"
-        solution.write_text("import Submissions.GenericUpper.Helper\n")
-        self.assertTrue(check(self.root, "generic-upper")["ok"])
-        for module in ("Submissions.Upper.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
-                       "OptimalOTS.Algorithm.Extra", "Submissions.GenericLower.Proof"):
+        solution.write_text("import Submissions.UpperCompressions.Helper\n")
+        self.assertTrue(check(self.root, "upper-compressions")["ok"])
+        for module in ("Submissions.ReferenceGenerality2.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
+                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Proof"):
             with self.subTest(module=module):
                 solution.write_text(f"import {module}\n")
-                self.assertFalse(check(self.root, "generic-upper")["ok"])
+                self.assertFalse(check(self.root, "upper-compressions")["ok"])
 
-    def test_generic_upper_requires_admissibility_security_and_cost(self):
-        track = next(t for t in self.cfg["tracks"] if t["slug"] == "generic-upper")
+    def test_upper_compressions_requires_admissibility_security_and_cost(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-compressions")
         template = self.root / track["challenge_template"]
         template.parent.mkdir(parents=True)
         template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
-        rendered, claim = render(self.root, "generic-upper", 105)
+        rendered, claim = render(self.root, "upper-compressions", 105)
         self.assertEqual(claim, 105)
         source = rendered.read_text()
         self.assertIn("scheme.VerifyCostAtMost 105", source)
@@ -146,39 +146,39 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(track["signing_failure_allowance"],
                          {"numerator": 1, "denominator": 2**128})
         comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
-        prefix = "OptimalOTS.Challenge.GenericUpper."
+        prefix = "OptimalOTS.Challenge.UpperCompressions."
         self.assertEqual(set(comparator["theorem_names"]),
                          {prefix + name for name in ("admissible", "secure", "cost")})
         self.assertEqual(comparator["definition_names"], [prefix + "scheme"])
 
-    def test_riscv_upper_requires_one_bundled_certificate(self):
-        track = next(t for t in self.cfg["tracks"] if t["slug"] == "riscv-upper")
-        self.assertIn("riscv-upper", self.cfg["upper_tracks"])
+    def test_upper_riscv_requires_one_bundled_certificate(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv")
+        self.assertIn("upper-riscv", self.cfg["upper_tracks"])
         self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
-                         ("upper", "generic", "cycles"))
+                         ("upper", "generality-3", "cycles"))
         self.assertFalse(any("upper_track" in f for f in self.cfg["frameworks"]))
         template = self.root / track["challenge_template"]
         template.parent.mkdir(parents=True, exist_ok=True)
         template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
-        rendered, claim = render(self.root, "riscv-upper", 229112)
+        rendered, claim = render(self.root, "upper-riscv", 229112)
         self.assertEqual(claim, 229112)
         source = rendered.read_text()
         self.assertIn("submission.Certificate 229112", source)
         self.assertIn("def submission : Riscv.Submission", source)
         comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
-        prefix = "OptimalOTS.Challenge.RiscvUpper."
+        prefix = "OptimalOTS.Challenge.UpperRiscv."
         self.assertEqual(comparator["theorem_names"], [prefix + "certificate"])
         self.assertEqual(comparator["definition_names"], [prefix + "submission"])
         self.assertEqual(set(track["allowed_import_prefixes"]),
-                         {"Mathlib", "VCVio", "OptimalOTS.Statement", "OptimalOTS.Algorithm",
+                         {"Mathlib", "VCVio", "OptimalOTS.Dag", "OptimalOTS.OracleAlgorithm",
                           "OptimalOTS.RiscvMachine", "OptimalOTS.Riscv"})
         for rel in (track["challenge_template"], track["comparator_config"]):
             self.assertIn(rel, self.cfg["protected"])
 
     def test_algorithm_tracks_share_the_fixed_signing_failure_allowance(self):
-        riscv = next(t for t in self.cfg["tracks"] if t["slug"] == "riscv-upper")
+        riscv = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv")
         self.assertEqual(riscv["signing_failure_allowance"], {"numerator": 1, "denominator": 2**128})
-        for slug in ("generic-lower", "generic-upper"):
+        for slug in ("lower-generality-3", "upper-compressions"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
                 self.assertEqual(track["signing_failure_allowance"],
@@ -191,17 +191,17 @@ class VerifierTests(unittest.TestCase):
 
     def test_invalid_utf8_source(self):
         (self.sub / "Solution.lean").write_bytes(b"\xff")
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_filename_newline_is_rejected(self):
         (self.sub / "Sneaky.lean\n").write_text("")
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 
     def test_hidden_files_are_not_silently_ignored(self):
         (self.sub / ".DS_Store").write_bytes(b"fixture")
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 
@@ -224,7 +224,7 @@ class VerifierTests(unittest.TestCase):
         original = self.root / "original"
         self.sub.rename(original)
         self.sub.symlink_to(original, target_is_directory=True)
-        self.assertFalse(check(self.root, "generic-lower")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 

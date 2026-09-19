@@ -44,24 +44,24 @@ def track_framework_title(t: dict) -> str:
     return t.get("historical_framework_title") or framework(t["framework"])["title"]
 
 
-def generic_upper_track() -> dict | None:
+def upper_compressions_track() -> dict | None:
     """Only the explicitly pinned generic certificate opens the public upper track."""
-    certificate = track("generic-upper") if "generic-upper" in upper_track_slugs() else None
-    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generic":
+    certificate = track("upper-compressions") if "upper-compressions" in upper_track_slugs() else None
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generality-3":
         return certificate
     return None
 
 
-def riscv_upper_track() -> dict | None:
+def upper_riscv_track() -> dict | None:
     """A checked machine certificate opens the separate implementation track."""
-    certificate = track("riscv-upper") if "riscv-upper" in upper_track_slugs() else None
-    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generic":
+    certificate = track("upper-riscv") if "upper-riscv" in upper_track_slugs() else None
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generality-3":
         return certificate
     return None
 
 
 def upper_tracks() -> list[dict]:
-    return [t for t in (generic_upper_track(), riscv_upper_track()) if t is not None]
+    return [t for t in (upper_compressions_track(), upper_riscv_track()) if t is not None]
 
 
 def upper_track_slugs() -> list[str]:

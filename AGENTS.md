@@ -3,7 +3,7 @@
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
 one-time signatures, with three lower-bound frameworks and two upper tracks: a fully generic
 compression bound and a RISC-V implementation bound in cycles. The DAG model is
-`formal/OptimalOTS/Statement.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
+`formal/OptimalOTS/Dag.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 `challenges.json` lists the tracks, including two closed legacy upper references; `verifier/` runs
 the hosted verifier's checks.
 
@@ -11,7 +11,7 @@ the hosted verifier's checks.
 
 ```
 formal/                      the Lean project (lake root)
-  OptimalOTS/Statement.lean  the contract: Scheme, Secure, verifyCost, paperParams
+  OptimalOTS/Dag.lean  the contract: Scheme, Secure, verifyCost, paperParams
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/<Root>/        a submission root; lives in the submissions repository, never here
 verifier/                    checks, contract pin, comparator configs, verify.py
@@ -26,34 +26,34 @@ proofs of any track; reference proofs are ordinary submissions.
 
 All five public tracks are open.
 
-- **Generality 1/3** (`disclosure-lower`, retained slug): whole-word DAGs with a certified lower
+- **Generality 1/3** (`lower-generality-1`): whole-word DAGs with a certified lower
   bound of 93. Secret sources are independent uniform 128-bit words; hashes return 256 bits.
   Each deterministic node is a fixed public 128-bit word, selects a fixed low or high half directly
   from a hash output, or concatenates an ordered list of complete earlier values. Concatenations may repeat, reorder,
   group or be empty. Disclosures reveal complete node values. This syntax and the 5248-bit payload
   budget imply at most 41 disclosed hash origins.
-- **Generality 2/3** (`lower`): fixed DAGs with arbitrary deterministic functions and disclosure
+- **Generality 2/3** (`lower-generality-2`): fixed DAGs with arbitrary deterministic functions and disclosure
   cuts, with certified lower bound 18.
-- **Generality 3/3** (`generic-lower`): arbitrary oracle programs, with certified lower bound 1.
-  `Algorithm.lean` defines the protected interface and statement. The lower challenge fixes
+- **Generality 3/3** (`lower-generality-3`): arbitrary oracle programs, with certified lower bound 1.
+  `OracleAlgorithm.lean` defines the protected interface and statement. The lower challenge fixes
   perfect correctness, deterministic verification, signing failure at most `2^-128` for every
   public-key-dependent message choice, the paper size and resource limits, and 127-bit strong
-  unforgeability. The reference proof is a `GenericLower` root; see `docs/generic-lower.md`.
-- **Upper bound** (`generic-upper`): arbitrary oracle programs, with a verified construction at
+  unforgeability. The reference proof is a `LowerGenerality3` root; see `docs/lower-generality-3.md`.
+- **Upper bound** (`upper-compressions`): arbitrary oracle programs, with a verified construction at
   106 compressions. The challenge fixes perfect correctness, deterministic verification, signing
   failure at most `2^-128` for every public-key-dependent message choice, the paper size and
-  resource limits, and 127-bit strong unforgeability. The reference proof is a `GenericUpper`
-  root; see `docs/generic-upper.md`.
-- **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
+  resource limits, and 127-bit strong unforgeability. The reference proof is a `UpperCompressions`
+  root; see `docs/upper-compressions.md`.
+- **RISC-V upper bound** (`upper-riscv`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
   every raw input. The score is a proved bound on the cycles of every execution, accepting or
-  rejecting; the reference construction costs 1628. Its proof is a `RiscvUpper` root; see
-  `docs/riscv-upper.md`.
+  rejecting; the reference construction costs 1628. Its proof is a `UpperRiscv` root; see
+  `docs/upper-riscv.md`.
 
 The DAG classes share the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
-and actual-input compression costs. See `docs/whole-words.md` for the definition and proof.
+and actual-input compression costs. See `docs/lower-generality-1.md` for the definition and proof.
 
-The legacy `upper` and `whole-words-upper` tracks stay registered: their reference proofs at 106
+The legacy `reference-generality-2` and `reference-generality-1` tracks stay registered: their reference proofs at 106
 witness that secure DAG and whole-word schemes exist. Their pinned exports and local verifier
 command remain available; public admission is closed.
 
@@ -73,10 +73,10 @@ open; research notes are in `docs/research/`. Claims require Lean-kernel-checked
 The verifier renders the track's stub with your claim and compares your declarations against it.
 Names and statements must match exactly; copy them from the rendered stub.
 
-**Generality 2/3 lower track** (`formal/Submissions/Lower/`, larger is better; a record needs claim ≥ record + 1):
+**Generality 2/3 lower track** (`formal/Submissions/LowerGenerality2/`, larger is better; a record needs claim ≥ record + 1):
 
 ```lean
-theorem OptimalOTS.Challenge.Lower.candidate :
+theorem OptimalOTS.Challenge.LowerGenerality2.candidate :
     VerificationLowerBound paperParams <claim> := ...
 ```
 
@@ -85,29 +85,29 @@ lower-bound attacks forge on a new message; each lower root proves in its own `W
 that strong security implies the weak experiment it analyses, so the bounds hold for weakly secure
 schemes as well.
 
-**Legacy DAG upper reference** (`formal/Submissions/Upper/`, retained for local verification):
+**Legacy DAG upper reference** (`formal/Submissions/ReferenceGenerality2/`, retained for local verification):
 
 ```lean
-noncomputable def OptimalOTS.Challenge.Upper.scheme : Scheme paperParams := ...
-theorem OptimalOTS.Challenge.Upper.secure : scheme.Secure := ...
-theorem OptimalOTS.Challenge.Upper.cost :
+noncomputable def OptimalOTS.Challenge.ReferenceGenerality2.scheme : Scheme paperParams := ...
+theorem OptimalOTS.Challenge.ReferenceGenerality2.secure : scheme.Secure := ...
+theorem OptimalOTS.Challenge.ReferenceGenerality2.cost :
     ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ <claim> := ...
 ```
 
 `scheme` is a definition hole: any term of type `Scheme paperParams` is admissible, and the two
 theorems pin it down. This is the preserved DAG certificate; generic upper has its own export below.
 
-**Generality 1/3 lower track** (`formal/Submissions/DisclosureLower/`):
+**Generality 1/3 lower track** (`formal/Submissions/LowerGenerality1/`):
 
 ```lean
-theorem OptimalOTS.Challenge.DisclosureLower.candidate :
+theorem OptimalOTS.Challenge.LowerGenerality1.candidate :
     WholeWordVerificationLowerBound paperParams <claim> := ...
 ```
 
-**Generality 3/3 lower track** (`formal/Submissions/GenericLower/`):
+**Generality 3/3 lower track** (`formal/Submissions/LowerGenerality3/`):
 
 ```lean
-theorem OptimalOTS.Challenge.GenericLower.candidate :
+theorem OptimalOTS.Challenge.LowerGenerality3.candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) <claim> := ...
 ```
 
@@ -115,14 +115,14 @@ This theorem must cover every admissible, secure algorithm and every pathwise ve
 budget. The challenge fixes signing failure at most `2^-128`, matching the upper track.
 The retained proof lemma covers every failure allowance at most one half.
 
-**Upper bound track** (`formal/Submissions/GenericUpper/`, smaller is better):
+**Upper bound track** (`formal/Submissions/UpperCompressions/`, smaller is better):
 
 ```lean
-noncomputable def OptimalOTS.Challenge.GenericUpper.scheme : AlgorithmScheme paperParams := ...
-theorem OptimalOTS.Challenge.GenericUpper.admissible :
+noncomputable def OptimalOTS.Challenge.UpperCompressions.scheme : AlgorithmScheme paperParams := ...
+theorem OptimalOTS.Challenge.UpperCompressions.admissible :
     scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := ...
-theorem OptimalOTS.Challenge.GenericUpper.secure : scheme.Secure := ...
-theorem OptimalOTS.Challenge.GenericUpper.cost : scheme.VerifyCostAtMost <claim> := ...
+theorem OptimalOTS.Challenge.UpperCompressions.secure : scheme.Secure := ...
+theorem OptimalOTS.Challenge.UpperCompressions.cost : scheme.VerifyCostAtMost <claim> := ...
 ```
 
 Admissibility includes perfect correctness, deterministic verification, signing failure at most
@@ -132,11 +132,11 @@ Availability is averaged over honest key generation and signing from a fresh ora
 message chosen as a function of the public key. Verification cost covers every input and
 oracle-answer path, including rejection. A record needs claim ≤ record − 1.
 
-**RISC-V upper bound track** (`formal/Submissions/RiscvUpper/`, smaller is better):
+**RISC-V upper bound track** (`formal/Submissions/UpperRiscv/`, smaller is better):
 
 ```lean
-noncomputable def OptimalOTS.Challenge.RiscvUpper.submission : Riscv.Submission := ...
-theorem OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate <claim> := ...
+noncomputable def OptimalOTS.Challenge.UpperRiscv.submission : Riscv.Submission := ...
+theorem OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate <claim> := ...
 ```
 
 `Riscv.Submission` bundles the OTS algorithms, a fixed RV64IM image and a per-input fuel witness.
@@ -155,16 +155,16 @@ The whole-word lower direction and record rules are the same as for the DAG lowe
 1. **Flat.** A single directory containing only identifier-named `.lean` files, `claim.txt`,
    and optional `NOTES.md` and `README.md`. `Solution.lean` is required: it is the module the
    verifier exports from.
-2. **Imports.** Every root may import `Mathlib` and `VCVio` modules, `OptimalOTS.Statement`, and
+2. **Imports.** Every root may import `Mathlib` and `VCVio` modules, `OptimalOTS.Dag`, and
    sibling files of the same root as `Submissions.<Root>.<File>`; all construction and proof helpers
    must be such siblings. Contract modules are exact imports, never prefixes. Additionally:
 
    | Root | Additional contract modules |
    |---|---|
-   | `Lower`, `Upper` | none |
-   | `DisclosureLower` | `OptimalOTS.WholeWords` |
-   | `GenericLower`, `GenericUpper` | `OptimalOTS.Algorithm` |
-   | `RiscvUpper` | `OptimalOTS.Algorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
+   | `LowerGenerality2`, `ReferenceGenerality2` | none |
+   | `LowerGenerality1` | `OptimalOTS.WholeWords` |
+   | `LowerGenerality3`, `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
+   | `UpperRiscv` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
 
 3. **Claim.** `claim.txt` holds one non-negative integer without leading zeros, at most 1,000,000,
    with at most one trailing newline. The verifier embeds this integer in the theorem it checks.
@@ -183,11 +183,11 @@ From the root of a submissions checkout, whose `.contract` submodule is this cor
 ```sh
 .contract/verifier/setup_tools.sh                                        # once
 (cd .contract/formal && lake exe cache get && lake build OptimalOTS)     # once
-python3 .contract/verifier/verify.py lower --source .                    # the full pipeline
+python3 .contract/verifier/verify.py lower-generality-2 --source .                    # the full pipeline
 ```
 
-Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks, or by
-`generic-upper` or `riscv-upper` for the upper tracks; `upper` and `whole-words-upper` verify the
+Replace `lower-generality-2` by `lower-generality-1` or `lower-generality-3` for the other lower tracks, or by
+`upper-compressions` or `upper-riscv` for the upper tracks; `reference-generality-2` and `reference-generality-1` verify the
 legacy references locally. From a core checkout, pass the submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on

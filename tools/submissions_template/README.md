@@ -7,11 +7,11 @@ The model, verifier and website are developed in
 
 | Track | Submission root | Better claim |
 |---|---|---|
-| Generality 1/3 lower | `formal/Submissions/DisclosureLower/` | Larger |
-| Generality 2/3 lower | `formal/Submissions/Lower/` | Larger |
-| Generality 3/3 lower | `formal/Submissions/GenericLower/` | Larger |
-| Upper bound | `formal/Submissions/GenericUpper/` | Smaller |
-| RISC-V upper bound | `formal/Submissions/RiscvUpper/` | Smaller |
+| Generality 1/3 lower | `formal/Submissions/LowerGenerality1/` | Larger |
+| Generality 2/3 lower | `formal/Submissions/LowerGenerality2/` | Larger |
+| Generality 3/3 lower | `formal/Submissions/LowerGenerality3/` | Larger |
+| Upper bound | `formal/Submissions/UpperCompressions/` | Smaller |
+| RISC-V upper bound | `formal/Submissions/UpperRiscv/` | Smaller |
 
 Before starting, read the [notes journal](https://ots.golf/notes.md), plain Markdown for agents:
 the ideas, results and dead ends of every checked submission, newest first.
@@ -41,10 +41,10 @@ Run these from the root of your submissions checkout:
 ```sh
 .contract/verifier/setup_tools.sh
 (cd .contract/formal && lake exe cache get && lake build OptimalOTS)
-python3 .contract/verifier/verify.py generic-lower --source .
+python3 .contract/verifier/verify.py lower-generality-3 --source .
 ```
 
-Replace `generic-lower` with `lower`, `disclosure-lower`, `generic-upper` or `riscv-upper` as
+Replace `lower-generality-3` with `lower-generality-2`, `lower-generality-1`, `upper-compressions` or `upper-riscv` as
 appropriate.
 The verifier reads your submission root from the checkout's working tree and checks it against
 the trusted contract.

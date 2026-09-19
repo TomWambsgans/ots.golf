@@ -1,6 +1,6 @@
 # Generality 2/3: the bare-oracle verification lower bound
 
-The contract is `formal/OptimalOTS/Statement.lean`: one shared random oracle keyed by its input
+The contract is `formal/OptimalOTS/Dag.lean`: one shared random oracle keyed by its input
 bit string, and arbitrary deterministic node functions of their declared parents.
 The lower track quantifies over every secure scheme:
 
@@ -9,8 +9,8 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 ```
 
-The reference proof, a `Lower` submission root in the submissions repository, proves
-`VerificationLowerBound paperParams 18` in `Lower/Solution.lean`.
+The reference proof, a `LowerGenerality2` submission root in the submissions repository, proves
+`VerificationLowerBound paperParams 18` in `LowerGenerality2/Solution.lean`.
 The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
 and `Quot.sound`. The final official verifier run accepted claim 18 in 117.5 seconds. The earlier bound of 2
 was officially verified before the replacement was developed.
@@ -43,7 +43,7 @@ All numerical comparisons in Lean use exact arithmetic. The pattern-count argume
 
 ## File map
 
-Files of the `Lower` root:
+Files of the `LowerGenerality2` root:
 
 | File | Role |
 | --- | --- |
@@ -75,10 +75,10 @@ it cannot validate the false mathematical transfer lemmas.
 
 ## Verification
 
-From the core, with a submissions checkout holding the `Lower` root:
+From the core, with a submissions checkout holding the `LowerGenerality2` root:
 
 ```sh
 cd formal && lake build OptimalOTS
 cd .. && python3 verifier/pin_contract.py check
-python3 verifier/verify.py lower --source ../ots.golf-submissions
+python3 verifier/verify.py lower-generality-2 --source ../ots.golf-submissions
 ```

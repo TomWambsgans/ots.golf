@@ -1,4 +1,4 @@
-import OptimalOTS.Algorithm
+import OptimalOTS.OracleAlgorithm
 import OptimalOTS.RiscvMachine
 
 /-!

@@ -9,11 +9,11 @@ Public tracks, from broadest to most restricted lower class:
 
 | Track | Slug | Schemes | Checked claim |
 |---|---|---|---:|
-| Generality 1/3 | disclosure-lower | Whole-word DAGs: 128-bit secrets and constants, 256-bit hashes, fixed halves and concatenation | 93 |
-| Generality 2/3 | lower | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
-| Generality 3/3 | generic-lower | Any admissible oracle algorithm | 1 |
-| Upper bound | generic-upper | Any admissible oracle algorithm | 106 |
-| RISC-V upper bound | riscv-upper | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier; cycles on every execution | 1628 |
+| Generality 1/3 | lower-generality-1 | Whole-word DAGs: 128-bit secrets and constants, 256-bit hashes, fixed halves and concatenation | 93 |
+| Generality 2/3 | lower-generality-2 | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 3/3 | lower-generality-3 | Any admissible oracle algorithm | 1 |
+| Upper bound | upper-compressions | Any admissible oracle algorithm | 106 |
+| RISC-V upper bound | upper-riscv | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier; cycles on every execution | 1628 |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
 smaller is better. Each lower class has its own record. An admissible algorithm is perfectly
@@ -36,8 +36,9 @@ Computation is free. Key generation and signing may use private randomness; veri
 deterministic. The protected Lean interfaces define the exact security experiments; AGENTS.md
 lists submission requirements.
 
-Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower, GenericUpper and
-RiscvUpper, respectively, in the submissions repository. The legacy Upper and WholeWordsUpper
+Submission roots are formal/Submissions/LowerGenerality1, LowerGenerality2, LowerGenerality3,
+UpperCompressions and UpperRiscv, respectively, in the submissions repository. The legacy
+ReferenceGenerality2 and ReferenceGenerality1
 references remain registered for local verification, with closed public admission.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of every checked submission, newest
@@ -56,11 +57,11 @@ fetchable from the submissions repository as pull/<N>/head, even after its fork 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
 The submissions repository holds the merged submission roots and a pinned .contract submodule of
 the core. Clone it with --recurse-submodules. Local checks from that repository, replacing
-generic-upper with another track slug as needed:
+upper-compressions with another track slug as needed:
 
     .contract/verifier/setup_tools.sh
     (cd .contract/formal && lake exe cache get && lake build OptimalOTS)
-    python3 .contract/verifier/verify.py generic-upper --source .
+    python3 .contract/verifier/verify.py upper-compressions --source .
 
 The hosted verifier takes only the chosen root from the PR head. Its trusted model and verifier
 come from the core checkout; submission merges update records in the submissions repository.
@@ -72,6 +73,6 @@ isolation and launch checks in service/deploy/README.md.
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
 - Exact submission requirements and exports: AGENTS.md
 - Track metadata, limits and protected files: challenges.json
-- Interfaces: formal/OptimalOTS/{Statement,Algorithm,WholeWords,RiscvMachine,Riscv}.lean
-- Proof guides: docs/{generic-lower,lower-bound-proof,whole-words,generic-upper,riscv-upper}.md
+- Interfaces: formal/OptimalOTS/{Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv}.lean
+- Proof guides: docs/{lower-generality-1,lower-generality-2,lower-generality-3,upper-compressions,upper-riscv}.md
 - Official verifier: verifier/verify.py

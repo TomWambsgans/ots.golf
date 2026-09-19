@@ -37,10 +37,10 @@ default local database. Do not use fictional data in production.
 ## Presentation
 
 The homepage has three lower frameworks, each with its own leaderboard, and two upper tracks.
-`/?framework=generic|dag|disclosure` filters the lower tables only; `#lower` and `#upper` select
+`/?framework=generality-1|generality-2|generality-3` filters the lower tables only; `#lower` and `#upper` select
 the direction. Scores appear as attributed submissions; rules define the contract's requirements
 without scores. The RISC-V upper track has its own card, leaderboard and chart with an
-independent cycle axis, never combined with compression bounds. The legacy `upper`
+independent cycle axis, never combined with compression bounds. The legacy `reference-generality-2`
 demos remain accessible under Historical DAG.
 
 The database is a disposable cache: the website rebuilds it from GitHub at startup
@@ -68,7 +68,7 @@ retries delivery without repeating the proof. Attribution comes from the PR auth
 
 For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
 use `.venv/bin/python -m app.queue lower --repo ../../ots.golf-submissions`, substituting
-`generic-lower`, `disclosure-lower`, `generic-upper` or `riscv-upper` as needed; `--repo` is a
+`lower-generality-3`, `lower-generality-1`, `upper-compressions` or `upper-riscv` as needed; `--repo` is a
 submissions checkout. Local jobs never become records. The two legacy upper slugs also work for
 local reference checks. Only one worker may use a data
 directory; lock files enforce this across processes on the same host.

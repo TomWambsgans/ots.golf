@@ -345,7 +345,7 @@ The explicitly tweaked forest scheme satisfies strong security~\eqref{eq:securit
 where any such execution has $B\ge912$.
 \end{theorem}
 
-The theorem is kernel-checked in the \texttt{Upper} submission root. Its exported declarations are \texttt{scheme}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.Upper}.
+The theorem is kernel-checked in the \texttt{ReferenceGenerality2} submission root. Its exported declarations are \texttt{scheme}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.ReferenceGenerality2}.
 
 The only axioms in their closure are \texttt{propext}, \texttt{Quot.sound}, and \texttt{Classical.choice}. Budgets above $2^{127}$ satisfy the security inequality trivially because its right-hand side exceeds one.
 
@@ -428,10 +428,10 @@ with budget~\eqref{eq:budget}. The count at size 16 exceeds $2^{115}$, explainin
 
 The official verifier accepted the lower certificate with claim 18. Its exported declaration and type are
 \begin{center}
-\texttt{OptimalOTS.Challenge.Lower.candidate}\\
+\texttt{OptimalOTS.Challenge.LowerGenerality2.candidate}\\
 \texttt{VerificationLowerBound paperParams 18}.
 \end{center}
-The main modules of the \texttt{Lower} submission root are:
+The main modules of the \texttt{LowerGenerality2} submission root are:
 \begin{center}
 \begin{tabular}{ll}
 \texttt{Patterns.lean} & finite pattern count and large classes;\\

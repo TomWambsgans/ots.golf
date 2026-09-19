@@ -28,7 +28,7 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         pin.write_text('fixture pin\n')
         (self.root / 'LICENSE').write_text('Fixture license\n')
         # A stray root in the core must never be exported.
-        stray = self.root / 'formal/Submissions/GenericUpper'
+        stray = self.root / 'formal/Submissions/UpperCompressions'
         stray.mkdir(parents=True)
         (stray / 'Solution.lean').write_text('def fixture := 1\n')
         (stray / 'claim.txt').write_text('7\n')
@@ -43,7 +43,7 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         destination = Path(self.temp.name) / 'entries'
         result = prepare(self.root, destination)
         self.assertEqual(set(result['tracks']),
-                         {'generic-lower', 'lower', 'disclosure-lower', 'generic-upper', 'riscv-upper'})
+                         {'lower-generality-1', 'lower-generality-2', 'lower-generality-3', 'upper-compressions', 'upper-riscv'})
         self.assertEqual(git(destination, 'remote', 'get-url', 'origin'), SUBMISSIONS_URL)
         self.assertEqual(git(destination, 'config', '-f', '.gitmodules', 'submodule.contract.url'), CORE_URL)
         self.assertEqual(git(destination / '.contract', 'remote', 'get-url', 'origin'), CORE_URL)
@@ -53,7 +53,7 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         self.assertEqual(result['contract_id'], hashlib.sha256(b'fixture pin\n').hexdigest())
         names = set(git(destination, 'ls-files').splitlines())
         self.assertNotIn('service/app/main.py', names)
-        self.assertNotIn('formal/OptimalOTS/Statement.lean', names)
+        self.assertNotIn('formal/OptimalOTS/Dag.lean', names)
         self.assertFalse(any(name.startswith('formal/') for name in names))
         self.assertEqual(names, {'.contract', '.github/PULL_REQUEST_TEMPLATE.md', '.gitignore', '.gitmodules',
                                  'AGENTS.md', 'LICENSE', 'README.md'})

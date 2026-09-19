@@ -126,8 +126,8 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
                contract_id=contract.contract_id(), contract_commit=contract.trusted_commit(),
                static_v=static_version())
     ctx.setdefault("frameworks", contract.frameworks())
-    ctx.setdefault("generic_upper_track", contract.generic_upper_track())
-    ctx.setdefault("riscv_upper_track", contract.riscv_upper_track())
+    ctx.setdefault("upper_compressions_track", contract.upper_compressions_track())
+    ctx.setdefault("upper_riscv_track", contract.upper_riscv_track())
     ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.track_framework_title(t)}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
@@ -182,7 +182,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
     track_config = contract.track(track)
     if track_config is None:
         raise HTTPException(400, f"unknown track {track!r}")
-    if track_config["kind"] == "upper" and track_config["framework"] != "generic":
+    if track_config["kind"] == "upper" and track_config["framework"] != "generality-3":
         raise HTTPException(400, "Upper submissions require the generic algorithm framework. "
                             "Legacy DAG upper roots are closed reference certificates.")
     if track_config["kind"] == "upper" and track_config not in contract.upper_tracks():
@@ -350,18 +350,18 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                        "framework": model["slug"], "kind": "lower", "label": f'Lower bound {model["title"].split()[-1]}',
                        "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
-    upper_config = contract.generic_upper_track()
+    upper_config = contract.upper_compressions_track()
     upper = records.board(session, upper_config) if upper_config else None
-    riscv_config = contract.riscv_upper_track()
+    riscv_config = contract.upper_riscv_track()
     riscv = records.board(session, riscv_config) if riscv_config else None
-    riscv_series = [{"slug": "riscv-upper", "framework": "generic", "kind": "upper",
+    riscv_series = [{"slug": "upper-riscv", "framework": "generality-3", "kind": "upper",
                      "label": "RISC-V upper bound",
                      "status": "certified", "points": riscv["curve"]}] if riscv else []
-    series.insert(0, {"slug": "generic-upper", "framework": "generic", "kind": "upper",
+    series.insert(0, {"slug": "upper-compressions", "framework": "generality-3", "kind": "upper",
                    "label": "Upper bound",
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
-                  generic_upper=upper, riscv_upper=riscv, latest=records.latest_records(session, limit=60),
+                  upper_compressions=upper, upper_riscv=riscv, latest=records.latest_records(session, limit=60),
                   riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
                       chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
                   chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())

@@ -1,4 +1,4 @@
-import OptimalOTS.Statement
+import OptimalOTS.Dag
 import RiscvZkvm.Rv64
 
 /-!
