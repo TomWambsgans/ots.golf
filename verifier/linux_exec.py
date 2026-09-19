@@ -29,6 +29,13 @@ def isolation_check() -> None:
         except OSError:
             continue
         raise RuntimeError(f"systemd failed to hide {path}; refusing to compile")
+    if Path("/etc/ots").exists():
+        try:
+            list(Path("/etc/ots").iterdir())
+        except OSError:
+            pass
+        else:
+            raise RuntimeError("systemd failed to hide /etc/ots; refusing to compile")
     for family, kind in ((socket.AF_UNIX, socket.SOCK_STREAM),
                          (socket.AF_INET, socket.SOCK_STREAM),
                          (socket.AF_INET, socket.SOCK_DGRAM),

@@ -18,10 +18,10 @@ Exports (`Solution.lean`): `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost`
 
 | File | Content |
 |---|---|
-| `Semantics.lean` | records, deterministic evaluation, reconstruction with oracle tables (shared with the lower track; copied, since submissions cannot import each other) |
+| `Semantics.lean` | records and deterministic evaluation (shared with the lower track; copied, since submissions cannot import each other) |
 | `Cache.lean`, `IUB.lean`, `Master.lean` | the lazy random oracle's cache; the identical-until-bad coupling; the supermartingale master lemma (a potential growing by at most `κ` per compression bounds a bad event by `κ · budget`) |
-| `Keygen.lean`, `Reconstruct.lean`, `SignIdx.lean`, `EncCharges.lean` | key generation as a uniform record; the verifier's run; the signing loop; charges of encoding queries |
-| `Names.lean`, `Tree.lean` | the 1913-node computation graph; the tree structure, visited sets, costs, cuts |
+| `Keygen.lean`, `Reconstruct.lean`, `SignIdx.lean`, `EncCharges.lean` | key generation as a uniform record; the verifier's run; the signing loop and the vocabulary of its bound; the encoding-entry count and the `IdxPost` charge |
+| `Names.lean`, `Tree.lean` | the 2795-node computation graph; the tree structure, visited sets, costs, cuts |
 | `Count.lean`, `Cuts.lean`, `Scheme.lean` | the disclosure family (more than `2 ^ 115` sets, certified by kernel computation) and `forestScheme` |
 | `Values.lean`, `Resample.lean`, `Events.lean` | node values; hidden and exposed keygen points; uniformity of hidden inputs by resampling one record coordinate; an accepted forgery is one of the charged events |
 | `SignRho.lean`, `Rows.lean`, `RowIneq.lean`, `RowPotential.lean` | the disjoint signing lemma, per-message rows of the cache, the row potential and its charge |

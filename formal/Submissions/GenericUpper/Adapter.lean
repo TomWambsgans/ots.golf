@@ -95,14 +95,6 @@ theorem experiment_fromDAG_eq (A : Adversary P) :
   congr 1
   by_cases h : signed.map (fun s => (chosen.1, s)) ≠ some (forged.1, forged.2) <;> simp [h]
 
-theorem cost_experiment_iff (A : S.toAlgorithm.Adversary) (B : ℕ) :
-    CostAtMost P (S.toAlgorithm.experiment A) B ↔
-      CostAtMost P (experiment S (toDAGAdversary S A)) B := by rw [experiment_eq]
-
-theorem probTrue_experiment_eq (A : S.toAlgorithm.Adversary) :
-    probTrue P (S.toAlgorithm.experiment A) =
-      probTrue P (experiment S (toDAGAdversary S A)) := by rw [experiment_eq]
-
 /-- The embedding preserves and reflects the exact security requirement. -/
 theorem secure_iff : S.toAlgorithm.Secure ↔ S.Secure := by
   constructor

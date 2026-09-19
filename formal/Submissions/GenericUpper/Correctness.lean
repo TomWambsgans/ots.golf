@@ -1,4 +1,4 @@
-import Submissions.GenericUpper.CorrectKeygen
+import Submissions.GenericUpper.KeygenSupport
 import Submissions.GenericUpper.Reconstruct
 import Submissions.GenericUpper.SignIdx
 import Submissions.GenericUpper.Adapter

@@ -1,8 +1,7 @@
 import OptimalOTS.Algorithm
 
 /-! A generic upper submission supplies arbitrary oracle programs and proves their
-admissibility, 127-bit strong unforgeability, and worst-case verification cost.
-The signing-failure allowance is fixed by the challenge, not chosen by the submission. -/
+admissibility, 127-bit strong unforgeability, and worst-case verification cost. -/
 
 namespace OptimalOTS.Challenge.GenericUpper
 

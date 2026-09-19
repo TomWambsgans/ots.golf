@@ -26,10 +26,10 @@ is imposed on them.
 
 - `Adapter.lean`: injective serialization and exact equality of security experiments.
 - `AlgorithmCosts.lean`, `Resources.lean`: pathwise cost, wire size, and oversized rejection.
-- `CorrectKeygen.lean`, `Correctness.lean`: cache consistency and correctness of every DAG adapter.
+- `KeygenSupport.lean`, `Correctness.lean`: cache consistency and correctness of every DAG adapter.
 - `Availability.lean`: fresh index queries, exact repeated-failure probability, and its bound.
 - `Main.lean` and its siblings: the construction and its original strong-security proof.
-- `ForestAlgorithm.lean`: the complete certificate; `Solution.lean`: the required exports.
+- `ForestAlgorithm.lean`: admissibility, security and cost of the wrapped scheme; `Solution.lean`: the required exports.
 
 Imports stay within this root and the allowed protected contract/library modules. The original
 `Submissions/Upper` root is unchanged. Run from the repository root:

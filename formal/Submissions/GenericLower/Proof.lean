@@ -1,5 +1,5 @@
 import Submissions.GenericLower.ZeroQuery
-import OptimalOTS.AlgorithmWeak
+import Submissions.GenericLower.WeakSecurity
 
 /-! Under the paper's resource and availability limits, no correct, weakly secure algorithm
 can verify every input at zero query cost. -/
@@ -188,15 +188,4 @@ theorem paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
   exact no_zero_verifier S hA.correct ha hA.keygenCost hA.signCost
     (0 : Message paperParams) (1 : Message paperParams) (by decide) paper_attack_gap hS.weaklySecure hv
 
-/-- The generic lower certificate with signing failure at most one half. -/
-theorem candidate :
-    AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1 :=
-  paper_lowerBound_one le_rfl
-
 end OptimalOTS.GenericLower
-
-/--
-info: 'OptimalOTS.GenericLower.candidate' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms OptimalOTS.GenericLower.candidate

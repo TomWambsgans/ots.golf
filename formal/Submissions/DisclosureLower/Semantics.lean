@@ -49,12 +49,6 @@ def output : NodeKind hb N len v → BitVec (len v) → BitVec hb
   | hash _ _ h, a => a.cast h
   | _, _ => 0
 
-/-- The oracle query made by a node on input `u` (none for non-hash nodes). -/
-def query (P : Params) {len : Fin N → ℕ} {v : Fin N} :
-    (k : NodeKind P.hashBits N len v) → BitVec k.inLen → OracleComp (Spec P) (BitVec P.hashBits)
-  | hash _ _ _, u => OptimalOTS.hash P u
-  | _, _ => pure 0
-
 /-- Parents precede their child. -/
 theorem lt_of_mem_parents : ∀ (k : NodeKind hb N len v) {w : Fin N}, w ∈ k.parents → w < v
   | source, _, h => by simp [parents] at h
@@ -120,10 +114,6 @@ def evalTab (z : G.Assignment) (t : G.Tab) : G.Assignment := G.evalWith (G.tabVa
 /-- The record produced by key generation with sources `z` and oracle tables `t`. -/
 def recOf (z : G.Assignment) (t : G.Tab) : G.Rec :=
   (z, fun v => t v ((G.kind v).input (G.evalTab z t)))
-
-/-- The table `t` answers every node's query on the record `ξ` with the record's output. -/
-def Consistent (ξ : G.Rec) (t : G.Tab) : Prop :=
-  ∀ v, t v ((G.kind v).input (G.evalRec ξ)) = ξ.2 v
 
 /-- The hash nodes evaluated when reconstructing from `A`. -/
 def evalHash (A : Finset (Fin G.size)) : Finset (Fin G.size) :=
@@ -208,46 +198,10 @@ theorem evalRec_apply (ξ : G.Rec) (v : Fin G.size) :
     G.evalRec ξ v = (G.kind v).value (G.evalRec ξ) (ξ.1 v) (ξ.2 v) :=
   G.evalWith_apply (G.parentLocal_recVal ξ) v
 
-/-- The value of node `v` in a record only depends on the record's entries at nodes `≤ v`. -/
-theorem evalRec_congr (ξ ξ' : G.Rec) (v : Fin G.size)
-    (h₁ : ∀ w ≤ v, ξ.1 w = ξ'.1 w) (h₂ : ∀ w ≤ v, ξ.2 w = ξ'.2 w) :
-    G.evalRec ξ v = G.evalRec ξ' v := by
-  induction v using WellFoundedLT.induction with
-  | _ v ih =>
-    have e₁ : G.evalRec ξ v = G.recVal ξ v (G.evalRec ξ) := G.evalWith_apply (G.parentLocal_recVal ξ) v
-    have e₂ : G.evalRec ξ' v = G.recVal ξ' v (G.evalRec ξ') :=
-      G.evalWith_apply (G.parentLocal_recVal ξ') v
-    rw [e₁, e₂]
-    have e₃ : G.recVal ξ v (G.evalRec ξ) = G.recVal ξ' v (G.evalRec ξ) := by
-      simp only [recVal, h₁ v le_rfl, h₂ v le_rfl]
-    rw [e₃]
-    refine G.parentLocal_recVal ξ' v _ _ fun w hw => ?_
-    have hwv := (G.kind v).lt_of_mem_parents hw
-    exact ih w hwv (fun u hu => h₁ u (hu.trans hwv.le)) (fun u hu => h₂ u (hu.trans hwv.le))
-
 theorem evalRec_recOf (z : G.Assignment) (t : G.Tab) :
     G.evalRec (G.recOf z t) = G.evalTab z t := by
   refine (G.eq_evalWith (G.parentLocal_recVal _) _ fun v => ?_).symm
   exact G.evalWith_apply (G.parentLocal_tabVal z t) v
-
-/-- Key generation with tables `t` produces the record `ξ` exactly when the sources agree and
-the tables are consistent with `ξ`. -/
-theorem recOf_eq_iff (z : G.Assignment) (t : G.Tab) (ξ : G.Rec) :
-    G.recOf z t = ξ ↔ z = ξ.1 ∧ G.Consistent ξ t := by
-  constructor
-  · rintro rfl
-    refine ⟨rfl, fun v => ?_⟩
-    rw [evalRec_recOf]
-    rfl
-  · rintro ⟨rfl, hc⟩
-    have he : G.evalRec ξ = G.evalTab ξ.1 t := by
-      refine G.eq_evalWith (G.parentLocal_tabVal ξ.1 t) _ fun v => ?_
-      rw [evalRec_apply, ← hc v]
-      rfl
-    refine Prod.ext rfl (funext fun v => ?_)
-    change t v ((G.kind v).input (G.evalTab ξ.1 t)) = ξ.2 v
-    rw [← he]
-    exact hc v
 
 /-! ## Reconstruction -/
 

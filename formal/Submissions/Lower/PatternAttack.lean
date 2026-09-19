@@ -3,6 +3,7 @@ import Submissions.Lower.Patterns
 import Submissions.Lower.PatternSearch
 import Submissions.Lower.CostCore
 import Submissions.Lower.PatternHelpers
+import Submissions.Lower.WeakSecurity
 
 /-! A forgery attack using equal reconstruction patterns. -/
 

@@ -25,12 +25,6 @@ attribute [local irreducible] AlgorithmScheme.Secure AlgorithmScheme.VerifyCostA
 
 def scheme : AlgorithmScheme paperParams := Forest.forestScheme.toAlgorithm
 
-theorem experiment_eq (A : scheme.Adversary) :
-    scheme.experiment A =
-      OptimalOTS.experiment Forest.forestScheme
-        (AlgorithmAdapter.toDAGAdversary Forest.forestScheme A) :=
-  AlgorithmAdapter.experiment_eq Forest.forestScheme A
-
 theorem secure : scheme.Secure :=
   (AlgorithmAdapter.secure_iff Forest.forestScheme).2 Forest.forestScheme_secure
 
@@ -72,16 +66,10 @@ theorem admissible : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
   keygenCost := keygen_cost
   signCost := sign_cost
 
-/-- A complete admissible, strongly secure, 106-compression generic upper construction. -/
-theorem certificate :
-    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) ∧
-    scheme.Secure ∧ scheme.VerifyCostAtMost 106 :=
-  ⟨admissible, secure, cost⟩
-
 /--
-info: 'OptimalOTS.GenericUpperForest.certificate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'OptimalOTS.GenericUpperForest.admissible' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms certificate
+#print axioms admissible
 
 end OptimalOTS.GenericUpperForest

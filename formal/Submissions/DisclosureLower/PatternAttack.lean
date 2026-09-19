@@ -3,6 +3,7 @@ import Submissions.DisclosureLower.Patterns
 import Submissions.DisclosureLower.PatternSearch
 import Submissions.DisclosureLower.CostCore
 import Submissions.DisclosureLower.PatternHelpers
+import Submissions.DisclosureLower.WeakSecurity
 
 /-! A forgery attack using equal reconstruction patterns. -/
 
@@ -143,62 +144,5 @@ theorem search_check_ge (T : ℕ) (i : Fin P.numSets) (x : S.graph.Assignment)
       (sub_of_mem_support_run P _ c p hp) hc
     rw [check_fromResult S i x m₁ m₂ hne p.2 hc' η n hn w hw hidx, E_pure]
     simp [win]
-
-theorem forgeFrom_success_ge (S : Scheme paperParams) (i : Fin paperParams.numSets)
-    (x : S.graph.Assignment) (c : Cache paperParams)
-    (hc : S.graph.CacheConsistent x c) (hclass : 8 ≤ (S.samePattern i).card)
-    (D : Finset Query) (hD : BareLower.HasSupport c D) (hcardD : D.card ≤ 2 ^ 22)
-    (m₁ : Message paperParams) :
-    (1 / 10 : ℝ≥0∞) ≤ E (run paperParams
-      (forgeFrom S (2 ^ 122) i
-        (S.graph.decode (S.sets i) (S.graph.encode (S.sets i) x))
-        (Conversion.observed S i x) m₁ >>= check S (S.publicKey x) m₁) c) win := by
-  unfold forgeFrom
-  rw [bind_assoc, run_bind, E_bind, sampleBits, run_liftM, E_map]
-  have hmass := BareLower.fresh_new_mass_paper hD hcardD m₁
-  refine le_trans ?_ (BareLower.expectedValue_ge_indicator ($ᵗ BitVec paperParams.msgBits)
-    (fun m₂ => BareLower.FreshMessage c m₂ ∧ m₂ ≠ m₁) _ (1 / 9) ?_)
-  · have he : (1 / 10 : ℝ≥0∞) = (9 / 10) * (1 / 9) := by
-      symm
-      rw [div_eq_mul_inv, one_div, mul_right_comm,
-        ENNReal.mul_inv_cancel (by norm_num : (9 : ℝ≥0∞) ≠ 0) (by norm_num), one_mul,
-        one_div]
-    rw [he]
-    refine (mul_le_mul_left hmass (1 / 9)).trans ?_
-    apply mul_le_mul_left
-    apply E_mono
-    intro m
-    split_ifs <;> simp_all
-  · intro m₂ _ hm₂
-    dsimp only
-    rw [if_neg hm₂.2, bind_map_left, run_bind, E_bind]
-    apply (PatternSearch.paper_success_ge (targets S i) (fun n hn => ?_)
-      (by rw [card_targets]; exact hclass) m₂ c hm₂.1).trans
-    · exact search_check_ge S _ i x m₁ m₂ hm₂.2 c hc
-    · obtain ⟨j,rfl,_⟩ := mem_targets S i n hn
-      have hj := j.isLt
-      change j.val < 2 ^ 115 at hj
-      exact hj.trans (by norm_num)
-
-theorem forge_success_ge (S : Scheme paperParams) (i : Fin paperParams.numSets)
-    (x : S.graph.Assignment) (c : Cache paperParams)
-    (hc : S.graph.CacheConsistent x c) (hclass : 8 ≤ (S.samePattern i).card)
-    (D : Finset Query) (hD : BareLower.HasSupport c D) (hcardD : D.card ≤ 2 ^ 22)
-    (m₁ : Message paperParams) (η₁ : Nonce paperParams)
-    (w : BitVec paperParams.hashBits)
-    (hw : c ⟨paperParams.msgBits + paperParams.nonceBits,m₁ ++ η₁⟩ = some w)
-    (hidx : (w.setWidth paperParams.idxBits).toNat = i.val) :
-    (1 / 10 : ℝ≥0∞) ≤ E (run paperParams
-      (forge S (2 ^ 122) m₁ (some (η₁,S.graph.encode (S.sets i) x)) >>=
-        check S (S.publicKey x) m₁) c) win := by
-  unfold forge
-  rw [bind_assoc, run_bind, Conversion.run_index_cached m₁ η₁ c w hw, E_bind, E_pure]
-  dsimp only
-  generalize (w.setWidth paperParams.idxBits).toNat = n at hidx ⊢
-  subst hidx
-  rw [dif_pos i.isLt]
-  simp only [Fin.eta, bind_assoc]
-  rw [run_bind, Conversion.run_honest_reconstruct S i x c hc, E_bind, E_pure]
-  exact forgeFrom_success_ge S i x c hc hclass D hD hcardD m₁
 
 end OptimalOTS.PatternAttack

@@ -28,11 +28,6 @@ lemma setWidth_append_nonce {P : Params} (m : Message P) (η : Nonce P) :
   ext j hj
   simp [BitVec.getElem_setWidth, BitVec.getLsbD_append, hj]
 
-lemma sum_fin_equivFin {α : Type*} {s : Finset α} {n : ℕ} (h : n = s.card) (G : α → ℝ≥0∞) :
-    ∑ j : Fin n, G (s.equivFin.symm (Fin.cast h j)).1 = ∑ η ∈ s, G η := by
-  rw [← Finset.sum_coe_sort s]
-  exact Equiv.sum_comp ((finCongr h).trans s.equivFin.symm) (fun x => G x.1)
-
 /-- The index read from an oracle output. -/
 def idxOfOut (P : Params) (y : BitVec P.hashBits) : ℕ := (y.setWidth P.idxBits).toNat
 
@@ -121,23 +116,6 @@ theorem encQuery_inj {u u' : EncInput P} (h : encQuery P u = encQuery P u') : u 
   simp only [encQuery, Sigma.mk.inj_iff, heq_eq_eq, true_and] at h
   exact h
 
-/-- The length of an encoding query. -/
-theorem encQuery_fst (u : EncInput P) : (encQuery P u).1 = P.msgBits + P.nonceBits := rfl
-
-/-- A query of another length is not an encoding query. -/
-theorem ne_encQuery_of_length_ne {q : Query} (hq : q.1 ≠ P.msgBits + P.nonceBits)
-    (u : EncInput P) : q ≠ encQuery P u := by
-  rintro rfl
-  exact hq rfl
-
-/-- The queries of encoding length are exactly the encoding queries. -/
-theorem exists_eq_encQuery_of_length_eq {q : Query} (hq : q.1 = P.msgBits + P.nonceBits) :
-    ∃ u : EncInput P, q = encQuery P u := by
-  obtain ⟨k, v⟩ := q
-  change k = P.msgBits + P.nonceBits at hq
-  subst hq
-  exact ⟨v, rfl⟩
-
 theorem append_nonce_inj (m : Message P) {η η' : Nonce P} (h : m ++ η = m ++ η') : η = η' := by
   have := congrArg (fun u : EncInput P => u.setWidth P.nonceBits) h
   simpa only [Analysis.setWidth_append_nonce] using this
@@ -186,26 +164,6 @@ theorem signIdxLoop_succ (m : Message P) (k : ℕ) (tried : Finset (Nonce P))
   rfl
 
 /-! ### One-step lemmas -/
-
-theorem costAtMost_inl_bind {α β : Type} (t : ℕ)
-    (body : Fin (t + 1) → OracleComp (Spec P) α) (kont : α → OracleComp (Spec P) β) {b : ℕ}
-    (h : CostAtMost P (((liftM ((Spec P).query (.inl t)) : OracleComp (Spec P) (Fin (t + 1)))
-      >>= body) >>= kont) b) :
-    ∀ j, CostAtMost P (body j >>= kont) b := by
-  rw [bind_assoc, costAtMost_query_bind_iff] at h
-  intro j
-  have := h.2 j
-  rwa [show queryCost P (.inl t) = 0 from rfl, Nat.sub_zero] at this
-
-theorem costAtMost_inr_bind {α β : Type} (q : Query)
-    (body : BitVec P.hashBits → OracleComp (Spec P) α) (kont : α → OracleComp (Spec P) β)
-    {b : ℕ}
-    (h : CostAtMost P (((liftM ((Spec P).query (.inr q)) : OracleComp (Spec P) (BitVec P.hashBits))
-      >>= body) >>= kont) b) :
-    queryCost P (.inr q) ≤ b ∧
-      ∀ w, CostAtMost P (body w >>= kont) (b - queryCost P (.inr q)) := by
-  rw [bind_assoc, costAtMost_query_bind_iff] at h
-  exact h
 
 theorem mem_support_run_inl {α : Type} {t : ℕ} {body : Fin (t + 1) → OracleComp (Spec P) α}
     {c : Cache P} {p : α × Cache P}
@@ -283,51 +241,6 @@ theorem sign_eq_map {P : Params} (S : Scheme P) (x : S.graph.Assignment) (m : Me
   signLoop_eq_map S x m P.trialLimit ∅
 
 /-! ### Non-encoding entries are irrelevant -/
-
-theorem run_signIdxLoop_extend (m : Message P) (f : Cache P)
-    (hf : ∀ u : EncInput P, f (encQuery P u) = none) :
-    ∀ (k : ℕ) (tried : Finset (Nonce P)) (d : Cache P),
-      run P (signIdxLoop P m k tried) (Cache.extend d f) =
-        (fun p => (p.1, Cache.extend p.2 f)) <$> run P (signIdxLoop P m k tried) d := by
-  intro k
-  induction k with
-  | zero => intro tried d; simp [signIdxLoop, run_pure]
-  | succ k ih =>
-    intro tried d
-    by_cases hc : 0 < (Finset.univ \ tried).card
-    · rw [signIdxLoop_succ P m k tried hc, run_query_bind, run_query_bind, oracleImpl_run_inl,
-        oracleImpl_run_inl]
-      simp only [bind_assoc, pure_bind, map_bind]
-      refine bind_congr fun j => ?_
-      simp only [loopBody]
-      rw [run_query_bind, run_query_bind]
-      rcases hdq : d (encQuery P (m ++ nonceOf P tried hc j)) with _ | w
-      · have hdq' : Cache.extend d f (encQuery P (m ++ nonceOf P tried hc j)) = none := by
-          rw [Cache.extend_apply_of_none hdq]; exact hf _
-        rw [oracleImpl_run_inr_none P hdq, oracleImpl_run_inr_none P hdq']
-        simp only [bind_assoc, pure_bind, map_bind]
-        refine bind_congr fun w => ?_
-        rw [← Cache.extend_cacheQuery]
-        simp only [afterHash]
-        split_ifs with hi
-        · simp [run_pure]
-        · exact ih _ _
-      · have hdq' : Cache.extend d f (encQuery P (m ++ nonceOf P tried hc j)) = some w :=
-          Cache.extend_apply_of_some hdq
-        rw [oracleImpl_run_inr_some P hdq, oracleImpl_run_inr_some P hdq', pure_bind, pure_bind]
-        simp only [afterHash]
-        split_ifs with hi
-        · simp [run_pure]
-        · exact ih _ _
-    · rw [signIdxLoop, dif_neg hc]
-      simp [run_pure]
-
-/-- Entries at non-encoding points (queries of another length) are irrelevant to the loop. -/
-theorem run_signIdx_extend (m : Message P) (d f : Cache P)
-    (hf : ∀ u : EncInput P, f (encQuery P u) = none) :
-    run P (signIdx P m) (Cache.extend d f) =
-      (fun p => (p.1, Cache.extend p.2 f)) <$> run P (signIdx P m) d :=
-  run_signIdxLoop_extend P m f hf P.trialLimit ∅ d
 
 /-! ### The new cache entries -/
 

@@ -32,8 +32,6 @@ theorem setsName_injective : Function.Injective setsName := by
   unfold setsName at h
   exact Fin.castLE_injective _ (family.equivFin.symm.injective (Subtype.ext h))
 
-theorem numSets_eq : paperParams.numSets = 2 ^ 115 := rfl
-
 /-- The concrete scheme. -/
 def forestScheme : Scheme paperParams where
   graph := graph
@@ -56,17 +54,6 @@ def forestScheme : Scheme paperParams where
     show graph.keygenCost ≤ 1024
     rw [graph_keygenCost]
     norm_num
-
-theorem forestScheme_graph : forestScheme.graph = graph := rfl
-
-theorem forestScheme_sets (i : Fin paperParams.numSets) : forestScheme.sets i = fins (setsName i) :=
-  rfl
-
-theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
-  intro i j h
-  apply setsName_injective
-  have := congrArg names h
-  simpa only [forestScheme_sets, names_fins] using this
 
 theorem isCut_setsName (i : Fin (2 ^ 115)) : IsCut (setsName i) :=
   isCut_of_mem_family (setsName_mem i)

@@ -181,44 +181,6 @@ theorem success_eq {P : Params} (hidx : P.idxBits ≤ P.hashBits)
     cases p.1 <;> simp
   rw [heq, expectedValue_const (by simp)]
 
-/-- With `2^122` fresh trials, at least eight target indices give success at least `1/9`. -/
-theorem paper_success_ge (G : Finset ℕ) (hG : ∀ j ∈ G, j < 2 ^ 128)
-    (hcard : 8 ≤ G.card) (m : Message paperParams) (c : Cache paperParams)
-    (hc : BareLower.FreshMessage c m) :
-    (1 / 9 : ℝ≥0∞) ≤
-      E (run paperParams (search paperParams G m (2 ^ 122) 0) c)
-        (fun p => if p.1.isSome then 1 else 0) := by
-  rw [success_eq (by decide) G hG m (2 ^ 122) 0 c (by norm_num [paperParams])
-    (freshRange_of_freshMessage hc _ _)]
-  change (1 / 9 : ℝ≥0∞) ≤ 1 - (1 - (G.card : ℝ≥0∞) / 2 ^ 128) ^ (2 ^ 122)
-  have hmono : (1 - (G.card : ℝ≥0∞) / 2 ^ 128) ^ (2 ^ 122) ≤
-      (1 - (8 : ℝ≥0∞) / 2 ^ 128) ^ (2 ^ 122) := by
-    apply pow_le_pow_left'
-    apply tsub_le_tsub_left
-    exact ENNReal.div_le_div_right (by exact_mod_cast hcard) _
-  have hr : (1 - (8 : ℝ) / 2 ^ 128) ^ (2 ^ 122) ≤ 8 / 9 := by
-    have h := FreshSign.one_sub_pow_le_reciprocal
-      (p := (8 : ℝ) / 2 ^ 128) (by positivity) (by norm_num) (2 ^ 122)
-    norm_num at h ⊢
-    exact h
-  have hb : (1 - (8 : ℝ≥0∞) / 2 ^ 128) ^ (2 ^ 122) ≤ 8 / 9 := by
-    have h := ENNReal.ofReal_le_ofReal hr
-    rw [ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_sub 1 (by positivity)] at h
-    norm_num only [ENNReal.ofReal_div_of_pos, ENNReal.ofReal_pow, ENNReal.ofReal_ofNat,
-      ENNReal.ofReal_one] at h
-    have hratio : (8 : ℝ≥0∞) / 2 ^ 128 =
-        1 / 42535295865117307932921825928971026432 := by
-      apply (ENNReal.div_eq_div_iff (by norm_num) (by simp) (by positivity) (by simp)).2
-      norm_num
-    rw [hratio]
-    exact h
-  have hs : (1 : ℝ≥0∞) - 8 / 9 = 1 / 9 :=
-    ENNReal.sub_eq_of_eq_add' (by simp) (by
-      rw [← ENNReal.add_div]
-      norm_num only [show (1 : ℝ≥0∞) + 8 = 9 by norm_num]
-      exact (ENNReal.div_self (by norm_num) (by simp)).symm)
-  simpa only [hs] using tsub_le_tsub_left (hmono.trans hb) (1 : ℝ≥0∞)
-
 attribute [irreducible] search
 
 end OptimalOTS.PatternSearch

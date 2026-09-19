@@ -136,7 +136,6 @@ theorem N_nonneg (d : Cache P) (m : Message P) : 0 ≤ N P d m := by
   unfold N; linarith [u_le_card d m]
 
 theorem a_nonneg (d : Cache P) (m : Message P) : 0 ≤ a P d m := Nat.cast_nonneg _
-theorem b_nonneg (d : Cache P) (m : Message P) : 0 ≤ b P d m := Nat.cast_nonneg _
 theorem dd_nonneg (d : Cache P) (m : Message P) : 0 ≤ dd P d m := Nat.cast_nonneg _
 theorem v_nonneg (d : Cache P) : 0 ≤ v P d := Nat.cast_nonneg _
 theorem hit_nonneg (d : Cache P) (m : Message P) (i : ℕ) : 0 ≤ hit P d m i := Nat.cast_nonneg _

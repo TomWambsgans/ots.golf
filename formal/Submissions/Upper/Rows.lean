@@ -79,12 +79,6 @@ theorem card_V_le_numSets (d : Cache P) : (V P d).card ≤ P.numSets := by
         Finset.card_le_card fun i hi => Finset.mem_range.2 (V_lt_numSets P d i hi)
     _ = P.numSets := Finset.card_range _
 
-theorem rowAcc_subset_cached (d : Cache P) (m : Message P) : rowAcc P d m ⊆ rowCached P d m := by
-  intro η hη
-  simp only [rowAcc, rowCached, Finset.mem_filter, Finset.mem_univ, true_and] at hη ⊢
-  obtain ⟨w, hw, -⟩ := hη
-  simp [hw]
-
 theorem rowHit_subset (d : Cache P) (m : Message P) (i : ℕ) :
     rowHit P d m i ⊆ rowAcc P d m \ rowBad P d m := by
   intro η hη

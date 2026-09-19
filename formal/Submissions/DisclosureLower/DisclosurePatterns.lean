@@ -1,23 +1,36 @@
-import OptimalOTS.Disclosure
 import Submissions.DisclosureLower.Patterns
 import Submissions.DisclosureLower.OrderedCounting
 
-/-! The largest hash node in a directed pattern difference is a disclosed origin. -/
+/-! Hash origins of disclosed values: the hash nodes reached from a node by following parent edges
+backwards, stopping at each hash node. The largest hash node in a directed pattern difference is a
+disclosed origin. -/
 noncomputable section
 open scoped Classical
 namespace OptimalOTS
 namespace Graph
 variable {P : Params} (G : Graph P)
 
+/-- `HashOrigin h v` reaches hash node `h` from `v` without passing another hash. -/
+inductive HashOrigin : Fin G.size → Fin G.size → Prop
+  | hash {h} : (G.kind h).IsHash → HashOrigin h h
+  | step {h v w} : ¬ (G.kind v).IsHash → w ∈ (G.kind v).parents →
+      HashOrigin h w → HashOrigin h v
+
+/-- The hash origins of one node. -/
+def hashOrigins (v : Fin G.size) : Finset (Fin G.size) :=
+  Finset.univ.filter fun h => G.HashOrigin h v
+
+/-- The union of a payload's hash origins, counting each node once. -/
+def disclosureOrigins (A : Finset (Fin G.size)) : Finset (Fin G.size) :=
+  A.biUnion G.hashOrigins
+
+/-- Every disclosure set has at most `b` distinct hash origins. -/
+def _root_.OptimalOTS.Scheme.DisclosureBound (S : Scheme P) (b : ℕ) : Prop :=
+  ∀ i, (S.graph.disclosureOrigins (S.sets i)).card ≤ b
+
 @[simp] theorem mem_hashOrigins {h v : Fin G.size} :
     h ∈ G.hashOrigins v ↔ G.HashOrigin h v := by
   simp only [hashOrigins, Finset.mem_filter, Finset.mem_univ, true_and]
-
-theorem HashOrigin.isHash {h v : Fin G.size} (ho : G.HashOrigin h v) :
-    (G.kind h).IsHash := by
-  induction ho with
-  | hash hh => exact hh
-  | step _ _ _ ih => exact ih
 
 theorem HashOrigin.le {h v : Fin G.size} (ho : G.HashOrigin h v) : h ≤ v := by
   induction ho with

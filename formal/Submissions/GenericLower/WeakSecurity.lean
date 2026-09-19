@@ -1,6 +1,12 @@
 import OptimalOTS.Algorithm
 
-/-! Fresh-message security and the lower-bound statement for arbitrary oracle algorithms. -/
+/-!
+# Weak unforgeability for oracle algorithms
+
+The weak experiment runs the strong experiment's oracle calls and differs only in its winning
+condition. Every weak win is a strong win, so every secure algorithm is weakly secure with the
+same budget and bound. The lower-bound attack forges on a new message.
+-/
 
 open OracleSpec OracleComp ENNReal
 noncomputable section
@@ -94,12 +100,4 @@ theorem Secure.weaklySecure {S : AlgorithmScheme P} (h : S.Secure) : S.WeaklySec
     (h A B ((SecurityBridge.cost_iff S A B).2 hB))
 
 end AlgorithmScheme
-
-/-- Every pathwise verification budget for an admissible, secure algorithm is at least `c`.
-The budget must cover all public keys, messages, and signatures, including rejecting inputs. -/
-def AlgorithmVerificationLowerBound (P : Params) (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞)
-    (c : ℕ) : Prop :=
-  ∀ S : AlgorithmScheme P, S.Admissible L ε → S.Secure →
-    ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
-
 end OptimalOTS

@@ -30,11 +30,6 @@ theorem run_bind (P : Params) {α β : Type} (oa : OracleComp (Spec P) α)
     run P (oa >>= k) c = run P oa c >>= fun p => run P (k p.1) p.2 := by
   simp only [run, simulateQ_bind, StateT.run_bind]
 
-theorem run_map (P : Params) {α β : Type} (oa : OracleComp (Spec P) α)
-    (f : α → β) (c : Cache P) :
-    run P (f <$> oa) c = (fun p => (f p.1, p.2)) <$> run P oa c := by
-  simp only [run, simulateQ_map, StateT.run_map]
-
 /-- A zero-cost program never hashes, so its output is independent of the unchanged cache. -/
 theorem run_zero (P : Params) {α : Type} (oa : OracleComp (Spec P) α)
     (h : CostAtMost P oa 0) (c : Cache P) :

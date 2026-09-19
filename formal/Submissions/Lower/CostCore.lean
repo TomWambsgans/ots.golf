@@ -84,14 +84,6 @@ theorem costAtMost_foldlM {γ δ : Type} (f : γ → δ → OracleComp (Spec P) 
       rw [List.foldlM_cons, List.map_cons, List.sum_cons]
       exact (hf init a).bind fun y => costAtMost_foldlM f c hf l y
 
-theorem sum_map_filter_finRange {n : ℕ} (p : Fin n → Prop) [DecidablePred p] (f : Fin n → ℕ) :
-    (((List.finRange n).filter fun x => decide (p x)).map f).sum =
-      ∑ x ∈ Finset.univ.filter p, f x := by
-  rw [Finset.sum_filter, Fin.sum_univ_def]
-  induction (List.finRange n) with
-  | nil => simp
-  | cons a l ih => by_cases h : p a <;> simp [h, ih]
-
 end Generic
 
 /-! ## Graph computations -/
@@ -108,15 +100,6 @@ theorem costAtMost_evalNode (x : G.Assignment) (v : Fin G.size)
   | source => exact hs
   | det => exact costAtMost_pure _ _
   | hash p _ h => exact (costAtMost_hash _ le_rfl).map _
-
-theorem costAtMost_query (g : Fin G.size) (u : BitVec (G.kind g).inLen) :
-    CostAtMost P ((G.kind g).query P u) (G.nodeCost g) := by
-  unfold Graph.nodeCost
-  revert u
-  cases G.kind g with
-  | source => intro u; exact costAtMost_pure _ _
-  | det => intro u; exact costAtMost_pure _ _
-  | hash p _ h => intro u; exact costAtMost_hash _ le_rfl
 
 theorem costAtMost_sampleAssignment : CostAtMost P G.sampleAssignment 0 := by
   unfold Graph.sampleAssignment

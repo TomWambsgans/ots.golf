@@ -245,8 +245,11 @@ def landlock_abi() -> int:
     return int(libc.syscall(ctypes.c_long(444), ctypes.c_void_p(), ctypes.c_size_t(0), ctypes.c_uint(1)))
 
 
-def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, unit: str) -> list[str]:
-    """Mandatory service isolation, shared with the on-host launch smoke test."""
+def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, unit: str,
+                  hidden: list[Path] = ()) -> list[str]:
+    """Mandatory service isolation, shared with the on-host launch smoke test. `hidden` paths (the
+    service's database, logs and configuration) become inaccessible, so a proof cannot print them
+    into its public log."""
     props = [f"MemoryMax={limits['memory_bytes']}", "MemorySwapMax=0",
              f"RuntimeMaxSec={limits['wall_clock_seconds']}", "KillMode=control-group",
              "TasksMax=512", "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes",
@@ -255,7 +258,10 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
              # that Landlock's file-content permissions do not comprehensively cover.
              "ProtectSystem=strict", f"ReadWritePaths={cwd / '.lake'}",
              # Read-only /proc exposes other same-UID processes' environment and descriptors.
-             "InaccessiblePaths=/proc /sys", "PrivateDevices=yes", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
+             "InaccessiblePaths=/proc /sys",
+             # Repeated assignments accumulate; "-" ignores paths that do not exist.
+             "InaccessiblePaths=" + " ".join(f"-{p}" for p in ["/etc/ots", *hidden]),
+             "PrivateDevices=yes", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
              "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
              "pidfd_getfd kill tkill tgkill pidfd_send_signal"]
     launch = [sys.executable, str(HERE / "linux_exec.py")] + cmd
@@ -288,6 +294,9 @@ def main() -> int:
     ap.add_argument("--trusted", type=Path, help="the contract checkout (default: this repo)")
     ap.add_argument("--lake", type=Path, help="warm .lake to clone (default: <trusted>/formal/.lake)")
     ap.add_argument("--work", type=Path, help="work directory (default: a temp dir)")
+    ap.add_argument("--hide", type=Path, action="append", default=[],
+                    help="Linux: make every entry of this directory inaccessible to the proof, "
+                         "except the one containing the work directory")
     ap.add_argument("--keep", action="store_true", help="keep the work directory")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
@@ -419,7 +428,9 @@ def main() -> int:
             # session environment; the user's manager (kept alive by `loginctl enable-linger`)
             # listens under /run/user/<uid>.
             unit = f"ots-verify-{uuid.uuid4().hex[:12]}"
-            cmd = linux_command(cmd, project / lean_root, sandbox_env, lim, unit)
+            hidden = [entry for d in a.hide if d.is_dir() for entry in sorted(d.resolve().iterdir())
+                      if entry not in work.resolve().parents and entry != work.resolve()]
+            cmd = linux_command(cmd, project / lean_root, sandbox_env, lim, unit, hidden)
             runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
             cenv = {"PATH": path, "HOME": home, "XDG_RUNTIME_DIR": runtime,
                     "DBUS_SESSION_BUS_ADDRESS": os.environ.get("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")}

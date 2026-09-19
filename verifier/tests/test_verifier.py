@@ -38,7 +38,7 @@ class VerifierTests(unittest.TestCase):
         self.rel = "formal/Submissions/GenericLower"
         self.sub = self.root / self.rel
         self.sub.mkdir(parents=True)
-        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.AlgorithmWeak\n")
+        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.Algorithm\n")
         (self.sub / "claim.txt").write_bytes(b"1\n")
 
     def export(self, **kwargs):
@@ -127,7 +127,7 @@ class VerifierTests(unittest.TestCase):
         solution = sub / "Solution.lean"
         solution.write_text("import Submissions.GenericUpper.Helper\n")
         self.assertTrue(check(self.root, "generic-upper")["ok"])
-        for module in ("Submissions.Upper.Main", "OptimalOTS.AlgorithmForest",
+        for module in ("Submissions.Upper.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
                        "OptimalOTS.Algorithm.Extra", "Submissions.GenericLower.Proof"):
             with self.subTest(module=module):
                 solution.write_text(f"import {module}\n")
@@ -332,8 +332,9 @@ class VerifierTests(unittest.TestCase):
 
     def test_linux_service_properties_cannot_silently_fall_back(self):
         cmd = linux_command(["comparator", "config.json"], self.root, {"PATH": "/usr/bin", "HOME": "/empty"},
-                            {"memory_bytes": 1234, "wall_clock_seconds": 56}, "test-unit")
-        for required in ("MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group",
+                            {"memory_bytes": 1234, "wall_clock_seconds": 56}, "test-unit",
+                            [Path("/srv/ots/data/ots.db")])
+        for required in ("InaccessiblePaths=-/etc/ots -/srv/ots/data/ots.db", "MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group",
                          "TasksMax=512", "InaccessiblePaths=/proc /sys", "PrivateDevices=yes", "PrivateIPC=yes",
                          "ProtectSystem=strict", f"ReadWritePaths={self.root / '.lake'}",
                          "SystemCallErrorNumber=EPERM",

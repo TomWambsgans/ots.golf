@@ -147,9 +147,6 @@ def ReconEqs (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment) : 
       (∀ ps hlt f hf, G.kind v = .det ps hlt f hf → y v = f y) ∧
       (G.kind v = .source → y v = 0))
 
-theorem reconEqs_iff (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment) :
-    G.ReconEqs d A given y ↔ ∀ v, G.ReconEqAt d A given y v := Iff.rfl
-
 theorem ReconEqAt.mono {d d' : Cache P} (h : Cache.Sub d d') {A : Finset (Fin G.size)}
     {given y : G.Assignment} {v : Fin G.size} (he : G.ReconEqAt d A given y v) :
     G.ReconEqAt d' A given y v := by
@@ -175,10 +172,6 @@ theorem ReconEqAt.congr {d : Cache P} {A : Finset (Fin G.size)} {given y y' : G.
     rw [h p hp.le]; exact hw
   · rw [hv, h32 ps hlt f hf hk]
     exact hf y y' fun w hw => (h w (hlt w hw).le).symm
-
-theorem ReconEqs.mono {d d' : Cache P} (h : Cache.Sub d d') {A : Finset (Fin G.size)}
-    {given y : G.Assignment} (he : G.ReconEqs d A given y) : G.ReconEqs d' A given y :=
-  fun v => ReconEqAt.mono G h (he v)
 
 end Graph
 

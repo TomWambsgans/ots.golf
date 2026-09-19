@@ -7,13 +7,6 @@ open scoped Classical
 
 namespace OptimalOTS.BareLower
 
-theorem nine_tenths : (1 - 1 / 10 : ℝ≥0∞) = 9 / 10 := by
-  calc
-    (1 - 1 / 10 : ℝ≥0∞) = ENNReal.ofReal ((1 : ℝ) - 1 / 10) := by
-      rw [ENNReal.ofReal_sub _ (by norm_num), ENNReal.ofReal_div_of_pos (by norm_num)]
-      norm_num
-    _ = _ := by norm_num [ENNReal.ofReal_div_of_pos]
-
 theorem expectedValue_ge_indicator {α : Type} (p : ProbComp α)
     (good : α → Prop) (g : α → ℝ≥0∞) (a : ℝ≥0∞)
     (hg : ∀ x ∈ support p, good x → a ≤ g x) :
@@ -24,39 +17,6 @@ theorem expectedValue_ge_indicator {α : Type} (p : ProbComp α)
   by_cases h : good x
   · simpa only [if_pos h, one_mul] using hg x hx h
   · simp only [if_neg h, zero_mul, zero_le]
-
-theorem fresh_mass_paper {c : Cache paperParams} {D : Finset Query}
-    (hc : HasSupport c D) (hD : D.card ≤ 2 ^ 22) :
-    (9 / 10 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits)
-      (fun m => if FreshMessage c m then 1 else 0) := by
-  have hb := uniform_nonfresh_le hc
-  have hb' : E ($ᵗ BitVec paperParams.msgBits)
-      (fun m => if ¬ FreshMessage c m then (1 : ℝ≥0∞) else 0) ≤ 1 / 10 := by
-    apply hb.trans
-    calc (D.card : ℝ≥0∞) / 2 ^ paperParams.msgBits
-        ≤ ((2 ^ 22 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits :=
-          ENNReal.div_le_div_right (by exact_mod_cast hD) _
-      _ ≤ _ := by
-        apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-        norm_num [ENNReal.toReal_div, paperParams]
-  have h := uniform_complement_ge paperParams.msgBits (fun m => ¬ FreshMessage c m) _ hb'
-  simpa only [not_not, nine_tenths] using h
-
-theorem fresh_new_mass_paper {c : Cache paperParams} {D : Finset Query}
-    (hc : HasSupport c D) (hD : D.card ≤ 2 ^ 22) (m₁ : Message paperParams) :
-    (9 / 10 : ℝ≥0∞) ≤ E ($ᵗ BitVec paperParams.msgBits)
-      (fun m => if FreshMessage c m ∧ m ≠ m₁ then 1 else 0) := by
-  have h := uniform_fresh_ne_ge hc m₁
-  apply le_trans _ h
-  have hb : ((D.card + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits ≤ 1 / 10 := by
-    calc ((D.card + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits
-        ≤ ((2 ^ 22 + 1 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.msgBits :=
-          ENNReal.div_le_div_right (by exact_mod_cast Nat.add_le_add_right hD 1) _
-      _ ≤ _ := by
-        apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-        norm_num [ENNReal.toReal_div, paperParams]
-  calc (9 / 10 : ℝ≥0∞) = 1 - 1 / 10 := nine_tenths.symm
-    _ ≤ _ := tsub_le_tsub_left hb 1
 
 /-- Freshness bounds with a one-percent slack, used by the averaged attack. -/
 theorem ninety_nine_hundredths : (1 - 1 / 100 : ℝ≥0∞) = 99 / 100 := by

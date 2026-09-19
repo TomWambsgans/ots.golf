@@ -1,4 +1,3 @@
-import Submissions.DisclosureLower.Elementary
 import Submissions.DisclosureLower.Semantics
 
 /-! Finite counting of reconstruction patterns, with no oracle independence assumption. -/
@@ -12,6 +11,14 @@ namespace OptimalOTS
 namespace Graph
 
 variable {P : Params} (G : Graph P)
+
+/-- A hash node costs at least one compression. -/
+theorem one_le_nodeCost_of_isHash (v : Fin G.size) (hv : (G.kind v).IsHash) : 1 ≤ G.nodeCost v := by
+  unfold Graph.nodeCost
+  cases h : G.kind v with
+  | source => simp [h, NodeKind.IsHash] at hv
+  | det ps hp f hf => simp [h, NodeKind.IsHash] at hv
+  | hash p hp hl => exact le_max_left _ _
 
 def hashNodes : Finset (Fin G.size) := Finset.univ.filter fun v => (G.kind v).IsHash
 

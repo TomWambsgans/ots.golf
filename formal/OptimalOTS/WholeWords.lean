@@ -30,11 +30,8 @@ def Graph.WholeWords {P : Params} (G : Graph P) : Prop :=
       (∃ p, ∃ high : Bool, (G.kind p).IsHash ∧ ps = {p} ∧ G.len v = 128 ∧
         ∀ x, f x = ofBits (G.len v) ((toBits (x p)).drop (if high then 128 else 0)))
 
-/-- The whole-word lower framework, with the underlying DAG scheme unchanged. -/
-def Scheme.WholeWords {P : Params} (S : Scheme P) : Prop := S.graph.WholeWords
-
 /-- A lower bound for every secure whole-word DAG scheme. -/
 def WholeWordVerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
+  ∀ S : Scheme P, S.graph.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
 
 end OptimalOTS

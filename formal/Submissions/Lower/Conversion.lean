@@ -222,19 +222,6 @@ theorem candidate_input_eq (i : Fin P.numSets) (ξ ξ' : S.graph.Rec)
   exact input_congr S _ _ fun w hw =>
     cand_agree S i ξ ξ' hc w (Graph.Visited.parent hv'.1 hv'.2.1 hw)
 
-/-- Cached answers transfer to the target candidate without any new oracle entry. -/
-theorem candidate_cached (i j : Fin P.numSets) (ξ ξ' : S.graph.Rec)
-    (hc : ξ' ∈ obsCands S i ξ) (hsub : evalHashAt S j ⊆ evalHashAt S i)
-    (c : Cache P)
-    (hcache : ∀ v ∈ evalHashAt S i,
-      c ⟨(S.graph.kind v).inLen, (S.graph.kind v).input (S.graph.evalRec ξ)⟩ = some (ξ.2 v)) :
-    ∀ v ∈ evalHashAt S j,
-      c ⟨(S.graph.kind v).inLen, (S.graph.kind v).input (S.graph.evalRec ξ')⟩ = some (ξ'.2 v) := by
-  intro v hv
-  rw [candidate_input_eq S i ξ ξ' hc v (hsub hv),
-    ((mem_obsCands S i ξ ξ').1 hc).2 v (hsub hv)]
-  exact hcache v (hsub hv)
-
 /-- A total pure disclosure converter preserves the root when no new hash node is evaluated. -/
 theorem recon_convert_root (i j : Fin P.numSets) (z : S.graph.Assignment) (tg : S.graph.Tab)
     (hsub : evalHashAt S j ⊆ evalHashAt S i) :

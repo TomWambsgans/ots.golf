@@ -418,6 +418,25 @@ theorem cutOf_injective : Set.InjOn cutOf shapes := by
     · rw [pos_of_mem_shapes hc k hk, pos_of_mem_shapes hc' k (by rwa [← hE, ← hG])]
   exact Prod.ext hE (Prod.ext hG ht)
 
+theorem comp_36_86 : comp 36 86 = 2775281970561648566171176949562 := by
+  rw [← compTable_getD 86 36 86 le_rfl]
+  decide +kernel
+
+theorem comp_33_86 : comp 33 86 = 59401693306392006050563151322 := by
+  rw [← compTable_getD 86 33 86 le_rfl]
+  decide +kernel
+
+theorem comp_33_87 : comp 33 87 = 80231837540948301105645263934 := by
+  rw [← compTable_getD 87 33 87 le_rfl]
+  decide +kernel
+
+/-- The number of choices of the three shapes, from the exact values of `comp`
+(`C(7,2) = 21`, `C(15,3) = 455`, `C(7,1) = 7`, `C(18,7) = 31824`, `C(15,4) = 1365`). -/
+theorem shapes_ge :
+    2 ^ 115 ≤ 21 * 455 * comp 36 86 + 7 * 31824 * comp 33 86 + 21 * 1365 * comp 33 87 := by
+  rw [comp_36_86, comp_33_86, comp_33_87]
+  norm_num
+
 theorem card_family : 2 ^ 115 ≤ family.card := by
   unfold family
   rw [Finset.card_image_of_injOn cutOf_injective]
@@ -653,41 +672,6 @@ include hc
 -- the statements below take `hc` for uniformity; some proofs do not need it
 set_option linter.unusedSectionVars false
 
-theorem ev_mem_cutOf_iff (l : Fin 7) : ev l ∈ cutOf c ↔ l ∈ c.1 :=
-  ev_mem_cutOf_iff' c l
-
-theorem gv_mem_cutOf_iff (j : Fin 21) : gv j ∈ cutOf c ↔ j ∈ c.2.1 :=
-  gv_mem_cutOf_iff' c j
-
-theorem src_mem_cutOf_iff (k : Fin 63) : src k ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ c.2.2 k = 0 :=
-  src_mem_cutOf_iff' c k
-
-theorem cv_mem_cutOf_iff (k : Fin 63) (t : Fin 14) :
-    cv k t ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val = t.val + 1 :=
-  cv_mem_cutOf_iff' c k t
-
-theorem mem_cutOf_len (n : Name) (hn : n ∈ cutOf c) : n.len = 128 :=
-  mem_cutOf_len' hn
-
-/-- Which hash nodes are evaluated. -/
-theorem evaluated_rh : Evaluated (cutOf c) rh :=
-  evaluated_rh' c
-
-theorem evaluated_eh_iff (l : Fin 7) : Evaluated (cutOf c) (eh l) ↔ l ∉ c.1 :=
-  evaluated_eh_iff' c l
-
-theorem evaluated_gh_iff (j : Fin 21) :
-    Evaluated (cutOf c) (gh j) ↔ subtreeOf j ∉ c.1 ∧ j ∉ c.2.1 :=
-  evaluated_gh_iff' c j
-
-theorem evaluated_ch_iff (k : Fin 63) (t : Fin 14) :
-    Evaluated (cutOf c) (ch k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
-  evaluated_ch_iff' c k t
-
-theorem evaluated_ci_iff (k : Fin 63) (t : Fin 14) :
-    Evaluated (cutOf c) (ci k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
-  evaluated_ci_iff' c k t
-
 theorem isCut_cutOf : IsCut (cutOf c) :=
   isCut_cutOf' hc
 
@@ -698,10 +682,6 @@ theorem cost_cutOf : ∑ n ∈ evaluatedSet (cutOf c), n.cost = 105 :=
   cost_cutOf' hc
 
 end props
-
-theorem mem_family_iff (A : Finset Name) : A ∈ family ↔ ∃ c ∈ shapes, cutOf c = A := by
-  unfold family
-  exact Finset.mem_image
 
 theorem isCut_of_mem_family {A : Finset Name} (h : A ∈ family) : IsCut A := by
   unfold family at h

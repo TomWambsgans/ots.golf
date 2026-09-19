@@ -1,26 +1,17 @@
 import OptimalOTS.Statement
 
-/-!
-# Legacy DAG upper: the retained reference stub
-
-This file is rendered by the verifier from `Upper.lean.in`, with `{{CLAIM}}` replaced by the
-number in `Submissions/Upper/claim.txt`. A reference certificate exports these three
-declarations with exactly these names and types. `scheme` is a definition hole: any term of type
-`Scheme paperParams` is admissible, and the two theorems pin down what it must satisfy.
-
-A smaller claim is a stronger result. This DAG reference is closed to new public submissions;
-it is not the generic upper challenge. Contract: `OptimalOTS/Statement.lean`.
--/
+/-! Historical DAG upper reference, closed to new public submissions. Rendered with the
+reference claim; the scheme proves strong security and the verification cost. -/
 
 namespace OptimalOTS.Challenge.Upper
 
-/-- **The scheme.** A graph-based one-time signature scheme with the parameters of the paper. -/
+/-- A graph-based one-time signature scheme with the parameters of the paper. -/
 noncomputable def scheme : Scheme paperParams := sorry
 
-/-- **Security.** The scheme satisfies the paper's strong-unforgeability requirement. -/
+/-- Strong unforgeability in the shared random-oracle experiment. -/
 theorem secure : scheme.Secure := sorry
 
-/-- **Cost.** Verification at every signature index costs at most `{{CLAIM}}` compressions. -/
+/-- Verification at every signature index costs at most `{{CLAIM}}` compressions. -/
 theorem cost : ∀ i : Fin paperParams.numSets, scheme.verifyCost i ≤ {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.Upper

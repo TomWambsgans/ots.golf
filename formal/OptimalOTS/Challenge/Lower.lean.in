@@ -1,19 +1,12 @@
 import OptimalOTS.Statement
 
-/-!
-# Unrestricted DAG lower: the challenge stub
-
-This file is rendered by the verifier from `Lower.lean.in`, with `{{CLAIM}}` replaced by the
-number in `Submissions/Lower/claim.txt`. A lower-track submission must export a theorem with
-exactly this name and exactly this statement. Only the proof differs.
-
-A larger claim is a stronger result. Contract: `OptimalOTS/Statement.lean`.
--/
+/-! Rendered by the verifier with the submission's claim. The unrestricted DAG lower bound in
+the bare-oracle contract of `Statement.lean`. -/
 
 namespace OptimalOTS.Challenge.Lower
 
-/-- **Lower-track certificate.** Every secure DAG scheme with the paper parameters has a
-signature index whose verification costs at least `{{CLAIM}}` compressions. -/
+/-- Every secure DAG scheme with the paper parameters has a signature index whose verification
+costs at least `{{CLAIM}}` compressions. -/
 theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.Lower

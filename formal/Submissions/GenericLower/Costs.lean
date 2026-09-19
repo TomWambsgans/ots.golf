@@ -19,9 +19,6 @@ theorem CostAtMost.mono {oa : OracleComp (Spec P) α} {b b' : ℕ} (h : CostAtMo
       rw [isQueryBound_query_bind_iff] at h ⊢
       exact ⟨le_trans h.1 hb, fun u => ih u (h.2 u) (by omega)⟩
 
-theorem costAtMost_pure (x : α) (b : ℕ) : CostAtMost P (pure x : OracleComp (Spec P) α) b :=
-  trivial
-
 theorem CostAtMost.bind {oa : OracleComp (Spec P) α} {ob : α → OracleComp (Spec P) β}
     {b₁ b₂ : ℕ} (h₁ : CostAtMost P oa b₁) (h₂ : ∀ x, CostAtMost P (ob x) b₂) :
     CostAtMost P (oa >>= ob) (b₁ + b₂) :=

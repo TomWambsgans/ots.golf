@@ -115,8 +115,6 @@ theorem hashParent_of_hashOf {v h : Name} (hh : hashOf v = some h) : ∃ p, hash
 theorem cost_of_hashOf {v h : Name} (hh : hashOf v = some h) : v.cost = 0 := by
   cases v <;> simp only [hashOf, reduceCtorEq] at hh <;> rfl
 
-theorem prev_zero (k : Fin 63) : prev k 0 = src k := rfl
-
 theorem prev_succ (k : Fin 63) (t : Fin 14) (ht : t.val < 13) :
     prev k ⟨t.val + 1, by omega⟩ = cv k t := by
   simp [prev]

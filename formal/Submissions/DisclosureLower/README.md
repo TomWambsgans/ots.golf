@@ -2,8 +2,8 @@
 
 `Solution.lean` exports
 `OptimalOTS.Challenge.DisclosureLower.candidate : WholeWordVerificationLowerBound paperParams 93`.
-The retained track/root names are historical; the challenge now covers every weakly secure DAG
-satisfying `Scheme.WholeWords`, with no extra provenance or separation assumption.
+The retained track/root names are historical; the challenge now covers every secure DAG
+satisfying `Graph.WholeWords`, with no extra provenance or separation assumption.
 
 The protected syntax in `OptimalOTS/WholeWords.lean` permits independent 128-bit sources,
 256-bit hashes, selecting a fixed output half, and concatenation of any number of earlier

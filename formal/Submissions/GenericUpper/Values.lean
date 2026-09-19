@@ -47,9 +47,6 @@ theorem cast_cast_eq {n m : ℕ} (h₁ : n = m) (h₂ : m = n) (x : BitVec n) :
     (x.cast h₁).cast h₂ = x := by
   subst h₁; rfl
 
-theorem cast_heq_self {n m : ℕ} (h : n = m) (x : BitVec n) : HEq (x.cast h) x := by
-  subst h; rfl
-
 /-- The node equation of the concrete graph, with the kind computed by `kindOf`. -/
 theorem evalRec_apply_fin (ξ : Rec) (n : Name) :
     graph.evalRec ξ n.fin =
@@ -233,19 +230,11 @@ theorem child_hashParent {h p : Name} (hp : hashParent h = some p) : child p = s
   cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp
   all_goals rfl
 
-/-- The parent of a hash node is determined by the hash node; conversely too. -/
-theorem hashParent_inj {h h' p : Name} (hp : hashParent h = some p) (hp' : hashParent h' = some p) :
-    h = h' :=
-  Option.some.inj ((child_hashParent hp).symm.trans (child_hashParent hp'))
-
 /-- The input of a hash node has length 144 (chains), 400 (groups, subtrees) or 912 (root). -/
 theorem len_hashParent_cases {h p : Name} (hp : hashParent h = some p) :
     p.len = 144 ∨ p.len = 400 ∨ p.len = 912 := by
   cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp <;>
     simp [Name.len]
-
-theorem len_hashParent {h p : Name} (hp : hashParent h = some p) : 128 ≤ p.len := by
-  rcases len_hashParent_cases hp with e | e | e <;> omega
 
 /-- The input of a hash node never has the length of an index query. -/
 theorem len_hashParent_ne_enc {h p : Name} (hp : hashParent h = some p) :
@@ -258,8 +247,6 @@ theorem len_hashParent_ne_enc {h p : Name} (hp : hashParent h = some p) :
 is not written next to the input (the oracle has no labels); it is read back from the tweak
 (`tagNat_pointOf`). -/
 def pointOf (ξ : Rec) (_h p : Name) : Query := ⟨p.len, val ξ p⟩
-
-theorem pointOf_fst (ξ : Rec) (h p : Name) : (pointOf ξ h p).1 = p.len := rfl
 
 /-- The value of the parent of a hash node starts with the tweak of that hash node. -/
 theorem tagNat_val {h p : Name} (hp : hashParent h = some p) (ξ : Rec) :
@@ -344,17 +331,6 @@ theorem graph_kind_eq_hash {h : Name} {q : Fin N} {hq : q < h.fin} {hl : lenF h.
   case eh l => exact ⟨ec l, rfl, (NodeKind.hash.inj hk).symm⟩
   case rh => exact ⟨rc, rfl, (NodeKind.hash.inj hk).symm⟩
 
-/-- The value of the parent of a hash node is its deterministic function of the assignment. -/
-theorem val_eq_detVal {h p : Name} (hp : hashParent h = some p) (ξ : Rec) :
-    val ξ p = detVal p (graph.evalRec ξ) := by
-  obtain ⟨ps, hps, hf, hk⟩ := graph_kind_hashParent hp
-  have key := Graph.evalRec_apply graph ξ p.fin
-  rw [hk] at key
-  unfold val
-  rw [key]
-  simp only [NodeKind.value]
-  exact cast_cast_eq _ _ _
-
 /-- The input of a hash node carries its tweak, in every assignment. -/
 theorem tagNat_detVal_of_hashParent {h p : Name} (hp : hashParent h = some p) (x : Asg) :
     tagNat ⟨p.len, detVal p x⟩ = h.idx :=
@@ -371,14 +347,6 @@ def tagging : graph.Tagging where
     refine ⟨ps, hps, _, hf, hkp, fun x => ?_⟩
     exact tagOf_eq_some_of_tagNat
       (tagNat_cast_detVal (child_hashParent hp) (cost_ne_zero_of_hashParent hp) x _)
-
-theorem tagging_tag (q : Query) : tagging.tag q = tagOf q := rfl
-
-/-- The tag of a keygen point is its hash node. -/
-theorem tagging_tag_pointOf {h p : Name} (hp : hashParent h = some p) (ξ : Rec) :
-    tagging.tag (pointOf ξ h p) = some h.fin := by
-  rw [tagging_tag]
-  exact tagOf_eq_some_of_tagNat (tagNat_pointOf hp ξ)
 
 /-- The cache written by key generation. -/
 def kc (ξ : Rec) : Cache paperParams := graph.keygenCache ξ
@@ -469,14 +437,6 @@ theorem disjoint_fExp_fHid (A? : Option (Finset Name)) (ξ : Rec) :
     exact he he'
   · simp at hq
 
-theorem fExp_isSome_iff (A? : Option (Finset Name)) (ξ : Rec) (q : Query) :
-    (fExp A? ξ q).isSome ↔ ∃ h p, hashParent h = some p ∧ Exposed A? h ∧ q = pointOf ξ h p := by
-  simp only [fExp]
-  split_ifs with hc
-  · obtain ⟨h, p, hp, -, hq⟩ := id hc
-    exact iff_of_true ((kc_isSome_iff ξ q).2 ⟨h, p, hp, hq⟩) hc
-  · exact iff_of_false (by simp) hc
-
 theorem fHid_isSome_iff (A? : Option (Finset Name)) (ξ : Rec) (q : Query) :
     (fHid A? ξ q).isSome ↔ ∃ h p, hashParent h = some p ∧ ¬ Exposed A? h ∧ q = pointOf ξ h p := by
   simp only [fHid]
@@ -562,16 +522,6 @@ theorem spr_of_extend {c f : Cache paperParams} {ξ : Rec} (hs : Spr (Cache.exte
   rcases hw with hw | ⟨-, hw⟩
   · exact Or.inl ⟨h, p, hp, u, hu, htag, w, hw, ht⟩
   · exact Or.inr ⟨h, p, hp, u, hu, htag, w, hw, ht⟩
-
-theorem spr_extend (c f : Cache paperParams) (ξ : Rec) (hd : Cache.Disjoint c f) :
-    Spr (Cache.extend c f) ξ ↔ Spr c ξ ∨ Spr f ξ := by
-  constructor
-  · exact spr_of_extend
-  · rintro (⟨h, p, hp, u, hu, htag, w, hw, ht⟩ | ⟨h, p, hp, u, hu, htag, w, hw, ht⟩)
-    · exact ⟨h, p, hp, u, hu, htag, w, Cache.extend_apply_of_some hw, ht⟩
-    · refine ⟨h, p, hp, u, hu, htag, w, ?_, ht⟩
-      rw [Cache.extend_apply_of_none (hd _ (by rw [hw]; rfl))]
-      exact hw
 
 theorem not_spr_kc (ξ : Rec) : ¬ Spr (kc ξ) ξ := by
   rintro ⟨h, p, hp, u, hu, htag, w, hw, -⟩
@@ -714,13 +664,6 @@ def deps : Name → Finset Name
   | rc => Finset.univ.image eh
   | rh => {rh}
 
-/-- A chain input reads what the value before it reads. -/
-theorem deps_ci (k : Fin 63) (t : Fin 14) : deps (ci k t) = deps (prev k t) := by
-  unfold Name.prev
-  by_cases ht : t.val = 0
-  · simp only [deps, dif_pos ht]
-  · simp only [deps, dif_neg ht]
-
 theorem deps_ci_zero (k : Fin 63) (t : Fin 14) (ht : t.val = 0) : deps (ci k t) = {src k} := by
   simp only [deps, dif_pos ht]
 
@@ -757,43 +700,6 @@ theorem child_cv_13_gc (j : Fin 21) (a : Fin 3) : child (cv (chainOf j a) 13) = 
 theorem child_gv_ec (l : Fin 7) (a : Fin 3) : child (gv (groupOf l a)) = some (ec l) := by
   show some (ec ⟨(groupOf l a : ℕ) / 3, by omega⟩) = some (ec l)
   exact congrArg some (congrArg ec (Fin.ext (groupOf_div l a)))
-
-/-- Every coordinate a node reads is the node itself or lies at most two steps below it. -/
-theorem mem_deps_cases {s n : Name} (h : s ∈ deps n) :
-    s = n ∨ child s = some n ∨ ∃ m, child s = some m ∧ child m = some n := by
-  cases n with
-  | src k => exact Or.inl (Finset.mem_singleton.1 h)
-  | ci k t =>
-    by_cases ht : t.val = 0
-    · rw [deps_ci_zero k t ht, Finset.mem_singleton] at h
-      subst h
-      exact Or.inr (Or.inl (child_src_ci k t ht))
-    · rw [deps_ci_succ k t ht, Finset.mem_singleton] at h
-      subst h
-      exact Or.inr (Or.inr ⟨_, rfl, child_cv_ci k t ht⟩)
-  | ch k t => exact Or.inl (Finset.mem_singleton.1 h)
-  | cv k t =>
-    obtain rfl := Finset.mem_singleton.1 h
-    exact Or.inr (Or.inl rfl)
-  | gc j =>
-    simp only [deps, Finset.mem_insert, Finset.mem_singleton] at h
-    rcases h with rfl | rfl | rfl <;> exact Or.inr (Or.inr ⟨_, rfl, child_cv_13_gc j _⟩)
-  | gh j => exact Or.inl (Finset.mem_singleton.1 h)
-  | gv j =>
-    obtain rfl := Finset.mem_singleton.1 h
-    exact Or.inr (Or.inl rfl)
-  | ec l =>
-    simp only [deps, Finset.mem_insert, Finset.mem_singleton] at h
-    rcases h with rfl | rfl | rfl <;> exact Or.inr (Or.inr ⟨_, rfl, child_gv_ec l _⟩)
-  | eh l => exact Or.inl (Finset.mem_singleton.1 h)
-  | ev l =>
-    obtain rfl := Finset.mem_singleton.1 h
-    exact Or.inr (Or.inl rfl)
-  | rc =>
-    simp only [deps, Finset.mem_image, Finset.mem_univ, true_and] at h
-    obtain ⟨l, rfl⟩ := h
-    exact Or.inr (Or.inr ⟨ev l, rfl, rfl⟩)
-  | rh => exact Or.inl (Finset.mem_singleton.1 h)
 
 /-- Resample a source. -/
 def updSrc (ξ : Rec) (k : Fin 63) (b : BitVec 128) : Rec :=
@@ -950,16 +856,6 @@ theorem trunc_cat7 (a : Fin 7 → BitVec 128) : trunc (cat7 a) = a 6 := by
   rw [trunc_cast]
   unfold trunc
   rw [BitVec.setWidth_append, dif_pos le_rfl, BitVec.setWidth_eq]
-
-theorem trunc_of_cat3_eq {x y z : BitVec 128} {u : BitVec 384} (e : cat3 x y z = u) :
-    trunc u = z := by
-  subst e
-  exact trunc_cat3 x y z
-
-theorem trunc_of_cat7_eq {a : Fin 7 → BitVec 128} {u : BitVec 896} (e : cat7 a = u) :
-    trunc u = a 6 := by
-  subst e
-  exact trunc_cat7 a
 
 /-- The tweak sits in the high bits: it does not change the 128 low bits of a payload of at least
 128 bits. -/

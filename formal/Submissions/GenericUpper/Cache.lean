@@ -9,7 +9,7 @@ security proof of the concrete scheme:
 * `extend c f` overlays the cache `f` under the cache `c` (entries of `c` take priority);
 * `Hits c f` says that some point cached in `f` is also cached in `c`;
 * the one-step run lemmas of `oracleImpl P`;
-* runs only grow the cache (`le_of_mem_support_run`).
+* runs only grow the cache (`sub_of_mem_support_run`).
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -89,13 +89,6 @@ theorem Disjoint.not_hits {c f : Cache P} (h : Disjoint c f) : ¬ Hits c f := by
   rintro ⟨q, hf, hc⟩
   rw [h q hf] at hc; simp at hc
 
-theorem not_hits_iff_disjoint (c f : Cache P) : ¬ Hits c f ↔ Disjoint c f := by
-  constructor
-  · intro h q hf
-    by_contra hc
-    exact h ⟨q, hf, Option.ne_none_iff_isSome.1 hc⟩
-  · exact Disjoint.not_hits
-
 theorem hits_cacheQuery (c f : Cache P) (q : Query) (u : BitVec P.hashBits) :
     Hits (c.cacheQuery q u) f ↔ Hits c f ∨ (f q).isSome := by
   constructor
@@ -120,14 +113,6 @@ theorem hits_extend (c f g : Cache P) : Hits (extend c f) g ↔ Hits c g ∨ Hit
   · rintro (⟨q, hg, hc⟩ | ⟨q, hg, hc⟩)
     · exact ⟨q, hg, (extend_isSome c f q).2 (Or.inl hc)⟩
     · exact ⟨q, hg, (extend_isSome c f q).2 (Or.inr hc)⟩
-
-theorem Hits.mono_left {c c' f : Cache P} (h : Hits c f) (hle : Sub c c') : Hits c' f := by
-  obtain ⟨q, hf, hc⟩ := h
-  exact ⟨q, hf, hle.isSome hc⟩
-
-theorem Hits.mono_right {c f f' : Cache P} (h : Hits c f) (hle : Sub f f') : Hits c f' := by
-  obtain ⟨q, hf, hc⟩ := h
-  exact ⟨q, hle.isSome hf, hc⟩
 
 theorem disjoint_cacheQuery {c f : Cache P} (h : Disjoint c f) {q : Query}
     (hq : f q = none) (u : BitVec P.hashBits) : Disjoint (c.cacheQuery q u) f := by
