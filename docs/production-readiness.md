@@ -410,3 +410,19 @@ to 121, the chain phase costs 4584 cycles on every index (`CompactCost.chainsCos
 the 9010 instructions it occupies. The claim drops from 24053 to **19627**; the decoder is still
 charged as straight-line code. The whole certificate rebuilds, the baseline and protected pin were
 regenerated, and the fixture history keeps the same displayed cycle counts.
+
+## RISC-V certificate at 9041 cycles: exact decoder accounting (2026-09-18)
+
+The position decoder is now charged by the path actually executed. `DecoderCost.lean` defines the
+data-semantics cost `decoderCost` of a structured block, proves it equal to `PureBlock.cost`, and
+computes one candidate at 23 instructions while the digit is searched and allowed, 4 when it
+exceeds the remaining sum (never reached before selection) and 1 once a digit is selected. The
+abstract scan cost `scanCost` follows the same `SlotRep` invariant as the correctness proof, so a
+slot that selects digit `d` costs `38 + 22 d`, the 36 slots cost `36 · 38 + 22 · 121` because the
+selected digits form a composition of 121, and `decoderBlock_cost` gives exactly 4033 cycles on
+every index. `CompactVerifier.image_refines` charges it through `Refines.block_exact`; the claim
+drops from 19627 to **9041** (36 + 4033 + 4584 + 240 + 100 + 36 + 12). The certificate uses only
+`propext`, `Classical.choice` and `Quot.sound`; the official verifier accepted `riscv-upper` at 9041
+in 335.8 seconds on macOS, 75 service tests pass, the baseline and protected pin were regenerated
+(contract id `d42e3243fec87a692e19f55dec49bf210826556a002eec94904ea37ec068f483`), and the fixture
+history keeps the same displayed cycle counts. Nothing was pushed or deployed.

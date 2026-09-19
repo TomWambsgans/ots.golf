@@ -61,8 +61,8 @@ Code is immutable. Parsing, arithmetic, copying and comparison run inside the ma
 ## Certified submission
 
 `formal/Submissions/RiscvUpper/` contains the checked certificate
-`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 19627`, exported from
-`Solution.lean` with `claim.txt` at 19627. It uses only `propext`, `Classical.choice` and
+`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 9041`, exported from
+`Solution.lean` with `claim.txt` at 9041. It uses only `propext`, `Classical.choice` and
 `Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
 
 The OTS retains the existing forest graph and uses a fixed disclosure layout: two subtree digests,
@@ -90,19 +90,23 @@ input, which costs two. The guarded chain sweeps are charged by the path taken: 
 when the chain is disclosed at that level and 4 otherwise, a hash step costs at most 9 when the
 chain is hashed and 3 otherwise. Because each chain is read once and hashed `14 - position`
 times, and the positions of a composition sum to 121, the chain phase costs 4584 cycles on every
-index (`CompactCost.chainsCost_le`). The decoder is still charged its full 14619 instructions;
-the remaining gap between 19627 and the 141 hash compressions is decoding, copying and tagging.
+index (`CompactCost.chainsCost_le`). The position decoder is charged by the path taken as well:
+each of the 36 slots scans its 15 candidate digits, paying 23 instructions per candidate up to and
+including the selected one and one per candidate after it, so a slot selecting digit `d` costs
+`38 + 22 d` and the decoder costs `3 + 36 · 38 + 22 · 121 = 4033` cycles on every index
+(`DecoderCost.decoderBlock_cost`). The remaining gap between 9041 and the 141 hash compressions
+is the per-step overhead of the chain sweeps, the decoder scan, copying and tagging.
 
 | Region | Instructions | Certified cycles |
 |---|---:|---:|
 | Index query and input checks | 42 | 36 |
-| Position decoder | 14619 | 14619 |
+| Position decoder | 14619 | 4033 |
 | Chain setup, 15 read sweeps and 14 hash sweeps | 9010 | 4584 |
 | Group inputs, hashes and reads | 240 | 240 |
 | Subtree hashes and reads | 100 | 100 |
 | Root input and 912-bit hash | 35 | 36 |
 | Decision | 12 | 12 |
-| Total | 24058 | 19627 |
+| Total | 24058 | 9041 |
 
 ### Proof structure
 
@@ -111,7 +115,7 @@ The certificate bundles four facts about `RiscvUpperForest.submission`:
 - **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
   `Submission.scheme` definitionally.
 - **Exact refinement and accepting cost** are both read off `CompactVerifier.image_refines`, which
-  proves `Riscv.Refines 24058 (initialState image pk m bits) (some <$> directVerify pk m bits) 19627`.
+  proves `Riscv.Refines 24058 (initialState image pk m bits) (some <$> directVerify pk m bits) 9041`.
   `Riscv.Refines fuel s q c` (`Refines.lean`) states that the observed oracle computation of `s`
   under `fuel` equals `q` and that every terminating execution costs at most `c` cycles.
   `ForestVerifierProof.directVerify_eq` identifies the explicit forest interpreter with the certified

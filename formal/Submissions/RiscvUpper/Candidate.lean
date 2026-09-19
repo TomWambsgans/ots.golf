@@ -35,14 +35,14 @@ theorem submission_implements : submission.Implements := by
     some <$> Wire.scheme.verify pk m bits
   rw [(RiscvUpperProgram.Compact.image_refines pk m bits).1, ForestVerifier.directVerify_eq]
 
-/-- Every accepting run executes at most 19627 cycles: one per executed instruction, two for
-the 912-bit root hash, with the decoder charged as straight-line code. -/
-theorem submission_cost : submission.AcceptCostAtMost 19627 := by
+/-- Every accepting run executes at most 9041 cycles: one per executed instruction, two for
+the 912-bit root hash, with the decoder and the chain sweeps charged by the path taken. -/
+theorem submission_cost : submission.AcceptCostAtMost 9041 := by
   intro pk m bits cycles accepted
   exact (RiscvUpperProgram.Compact.image_refines pk m bits).2 true cycles accepted
 
-/-- Every requirement of a scored RISC-V submission, at 19627 cycles. -/
-theorem machineCertificate : submission.Certificate 19627 :=
+/-- Every requirement of a scored RISC-V submission, at 9041 cycles. -/
+theorem machineCertificate : submission.Certificate 9041 :=
   ⟨submission_admissible, submission_secure, submission_implements, submission_cost⟩
 
 /--

@@ -2,13 +2,15 @@ import Submissions.RiscvUpper.CompactTree
 import Submissions.RiscvUpper.CompactCost
 import Submissions.RiscvUpper.IndexRefines
 import Submissions.RiscvUpper.DecoderExecution
+import Submissions.RiscvUpper.DecoderCost
 
 /-!
 # Exact refinement of the compact machine image
 
 The compact image observes exactly the certified raw-signature verifier, preserving every oracle
 query, and every accepting run costs at most `cycleBound` cycles: one cycle per executed
-instruction, with the 912-bit root hash charged two.
+instruction, with the 912-bit root hash charged two. The decoder and the chain phase are charged
+their exact executed counts, 4033 and 4584 cycles on every index.
 -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
@@ -93,10 +95,11 @@ theorem order_eq : order = (srcs ++ levelsFrom 0) ++
   simp only [List.append_assoc]
 
 /-- The certified accepting-path cycle count. -/
-def cycleBound : ℕ := 19627
+def cycleBound : ℕ := 9041
 
-/-- The chain phase is charged its exact executed cost, 4584 cycles for every index. -/
-theorem cost_arith : decodePositions.length + (4584 + (groups.length +
+/-- The decoder and the chain phase are charged their exact executed costs, 4033 and 4584
+cycles for every index. -/
+theorem cost_arith : 4033 + (4584 + (groups.length +
     (subtrees.length + (root.length + 1 + decision.length)))) + 36 = cycleBound := by
   decide +kernel
 
@@ -150,10 +153,12 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
     apply CodeAt.at_offset located (checkedInput_code image pk m bits answer)
     rw [checked_pc, initial_pc, indexAndChecks_length]
     rfl
-  have ready := (decoderBlock_correct _ ⟨_, hi⟩ (checkedIndexState_hash_rank image pk m bits answer)
-    (checkedInput_table image pk m bits answer image_data)).1
-  rw [← decoderBlock_code] at located1 ⊢
-  apply Riscv.Refines.block decoderBlock _ ready located1.append_left
+  have rankEq := checkedIndexState_hash_rank image pk m bits answer
+  have table := checkedInput_table image pk m bits answer image_data
+  have ready := (decoderBlock_correct _ ⟨_, hi⟩ rankEq table).1
+  rw [← decoderBlock_code] at located1
+  rw [← decoderBlock_cost _ ⟨_, hi⟩ rankEq table]
+  apply Riscv.Refines.block_exact decoderBlock _ ready located1.append_left
     (chains.length + (groups.length + (subtrees.length + (root.length + decision.length)))) left _ _
     (by rw [decoderBlock_code] at *; omega)
   intro left1 hleft1

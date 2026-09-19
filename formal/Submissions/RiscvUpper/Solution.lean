@@ -1,6 +1,6 @@
 import Submissions.RiscvUpper.Candidate
 
-/-! A fixed-layout forest OTS with an equivalent RV64IM verifier, at 19627 accepting cycles. -/
+/-! A fixed-layout forest OTS with an equivalent RV64IM verifier, at 9041 accepting cycles. -/
 
 namespace OptimalOTS.Challenge.RiscvUpper
 
@@ -8,7 +8,7 @@ namespace OptimalOTS.Challenge.RiscvUpper
 noncomputable def submission : Riscv.Submission := RiscvUpperForest.submission
 
 /-- Correctness, signing availability, resource limits, 127-bit strong security, exact machine
-refinement on every input, and at most 19627 cycles on every accepting path. -/
-theorem certificate : submission.Certificate 19627 := RiscvUpperForest.machineCertificate
+refinement on every input, and at most 9041 cycles on every accepting path. -/
+theorem certificate : submission.Certificate 9041 := RiscvUpperForest.machineCertificate
 
 end OptimalOTS.Challenge.RiscvUpper
