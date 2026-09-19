@@ -62,10 +62,9 @@ OTS_SUBMISSIONS_REPO=leanEthereum/ots.golf-submissions
 latter unset keeps intake closed while localhost still links to the intended submissions repository.
 Production requires both settings and separate repositories.
 
-Install the Pull requests webhook on the submissions repository. The web process's fine-grained
-GitHub token needs read access to contents and read/write access to commit statuses and pull requests
-there. It needs no write permission on the core. Only maintainers update the trusted checkout.
-See [deployment](../service/deploy/README.md) for credentials, isolation and launch checks.
+Install the Pull requests webhook on the submissions repository. [Deployment](../service/deploy/README.md)
+defines the bot token's permissions, the isolation and the launch checks. Only maintainers update
+the trusted checkout.
 
 For an existing installation, stop the worker, update the core Git remote, and set both variables
 in the public environment file. Restart the web and worker only when the applicable launch checks

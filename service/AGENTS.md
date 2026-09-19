@@ -1,14 +1,12 @@
 # Local preview
 
-The user wants the invented Satoshi Nakamoto and Vitalik Buterin submissions present on localhost
-by default. Preserve or restore those demo rows when updating the running local site. Do not
-replace the demo board with a baseline-only board unless the user explicitly requests it.
-Demo claims must follow the current contract baselines, using the offsets in `seed_demo.py`;
-never preserve stale absolute claims when a baseline changes.
+The user wants the invented Satoshi Nakamoto, Vitalik Buterin and Hal Finney submissions present
+on localhost by default. Preserve or restore those demo rows when updating the running local site.
+Do not replace the demo board with a baseline-only board unless the user explicitly requests it.
+`demo/README.md` owns the fixture policy: demo claims follow the current contract baselines
+through each row's `improvement`; never preserve stale absolute claims when a baseline changes.
 Show results as ordinary submissions with solver attribution, never as a special "baseline" in
-the website. Generic lower's checked claim appears as a default Vitalik demo submission with zero
-offset from the contract claim. Preserve it across refreshes, including its ID and dates, and keep
-its demo label. Internal verifier thresholds still come from the contract.
+the website. Internal verifier thresholds still come from the contract.
 
 Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
 `refresh-local.sh`: it adjusts existing demo claims and triggers the running server to reload.
@@ -18,7 +16,7 @@ whenever a proof or contract status changes. Refresh localhost and check the ren
 of the same change; do not wait for a separate request to update the website.
 
 `./run-local.sh` refreshes the demo board without replacing rows before starting the worker and web server; use this entry
-point for local development. `OTS_DEMO_DATA=0` explicitly disables startup seeding.
+point for local development. `OTS_PHONY=0` explicitly disables startup seeding.
 `seed_demo.py` refuses production mode and non-loopback site URLs even with `--force`, and
 refuses nonlocal databases by default. Never force it against production.
 
@@ -39,24 +37,18 @@ filters those lower tables only. Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
 three lower frameworks. `generic-upper` is “Upper bound”, measured in compressions. `riscv-upper`
-is “RISC-V upper bound”, measured in cycles on accepting executions; every execution
-must still terminate and refine the Lean oracle specification. Render the second card, chart,
+is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
+execution must terminate and refine the Lean oracle specification. Render the second card, chart,
 leaderboard and rules section only after its checked certificate is pinned and admitted. Its chart
 has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
-Preserve all existing demo entries. The additional Satoshi RISC-V fixture has zero improvement
-relative to the checked claim, retains its demo label, and seeds only after admission.
-The `disclosure-upper` reference belongs to Historical partial disclosures, not Whole words.
-Use its `historical_framework_title` metadata on submission and solver pages. Its 16-bit tweaks
-violate the whole-word restrictions; never present it as a whole-word upper construction.
+The legacy `upper` reference uses its `historical_framework_title` metadata on submission and
+solver pages.
 The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
-Preserve Satoshi/Vitalik/Hal's existing demos. Generic lower includes Vitalik's demo at the checked
-claim, with no invented improvement beyond it. The card, chart point, leaderboard, submission page
-and solver profile must all refer to this same row.
-Generic upper adds its own Vitalik demo at the checked claim and a later Satoshi demo one compression
-lower. Preserve the previous 19 rows, their IDs and dates. These new scores are also fictional,
-clearly marked as demos; they never receive verified badges or fabricated commit links.
+Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,
+submission page and solver profile refer to the same record row. Demo rows are clearly marked and
+never receive verified badges or fabricated commit links.
 
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
@@ -106,8 +98,9 @@ the three lower cards and draw its chart line solid. Explain in the rules that a
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
 budgets, with worst-case verification cost as the quantity to minimize. Present the upper tracks and lower direction,
 then the three lower classes; do not invent percentages for their degree of generality. Keep the
-WOTS+ illustration as a list of chains, showing a selected signature value on each message and
-checksum chain, with the remaining verification steps and per-step key/mask explanation. Do not restore
+WOTS+ illustration as a list of chains from secret to public endpoint: the message is encoded as
+digits with a fixed sum, one per chain, the signature reveals the value each digit selects, and
+the verifier hashes forward to the endpoint. Do not restore
 the removed background-reading disclaimer or historical-certificate paragraph in the rules.
 Keep the compression-cost rationale crediting Justin Drake: a per-key public parameter can be
 absorbed once as a full prefix block and its hash state reused. This motivates no implicit
@@ -123,4 +116,11 @@ Keep the homepage score cards compact, with the correct cost unit beside every s
 Use “lossless encoding” in public prose for the contract's injective signature encoding.
 Name the bound direction explicitly in each score-card and framework rule heading. The algorithm
 rule section covers upper constructions and Generality 3/3 lower bounds; the RISC-V section states
-its machine, refinement, termination and accepting-cycle requirements.
+its machine, refinement, termination and cycle requirements, the cycle bound covering every
+execution.
+
+## Maintainer workflow
+
+Commit locally and refresh localhost as described above; never push or deploy unless the user
+explicitly requests it. Commits changing RISC-V formal verification credit
+`Derek Sorensen <d@dhsorens.com>` as co-author.

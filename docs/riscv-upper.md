@@ -1,8 +1,8 @@
 # RISC-V verification track
 
-The second upper track scores a proved upper bound on the cycles of **every accepting
-execution**, for every public key, message, signature, and oracle-answer path. Rejecting executions
-must terminate and agree with the specification; their cycle counts are unscored.
+The second upper track scores a proved upper bound on the cycles of **every execution**,
+accepting or rejecting, for every public key, message, signature, and oracle-answer path. Every
+execution must terminate and agree with the specification.
 
 ## Certificate
 
@@ -10,18 +10,18 @@ must terminate and agree with the specification; their cycle counts are unscored
 a fixed assembly image, and an input-dependent fuel bound witnessing termination. A
 `Submission.Certificate C` requires:
 
-- Perfect correctness, signing failure at most `2^-128`, public keys of 128 bits, messages of
-  256 bits, signatures of at most 5376 bits, key generation of at most 1024 compressions and
-  signing of at most `2^20` compressions.
+- Perfect correctness, deterministic verification, signing failure at most `2^-128`, public keys
+  of 128 bits, messages of 256 bits, signatures of at most 5376 bits, key generation of at most
+  1024 compressions and signing of at most `2^20` compressions.
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
   queries. Faults and fuel exhaustion are excluded on every input; the machine is deterministic
   given the oracle's answers.
-- At most `C` cycles on each accepting execution. The bound need not be attained.
+- At most `C` cycles on each execution, accepting or rejecting. The bound need not be attained.
 
-`implemented_secure` and `implemented_admissible` transport security and admissibility to the
-machine verifier. The security experiment continues to count hash compressions for all parties;
-the new score also counts the verifier's ordinary instructions. No sampled benchmark is required.
+Because refinement identifies the machine's oracle computation with the Lean verifier, the
+admissibility and security proofs apply to the machine verifier. The security experiment counts
+hash compressions for all parties; the score also counts the verifier's ordinary instructions.
 
 ## Machine and ABI
 
@@ -35,7 +35,7 @@ The model fixes instruction costs rather than modeling a hardware pipeline.
 | `t0` | Operation | Arguments and result | Cycles |
 |---:|---|---|---:|
 | 0 | HALT | `a0` is 0 for rejection or 1 for acceptance | 1 |
-| 1 | HASH | `a0`: input pointer; `a1`: bit length; `a2`: aligned 32-byte output pointer | `max(1, ceil(bits/512))` |
+| 1 | HASH | `a0`: input pointer; `a1`: bit length; `a2`: 8-byte-aligned pointer to a 32-byte buffer | `max(1, ceil(bits/512))` |
 
 HASH uses the same bare oracle as key generation, signing and the attacker. Bits are read least
 significant first within each byte. It reads the full input before writing the 256-bit answer;
@@ -68,7 +68,7 @@ Code is immutable. Parsing, arithmetic, copying and comparison run inside the ma
 
 The OTS keeps the forest graph and the fixed disclosure layout (two subtree digests, three group
 digests and 36 chain values), but reads its chain positions directly from the index. The index is
-the 128-bit prefix of `H(message ‖ nonce)`; it is **accepted** when its 32 nibbles are all at most
+the low 128 bits of `H(message ‖ nonce)`; it is **accepted** when its 32 nibbles are all at most
 14 and sum to `target = 166` (`Valid.lean`). Chain `k < 32` is then disclosed at position
 `14 - nibble k` and chains 32 to 35 at position 14 (`FixedChoice.lean`), so every disclosure set
 is a cut of the same cost and distinct indices give distinct cuts. The kernel checks that exactly
@@ -97,7 +97,8 @@ stores the level's tag and hashes the slot in place in three instructions. The t
 assembled in a 160-byte scratch buffer. The image has **2647 RV64IM instructions** and no table
 data, with kernel-checked validity. The fuel witness is the instruction count.
 
-Because `Riscv.Refines` requires the machine's oracle computation to equal the specification's,
+Because `Riscv.Refines` (defined in the submission root's `Refines.lean`, not in the contract)
+requires the machine's oracle computation to equal the specification's,
 the machine must issue its hash queries in the specification's node order. The forest nodes are
 therefore numbered chain-major (`Names.lean`): `src k` is node `43k`, and `ci k t`, `ch k t`,
 `cv k t` are nodes `43k + 1 + 3t`, `43k + 2 + 3t` and `43k + 3 + 3t`; the tree nodes keep their
@@ -117,7 +118,7 @@ rejection branches, each skipped, cost one cycle each around the three-instructi
 267 cycles in all (`IndexRefines.indexAndChecks_refines`). A chain block costs 13 cycles for its
 prologue and 3 for each of its `14 - position` hash steps. The nibbles of an accepted index sum to
 166, so the 36 blocks, the six setup instructions and the one-instruction epilogue cost
-`7 + 36 · 13 + 3 · 166 = 973` cycles on every accepted index (`CompactCost.chainsCost_le`). The
+`7 + 36 · 13 + 3 · 166 = 973` cycles on every accepted index (`CompactLevels.chainsCost_le`). The
 remaining gap between 1628 and the 186 hash compressions is the prologues, the tag stores and the
 tree-input copies.
 
@@ -131,16 +132,19 @@ tree-input copies.
 | Decision | 12 | 12 |
 | Total | 2647 | 1628 |
 
+The table follows an accepted index. Rejecting executions stop at one of the index checks or at
+the final decision, and the same certified bound of 1628 covers them.
+
 ### Proof structure
 
 The certificate bundles four facts about `RiscvUpperForest.submission`:
 
 - **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
   `Submission.scheme` definitionally.
-- **Exact refinement and accepting cost** are both read off `CompactVerifier.image_refines`, which
+- **Exact refinement and cycle cost** are both read off `CompactVerifier.image_refines`, which
   proves `Riscv.Refines 2647 (initialState image pk m bits) (some <$> directVerify pk m bits) 1628`.
-  `Riscv.Refines fuel s q c` (`Refines.lean`) states that the observed oracle computation of `s`
-  under `fuel` equals `q` and that every terminating execution costs at most `c` cycles.
+  `Riscv.Refines fuel s q c` states that the observed oracle computation of `s` under `fuel` equals `q` and that every
+  terminating execution, accepting or rejecting, costs at most `c` cycles.
   `ForestVerifierProof.directVerify_eq` identifies the explicit forest interpreter with the certified
   verifier. Because the result is `some` on every path, no execution traps or exhausts fuel, so
   every input terminates, including every rejection.
@@ -161,25 +165,22 @@ remaining fuel and add the cycle costs of each block:
    `step_refines` and `steps_refines` issue each remaining level's hash on the same tagged 144-bit
    input as the specification; `chain_refines` joins them and `inactive_refines` covers the 27
    chains without code. `CompactLevels.chainsFrom_refines` composes the 63 chains by induction.
-3. `CompactTree.groups_refines`, `subtrees_refines` and `rootDecision_refines`: the tagged
+3. `CompactTree.groups_refines`, `CompactSubtrees.subtrees_refines` and `CompactRoot.rootDecision_refines`: the tagged
    400-bit group and subtree inputs assembled in scratch by `tripleInput_effect`, the 912-bit
    root input by `rootLin_effect`, in-place hash outputs in the 32-byte slots, and the final
    128-bit comparison with the public key (`decision_refines`) ending in HALT.
 
-`CursorBudget` proves that the cursor consumes exactly the 5248 payload bits, and
+`ForestVerifierProof` proves that the cursor consumes exactly the 5248 payload bits, and
 `ForestVerifierProof.directReconstruct_eq` shows that reading disclosures sequentially agrees
 with the graph's offset-addressed decoding.
 
-`NodeProgram.lean` retains the node-level building blocks of the earlier one-slot-per-node image;
 `SweepRefines` keeps the per-node segment framework that the tree phase uses. The earlier images
 (229113 and 59393 cycles), the composition-unranking decoder (24053, 19627 and 9041 cycles) and
 the level-major guarded sweeps (5513 cycles) and the 1632-cycle image for the 256-bit nonce live
 in the git history.
 
-The official verifier accepts this root through the RISC-V challenge stub; its wall time is
-recorded in [the production review](production-readiness.md). The website presents the checked
-claim as a separate RISC-V upper track measured in cycles, with a Satoshi-attributed local
-demo fixture at zero improvement. The certificate's proof also belongs in `ots.golf-submissions`.
+The official verifier accepts this root through the RISC-V challenge stub. The same root is the
+initial record in `ots.golf-submissions`.
 
 ## Attribution
 
@@ -189,5 +190,3 @@ That project proves an XMSS implementation correct for its own specification. It
 OTS subtotal is not a universal cost theorem for this competition, and its 42 chain values plus
 192-bit nonce exceed this competition's signature budget. We use the separately pinned machine
 dependency and the ots.golf forest proof; no XMSS security or cost claim is imported here.
-
-Commits based on this work credit `Derek Sorensen <d@dhsorens.com>` as co-author.

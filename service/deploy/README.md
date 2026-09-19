@@ -89,13 +89,14 @@ Run these with the public webhook disconnected and the production configuration 
      python3 verifier/verify.py disclosure-lower --source . &&
      python3 verifier/verify.py upper --source . &&
      python3 verifier/verify.py generic-upper --source . &&
-     python3 verifier/verify.py disclosure-upper --source .'
+     python3 verifier/verify.py riscv-upper --source .'
    ```
 
    The probe must pass actual environment, `/proc`, filesystem, network, process-memory and signal
    denial checks, including a running canary process and forbidden truncation/permission changes. The verifier requires Landlock ABI 3 or newer and systemd, private devices and shared memory, a
-   clean environment, masked `/proc` and `/sys`, read-only system mounts with only the job’s
-   `.lake` writable, and denied networking and cross-process control.
+   clean environment, masked `/proc`, `/sys`, `/etc/ots` and the service's data directory (database,
+   logs and locks; only the job's own work directory stays visible), read-only system mounts with
+   only the job’s `.lake` writable, and denied networking and cross-process control.
    An in-service launcher checks that the kernel actually enforces these restrictions before starting
    comparator. Unsupported isolation must reject the job; never remove
    the checks to make a host pass. Also exercise the contract's memory limit and a timed-out malicious
@@ -132,6 +133,22 @@ Run these with the public webhook disconnected and the production configuration 
    and the configured secret. Keep `closed` events enabled: merged heads are promoted from these
    events after GitHub's API confirms the merge. The service ignores other repositories and refuses
    admission when `OTS_SUBMISSIONS_REPO` is missing. Core-repository PRs are not proof submissions.
+
+## Gates before public launch
+
+A successful local proof check establishes none of the following; each must pass on the intended host:
+
+1. The isolation probe and every configured official certificate, run under the deployed
+   identities, including memory exhaustion, timeout and a full work volume, with complete process
+   cleanup, the website and database still available, and refusal when isolation is unavailable.
+2. Web credentials unreadable to the verifier identity, the effective systemd restrictions,
+   HTTPS/proxy configuration, private backups and a successful database restore.
+3. The staging GitHub flow of acceptance check 4. The local tests mock GitHub and cannot replace it.
+4. Before upgrading an existing deployment, the audit of historical `is_record` rows described
+   under upgrades below.
+
+The host bootstrap downloads system tooling and is not a reproducible operating-system image.
+This is a single-host deployment; the process locks are not a distributed queue protocol.
 
 ## Operations, upgrades and recovery
 
@@ -184,4 +201,4 @@ their intentional status.
 Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
 merge event. A merge marker received before verification is stored and applied after a successful
 check. The service merges only verified record-breaking PRs and never updates the trusted checkout.
-Generic upper records, like lower records, require successful verification and a merge of the same head.
+Upper records, like lower records, require successful verification and a merge of the same head.

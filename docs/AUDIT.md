@@ -1,13 +1,14 @@
 # Audit of the bare-oracle contract
 
-Scope: the pinned DAG, generic-algorithm and whole-word contracts, their oracle/cost semantics,
-and the submission certificates. The lower bounds are generic **1**, unrestricted DAG **18**,
-and whole-word DAG **93**. Generic upper has a complete **106** certificate, including perfect
-correctness and signing failure at most `2^-128`. The two historical upper references remain **106**. This document distinguishes
-mathematical scope from operational deployment. See [production-readiness.md](production-readiness.md)
-for the service and verifier audit, tests, and remaining environment checks.
-The [final Lean statement review](lean-statement-review.md) covers every project-owned Lean file
-and records the subsequent editorial corrections without changing the mathematical declarations.
+Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
+semantics, and the submission certificates. The lower bounds are generic **1**, unrestricted DAG
+**18**, and whole-word DAG **93**. Generic upper has a complete **106** certificate, including
+perfect correctness, deterministic verification and signing failure at most `2^-128`; RISC-V upper
+has a **1628**-cycle certificate. The two historical upper references remain **106**. This
+document covers mathematical scope; operational launch gates are in
+[the deployment guide](../service/deploy/README.md). The archived
+[Lean statement review](archive/lean-statement-review.md) covers an earlier state of every
+project-owned Lean file.
 
 ## What is trusted
 
@@ -46,36 +47,37 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Key generation evaluates all nodes, within 1024 compressions | `Graph.keygen`, `Scheme.keygen_le` | |
 | Disclosure sets cut every source-to-root path | `root_not_mem`, `no_hidden_source` | |
 | Reconstruction stops at disclosed values | `Graph.Visited`, `evaluated`, `reconstruct` | root is always evaluated |
-| Verification cost is index plus reconstruction | `Scheme.verifyCost`, `idxCost` | the 512-bit index input costs one compression |
+| Verification cost is index plus reconstruction | `Scheme.verifyCost`, `idxCost` | the 384-bit index input costs one compression |
 | Index is low 128 bits of `H(m ‖ η)` | `index`, `setWidth idxBits` | the same oracle handles node inputs |
 | Signing samples distinct nonces, at most `2^20` trials | `Scheme.sign`, `signLoop` | fresh nonces need not be fresh oracle strings |
 | Public key is low 128 bits of the root | `publicKey`, `Scheme.verify` | |
 | Strong forgery differs from the received pair | `experiment`, `Scheme.Secure` | any accepted pair wins when signing fails |
-| Weak forgery uses a different message | `weakExperiment`, `Scheme.WeaklySecure` | hypothesis used by the lower track |
-| Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure`, `WeaklySecure` | includes keygen, signing and final verification |
+| Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure` | includes keygen, signing and final verification |
 | Unconditional lower certificate | `VerificationLowerBound paperParams 18` | repeated reconstruction patterns and a forgery on a different message |
 
-`Scheme.Secure.weaklySecure` in `formal/OptimalOTS/Statement.lean` proves that strong security implies weak security.
-The lower certificate therefore applies to every secure scheme and also to
-schemes permitting malleability of a signature on the signed message.
+The weak experiment (forgery on a different message) is not part of the contract. Each DAG lower
+root defines it in `WeakSecurity.lean` and proves that strong security implies weak security. The
+lower certificate therefore applies to every secure scheme and also to schemes permitting
+malleability of a signature on the signed message.
 
 ## Generic and whole-word contracts
 
 `Algorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
-perfect correctness, signing availability, pathwise resource limits and oversized-signature rejection.
-`AlgorithmWeak.lean` pins the fresh-message experiment and the generic lower statement. Both
-algorithm challenges fix signing failure at most `2^-128` for every public-key-dependent message
-choice, averaged over honest key generation and signing from a fresh oracle. The verified lower
-bound of 1 specializes a proof covering every failure allowance at most one half.
+perfect correctness, deterministic verification (`Admissible.verifyDeterministic`), signing
+availability, pathwise resource limits, oversized-signature rejection and the generic lower
+statement. The fresh-message experiment used by the generic lower proof lives in its submission
+root. Key generation and signing may use private randomness. Both algorithm challenges fix
+signing failure at most `2^-128` for every public-key-dependent message choice, averaged over
+honest key generation and signing from a fresh oracle. The verified lower bound of 1 specializes a proof covering every failure allowance at most one half.
 
 The generic upper challenge fixes signing failure at most `2^-128` and requires separate proofs
 of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
 same programs and exact security experiment as the historical DAG construction. Correctness is
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
-the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 512-bit signing
+the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
-function of the public key. All new proofs reside in the independent `GenericUpper` submission root; the original
-`Upper` root is unchanged. See [the proof map](generic-upper.md).
+function of the public key. All new proofs reside in the independent `GenericUpper` submission
+root; the original `Upper` root is unchanged. See [the proof map](generic-upper.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, 256-bit hashes,
 fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
@@ -84,9 +86,20 @@ Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origi
 The resulting certificate proves 93, using the same weak-security experiment.
 There is no checked whole-word upper construction.
 
-`formal/scripts/check-axioms.lean` now imports every protected model module, rejects declared axioms
-throughout those modules, and audits 46 declarations fixing the meaning of all six certificates.
-It supplements each submission's axiom guard and the official comparator; it does not replace either.
+`formal/scripts/check-axioms.lean` imports every protected model module, rejects declared axioms
+throughout those modules, and audits the declarations (`contractDecls`) fixing the meaning of all
+seven certificates. It supplements each submission's axiom guard and the official comparator; it
+does not replace either.
+
+## RISC-V contract
+
+`RiscvMachine.lean` fixes the RV64IM subset, loader, memory layout, cycle costs and the two system
+calls (HALT, and HASH on the shared oracle); `Riscv.lean` defines `Submission.Certificate`. A
+certificate proves Upper bound admissibility and strong security of the OTS, exact refinement of
+its Lean verifier by the machine's oracle computation on every raw input (no trap or fuel
+exhaustion), and a cycle bound on every execution, accepting or rejecting.
+`formal/scripts/check-riscv.lean` holds kernel-checked boundary tests of the machine. See
+[the track notes](riscv-upper.md).
 
 ## DAG certificate status and open proof work
 
@@ -117,11 +130,11 @@ weight outside the reconstructed set; the corresponding construction bound can
 also charge outside its target set. A Bell-number correction does not repair
 these counterexamples. Details:
 
-- [Information analysis](bare-oracle-information-analysis.md).
-- [Construction analysis](bare-oracle-construction-analysis.md).
-- [Conditional numerics](bare-oracle-numerics.md): the simple proposed-24 point has
+- [Information analysis](research/bare-oracle-information-analysis.md).
+- [Construction analysis](research/bare-oracle-construction-analysis.md).
+- [Conditional numerics](research/bare-oracle-numerics.md): the simple proposed-24 point has
   numerical slack, but its missing mathematical hypotheses prevent certification.
-- [Current port status](bare-oracle-port.md) and [proof map](lower-bound-proof.md).
+- [Final bare-oracle report](archive/bare-oracle-lower-report.md) and [proof map](lower-bound-proof.md).
 
 The repeated-pattern proof establishes 18. Bounds 19 through 25 remain open in
 the bare model. In particular, the number of subsets of at most 16 non-root hash

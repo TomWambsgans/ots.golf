@@ -82,7 +82,7 @@ The official verifier accepts all five certificates against the updated pin:
 | `disclosure-upper` | 106 | verified | 151.3 s |
 
 These runs check the mathematical certificates on macOS; they do not replace the Linux production
-acceptance checks. Local evidence is in `/private/tmp/ots-lean-review-build.log`,
+acceptance checks. Local evidence is in (local log),
 `ots-lean-review-axioms.log`, `ots-lean-review-regressions.log`, and
 `ots-lean-review-verify-<track>.json` in the same directory. The token comparison script and its
 pre-review file manifest are also retained there. No files were pushed or deployed.

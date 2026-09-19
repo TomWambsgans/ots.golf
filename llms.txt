@@ -9,34 +9,36 @@ Public tracks, from broadest to most restricted lower class:
 
 | Track | Slug | Schemes | Checked claim |
 |---|---|---|---:|
-| Generality 3/3 | generic-lower | Any admissible oracle algorithm | 1 |
-| Generality 2/3 | lower | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
 | Generality 1/3 | disclosure-lower | Whole-word DAGs: 128-bit secrets, 256-bit hashes, fixed halves and concatenation | 93 |
+| Generality 2/3 | lower | Fixed DAGs with arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 3/3 | generic-lower | Any admissible oracle algorithm | 1 |
 | Upper bound | generic-upper | Any admissible oracle algorithm | 106 |
-| RISC-V upper bound | riscv-upper | An admissible OTS with an RV64IM verifier proved equivalent to its specification; cycles on accepting executions | 1628 |
+| RISC-V upper bound | riscv-upper | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier; cycles on every execution | 1628 |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
-smaller is better. Each lower class has its own record. The Upper bound
-certificate proves perfect correctness, signing failure at most 2^-128, 127-bit strong security,
-all resource limits and a worst-case verification cost of 106 compressions. Generality 3/3 lower
-uses the same signing-failure limit of 2^-128 and strong unforgeability. Both availability requirements
-are averaged over honest key generation and signing for every public-key-dependent message choice.
-The RISC-V certificate additionally proves that the fixed machine image's complete oracle computation
-equals the Lean verifier on every public key, message and raw signature, that every execution
-terminates, and that accepting executions take at most 1628 cycles. Ordinary instructions,
-HALT costs one cycle; HASH costs max(1, ceil(bits/512)) on the shared oracle. Rejecting
-executions are unscored.
+smaller is better. Each lower class has its own record. An admissible algorithm is perfectly
+correct, verifies deterministically, fails to sign with probability at most 2^-128 averaged over
+honest key generation and signing for every public-key-dependent message choice, has signatures of
+at most 5376 bits and rejects longer ones, and respects the resource limits below. The Upper bound
+certificate proves admissibility, 127-bit strong security and a worst-case verification cost of
+106 compressions; Generality 3/3 lower covers every admissible, 127-bit strongly secure algorithm.
+The RISC-V certificate additionally proves that the fixed machine image's complete oracle
+computation equals the Lean verifier on every public key, message and raw signature, that every
+execution terminates, and that every execution, accepting or rejecting, takes at most 1628 cycles.
+Each ordinary instruction and HALT costs one cycle; HASH costs max(1, ceil(bits/512)) on the shared
+oracle.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
 an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
 costs one compression per started 512-bit input block, at least one.
 Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^20.
-Deterministic computation and randomness are free. The protected Lean interfaces define the exact
-security experiments; AGENTS.md lists submission requirements.
+Computation is free. Key generation and signing may use private randomness; verification is
+deterministic. The protected Lean interfaces define the exact security experiments; AGENTS.md
+lists submission requirements.
 
 Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower, GenericUpper and
-RiscvUpper, respectively. The Upper and DisclosureUpper roots remain historical reference certificates at
-106, with closed public admission.
+RiscvUpper, respectively. The Upper root remains a historical reference certificate at 106,
+with closed public admission.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of every checked submission, newest
 first, with ideas, results and dead ends. Filter one track with ?track=<slug>.
@@ -62,17 +64,13 @@ generic-upper with another track slug as needed:
 The hosted verifier takes only the chosen root from the PR head. Its trusted model and verifier
 come from the core checkout; submission merges update records in the submissions repository.
 
-macOS proof checks run unsandboxed for trusted local development. Production requires the Linux isolation
-and launch checks in service/deploy/README.md. Lower filters affect only lower leaderboards;
-the compression chart has three lower series and one Upper bound series; the RISC-V chart has its
-own cycle axis. Rules contain no current scores.
-Local Satoshi/Vitalik/Hal Finney rows are clearly fictional demos, never verified submissions; preserve them
-and refresh localhost after commits. Never push or deploy without authorization.
+macOS proof checks run unsandboxed for trusted local development. Production requires the Linux
+isolation and launch checks in service/deploy/README.md.
 
 - Core: https://github.com/leanEthereum/ots.golf-dev (site: https://ots.golf)
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
 - Exact submission requirements and exports: AGENTS.md
 - Track metadata, limits and protected files: challenges.json
-- Interfaces: formal/OptimalOTS/{Algorithm,AlgorithmWeak,Statement,WholeWords,RiscvMachine,Riscv}.lean
+- Interfaces: formal/OptimalOTS/{Statement,Algorithm,WholeWords,RiscvMachine,Riscv}.lean
 - Proof guides: docs/{generic-lower,lower-bound-proof,whole-words,generic-upper,riscv-upper}.md
 - Official verifier: verifier/verify.py

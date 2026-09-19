@@ -67,7 +67,7 @@ argument excluding precisely this obstruction from secure schemes has been suppl
 A safe consequence of product-space counting alone is the much weaker tail budget
 `disclosure length + 256|E| + u`, because the full observation has at most that many
 bits before the slack `u`. That does not resolve the construction-bound obstruction
-found separately in `docs/bare-oracle-construction-analysis.md`.
+found separately in [the construction analysis](bare-oracle-construction-analysis.md).
 
 ## A different route: repeated reconstruction patterns
 
@@ -155,4 +155,4 @@ This settles the probability argument without the adaptive coupling gap mentione
 exploration above. The full attack is now formalized in `Submissions/Lower/PatternAttack.lean`
 and `PatternAssembly.lean`; `Solution.lean` exports `VerificationLowerBound paperParams 18`.
 The final official lower verifier accepted claim 18 in 117.5 seconds, with only the three
-allowed axioms. See [bare-oracle-lower-report.md](bare-oracle-lower-report.md) for the final checks.
+allowed axioms. See [the final report](../archive/bare-oracle-lower-report.md) for the final checks.

@@ -166,7 +166,7 @@ So `T ≤ 11/6`, and one encoding query raises `θΨ` by at most `θ · (11/6) �
 (non-encoding queries still pay `κ` for hidden keygen points and second preimages, and the
 post-signing index event `IdxPost` still costs `ε` per query).
 
-Numerical checks (`tools/nonce128_own_charge.py`, `tools/nonce128_max_charge.py`, and the exact
+Numerical checks ([`nonce128_own_charge.py`](archive/nonce128_own_charge.py), [`nonce128_max_charge.py`](archive/nonce128_max_charge.py), and the exact
 expected increase of `Ψ` on random multi-row states) all stay near `ε`, well below `11/6 ε`.
 
 ### 3. Plan of the formalization

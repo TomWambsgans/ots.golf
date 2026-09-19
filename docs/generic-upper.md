@@ -6,14 +6,15 @@ limits. Its forest construction verifies within **106 compressions** on every in
 oracle-answer path. All proofs live in `formal/Submissions/GenericUpper/`.
 
 The three lower tracks are Generality 3/3 (any algorithm), 2/3 (DAGs) and 1/3 (whole-word DAGs).
-The original `Upper` and `DisclosureUpper` roots remain historical reference certificates.
+The original `Upper` root remains a historical reference certificate.
 
 ## What the challenge requires
 
 A submission chooses an `AlgorithmScheme paperParams`: a secret-key type, a signature type
 with injective bit-string encoding, and three terminating oracle programs for key generation,
-signing, and verification. Deterministic computation and private randomness are free; all programs
-share the same bare random oracle and compression-cost model.
+signing, and verification. Computation is free. Key generation and signing may use private
+randomness; verification is deterministic. All programs share the same bare random oracle and
+compression-cost model.
 
 `OptimalOTS.Challenge.GenericUpper` exports exactly:
 
@@ -32,6 +33,7 @@ The challenge substitutes a submission's claim for 106. `Admissible` requires:
 
 - Perfect correctness: whenever honest signing returns a signature, verification accepts with
   probability one.
+- Deterministic verification: the verifier uses no private randomness on any input.
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
 - Signatures of at most 5,376 encoded bits, and rejection of oversized signatures.
@@ -93,10 +95,10 @@ construction properties before proving strong security. The construction uses 91
 at most `2²⁰` signing compressions, and at most 106 verification compressions.
 
 `Resources.lean` establishes the size, rejection, and pathwise cost bounds.
-`CorrectKeygen.lean` and `Correctness.lean` establish correctness. `Availability.lean` establishes
-signing availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
-the challenge declarations. `OptimalOTS/AlgorithmForest.lean` provides compatibility aliases.
-The original `formal/Submissions/Upper` files are unchanged.
+`KeygenSupport.lean` and `Correctness.lean` establish correctness. `Deterministic.lean` proves that
+every DAG adapter's verifier makes only hash queries. `Availability.lean` establishes signing
+availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
+the challenge declarations. The original `formal/Submissions/Upper` files are unchanged.
 
 ## Verification
 
@@ -109,42 +111,5 @@ python3 verifier/check_submission.py generic-upper
 python3 verifier/verify.py generic-upper --source .
 ```
 
-The protected generic definitions are unchanged; their introduction now describes both tracks. The new challenge fixes the allowance and
-requires all three proofs; comparator checks those declarations and their shared scheme against
-the pinned contract. Permitted axioms remain `propext`, `Classical.choice`, and `Quot.sound`.
-
-At the original admission milestone, the official verifier accepted `generic-upper` at 106 in
-157.3 seconds. The complete Lean build
-passes (8,927 jobs), all 46 protected model declarations pass the axiom audit, and every submission
-root passes policy. The verifier, service, and numerical suites pass 59, 59, and 5 tests respectively;
-JavaScript and shell syntax checks also pass.
-
-That milestone used contract pin `b2b1ffdeb02aa410fe2133b6b7e652f6f55ddf357eb0c5cd58dbb877792303b2`
-with 22 protected files. The new root contains 30 files and imports no other submission root.
-All 20 inherited construction/security modules match the original Upper files exactly except
-for sibling import paths. The original Upper root and all three lower statements are unchanged.
-
-Localhost now uses normal generic upper admission, records, chart points and leaderboard rows.
-The rules retain the distinct lower and upper availability thresholds. Firefox checks pass on
-desktop and at 320/390-pixel widths, in light/dark mode, including keyboard controls, sorting,
-filters, tooltips, collapsed rules and both diagrams. All 19 existing demo rows are preserved;
-two new, clearly fictional generic upper rows use 106 and 105. Those demo scores are not proof
-certificates.
-
-Local artifacts: `/private/tmp/ots-generic-admission-checks.log`,
-`/private/tmp/ots-generic-admission-verify-generic-upper.json`, and
-`/private/tmp/ots-ui-generic-upper/`. These macOS results establish proof acceptance and local
-application behavior; deployment still requires the Linux and staging checks in
-[the production review](production-readiness.md).
-
-All six configured official certificates pass against the same pin: generic upper 106, generic
-lower 1, DAG lower 18, whole-word lower 93, and both historical upper references at 106. Timings
-and regression evidence are recorded in [the production review](production-readiness.md#generic-upper-admission-update).
-
-Two deliberate negative submissions also compiled successfully and were then rejected by
-comparator's statement matching: changing only the claim to 105 was rejected at `cost` (127.2 s),
-and replacing the admissibility theorem's fixed `2^-128` allowance with a proved one-half allowance
-was rejected at `admissible` (120.0 s). The latter leaves security and cost unchanged, confirming
-that availability is enforced independently. The test copies were outside the repository.
-Results are in `/private/tmp/ots-generic-admission-reject-claim-105.json` and
-`/private/tmp/ots-generic-admission-reject-failure-half.json`.
+Comparator checks the four declarations and their shared scheme against the rendered challenge.
+Permitted axioms are `propext`, `Classical.choice`, and `Quot.sound`.

@@ -5,7 +5,7 @@ The website and worker run the reviewed code on localhost. **Public deployment s
 acceptance on the actual Linux host and a staging GitHub repository.** This review does not claim
 that macOS testing establishes production isolation. Nothing was pushed or deployed. The original
 operational review was committed locally as `1000826` on `main`; the later generic upper addition
-is documented in [the generic proof report](generic-upper.md).
+is documented in [the generic proof report](../generic-upper.md).
 
 The review covered the formal contract and exports, verifier, queue/webhook/reporting service,
 website, numerical tools, deployment configuration and documentation. Parallel reviewers owned
@@ -103,7 +103,7 @@ The official verifier accepted every pinned certificate:
 After the final verifier changes, the official Git-commit path also accepted `generic-lower` at
 `1000826ac5bb2526dd3024d137c03a1a88f2bbf4`, claim 1, in 58.8 seconds. This exercises committed-byte
 export and the final bounded subprocess helper; the log is
-`/private/tmp/ots-review-commit-certificate.log`. All five policy checks pass as well.
+(local log). All five policy checks pass as well.
 
 After the commit hook refreshed localhost, its homepage displayed the new commit, all 26 reachable
 internal HTML links returned successfully, and all 19 demo rows retained their IDs, claims and dates.
@@ -115,10 +115,10 @@ set remains `propext`, `Quot.sound` and `Classical.choice`; no `sorry` or `nativ
 was admitted. The numerical tests reproduce whole-word 93 and show that 94 is not established by
 that same attack arithmetic. They also reproduce the DAG and historical disclosure calculations.
 
-Local logs are under `/private/tmp/ots-review-*`; the integrated build/audit/paper log is
-`/private/tmp/ots-review-full-check.log`, final regression results are in
-`/private/tmp/ots-review-final-regressions.log`, and final browser screenshots are in
-`/private/tmp/ots-review-final-browser/`. These are local review artifacts, not committed assets.
+Local logs are under (local log); the integrated build/audit/paper log is
+(local log), final regression results are in
+(local log), and final browser screenshots are in
+(local log). These are local review artifacts, not committed assets.
 
 To reproduce, prepare the service, numerical and Lean environments described in the READMEs, then:
 
@@ -136,7 +136,7 @@ Commit `8a4afb5` adds the complete generic upper certificate and opens the singl
 track. Perfect correctness is proved for every DAG adapter. The concrete forest's signing failure
 is at most `2^-256` for every public-key-dependent message choice, satisfying the pinned `2^-128`
 allowance. Strong 127-bit security and the 106-compression verification bound are preserved exactly.
-See [the mathematical argument and proof map](generic-upper.md).
+See [the mathematical argument and proof map](../generic-upper.md).
 
 The new contract pin is `b2b1ffdeb02aa410fe2133b6b7e652f6f55ddf357eb0c5cd58dbb877792303b2`,
 covering 22 files. The protected generic definitions have only an introductory comment change;
@@ -162,8 +162,8 @@ comparator's statement matching: changing only the claim to 105 was rejected at 
 and replacing the admissibility theorem's fixed `2^-128` allowance with a proved one-half allowance
 was rejected at `admissible` (120.0 s). The latter leaves security and cost unchanged, confirming
 that availability is enforced independently. The test copies were outside the repository.
-Results are in `/private/tmp/ots-generic-admission-reject-claim-105.json` and
-`/private/tmp/ots-generic-admission-reject-failure-half.json`.
+Results are in (local log) and
+(local log).
 
 Current Firefox checks pass on desktop and at 320/390-pixel widths, in light/dark mode, including
 keyboard controls, sorting, tooltips, lower-only filters, four normal leaderboard tables, collapsed
@@ -173,9 +173,9 @@ routes, including health, return successfully. All 19 prior demo rows retain the
 dates and attribution; only two separate generic upper demos were added, at 106 and 105. Fictional
 rows remain labeled and are never presented as verified certificates.
 
-Logs: `/private/tmp/ots-generic-admission-checks.log` and
-`/private/tmp/ots-generic-admission-verify-<slug>.json`; browser screenshots:
-`/private/tmp/ots-ui-generic-upper/`. These results do not replace the actual-host Linux isolation
+Logs: (local log) and
+(local log); browser screenshots:
+(local log). These results do not replace the actual-host Linux isolation
 or staging GitHub acceptance gates below. Nothing was pushed or deployed.
 
 ## Generality labels and rules presentation (2026-09-17)
@@ -193,8 +193,8 @@ above used the preceding pin and were not repeated for these presentation change
 All 59 service tests and 59 verifier tests pass. Firefox checks pass on desktop and at 320/390
 pixels, including the new labels, upper-card ordering, solid upper line, folded rules, three
 diagrams, tooltips, filters and light/dark themes. Logs are in
-`/private/tmp/ots-rules-generality-tests.log`, `/private/tmp/ots-generality-verifier-tests.log`
-and `/private/tmp/ots-ui-generality.log`; screenshots are in `/private/tmp/ots-ui-generality/`.
+(local log), (local log)
+and (local log); screenshots are in (local log).
 
 ## Shared algorithm availability and concise presentation (2026-09-17)
 
@@ -207,11 +207,11 @@ files are unchanged. The new 22-file pin is
 The official verifier accepted `generic-lower` at 1 in 53.0 seconds and `generic-upper` at 106
 in 152.0 seconds. A temporary lower submission narrowed to failure at most `2^-256` compiled,
 then comparator rejected its statement in 58.8 seconds. This checks enforcement of the exact
-class quantified over. Results: `/private/tmp/ots-unified-availability-{lower,upper,reject-narrow}.json`.
+class quantified over. Results: (local log).
 
 The full Lean build passed (8,927 jobs), as did the 46-declaration protected-model axiom audit,
-60 verifier tests and 59 service tests. Logs: `/private/tmp/ots-availability-{full-build,axioms}.log`
-and `/private/tmp/ots-concise-{verifier,service}-tests.log`.
+60 verifier tests and 59 service tests. Logs: (local log)
+and (local log).
 
 The website and current proof guides now define objects through their structure and allowed
 operations. Public prose calls injective encoding “lossless encoding.” The two framework
@@ -222,8 +222,8 @@ explanation remains alongside the actual-input cost rule.
 Homepage lower cards explicitly say “Lower bound” and show compression units. At 1360 pixels,
 the upper card is 24.0% shorter and each lower card is 25.3% shorter. Firefox checks passed
 on desktop and at 320/390 pixels, with light/dark themes, controls, filters, tooltips and
-horizontal scrolling. Screenshots and logs: `/private/tmp/ots-ui-concise/` and
-`/private/tmp/ots-ui-concise.log`. Card measurements: `/private/tmp/ots-cards-{before,after}.json`.
+horizontal scrolling. Screenshots and logs: (local log) and
+(local log). Card measurements: (local log).
 
 ## Separate core and proof repositories (2026-09-18)
 
@@ -242,14 +242,14 @@ Local validation: `tools/check_repo.py` passes 68 service tests, 60 verifier tes
 tests, plus JavaScript and shell syntax checks. The Firefox audit passes desktop and 320/390-pixel
 layouts, rules, filters, keyboard controls and demo presentation. Both localhost processes were
 restarted with the new settings. All 21 demo rows retain their IDs, dates and scores.
-Evidence: `/private/tmp/ots-repo-split-checks.log`, `/private/tmp/ots-repo-split-browser.log`
-and `/private/tmp/ots-repo-split-browser/`.
+Evidence: (local log), (local log)
+and (local log).
 
 All four exported roots pass policy checks; their 83 files match the core references byte for byte.
 The official verifier accepts submissions commit `da16887`, using core commit `402365c`:
 `generic-lower` at 1 in 81.8 seconds and `generic-upper` at 106 in 173.3 seconds. These macOS
 checks validate the proofs, not production isolation. Results:
-`/private/tmp/ots-repo-split-official-{lower,upper}.json`.
+(local log).
 
 The empty GitHub submissions repository was cloned locally, then populated with that same
 verified commit and pinned core submodule. The new commits remain local; no remote branches
@@ -260,7 +260,7 @@ acceptance remain launch tasks. This change does not deploy or publish either re
 
 ## Gates before public launch
 
-Follow [the deployment guide](../service/deploy/README.md) on the intended host. Do not infer any
+Follow [the deployment guide](../../service/deploy/README.md) on the intended host. Do not infer any
 of the following from a successful local proof check:
 
 1. Run the Linux isolation probe and every configured official certificate under the deployed identities.
@@ -289,7 +289,7 @@ every public key, message and raw signature bit string (so every execution termi
 rejections, with the specified queries in the specified order), and the accepting-execution cycle
 bound. `Solution.lean` exports `OptimalOTS.Challenge.RiscvUpper.{submission,certificate}` with
 `claim.txt` 229113. The certificate uses only `propext`, `Classical.choice` and `Quot.sound`.
-The proof map is in [the track notes](riscv-upper.md).
+The proof map is in [the track notes](../riscv-upper.md).
 
 The metadata now admits two upper tracks through top-level `upper_tracks`
 (`generic-upper`, `riscv-upper`); the three frameworks classify lower bounds only, and
@@ -315,8 +315,8 @@ and cycle-cap decisions, well inside the 20-minute limit. The policy check repor
 | `upper` | 106 | 139.1 s |
 | `disclosure-upper` | 106 | 141.7 s |
 
-Results: `/private/tmp/ots-riscv-official-verify.json` and
-`/private/tmp/ots-riscv-official-verify-<slug>.json`. The workspace preparation tool and its
+Results: (local log) and
+(local log). The workspace preparation tool and its
 test now export five public roots.
 
 The website shows the checked claim as a separate "RISC-V upper bound" card, leaderboard and
@@ -326,11 +326,11 @@ requirements, without scores. One Satoshi-attributed demo fixture at zero improv
 when the track is admitted; all 21 earlier demo rows keep their IDs, dates, claims and attribution.
 
 Checks: the complete Lean build (9008 jobs), the 65-declaration protected-model axiom audit and
-the RISC-V machine boundary checks pass (`/private/tmp/ots-riscv-{full-build,check-axioms,check-machine}.log`);
-61 verifier tests and 75 service tests pass (`/private/tmp/ots-riscv-activation-tests.log`);
+the RISC-V machine boundary checks pass (local log);
+61 verifier tests and 75 service tests pass (local log);
 the Firefox audit passes on desktop and phone widths, both themes, the two upper charts and
 their tooltips, five leaderboard tables, folded rules and the eye animation
-(`/private/tmp/ots-final-browser.log`, screenshots in `/private/tmp/ots-final-browser/`).
+(local log).
 These macOS runs validate the proofs and presentation, not production isolation. Nothing was
 pushed or deployed; the submissions checkout is pinned to the local core commit.
 
@@ -352,7 +352,7 @@ execution terminates, and every terminating execution costs at most **24053 cycl
 (one per instruction, two for the 912-bit root hash; guarded blocks and the 14619-instruction
 decoder are charged in full). `Solution.lean` exports the certificate at 24053 with `claim.txt`
 24053, using only `propext`, `Classical.choice` and `Quot.sound`. The proof map is in
-[the track notes](riscv-upper.md); the earlier 229113-cycle image and proof remain in the root
+[the track notes](../riscv-upper.md); the earlier 229113-cycle image and proof remain in the root
 as references.
 
 `challenges.json` sets the `riscv-upper` baseline to 24053; the protected pin was regenerated and
@@ -361,7 +361,7 @@ the RISC-V chart lost its redundant caption, and the contract id is
 `2604d3fe599b404cc4c285f96c2ba984f6bd83b38254480238514f4b59d50e03`. The
 Satoshi demo fixture keeps zero improvement, so the local preview shows the new baseline. The
 official verifier accepted `riscv-upper` at 24053 in 353.6 seconds on macOS
-(`/private/tmp/ots-riscv-compact.log`); the policy check reports 79 files and 1,086,640 bytes.
+(local log); the policy check reports 79 files and 1,086,640 bytes.
 61 verifier tests, 75 service tests and 7 tooling tests pass. Nothing was pushed or deployed.
 
 The front page was trimmed at the same time: one chart area shows compressions by default with a
@@ -372,7 +372,7 @@ cost in compressions or RISC-V cycles rather than compressions alone. Six fictio
 Vitalik Buterin trade records from 30053 down to 25053 cycles with one non-record attempt, and
 Satoshi's zero-improvement record stays the current one, so the demo now seeds 33 rows with every
 track admitted. The Firefox audit passes with the switch exercised
-(`/private/tmp/ots-ui-cycles/`).
+(local log).
 
 ## Signing budget tightened to 2^20 (2026-09-18)
 
@@ -529,7 +529,7 @@ The old signing charge `trialLimit · pairs / (2^nonceBits − trialLimit)` need
 bits. It is replaced by a disjoint signing lemma (`SignRho.signRho_bound`) and a row potential
 `θ Ψ` whose expected growth per encoding query is at most `(11/6) θ ε ≤ 2ε`
 (`RowPotential.psi_charge`, from `RowIneq.charge_le`), with the full proof in
-`docs/nonce-128-analysis.md`. The security bound `(B − 912)/2^127` holds for every budget, as
+[the analysis](../nonce-128-analysis.md). The security bound `(B − 912)/2^127` holds for every budget, as
 before. The proof is ported to `GenericUpper`, `RiscvUpper`, `Upper` and `DisclosureUpper`; the
 lower roots build unchanged.
 

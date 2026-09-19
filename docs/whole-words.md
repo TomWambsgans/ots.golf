@@ -1,9 +1,9 @@
 # Generality 1/3: whole-word DAGs
 
-The third lower framework is now `WholeWordVerificationLowerBound paperParams c`, defined in
+Generality 1/3 is `WholeWordVerificationLowerBound paperParams c`, defined in
 `formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class; the historical
-`disclosure-lower` URL, submission root and export namespace are retained. The generic and
-unrestricted DAG contracts are unchanged. There is still one upper track, for generic algorithms.
+`disclosure-lower` URL, submission root and export namespace are retained. There are two upper
+tracks, both for generic algorithms: compressions and RISC-V cycles.
 
 ## Exact restriction
 
@@ -64,47 +64,7 @@ exact attack probabilities and cost contradiction. `Solution.lean` assembles the
 checks that its only axioms are `propext`, `Classical.choice`, and `Quot.sound`.
 
 Exact numerical check: `python3 tools/tune_lower_bound.py --method words --claims 93,94`.
-Full build: `cd formal && lake build OptimalOTS Submissions`.
-Official pipeline: `python3 verifier/verify.py disclosure-lower --source . --keep`.
-The complete library builds (8899 jobs), and the official verifier accepted all three lower
-certificates: whole words 93 in 134.6 s, unrestricted DAG 18 in 140.0 s, and generic 1 in 94.2 s.
-The contract pin is `911b12369700ac94c668101279c4aa31868f572f7916f14b97198819f49a1b93`.
-The two preserved legacy upper certificates also passed. Every official run used
-`python3 verifier/verify.py <track> --source . --keep` on the final formal files.
-On macOS the official pipeline runs unsandboxed for development; its comparator and Lean
-kernel still perform the pinned statement and axiom checks.
+Official pipeline: `python3 verifier/verify.py disclosure-lower --source .`.
 
-| Track | Class | Claim | Official result | Time |
-|---|---|---:|---|---:|
-| `disclosure-lower` | Whole-word DAGs | 93 | verified | 134.6 s |
-| `generic-lower` | Generic algorithms | 1 | verified | 94.2 s |
-| `lower` | Unrestricted DAGs | 18 | verified | 140.0 s |
-| `upper` | Legacy DAG upper reference | 106 | verified | 184.2 s |
-| `disclosure-upper` | Historical partial-disclosure upper reference | 106 | verified | 183.7 s |
-
-Retained official logs, under
-`/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/`:
-
-- Whole-word lower: `ots-verify-erc_aaq3/verify.log`.
-- Generic lower: `ots-verify-_rh5_3n4/verify.log`.
-- DAG lower: `ots-verify-lcfhsboz/verify.log`.
-- Legacy DAG upper: `ots-verify-sbotyjsh/verify.log`.
-- Historical partial-disclosure upper: `ots-verify-9lkaciam/verify.log`.
-
-Implementation milestone: local commit `8d05b71` on `main`. The protected generic/DAG definitions,
-`Submissions/GenericLower`, `Submissions/Lower`, and `Submissions/Upper` are unchanged. Changes are
-confined to the new whole-word contract, the third lower challenge and proof, associated metadata,
-arithmetic tooling, documentation and website. Nothing was pushed or deployed. The post-commit
-hook refreshed localhost, and a live page check confirmed the commit, three lower series,
-whole-word rules and preserved Satoshi/Vitalik rows.
-
-All 18 service tests pass. Firefox checks passed for three lower series, the single generic
-upper candidate, lower-framework filters, sorting, keyboard tooltips, rules expansion, both
-accessible diagrams and narrow-screen scrolling. Rules remain independent of scores. The local
-demo refresh preserves IDs and dates and updates only the whole-word demo claims to 94/95/94;
-these are explicitly fictional, while this certificate proves 93.
-
-The retained `disclosure-upper` certificate proves the old partial-disclosure model only. Its
-16-bit tweaks do not satisfy whole-word syntax, so neither it nor the 106-cost generic adapter
-is asserted to be an upper construction in this restricted class. Demo leaderboard entries
-remain explicitly illustrative and separate from this checked theorem.
+The 106-cost forest uses 16-bit tweaks, which whole-word syntax forbids, so it is not an upper
+construction in this restricted class.

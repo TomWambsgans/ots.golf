@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5504 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 106. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
+We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5376 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 106. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
 \end{abstract}
 
 \setcounter{tocdepth}{2}
@@ -70,13 +70,13 @@ bits. Sets may coincide. Reconstruction walks backward from the root, stopping a
 
 \subsection{Signing, verification, and security}
 
-For 256-bit messages and nonces, set
+For 256-bit messages and 128-bit nonces, set
 \[
 \mathsf{idx}(m,\eta)=\operatorname{low}_{128}H(m\Vert\eta).
 \]
-This query costs one compression. Signing samples fresh nonces without replacement until the index is below $M$, returning the nonce and the values at that disclosure set; it gives up after $L=2^{21}$ trials. Verification queries the same index, checks the revealed length, reconstructs the root, and compares its low 128 bits with the public key. Thus
+This query costs one compression. Signing samples fresh nonces without replacement until the index is below $M$, returning the nonce and the values at that disclosure set; it gives up after $L=2^{20}$ trials. Verification queries the same index, checks the revealed length, reconstructs the root, and compares its low 128 bits with the public key. Thus
 \[
-|\sigma|=256+\ell_i\le5504,\qquad
+|\sigma|=128+\ell_i\le5376,\qquad
 C_i=1+\sum_{g\in E_i}c_g.
 \]
 In this model the index query is not automatically independent of key generation. Section~\ref{sec:fresh} proves the independence needed by the attack, directly from fresh cache entries.
@@ -168,7 +168,7 @@ For $0\le p\le1$,
 (1-p)^k\le\frac1{1+kp}.
 \end{equation}
 Indeed $(1+kp)(1-p)^k\le1$ by induction, using
-$(1+(k+1)p)(1-p)\le1+kp$. Here $p=2^{-13}$ and $k=2^{21}$, so the failure probability is at most $1/257$. The probability in~\eqref{eq:signing} is therefore at least $192/257>1/2$.
+$(1+(k+1)p)(1-p)\le1+kp$. Here $p=2^{-13}$ and $k=2^{20}$, so the failure probability is at most $1/129$. The probability in~\eqref{eq:signing} is therefore at least $96/129>1/2$.
 \end{proof}
 
 \begin{lemma}[Searching a fresh message]\label{lem:search}
@@ -179,7 +179,7 @@ The failure probability is $(1-|G|/2^{128})^T$. It is at most the failure probab
 \[
 \frac1{1+T\cdot8/2^{128}}=\frac89.
 \]
-There are enough nonces since $T<2^{256}$.
+There are enough nonces since $T<2^{128}$.
 \end{proof}
 
 \section{The lower bound of 18}\label{sec:attack}
@@ -207,8 +207,8 @@ This calculation takes place entirely in the bare lazy-oracle experiment; there 
 
 Every path has total cost at most
 \begin{equation}\label{eq:budget}
-B=1024+2^{21}+2^{122}+2\cdot16+2
-=2^{122}+2^{21}+1058.
+B=1024+2^{20}+2^{122}+2\cdot16+2
+=2^{122}+2^{20}+1058.
 \end{equation}
 The last two units are the attacker's check of the signed index and the final verifier's index query; the two terms of size 16 cover the honest and final reconstruction. Nonce search costs at most $T$. Exact integer arithmetic gives
 \[
@@ -326,7 +326,7 @@ Key generation evaluates every node: $63\cdot14$ chain hashes, 21 and 7 grouping
 \[
 63\cdot14+21+7+2=912\le1024\ \text{compressions}.
 \]
-A cut in $D$ has at most 41 values of 128 bits, so it reveals at most 5248 bits and its signature has at most 5504 bits. Every signature verifies in
+A cut in $D$ has at most 41 values of 128 bits, so it reveals at most 5248 bits and its signature has at most 5376 bits. Every signature verifies in
 \[
 1+105=106\ \text{compressions},
 \]
@@ -421,7 +421,7 @@ The example can have every node reach the root: add $b=\operatorname{low}_1(Y_h)
 The pattern argument uses the exact constants
 \[
 \sum_{k=0}^{15}\binom{1023}{k}<2^{110},\quad
-M=2^{115},\quad L=2^{21},\quad T=2^{122},\quad
+M=2^{115},\quad L=2^{20},\quad T=2^{122},\quad
 \Pr[\mathrm{WeakForge}]\ge9/200,
 \]
 with budget~\eqref{eq:budget}. The count at size 16 exceeds $2^{115}$, explaining the limit of this argument. The old entropy operating points can still be explored numerically, but numerical slack cannot repair either counterexample in Appendix~\ref{sec:obstructions}.

@@ -18,8 +18,8 @@ restriction, or uniform-record assumption. The axiom closure is exactly
 The final official verifier runs accepted both submission roots:
 
 ```text
-verified: track=lower claim=18 commit=worktree in 117.5s (log: /private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-6hfinb8t/verify.log)
-verified: track=upper claim=106 commit=worktree in 165.6s (log: /private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-_qdyv0b9/verify.log)
+verified: track=lower claim=18 commit=worktree in 117.5s (local log)
+verified: track=upper claim=106 commit=worktree in 165.6s (local log)
 ```
 
 These runs were concurrent; the earlier standalone lower-18 run took 89.5 seconds.
@@ -48,8 +48,8 @@ Both examples obey the graph and cut rules. They need not be secure: the propose
 lemmas were unconditional. These counterexamples do not disprove a lower bound of 24.
 
 The detailed derivations are in
-[the information analysis](bare-oracle-information-analysis.md) and
-[the construction analysis](bare-oracle-construction-analysis.md).
+[the information analysis](../research/bare-oracle-information-analysis.md) and
+[the construction analysis](../research/bare-oracle-construction-analysis.md).
 
 ## Replacement proof and its Lean correspondence
 
@@ -106,7 +106,7 @@ fraction of large classes. This is a limitation of the present proof, not an imp
 The conditional entropy numerics still have slack for 24, even with budget 5313. They cannot
 repair either false lemma. The Bell rounding was also corrected:
 `Bell(22)=4506715738447323 > 2^52`, so the hypothetical 22-node Bell budget is 5310, not 5309;
-23 nodes require 5313. See [the numerical investigation](bare-oracle-numerics.md).
+23 nodes require 5313. See [the numerical investigation](../research/bare-oracle-numerics.md).
 
 **18 is the largest lower bound established here. Bounds 19–24, and 25, remain open in this work.**
 The old labeled-model claim 25 was lowered to 18 because its independence-based proof does not
@@ -128,7 +128,7 @@ Completed checks:
 - Axiom audit: only the three permitted axioms; the exported theorem has a checked
   `#guard_msgs` axiom declaration.
 - Paper: `latexmk` completed, nine pages, no warnings or overfull boxes;
-  local PDF at `/tmp/ots-bare-paper/looking-for-optimal-OTS.pdf`.
+  local PDF.
 - Site figure generation: all eight generated SVGs parsed successfully.
 - `git diff --check`: passed. Diff of `Submissions/Upper/`, `Statement.lean`, and
   `Weak.lean` against the handoff commit is empty.

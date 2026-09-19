@@ -1,7 +1,7 @@
 # Historical partial disclosures from 46 hash outputs
 
 This document records the former third framework and its verification at commit `84c5fd2`.
-The active third lower framework is now [whole words](whole-words.md). Its retained
+The active third lower framework is now [whole words](../whole-words.md). Its retained
 `disclosure-lower` slug and root export a different, explicitly pinned contract. The historical
 `disclosure-upper` certificate remains locally verifiable and is not a whole-word construction.
 The scores, commands and website descriptions below describe that earlier milestone.
@@ -73,10 +73,10 @@ Commands: `python3 verifier/verify.py <track> --source . --keep`.
 Contract pin: `269b181fdbfbb44b529e664ab403b7268cfb5e3ef07c79ef4b51e27d8ca18266`.
 Local logs:
 
-- Disclosure lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-g2xf0era/verify.log`.
-- Disclosure upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-hqlgjeg8/verify.log`.
-- Original lower: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-ed7pb0__/verify.log`.
-- Original upper: `/private/var/folders/7g/qxrr2pgj40s3ykbngr10jkkr0000gn/T/ots-verify-3tb6vucu/verify.log`.
+- Disclosure lower: (local log).
+- Disclosure upper: (local log).
+- Original lower: (local log).
+- Original upper: (local log).
 
 `tools/tune_lower_bound.py --method disclosure --claims 80,81` independently confirms the exact
 arithmetic at 80; the same estimate fails at 81. This numerical tool is not a certificate.
@@ -100,7 +100,7 @@ pages only. These invented claims are separate from the kernel-verified baseline
 refreshes localhost and adapts demo claims automatically.
 
 The website has three lower-bound frameworks and one fully generic upper track. The chart shows
-three lower series, now including the separate [checked generic lower bound of 1](generic-lower.md)
+three lower series, now including the separate [checked generic lower bound of 1](../generic-lower.md)
 for correct schemes whose signing succeeds at least half the time, plus a single
 106-cost generic adapter candidate. The candidate is not an admitted upper record: correctness and
 signing availability remain to be proved. Lower framework filters do not split the upper track.

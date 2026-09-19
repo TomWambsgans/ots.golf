@@ -7,9 +7,9 @@ The model, verifier and website are developed in
 
 | Track | Edit this directory | Better claim |
 |---|---|---|
-| Generality 3/3 lower | `formal/Submissions/GenericLower/` | Larger |
-| Generality 2/3 lower | `formal/Submissions/Lower/` | Larger |
 | Generality 1/3 lower | `formal/Submissions/DisclosureLower/` | Larger |
+| Generality 2/3 lower | `formal/Submissions/Lower/` | Larger |
+| Generality 3/3 lower | `formal/Submissions/GenericLower/` | Larger |
 | Upper bound | `formal/Submissions/GenericUpper/` | Smaller |
 | RISC-V upper bound | `formal/Submissions/RiscvUpper/` | Smaller |
 
@@ -68,5 +68,5 @@ uv sync --frozen
 ```
 
 Open `http://localhost:8000`. Startup populates a fresh database and preserves existing demo
-rows on subsequent runs. Set `OTS_DEMO_DATA=0` to start without seeding the fictional entries.
+rows on subsequent runs. Set `OTS_PHONY=0` to start without seeding the fictional entries.
 The fixtures live with the website; checked submission proofs live in this repository.

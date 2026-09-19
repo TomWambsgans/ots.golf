@@ -44,7 +44,7 @@ All numerical comparisons in Lean use exact arithmetic. The pattern-count argume
 
 | File | Role |
 | --- | --- |
-| `Elementary.lean` | Unconditional cost of at least two, retained from the interim certificate |
+| `WeakSecurity.lean` | The weak experiment and the proof that strong security implies weak security |
 | `Semantics.lean`, `Encoding.lean` | Algebraic graph records and disclosure round trips |
 | `Cache.lean`, `Expectation.lean` | Lazy bare-oracle runs and expectation identities |
 | `KeygenSupport.lean` | Actual key-generation outputs satisfy the final cache's node equations |
@@ -61,7 +61,8 @@ All numerical comparisons in Lean use exact arithmetic. The pattern-count argume
 The labeled proof's node outputs were independent. Bare nodes can repeat earlier hidden queries.
 The proposed fresh-coordinate information bound with a Bell correction and the proposed
 construction bound are both false; exact counterexamples are in
-`bare-oracle-information-analysis.md` and `bare-oracle-construction-analysis.md`, and Appendix A
+[the information analysis](research/bare-oracle-information-analysis.md) and
+[the construction analysis](research/bare-oracle-construction-analysis.md), and Appendix A
 of the paper. The repeated-pattern proof bypasses those statements. It does not prove 24 or 25.
 The historical labeled proof remains available in git at `e2eaf4e`.
 

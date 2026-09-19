@@ -1,10 +1,12 @@
 # A proposed attack on one-compression generic verification
 
-**Status: paper argument, not a Lean certificate.** This note develops a route to a
+**Status: paper argument, not a Lean certificate.** The contract now requires deterministic
+verification (`AlgorithmScheme.Admissible.verifyDeterministic`), so the randomized-verifier
+normal form below is moot. This note develops a route to a
 generic verification lower bound of **2**, including randomized verifiers. The
 normal-form and transcript lemmas below have not been formalized, so this is not
 an admitted submission or a website record. The separately checked generic
-lower certificate of 1 is documented in `generic-lower.md`.
+lower certificate of 1 is documented in [generic-lower.md](../generic-lower.md).
 
 The argument uses the current oracle-program interface and first-principles counting,
 including randomized verification. It assumes perfect correctness, signing success at
@@ -118,7 +120,8 @@ message.
 
 All three produce a message different from the one submitted to the signing
 oracle. Thus the proposed argument also targets the generic weak-unforgeability
-definition in `AlgorithmWeak.lean`; the upper interface requires strong unforgeability.
+definition in `formal/Submissions/GenericLower/WeakSecurity.lean`; the upper interface requires strong
+unforgeability.
 
 ### Attacker 0: guaranteed acceptance without attacker hash queries
 

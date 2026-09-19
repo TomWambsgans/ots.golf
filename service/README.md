@@ -12,11 +12,10 @@ uv sync --frozen
 ./run-local.sh
 ```
 
-Open `http://localhost:8000`. Startup refreshes the fictional Satoshi Nakamoto, Vitalik Buterin and Hal Finney
-submissions, preserving their IDs and dates. The page labels this as demo data. Claims follow the
-contract through the offsets in the committed [demo fixtures](demo/submissions.json); generic lower
-has a zero-offset Vitalik submission. A fresh clone recreates the board without a database dump.
-Real submissions are left alone. Set `OTS_DEMO_DATA=0` to skip this refresh.
+Open `http://localhost:8000`. Startup refreshes the fictional [demo fixtures](demo/README.md),
+preserving their IDs and dates; each row carries a demo label. A fresh clone recreates the board
+without a database dump. Real submissions are left alone. Set `OTS_PHONY=0` to skip this refresh
+and show the reference baselines instead.
 
 After every local commit, refresh localhost and check the rendered page. This checkout's
 `post-commit` hook runs `service/refresh-local.sh`, which refreshes demo claims and reloads the
@@ -35,31 +34,16 @@ local certificate initialization rows; use `--refresh` for routine updates. The 
 production mode and non-loopback site URLs, even with `--force`, and normally accepts only the
 default local database. Do not use fictional data in production.
 
-## Tracks and presentation
+## Presentation
 
-The homepage has three lower frameworks: Generality 3/3 (any algorithm), 2/3 (DAGs with arbitrary
-functions) and 1/3 (whole-word DAGs). Each has its own leaderboard.
-`/?framework=generic|dag|disclosure` filters the lower tables; `#lower` and `#upper` select the
-direction. Scores appear as attributed submissions. Rules define the contract's requirements.
+The homepage has three lower frameworks, each with its own leaderboard, and two upper tracks.
+`/?framework=generic|dag|disclosure` filters the lower tables only; `#lower` and `#upper` select
+the direction. Scores appear as attributed submissions; rules define the contract's requirements
+without scores. The RISC-V upper track has its own card, leaderboard and chart with an
+independent cycle axis, never combined with compression bounds. The legacy `upper`
+certificate and demos remain accessible under Historical DAG.
 
-The Upper bound track (`generic-upper`) accepts any oracle algorithm. Its pinned construction
-proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong security, all size and
-resource limits, and a worst-case verification cost of 106 compressions. It has its own records,
-chart and leaderboard. The RISC-V upper bound track (`riscv-upper`) scores a verified RV64IM
-verifier by its proved accepting-execution cycle bound; its pinned certificate costs 1628 cycles.
-It has its own card, leaderboard and chart with an independent cycle axis, never combined with
-compression bounds. The framework filter applies to lower submissions.
-Legacy `upper` and `disclosure-upper` certificates and demos remain accessible under Historical
-DAG and Historical partial disclosures. Public admission to those roots is closed.
-Default localhost demos preserve the existing 19 rows and add a fictional Vitalik submission at
-the generic upper certificate's cost, followed by a fictional Satoshi improvement of one compression.
-Both carry demo labels and unverified status. A further fictional Satoshi row shows the RISC-V
-certificate's own cost with zero improvement. Hal Finney is the third fictional contributor: a
-Generality 2/3 demo record, a matching Generality 1/3 attempt, an Upper bound row at the checked
-cost, and one mid-history record on each legacy upper reference.
-
-The demo rows come from `service/demo/submissions.json` and are re-seeded at every start while
-`OTS_PHONY=1`. The database is a disposable cache: the website rebuilds it from GitHub at startup
+The database is a disposable cache: the website rebuilds it from GitHub at startup
 (`app.resync`), so an empty data directory comes back as before; see
 [deployment](deploy/README.md#rebuilding-the-server-from-nothing).
 
@@ -126,5 +110,5 @@ python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --
 Service tests use isolated databases. The optional browser check uses Firefox against the seeded
 localhost preview and exercises desktop/mobile layouts, both color schemes, keyboard controls,
 filters, tooltips, reduced motion and error pages. See [numerical tool setup](../tools/README.md)
-for NumPy and the repository runner; add `--official` to run all six certificate pipelines.
-The [production review](../docs/production-readiness.md) records results and remaining launch gates.
+for NumPy and the repository runner; add `--official` to run all seven certificate pipelines.
+[Deployment](deploy/README.md) lists the remaining launch gates.

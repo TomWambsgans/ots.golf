@@ -1,7 +1,7 @@
 # The proposed construction bound is false in fresh coordinates
 
 Date: 2026-09-17. This note checks the first open step in section 4 of
-`lower-bound-bare-oracle-handoff.md`. It concerns the attempted transfer of paper
+the bare-oracle handoff (since removed). It concerns the attempted transfer of paper
 Lemma 3 to the bare oracle, not the truth or falsity of the desired lower bound.
 
 The transfer fails at its conclusion, not only at the intermediate assertion

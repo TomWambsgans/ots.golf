@@ -14,35 +14,42 @@ model, verifier, website and reference certificates. Submit competition proof PR
 [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions).
 That repository contains the five submission roots and a pinned core submodule for local checking.
 
-| Lower class | Admitted schemes | Checked lower bound |
-|---|---|---:|
-| Generality 3/3 | Arbitrary oracle programs with correctness, availability and resource guarantees | 1 |
-| Generality 2/3 | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
-| Generality 1/3 | Whole-word DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
+| Track | Slug | Admitted schemes | Checked claim |
+|---|---|---|---:|
+| Generality 1/3 lower | `disclosure-lower` | Whole-word DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
+| Generality 2/3 lower | `lower` | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
+| Generality 3/3 lower | `generic-lower` | Admissible oracle algorithms | 1 |
+| Upper bound | `generic-upper` | Admissible oracle algorithms | 106 |
+| RISC-V upper bound | `riscv-upper` | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier | 1628 cycles |
 
-Each lower record applies to its class. The whole-word track retains its earlier
-`disclosure-lower` identifier for URL and submission-root compatibility.
+- **Generality 1/3 lower** proves that every 127-bit secure whole-word DAG scheme has worst-case
+  verification cost at least the claim, in compressions; its slug keeps the earlier
+  `disclosure-lower` name.
+- **Generality 2/3 lower** proves the same bound for every 127-bit secure DAG scheme.
+- **Generality 3/3 lower** proves it for every admissible, 127-bit secure oracle algorithm.
+- **Upper bound** constructs an admissible, 127-bit secure scheme whose verification costs at most
+  the claim in compressions on every input and oracle-answer path.
+- **RISC-V upper bound** constructs such a scheme with a fixed RV64IM verifier proved equal to the
+  Lean verifier, costing at most the claim in cycles on every execution.
 
-The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
-perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
-size and cost proofs. The **RISC-V upper bound** track (`riscv-upper`) has a verified
-**1628-cycle RV64IM verifier** for a nibble-layout forest OTS: the machine's oracle computation is
-proved equal to the Lean verifier on every input, every execution terminates, and accepting
-executions cost at most 1628 cycles. The original DAG and historical partial-disclosure
-upper certificates remain locally verifiable references.
+The legacy DAG upper certificate remains a locally verifiable reference.
+[AGENTS.md](AGENTS.md) defines the exact requirements, exports and submission workflow.
 
 ## Model
 
 All parties share one random oracle on bit strings. A new input gets an independent uniform
 256-bit answer; equal inputs always receive the same answer across all uses. Every call costs
-one compression per started 512-bit input block,
-with a minimum of one. Computation and private randomness are free.
+one compression per started 512-bit input block, with a minimum of one. Computation is free.
+Key generation and signing may use private randomness; verification is deterministic.
 
 DAG signatures contain a 128-bit nonce and at most 5,248 bits of disclosed node values.
 The message-and-nonce hash selects a cut; verification reconstructs the root and compares its
 low 128 bits with the public key. Whole-word DAGs add only their operation restriction.
 An algorithm scheme consists of three terminating oracle programs for key generation, signing
-and verification, with an injective signature encoding.
+and verification, with an injective signature encoding. It is admissible when it is perfectly
+correct, verifies deterministically, fails to sign with probability at most `2^-128`, has
+signatures of at most 5,376 bits and rejects longer ones, and stays within 1,024 key-generation
+and `2^20` signing compressions on every path.
 
 Every certificate uses strong unforgeability: any accepted pair other than the signed one counts,
 and any accepted pair counts after a signing failure. Both count the cost of the
@@ -61,16 +68,15 @@ python3 verifier/verify.py disclosure-lower --source .
 ```
 
 Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the
-Upper bound construction, `riscv-upper` for the RISC-V implementation, and `upper` or
-`disclosure-upper` for the historical references. macOS verification runs unsandboxed for trusted
+Upper bound construction, `riscv-upper` for the RISC-V implementation, and `upper` for the historical
+reference. macOS verification runs unsandboxed for trusted
 local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
 For the website, run `uv sync --frozen` and `./run-local.sh` in `service/`.
-The local preview loads the committed [Satoshi/Vitalik/Hal demo fixtures](service/demo/submissions.json)
-by default, including on a fresh clone with no database.
-See [service development](service/README.md)
-and the [production review](docs/production-readiness.md) for checks and deployment gates.
+The local preview loads the committed [demo fixtures](service/demo/README.md) by default,
+including on a fresh clone with no database. See [service development](service/README.md) for
+checks and [deployment](service/deploy/README.md) for launch gates.
 
 To check a separate submissions checkout using this core's verifier, pass its path as `--source`,
 for example `python3 verifier/verify.py generic-lower --source ../ots.golf-submissions`.
@@ -82,14 +88,14 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
 - [Submission rules](AGENTS.md), [track metadata](challenges.json) and [verifier](verifier/verify.py).
 - [DAG contract](formal/OptimalOTS/Statement.lean), [generic interface](formal/OptimalOTS/Algorithm.lean)
   and [whole-word restriction](formal/OptimalOTS/WholeWords.lean).
-- [Generality 3/3 proof](docs/generic-lower.md), [Generality 2/3 proof](docs/lower-bound-proof.md)
-  and [Generality 1/3 proof](docs/whole-words.md).
-- [Upper bound proof](docs/generic-upper.md), [RISC-V track](docs/riscv-upper.md) and
-  [contract audit](docs/AUDIT.md).
+- [Generality 1/3 proof](docs/whole-words.md), [Generality 2/3 proof](docs/lower-bound-proof.md)
+  and [Generality 3/3 proof](docs/generic-lower.md).
+- [Upper bound proof](docs/generic-upper.md), [RISC-V track](docs/riscv-upper.md),
+  [contract audit](docs/AUDIT.md) and the [documentation index](docs/README.md).
 - `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
 - `formal/Submissions/GenericUpper/`: the admitted Upper bound root.
 - `formal/Submissions/RiscvUpper/`: the admitted RISC-V upper bound root.
-- `formal/Submissions/{Upper,DisclosureUpper}/`: historical upper references.
+- `formal/Submissions/Upper/`: historical DAG upper reference.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 
 The competition and chart were inspired by [better.codes](https://better.codes) and

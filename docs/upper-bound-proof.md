@@ -81,7 +81,7 @@ key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for e
    `ρ = θ Ψ` satisfies this (`psi_dom`), so the bad signing event costs at most the current
    encoding term. This disjoint split replaces the earlier union bound
    `|V|/M + L·pairs/(2^nonceBits − L)`, which needed a 256-bit nonce; the argument holds for the
-   128-bit nonce and every budget up to `2^127` (`docs/nonce-128-analysis.md`).
+   128-bit nonce and every budget up to `2^127` ([the 128-bit nonce analysis](nonce-128-analysis.md)).
 
 The case `B > 2^127` is trivial (`probTrue ≤ 1 < B/2^127`), so all counting invariants may
 assume `N ≤ 2^127`.
