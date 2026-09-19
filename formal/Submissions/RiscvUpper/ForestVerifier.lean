@@ -20,13 +20,13 @@ attribute [local reducible] Forest.graph
 set_option maxRecDepth 4000
 attribute [local irreducible] Forest.setsName Forest.fixedChoice Forest.fixedPositions Forest.fixedDigits
 
-/-- Topological order, expanded into the twelve kinds of forest node. -/
+/-- The nodes of chain `k`, in topological order. -/
+def chainNodes (k : Fin 63) : List Name :=
+  src k :: (List.finRange 14).flatMap (fun t => [ci k t, ch k t, cv k t])
+
+/-- Topological order: the chains one after the other, then the tree. -/
 def order : List Name :=
-  (List.finRange 63).map src ++
-  (List.finRange 14).flatMap (fun t =>
-    (List.finRange 63).map (fun k => ci k t) ++
-    (List.finRange 63).map (fun k => ch k t) ++
-    (List.finRange 63).map (fun k => cv k t)) ++
+  (List.finRange 63).flatMap chainNodes ++
   (List.finRange 21).map gc ++ (List.finRange 21).map gh ++
   (List.finRange 21).map gv ++ (List.finRange 7).map ec ++
   (List.finRange 7).map eh ++ (List.finRange 7).map ev ++ [rc, rh]

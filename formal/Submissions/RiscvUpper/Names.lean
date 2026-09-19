@@ -10,7 +10,7 @@ of the paper are separate deterministic truncation nodes, and the inputs of the 
 are separate concatenation nodes.
 
 Nodes are named by `Name`; `Name.fin` embeds the names into `Fin N` in a topological order
-(parents first) and `ofFin` is its inverse.
+(parents first, chain by chain, then the tree) and `ofFin` is its inverse.
 
 The random oracle has no labels, so the scheme separates its hash nodes itself: the input of the
 hash node `h` starts with the 16-bit tweak `tw h` (the index of `h`), in the high bits, i.e. it is
@@ -63,12 +63,13 @@ def N : ℕ := 2795
 
 namespace Name
 
-/-- Topological index. -/
+/-- Topological index. Chains come first, chain by chain: chain `k` occupies the indices
+`43 k, …, 43 k + 42` (its source, then input, hash and value of each of its 14 levels). -/
 def idx : Name → ℕ
-  | src k => k
-  | ci k t => 63 + 189 * t + k
-  | ch k t => 126 + 189 * t + k
-  | cv k t => 189 + 189 * t + k
+  | src k => 43 * k
+  | ci k t => 43 * k + 1 + 3 * t
+  | ch k t => 43 * k + 2 + 3 * t
+  | cv k t => 43 * k + 3 + 3 * t
   | gc j => 2709 + j
   | gh j => 2730 + j
   | gv j => 2751 + j
@@ -170,14 +171,15 @@ end Name
 
 /-- The inverse of `Name.fin`. -/
 def ofFin (v : Fin N) : Name :=
-  if h₁ : v.val < 63 then .src ⟨v.val, h₁⟩
-  else if h₂ : v.val < 2709 then
-    let m := v.val - 63
-    let t : Fin 14 := ⟨m / 189, by omega⟩
-    let r := m % 189
-    if h₃ : r < 63 then .ci ⟨r, h₃⟩ t
-    else if h₃' : r < 126 then .ch ⟨r - 63, by omega⟩ t
-    else .cv ⟨r - 126, by omega⟩ t
+  if h₁ : v.val < 2709 then
+    let k : Fin 63 := ⟨v.val / 43, by omega⟩
+    let r := v.val % 43
+    if h₂ : r = 0 then .src k
+    else
+      let t : Fin 14 := ⟨(r - 1) / 3, by omega⟩
+      if h₃ : (r - 1) % 3 = 0 then .ci k t
+      else if h₃' : (r - 1) % 3 = 1 then .ch k t
+      else .cv k t
   else if h₄ : v.val < 2730 then .gc ⟨v.val - 2709, by omega⟩
   else if h₅ : v.val < 2751 then .gh ⟨v.val - 2730, by omega⟩
   else if h₆ : v.val < 2772 then .gv ⟨v.val - 2751, by omega⟩

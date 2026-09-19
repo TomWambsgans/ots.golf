@@ -5,8 +5,8 @@ import Submissions.RiscvUpper.Refines
 /-!
 # Machine semantics of the compact blocks
 
-Generic lemmas for assembling concatenations in memory relative to an aligned base, then the
-exact effect of the guarded read block and of the guarded chain hash block.
+Generic lemmas for assembling concatenations in memory relative to an aligned base, the chain
+slot addresses, and the registers fixed throughout the chain phase.
 -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
@@ -113,96 +113,11 @@ theorem copy_append {width : ℕ} (s : MachineState) (src : Reg) (srcOff off : �
     rw [dstAddr] at moved
     exact moved
 
-/-! ## The guarded read block -/
-
-def readPrefix (p k : ℕ) : Code :=
-  [.LD .x26 .x8 (BitVec.ofNat 12 (8 * k))] ++ constant .x27 p ++ [.XOR .x26 .x26 .x27]
-
-def readBody (k : ℕ) : Code := copy128 .x9 0 .x18 (chainSlot k) ++ [.ADDI .x9 .x9 16]
-
-def readBlock (p k : ℕ) : PureBlock :=
-  .seq (.linear (readPrefix p k)) (.guard true .x26 (.linear (readBody k)))
-
-theorem readBlock_code (p k : ℕ) : (readBlock p k).code = readChain p k := by
-  simp only [readBlock, PureBlock.code, readChain, readPrefix, readBody, whenZero,
-    List.append_assoc, if_true, ite_true]
+/-! ## Chain slots -/
 
 theorem constant_small (r : Reg) (p : ℕ) (hp : p < 2048) :
     constant r p = [.ADDI r .x0 (BitVec.ofNat 12 p)] := by
   simp [constant, hp]
-
-/-- The prefix loads and compares the position; it changes only its two temporaries. -/
-theorem readPrefix_effect (s : MachineState) (p k : ℕ) (hp : p < 2048) (hk : k < 63) :
-    ((readPrefix p k).foldl execInstrBr s).getReg .x26 =
-        s.getMem (s.getReg .x8 + BitVec.ofNat 64 (8 * k)) ^^^ BitVec.ofNat 64 p ∧
-    (∀ r, r ≠ .x26 → r ≠ .x27 →
-      ((readPrefix p k).foldl execInstrBr s).getReg r = s.getReg r) ∧
-    ((readPrefix p k).foldl execInstrBr s).mem = s.mem := by
-  have unfolded : (readPrefix p k).foldl execInstrBr s =
-      execInstrBr (execInstrBr (execInstrBr s (.LD .x26 .x8 (BitVec.ofNat 12 (8 * k))))
-        (.ADDI .x27 .x0 (BitVec.ofNat 12 p))) (.XOR .x26 .x26 .x27) := by
-    simp [readPrefix, constant_small _ _ hp]
-  rw [unfolded]
-  simp only [execInstrBr, signExtend12_nonnegative _ (by omega : 8 * k < 2048),
-    signExtend12_nonnegative _ hp]
-  refine ⟨?_, ?_, ?_⟩
-  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_eq (by decide : Reg.x26 ≠ .x0),
-      MachineState.getReg_setReg_eq (by decide : Reg.x27 ≠ .x0),
-      MachineState.getReg_setReg_ne _ .x27 .x26 _ (by decide),
-      MachineState.getMem_setReg, getReg_x0]
-    simp
-  · intro r h26 h27
-    simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x26 r _ h26.symm,
-      MachineState.getReg_setReg_ne _ .x27 r _ h27.symm]
-  · rfl
-
-theorem readPrefix_ready (s : MachineState) (p k : ℕ) (hp : p < 2048) (hk : k < 63)
-    (base : s.getReg .x8 = BitVec.ofNat 64 positionsBase) :
-    Riscv.LinearReady s (readPrefix p k) := by
-  simp only [readPrefix, constant_small _ _ hp, List.append_assoc, List.singleton_append]
-  refine ⟨rfl, ?_, rfl, trivial, rfl, trivial, trivial⟩
-  change isValidDwordAccess (s.getReg .x8 + signExtend12 (BitVec.ofNat 12 (8 * k))) = true
-  rw [signExtend12_nonnegative _ (by omega), base]
-  exact Direct.position_access ⟨k, hk⟩
-
-theorem readPrefix_length (p k : ℕ) (hp : p < 2048) : (readPrefix p k).length = 3 := by
-  simp [readPrefix, constant_small _ _ hp]
-
-/-- The body copies the next disclosed word into the slot and advances the cursor. -/
-theorem readBody_effect (s : MachineState) (k : ℕ) (hk : k < 36) :
-    ((readBody k).foldl execInstrBr s).getReg .x9 = s.getReg .x9 + 16 ∧
-    (∀ r, r ≠ .x9 → r ≠ .x26 → r ≠ .x27 →
-      ((readBody k).foldl execInstrBr s).getReg r = s.getReg r) ∧
-    ((readBody k).foldl execInstrBr s).mem =
-      ((copy128 .x9 0 .x18 (chainSlot k)).foldl execInstrBr s).mem := by
-  have h16 : signExtend12 (16 : BitVec 12) = (16 : Word) := by decide
-  simp only [readBody, List.foldl_append, List.foldl_cons, List.foldl_nil, execInstrBr, h16]
-  refine ⟨?_, ?_, rfl⟩
-  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_eq (by decide : Reg.x9 ≠ .x0),
-      copy128_reg _ .x9 .x18 .x9 0 _ (by decide) (by decide)]
-  · intro r h9 h26 h27
-    simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x9 r _ h9.symm,
-      copy128_reg _ .x9 .x18 r 0 _ h26 h27]
-
-theorem readBody_ready (s : MachineState) (k : ℕ) (hk : k < 36)
-    (base : s.getReg .x18 = BitVec.ofNat 64 chainsBase) (cursor : Direct.CursorReady s) :
-    Riscv.LinearReady s (readBody k) := by
-  refine (copy128_ready s .x9 .x18 0 (chainSlot k) (by decide) (by decide) (by decide)
-    ?_ ?_ ?_ ?_).append ?_
-  · simpa only [signExtend12_nonnegative 0 (by decide)] using
-      Direct.cursor_access s cursor 0 (by decide)
-  · simpa only [signExtend12_nonnegative 8 (by decide)] using
-      Direct.cursor_access s cursor 1 (by decide)
-  · rw [signExtend12_nonnegative _ (by unfold chainSlot; omega), base]
-    simpa only [Nat.mul_zero, Nat.add_zero] using chain_access k 0 hk (by decide)
-  · rw [signExtend12_nonnegative _ (by unfold chainSlot; omega), base]
-    simpa only [Nat.mul_one] using chain_access k 1 hk (by decide)
-  · exact ⟨rfl, trivial, trivial⟩
-
-theorem readBody_length (k : ℕ) : (readBody k).length = 5 := rfl
-
-
-/-! ## The guarded chain hash block -/
 
 def slotAddr (k : ℕ) : Word := BitVec.ofNat 64 chainsBase + BitVec.ofNat 64 (chainSlot k)
 
@@ -225,49 +140,6 @@ structure ChainRegs (s : MachineState) : Prop where
   call : s.getReg .x5 = Riscv.hashCall
   length : s.getReg .x11 = 144
 
-def hashPrefix (t k : ℕ) : Code :=
-  [.LD .x26 .x8 (BitVec.ofNat 12 (8 * k)), .SLTIU .x26 .x26 (BitVec.ofNat 12 (t + 1))]
-
-def hashBody (t k : ℕ) : Code :=
-  Direct.writeTag (BitVec.ofNat 16 (126 + 189 * t + k)) (chainSlot k + 16) ++
-  [.ADDI .x10 .x18 (BitVec.ofNat 12 (chainSlot k)), .ADDI .x12 .x18 (BitVec.ofNat 12 (chainSlot k))]
-
-theorem hashChain_parts (t k : ℕ) :
-    hashChain t k = hashPrefix t k ++ whenNonzero .x26 (hashBody t k ++ [.ECALL]) := by
-  simp [hashChain, hashPrefix, hashBody, List.append_assoc]
-
-theorem hashBody_length (t k : ℕ) : (hashBody t k).length = (Direct.writeTag (BitVec.ofNat 16 (126 + 189 * t + k)) (chainSlot k + 16)).length + 2 := by
-  simp [hashBody]
-
-theorem hashChain_length (t k : ℕ) :
-    (hashChain t k).length = 2 + 1 + ((hashBody t k).length + 1) := by
-  rw [hashChain_parts]
-  simp [hashPrefix, whenNonzero]
-  omega
-
-/-- The prefix computes the evaluation flag and changes only `x26`. -/
-theorem hashPrefix_effect (s : MachineState) (t k : ℕ) (ht : t + 1 < 2048) (hk : k < 63) :
-    ((hashPrefix t k).foldl execInstrBr s).getReg .x26 =
-        (if BitVec.ult (s.getMem (s.getReg .x8 + BitVec.ofNat 64 (8 * k))) (BitVec.ofNat 64 (t + 1))
-          then 1 else 0) ∧
-    (∀ r, r ≠ .x26 → ((hashPrefix t k).foldl execInstrBr s).getReg r = s.getReg r) ∧
-    ((hashPrefix t k).foldl execInstrBr s).mem = s.mem := by
-  simp only [hashPrefix, List.foldl_cons, List.foldl_nil, execInstrBr,
-    signExtend12_nonnegative _ (by omega : 8 * k < 2048), signExtend12_nonnegative _ ht]
-  refine ⟨?_, ?_, rfl⟩
-  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_eq (by decide : Reg.x26 ≠ .x0),
-      MachineState.getMem_setPC, MachineState.getMem_setReg]
-  · intro r h26
-    simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x26 r _ h26.symm]
-
-theorem hashPrefix_ready (s : MachineState) (t k : ℕ) (hk : k < 63)
-    (base : s.getReg .x8 = BitVec.ofNat 64 positionsBase) :
-    Riscv.LinearReady s (hashPrefix t k) := by
-  refine ⟨rfl, ?_, rfl, trivial, trivial⟩
-  change isValidDwordAccess (s.getReg .x8 + signExtend12 (BitVec.ofNat 12 (8 * k))) = true
-  rw [signExtend12_nonnegative _ (by omega), base]
-  exact Direct.position_access ⟨k, hk⟩
-
 /-- Small positions compare as naturals. -/
 theorem ult_small (a b : ℕ) (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
     BitVec.ult (BitVec.ofNat 64 a) (BitVec.ofNat 64 b) = decide (a < b) := by
@@ -280,47 +152,5 @@ theorem chain_half_access (k : ℕ) (hk : k < 36) :
     BitVec.toNat_add, BitVec.toNat_ofNat, Bool.and_eq_true, Bool.or_eq_true,
     decide_eq_true_eq, beq_iff_eq]
   omega
-
-theorem chainTag_literal (t : Fin 14) (k : Fin 63) :
-    (literalValue (BitVec.ofNat 16 (126 + 189 * t.val + k.val)).toNat).truncate 16 =
-      BitVec.ofNat 16 (126 + 189 * t.val + k.val) :=
-  Direct.nodeTag_literal (.ch k t)
-
-/-- The body writes the tag after the value and points both hash pointers at the slot. -/
-theorem hashBody_effect (s : MachineState) (t : Fin 14) (k : Fin 63) (hk : k.val < 36) :
-    ((hashBody t k).foldl execInstrBr s).getReg .x10 = s.getReg .x18 + BitVec.ofNat 64 (chainSlot k) ∧
-    ((hashBody t k).foldl execInstrBr s).getReg .x12 = s.getReg .x18 + BitVec.ofNat 64 (chainSlot k) ∧
-    (∀ r, r ≠ .x10 → r ≠ .x12 → r ≠ .x26 →
-      ((hashBody t k).foldl execInstrBr s).getReg r = s.getReg r) ∧
-    ((hashBody t k).foldl execInstrBr s).mem =
-      (s.setHalfword (s.getReg .x18 + BitVec.ofNat 64 (chainSlot k + 16))
-        (BitVec.ofNat 16 (126 + 189 * t.val + k.val))).mem := by
-  have hslot : chainSlot k < 2048 := by unfold chainSlot; omega
-  simp only [hashBody, List.foldl_append, List.foldl_cons, List.foldl_nil, execInstrBr,
-    signExtend12_nonnegative _ hslot]
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x12 .x10 _ (by decide),
-      MachineState.getReg_setReg_eq (by decide : Reg.x10 ≠ .x0),
-      MachineState.getReg_setReg_ne _ .x10 .x18 _ (by decide),
-      Direct.writeTag_register _ _ _ .x18 (by decide)]
-  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_eq (by decide : Reg.x12 ≠ .x0),
-      MachineState.getReg_setReg_ne _ .x10 .x18 _ (by decide),
-      Direct.writeTag_register _ _ _ .x18 (by decide)]
-  · intro r h10 h12 h26
-    simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x12 r _ h12.symm,
-      MachineState.getReg_setReg_ne _ .x10 r _ h10.symm, Direct.writeTag_register _ _ _ r h26]
-  · simp only [MachineState.setPC, MachineState.setReg]
-    exact Direct.writeTag_memory s _ _ (by unfold chainSlot; omega) (chainTag_literal t k)
-
-theorem hashBody_ready (s : MachineState) (t : Fin 14) (k : Fin 63) (hk : k.val < 36)
-    (base : s.getReg .x18 = BitVec.ofNat 64 chainsBase) :
-    Riscv.LinearReady s (hashBody t k) := by
-  refine Riscv.LinearReady.append ?_ ⟨rfl, trivial, rfl, trivial, trivial⟩
-  apply (constant_ready _ _ _).append
-  refine ⟨rfl, ?_, trivial⟩
-  change isValidHalfwordAccess (_ + signExtend12 (BitVec.ofNat 12 (chainSlot k + 16))) = true
-  rw [signExtend12_nonnegative _ (by unfold chainSlot; omega),
-    constant_preserves _ .x26 .x18 _ (by decide), base]
-  exact chain_half_access k hk
 
 end OptimalOTS.RiscvUpperProgram.Compact
