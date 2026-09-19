@@ -4,7 +4,7 @@ The scheme of Section 7 of the paper: 63 hash chains of length 14 whose ends are
 three into 21 group digests, grouped three by three into 7 subtree digests, hashed together into
 the root. The contract has one random oracle and no domain separation, so the scheme separates its
 hash nodes itself: every hash input starts with a 16-bit tweak naming its node (`tw`, in `Names.lean`).
-A chain step hashes 144 bits, a grouping hash 400, the root 912, and none of them has the 512 bits of
+A chain step hashes 144 bits, a grouping hash 400, the root 912, and none of them has the 384 bits of
 an index query. Chain and grouping hashes still cost one compression, the root two. A signature reveals one 128-bit
 value on every source-to-root path, and the `2 ^ 115` disclosure sets are cuts of reconstruction
 cost 105 with at most 41 revealed values (so at most 5248 revealed bits): every signature verifies
@@ -24,6 +24,7 @@ Exports (`Solution.lean`): `OptimalOTS.Challenge.Upper.scheme`, `secure`, `cost`
 | `Names.lean`, `Tree.lean` | the 1913-node computation graph; the tree structure, visited sets, costs, cuts |
 | `Count.lean`, `Cuts.lean`, `Scheme.lean` | the disclosure family (more than `2 ^ 115` sets, certified by kernel computation) and `forestScheme` |
 | `Values.lean`, `Resample.lean`, `Events.lean` | node values; hidden and exposed keygen points; uniformity of hidden inputs by resampling one record coordinate; an accepted forgery is one of the charged events |
+| `SignRho.lean`, `Rows.lean`, `RowIneq.lean`, `RowPotential.lean` | the disjoint signing lemma, per-message rows of the cache, the row potential and its charge |
 | `Potentials.lean`, `StageB.lean`, `Assembly.lean`, `Main.lean` | the potentials, the two attacker stages, the bound, `forestScheme_secure` |
 
 The architecture is described in `docs/upper-bound-proof.md`.

@@ -4,6 +4,9 @@ Question: can the competition move from `paperParams.nonceBits = 256` to 128 bit
 convention at 128-bit security) while keeping the signature budget, the strong-unforgeability
 target `probTrue < B / 2^127` for every budget `B`, and all current claims?
 
+**Status (2026-09-19): done.** The contract now has `nonceBits := 128`, and every root is
+kernel-checked at its claim (section 4). The sections below record the obstacle and its proof.
+
 ## Experiment
 
 With only `nonceBits := 128` changed in `OptimalOTS/Statement.lean`:
@@ -177,3 +180,42 @@ expected increase of `Ψ` on random multi-row states) all stay near `ε`, well b
 3. `Assembly`: apply the new signing lemma with `ρ = encTerm d`.
 4. Port to `RiscvUpper` (accepted set `validSet`), `Upper`, `DisclosureUpper`; fix the 512-bit
    index-query length in `Values.lean`; set `nonceBits := 128`.
+
+## 4. Result: the contract at 128 bits (2026-09-19)
+
+The plan of section 3 is carried out in all four upper roots. The contract changes are
+`paperParams.nonceBits := 128` (`Statement.lean`), `paperLimits.signatureBits := 5376`
+(`Algorithm.lean`), and the machine loading at most 5376 signature bits with the length capped at
+5377 (`RiscvMachine.lean`). `maxRevealBits` stays 5248: the payload budget, the cuts and every
+cost are unchanged, and the signature shrinks by the 128 nonce bits that are no longer sent.
+
+New modules, identical in `GenericUpper`, `Upper` and `DisclosureUpper` and ported to the
+accepted set `validSet` in `RiscvUpper`:
+
+| Module | Content |
+|---|---|
+| `SignRho` | `signRho_bound`: the disjoint signing lemma of section 1 for any `ρ` |
+| `RowIneq` | `charge_le`: the real inequality `T ≤ 11/6` for the queried row |
+| `Rows` | per-message rows of the cache and their change under one fresh answer |
+| `RowPotential` | `psi`, `psi_step`, `sum_gCls_le`, `psi_charge` and `psi_dom` |
+
+`Potentials.encTerm` is now `θ · psi`, `encTerm_avg_le` follows from `psi_charge`, and
+`Assembly.stageA_cont` applies `signRho_bound` with `ρ = encTerm d`, whose hypothesis is
+`psi_dom`. The index query has 384 bits (`Values.len_hashParent_ne_enc`). The earlier
+`cntV`/`pairs` lemmas remain in `SignIdx` and `EncCharges` but are no longer used by the proof.
+
+| Root | Claim before | Claim after |
+|---|---:|---:|
+| `GenericUpper` | 106 | 106 |
+| `RiscvUpper` | 1632 cycles | **1628 cycles** |
+| `Upper` (historical) | 106 | 106 |
+| `DisclosureUpper` (historical) | 106 | 106 |
+| `Lower` | 18 | 18 |
+| `DisclosureLower` | 93 | 93 |
+| `GenericLower` | 1 | 1 |
+
+The RISC-V index prefix now copies one 16-byte nonce block instead of two and hashes 384 bits,
+four instructions fewer: the image has 2647 instructions, the index phase costs 267 cycles, and the
+payload starts at `signatureBase + 16`. The security bound is unchanged: `(B − 912)/2^127` for
+every budget `B ≤ 2^127`.
+

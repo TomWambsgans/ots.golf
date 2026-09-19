@@ -13,7 +13,7 @@ an ordered list of complete earlier values. Concatenations may repeat, reorder, 
 
 Every node carries a sequence of whole words; a signature discloses complete node values. All
 original DAG cut, root reconstruction, nonce/index, size and resource requirements remain:
-5248 payload bits plus a 256-bit nonce, 128-bit public key, 1024 key-generation compressions,
+5248 payload bits plus a 128-bit nonce, 128-bit public key, 1024 key-generation compressions,
 2^20 signing trials, 2^115 accepted indices out of 2^128, and 127-bit strong unforgeability.
 Hashes accept any number of words. One shared random oracle answers equal inputs equally; each
 hash call costs at least one compression and one per started 512-bit input block.

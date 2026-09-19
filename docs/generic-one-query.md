@@ -17,7 +17,7 @@ Let `S : AlgorithmScheme paperParams` satisfy:
 - `S.Correct` and `S.SigningFailureAtMost (1 / 2)`;
 - key-generation cost at most `K = 1024`;
 - signing cost at most `s = 2^20` on every secret key and message;
-- every honest signature has an injective encoding of length at most 5504;
+- every honest signature has an injective encoding of length at most 5376;
 - verification cost at most **one** on every input and every execution path;
 - the existing 127-bit `S.Secure` requirement, including honest-party costs.
 
@@ -34,7 +34,7 @@ N δ < 1/4.
 ```
 
 The set `C` of message/signature pairs with signature encodings of length at
-most 5504 is finite. It is nonempty by signing availability. Consequently all
+most 5376 is finite. It is nonempty by signing availability. Consequently all
 maxima and selections over candidates below exist. Such searches are free in
 this model: only actual calls to the shared random oracle incur cost. No
 efficiency claim is made for them. In the current classical Lean interface,
@@ -344,7 +344,7 @@ were checked against the protected definitions and the library semantics, so tha
 - **Weak security is the right target.** Every attack forges on a message other than the signed
   one, as `weakExperiment` requires; strong security implies weak security, so a proved bound also
   covers strongly secure schemes.
-- **Finite candidate sets.** `encodeSignature` is injective and `RejectsOversized 5504` rejects
+- **Finite candidate sets.** `encodeSignature` is injective and `RejectsOversized 5376` rejects
   longer encodings on every path, so the candidate set `C` of Section 1 is finite and all maxima
   exist. Selections may be classical: only hash queries are charged.
 - **One harmless quirk.** A scheme admitting an adversary whose whole experiment is query-free

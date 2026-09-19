@@ -9,14 +9,14 @@ acceptance predicate in place of `i < numSets`, and the security and graph proof
 GenericUpper forest's, ported to it.
 
 `Wire.certificate` transfers the OTS proof to raw signature bits. `CompactProgram.lean` supplies
-the certified 2651-instruction RV64IM image: a straight-line nibble sweep that checks the index and
+the certified 2647-instruction RV64IM image: a straight-line nibble sweep that checks the index and
 stores the chain positions, 32-byte value slots, one block per active chain that copies its
 disclosed word and jumps into a table of 14 hash steps, and a scratch buffer for the tree inputs.
 The forest nodes are numbered chain-major (`Names.lean`), so the specification's reader visits
 each chain completely before the next, in the order the blocks run. `CompactVerifier.image_refines` proves that the image's
 complete oracle computation equals the certified verifier on every input and that every accepting
-execution costs at most 1632 cycles: one cycle per executed instruction, two for the 912-bit root
-hash, with each chain block charged by the path actually taken (271 cycles for the index phase and
+execution costs at most 1628 cycles: one cycle per executed instruction, two for the 912-bit root
+hash, with each chain block charged by the path actually taken (267 cycles for the index phase and
 973 for the chains on every accepted index). `Candidate.lean` bundles these into
 `machineCertificate`, and `Solution.lean` exports `OptimalOTS.Challenge.RiscvUpper.submission`
 and `certificate` at the claim in `claim.txt`.

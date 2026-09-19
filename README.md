@@ -6,7 +6,7 @@ ots.golf compares **three lower-bound classes** and has two upper tracks: an **U
 compressions for arbitrary oracle algorithms, and a **RISC-V upper bound** in cycles for
 verified machine implementations. All five tracks are open. A submission is a Lean proof about a
 pinned contract.
-The public-key size is 128 bits, signatures fit in 5,504 bits, and security is 127 bits in the
+The public-key size is 128 bits, signatures fit in 5,376 bits, and security is 127 bits in the
 contract's random-oracle experiment.
 
 This is [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev), the core repository for the
@@ -26,9 +26,9 @@ Each lower record applies to its class. The whole-word track retains its earlier
 The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
 perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
 size and cost proofs. The **RISC-V upper bound** track (`riscv-upper`) has a verified
-**1632-cycle RV64IM verifier** for a nibble-layout forest OTS: the machine's oracle computation is
+**1628-cycle RV64IM verifier** for a nibble-layout forest OTS: the machine's oracle computation is
 proved equal to the Lean verifier on every input, every execution terminates, and accepting
-executions cost at most 1632 cycles. The original DAG and historical partial-disclosure
+executions cost at most 1628 cycles. The original DAG and historical partial-disclosure
 upper certificates remain locally verifiable references.
 
 ## Model
@@ -38,7 +38,7 @@ All parties share one random oracle on bit strings. A new input gets an independ
 one compression per started 512-bit input block,
 with a minimum of one. Computation and private randomness are free.
 
-DAG signatures contain a 256-bit nonce and at most 5,248 bits of disclosed node values.
+DAG signatures contain a 128-bit nonce and at most 5,248 bits of disclosed node values.
 The message-and-nonce hash selects a cut; verification reconstructs the root and compares its
 low 128 bits with the public key. Whole-word DAGs add only their operation restriction.
 An algorithm scheme consists of three terminating oracle programs for key generation, signing

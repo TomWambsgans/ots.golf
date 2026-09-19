@@ -13,9 +13,9 @@ budget of 106 covering every input and oracle-answer path. All proofs use only `
 
 The graph has 2,795 nodes: 63 chains grouped into 21 groups, seven subtrees, and one root.
 Hash inputs include explicit 16-bit tweaks, charged in their complete lengths: 144, 400, or
-912 bits. Key generation costs 912 compressions. A signature carries a 256-bit nonce and at
+912 bits. Key generation costs 912 compressions. A signature carries a 128-bit nonce and at
 most 5,248 disclosed bits. Signing tries at most `2^20` distinct nonces; verification hashes
-the 512-bit message-and-nonce input and reconstructs the selected cut within 105 further
+the 384-bit message-and-nonce input and reconstructs the selected cut within 105 further
 compressions.
 
 Those graph properties describe this construction. Other generic submissions may use any

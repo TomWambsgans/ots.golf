@@ -20,7 +20,7 @@ formal/                      the Lean project (lake root)
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
   Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
   Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
-  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 1632
+  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 1628
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -56,10 +56,10 @@ of the lower frameworks. All five public tracks are open.
 - **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
   every raw input. The score is a proved bound on the cycles of every accepting execution;
-  the checked construction costs 1632. Proofs live in `formal/Submissions/RiscvUpper/`; see
+  the checked construction costs 1628. Proofs live in `formal/Submissions/RiscvUpper/`; see
   `docs/riscv-upper.md`.
 
-The DAG classes share the 256-bit nonce, 127-bit security target, cuts, forward reconstruction
+The DAG classes share the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. See `docs/whole-words.md` for the definition and proof.
 
 The existing `upper` and `disclosure-upper` roots are retained as reference certificates, both at 106.
@@ -71,7 +71,7 @@ historical roots is closed.
 The contract has one random oracle on bit strings (`Query := Σ k, BitVec k`). Equal input strings
 receive the same answer across all uses. A scheme may put a tweak in its input and pays for those bits;
 the upper baseline uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
-least one. The 512-bit message-and-nonce index costs one compression.
+least one. The 384-bit message-and-nonce index costs one compression.
 
 The verified unrestricted DAG lower bound is 18, proved for every secure scheme by counting
 reconstructed hash-node sets and converting signatures between equal sets. Bounds above 18 remain
@@ -134,7 +134,7 @@ theorem OptimalOTS.Challenge.GenericUpper.cost : scheme.VerifyCostAtMost <claim>
 ```
 
 Admissibility includes perfect correctness, signing failure at most `2^-128`, an injective signature
-encoding of at most 5504 bits, rejection of oversized signatures, and pathwise limits of 1024
+encoding of at most 5376 bits, rejection of oversized signatures, and pathwise limits of 1024
 key-generation compressions and `2^20` signing compressions. Availability is averaged over honest
 key generation and signing from a fresh oracle, for every message chosen as a function of the
 public key. Verification cost covers every input

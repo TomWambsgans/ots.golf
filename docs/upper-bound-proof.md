@@ -14,7 +14,7 @@ The contract offers a single random oracle on bit strings: no labels, no tweaks.
 prepends a 16-bit tweak `tw h` (the index of the hash node `h`) to every hash input, through one extra
 deterministic node `ci k t` per chain step and inside the existing concatenation nodes `gc`, `ec`, `rc`
 (2795 nodes in all). Revealed values stay the 128-bit nodes, so signatures and costs are unchanged. In
-the proof, what a label used to say is read off the string: an index query is a query of length 512
+the proof, what a label used to say is read off the string: an index query is a query of length 384
 (`encQuery`), and the hash node a query belongs to is the number in its 16 high bits (`tagNat`,
 `Graph.Tagging` in `Keygen.lean`, `tagging` in `Values.lean`). The bad event `Spr` (a cached answer at a
 non-keygen point that begins with an honest value) only counts strings carrying the node's tweak, so a
@@ -66,13 +66,22 @@ key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for e
 
 5. **Charges** (`Potentials.lean`), per compression:
    * node-labelled query: `ε` (hidden-point hit, by resampling a hidden coordinate) + `ε` (Spr);
-   * encoding query before signing: `ε` (valid-index count `/M`) + `ε` (collision pairs, scaled
-     by `L/(2^256-L)`);
+   * encoding query before signing: `κ = 2ε` for the row potential `θ Ψ` (`RowPotential.lean`,
+     `psi_charge`): `Ψ = r + Σ_m max(b_m − r a_m, 0) / D_m`, with `r` the fraction of accepted
+     indices already held, `a_m` the accepted entries of message `m`, `b_m` those sharing their
+     index, `D_m = a_m + q N_m`, `q = M/2^128`, `N_m` the uncached nonces of `m`, and
+     `θ = 2^128/(2^128 − 2L)`. One fresh answer raises `Ψ` by at most `11/6 · ε` on average
+     (`sum_gCls_le`, from the real inequality `RowIneq.charge_le`), and `θ · 11/6 ≤ 2`;
    * encoding query after signing: `ε` (index equals `i`).
    Total `≤ 2ε` per compression, so `Pr[forge] ≤ 2ε N = (B-912)/2^127 < B/2^127`.
 
-6. **Signing** (`SignIdx.lean`): `Pr[u₁ fresh ∧ i ∈ V(d_A)] ≤ |V|/M` and
-   `Pr[some trial lands on a collided entry] ≤ L·pairs/(2^256-L)`.
+6. **Signing** (`SignRho.lean`, `signRho_bound`): at every trial the signer stops on a bad index
+   (one held by another entry) with at most `ρ` times the probability that it stops at all, for
+   any `ρ` with `b + c·v/2^128 ≤ ρ (a + c·q)` over the possible numbers `c` of fresh nonces.
+   `ρ = θ Ψ` satisfies this (`psi_dom`), so the bad signing event costs at most the current
+   encoding term. This disjoint split replaces the earlier union bound
+   `|V|/M + L·pairs/(2^nonceBits − L)`, which needed a 256-bit nonce; the argument holds for the
+   128-bit nonce and every budget up to `2^127` (`docs/nonce-128-analysis.md`).
 
 The case `B > 2^127` is trivial (`probTrue ≤ 1 < B/2^127`), so all counting invariants may
 assume `N ≤ 2^127`.

@@ -34,7 +34,7 @@ The challenge substitutes a submission's claim for 106. `Admissible` requires:
   probability one.
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
-- Signatures of at most 5,504 encoded bits, and rejection of oversized signatures.
+- Signatures of at most 5,376 encoded bits, and rejection of oversized signatures.
 - At most 1,024 key-generation compressions and `2²⁰` signing compressions on every path.
 
 Public keys are 128 bits and messages are 256 bits. The separate security theorem gives
@@ -63,10 +63,10 @@ it also proves probability-zero rejection for every public-key-dependent message
 
 ## Signing availability proof
 
-The forest's key-generation queries have lengths 144, 400, or 912 bits. Every 512-bit
+The forest's key-generation queries have lengths 144, 400, or 912 bits. Every 384-bit
 message-and-nonce query is therefore fresh after key generation.
 
-Signing samples distinct 256-bit nonces. Each resulting 512-bit index query is fresh, including
+Signing samples distinct 128-bit nonces. Each resulting 384-bit index query is fresh, including
 when the message depends on the public key. Its low 128 answer bits are uniform; `2¹¹⁵` of the
 `2¹²⁸` possible indices are accepted. Every trial therefore fails with probability `8191/8192`.
 After `2²⁰` trials, the failure probability is exactly
@@ -83,7 +83,7 @@ proof certifies this bound. A separate exact-integer check confirms
 ## Security and resource preservation
 
 `Adapter.lean` wraps the original DAG programs unchanged. The encoded signature is the
-256-bit nonce followed by at most 5,248 disclosed bits. Serialization is injective. Translations
+128-bit nonce followed by at most 5,248 disclosed bits. Serialization is injective. Translations
 of adversaries in both directions establish equality of the generic and DAG oracle experiments
 before oracle interpretation. All queries, costs and success probabilities agree exactly.
 

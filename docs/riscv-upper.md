@@ -11,7 +11,7 @@ a fixed assembly image, and an input-dependent fuel bound witnessing termination
 `Submission.Certificate C` requires:
 
 - Perfect correctness, signing failure at most `2^-128`, public keys of 128 bits, messages of
-  256 bits, signatures of at most 5504 bits, key generation of at most 1024 compressions and
+  256 bits, signatures of at most 5376 bits, key generation of at most 1024 compressions and
   signing of at most `2^20` compressions.
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
@@ -52,17 +52,18 @@ code and data, and sets these registers:
 | `a0` | 128-bit public key at `0x400000` |
 | `a1` | 256-bit message at `0x400010` |
 | `a2` | Signature at `0x400030` |
-| `a3` | Signature bit length, capped at 5505 |
+| `a3` | Signature bit length, capped at 5377 |
 
-The first 5504 signature bits are loaded; the length sentinel distinguishes oversized inputs.
+The first 5376 signature bits are loaded; the length sentinel distinguishes oversized inputs.
+A signature is the 128-bit nonce followed by the payload, so the payload starts at `0x400040`.
 The image contains at most 262144 instructions and 1 MiB of fixed data, loaded at `0x200000`.
 Code is immutable. Parsing, arithmetic, copying and comparison run inside the machine.
 
 ## Certified submission
 
 `formal/Submissions/RiscvUpper/` contains the checked certificate
-`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 1632`, exported from
-`Solution.lean` with `claim.txt` at 1632. It uses only `propext`, `Classical.choice` and
+`OptimalOTS.Challenge.RiscvUpper.certificate : submission.Certificate 1628`, exported from
+`Solution.lean` with `claim.txt` at 1628. It uses only `propext`, `Classical.choice` and
 `Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
 
 The OTS keeps the forest graph and the fixed disclosure layout (two subtree digests, three group
@@ -81,8 +82,8 @@ failure below `2^-128` as before.
 
 The paper scheme of the contract accepts an index when it is below `numSets`; this root therefore
 carries `GScheme.lean`, the same graph scheme with the acceptance predicate `i ∈ validSet`, and the
-security proof of the forest ported to it (`SignIdx`, `EncCharges`, `Potentials`, `StageB`,
-`Assembly`, `Main`). The RISC-V contract itself (`OptimalOTS.Riscv.Submission`) takes any
+security proof of the forest ported to it (`SignIdx`, `EncCharges`, `SignRho`, `Rows`,
+`RowPotential`, `Potentials`, `StageB`, `Assembly`, `Main`). The RISC-V contract itself (`OptimalOTS.Riscv.Submission`) takes any
 `AlgorithmScheme paperParams` and is unchanged. `ForestAlgorithm.certificate` proves all OTS
 requirements and a 186-compression bound; `Wire.certificate` transfers them to raw signature bits.
 
@@ -93,7 +94,7 @@ their sum, clears a flag when a nibble exceeds 14 and stores the 36 chain positi
 prologue copies the chain's disclosed word from the payload into its slot, loads the chain's
 position `p`, and jumps with `AUIPC`/`JALR` to entry `p` of a table of 14 hash steps; each step
 stores the level's tag and hashes the slot in place in three instructions. The tree inputs are
-assembled in a 160-byte scratch buffer. The image has **2651 RV64IM instructions** and no table
+assembled in a 160-byte scratch buffer. The image has **2647 RV64IM instructions** and no table
 data, with kernel-checked validity. The fuel witness is the instruction count.
 
 Because `Riscv.Refines` requires the machine's oracle computation to equal the specification's,
@@ -109,25 +110,26 @@ holds chain `k`'s disclosed word at bit `128k`.
 Every ordinary instruction costs one cycle and every hash call costs `max(1, ⌈bits / 512⌉)`, so
 the certificate charges each block by the instructions it executes plus one for each 512-bit
 block of hash input beyond the first. All 186 hash inputs fit one block except the 912-bit root
-input, which costs two. The index phase is straight-line code: 27 instructions prepare the query,
+input, which costs two. The index phase is straight-line code: 23 instructions prepare the query
+(one 16-byte nonce copy and two message copies),
 the HASH costs one cycle, the nibble sweep and its checks cost 238 instructions, and the two
 rejection branches, each skipped, cost one cycle each around the three-instruction length check,
-271 cycles in all (`IndexRefines.indexAndChecks_refines`). A chain block costs 13 cycles for its
+267 cycles in all (`IndexRefines.indexAndChecks_refines`). A chain block costs 13 cycles for its
 prologue and 3 for each of its `14 - position` hash steps. The nibbles of an accepted index sum to
 166, so the 36 blocks, the six setup instructions and the one-instruction epilogue cost
 `7 + 36 · 13 + 3 · 166 = 973` cycles on every accepted index (`CompactCost.chainsCost_le`). The
-remaining gap between 1632 and the 186 hash compressions is the prologues, the tag stores and the
+remaining gap between 1628 and the 186 hash compressions is the prologues, the tag stores and the
 tree-input copies.
 
 | Region | Instructions | Certified cycles |
 |---|---:|---:|
-| Index query, nibble checks and position stores | 277 | 271 |
+| Index query, nibble checks and position stores | 273 | 267 |
 | Chain setup, 36 chain blocks and epilogue | 1987 | 973 |
 | Group inputs, hashes and reads | 240 | 240 |
 | Subtree hashes and reads | 100 | 100 |
 | Root input and 912-bit hash | 35 | 36 |
 | Decision | 12 | 12 |
-| Total | 2651 | 1632 |
+| Total | 2647 | 1628 |
 
 ### Proof structure
 
@@ -136,7 +138,7 @@ The certificate bundles four facts about `RiscvUpperForest.submission`:
 - **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
   `Submission.scheme` definitionally.
 - **Exact refinement and accepting cost** are both read off `CompactVerifier.image_refines`, which
-  proves `Riscv.Refines 2651 (initialState image pk m bits) (some <$> directVerify pk m bits) 1632`.
+  proves `Riscv.Refines 2647 (initialState image pk m bits) (some <$> directVerify pk m bits) 1628`.
   `Riscv.Refines fuel s q c` (`Refines.lean`) states that the observed oracle computation of `s`
   under `fuel` equals `q` and that every terminating execution costs at most `c` cycles.
   `ForestVerifierProof.directVerify_eq` identifies the explicit forest interpreter with the certified
@@ -146,8 +148,8 @@ The certificate bundles four facts about `RiscvUpperForest.submission`:
 The refinement composes the straight-line image with continuation lemmas that quantify over the
 remaining fuel and add the cycle costs of each block:
 
-1. `IndexRefines.indexAndChecks_refines`: the 512-bit message-and-nonce query, the nibble
-   acceptance test and the exact 5504-bit length check, rejecting exactly as specified, at 271
+1. `IndexRefines.indexAndChecks_refines`: the 384-bit message-and-nonce query, the nibble
+   acceptance test and the exact 5376-bit length check, rejecting exactly as specified, at 267
    cycles. `IndexChecks` proves the sweep invariant (`Swept`): after `n` steps the sum register
    holds the first `n` nibbles' sum, the flag register records whether they are all at most 14, and
    the position array holds `14 - nibble` for each processed chain; `DecodedInput` turns the final
@@ -171,7 +173,8 @@ with the graph's offset-addressed decoding.
 `NodeProgram.lean` retains the node-level building blocks of the earlier one-slot-per-node image;
 `SweepRefines` keeps the per-node segment framework that the tree phase uses. The earlier images
 (229113 and 59393 cycles), the composition-unranking decoder (24053, 19627 and 9041 cycles) and
-the level-major guarded sweeps (5513 cycles) live in the git history.
+the level-major guarded sweeps (5513 cycles) and the 1632-cycle image for the 256-bit nonce live
+in the git history.
 
 The official verifier accepts this root through the RISC-V challenge stub; its wall time is
 recorded in [the production review](production-readiness.md). The website presents the checked
