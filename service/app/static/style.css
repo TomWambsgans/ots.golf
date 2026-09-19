@@ -126,21 +126,75 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 /* the scheme, drawn beside the hero */
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; margin: 16px 0 20px; }
 .art-wrap { pointer-events: none; width: 100%; }
-.scheme-art { width: 100%; height: auto; display: block; margin: 0 auto; }
-.scheme-art .e { stroke: var(--art-faint); stroke-width: 1.02; }
-.scheme-art .e.recomputed { stroke: var(--art-recomputed); stroke-width: 1.42; opacity: 0.9; }
-.scheme-art .n { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.12; }
-.scheme-art .n.untouched { opacity: 1; }
+.scheme-art { width: 100%; height: auto; display: block; margin: 0 auto;
+  --art-lid: var(--art-ink); --art-shade: #1b2433; --art-bead: #f3f6fa; --art-current: #5a68ff; --art-current-glow: #8b96ff; --art-spark: #ffffff;
+  --art-sclera-0: #ffffff; --art-sclera-1: #f5f4f2; --art-sclera-2: #e4e0dc; --art-sclera-3: #c2bab4;
+  --art-iris-0: #9eb1ca; --art-iris-1: #c6d3e4; --art-iris-2: #e2e9f2; --art-iris-3: #e8eef5; --art-iris-4: #c9d6e6;
+  --art-iris-5: #a9b9ce; --art-iris-6: #4d5d78; --art-iris-7: #27324a;
+  --art-fibre-dark: #6f86a8; --art-fibre-light: #ffffff; --art-pupil: #070a10; --art-pupil-edge: #1d2638;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .scheme-art {
+  --art-shade: #000000; --art-bead: #1a2130; --art-current: #9aa6ff; --art-current-glow: #6f7dff; --art-spark: #ffffff;
+  --art-sclera-0: #b4bac4; --art-sclera-1: #969ea9; --art-sclera-2: #636a75; --art-sclera-3: #2e323a;
+  --art-iris-0: #121826; --art-iris-1: #1b2335; --art-iris-2: #232d43; --art-iris-3: #27324a; --art-iris-4: #212a3f;
+  --art-iris-5: #182033; --art-iris-6: #0c111b; --art-iris-7: #04060a;
+  --art-fibre-dark: #05080f; --art-fibre-light: #7084ab; --art-pupil: #000000; --art-pupil-edge: #070a10;
+} }
+:root[data-theme="dark"] .scheme-art {
+  --art-shade: #000000; --art-bead: #1a2130; --art-current: #9aa6ff; --art-current-glow: #6f7dff; --art-spark: #ffffff;
+  --art-sclera-0: #b4bac4; --art-sclera-1: #969ea9; --art-sclera-2: #636a75; --art-sclera-3: #2e323a;
+  --art-iris-0: #121826; --art-iris-1: #1b2335; --art-iris-2: #232d43; --art-iris-3: #27324a; --art-iris-4: #212a3f;
+  --art-iris-5: #182033; --art-iris-6: #0c111b; --art-iris-7: #04060a;
+  --art-fibre-dark: #05080f; --art-fibre-light: #7084ab; --art-pupil: #000000; --art-pupil-edge: #070a10;
+}
+/* eyeball, iris and light: gradient stops take their colours from the tokens above */
+.scheme-art .sclera-0 { stop-color: var(--art-sclera-0); } .scheme-art .sclera-1 { stop-color: var(--art-sclera-1); }
+.scheme-art .sclera-2 { stop-color: var(--art-sclera-2); } .scheme-art .sclera-3 { stop-color: var(--art-sclera-3); }
+.scheme-art .limbus-0 { stop-color: var(--art-shade); stop-opacity: 0; } .scheme-art .limbus-1 { stop-color: var(--art-shade); stop-opacity: .2; }
+.scheme-art .limbus-2 { stop-color: var(--art-shade); stop-opacity: 0; }
+.scheme-art .iris-0 { stop-color: var(--art-iris-0); } .scheme-art .iris-1 { stop-color: var(--art-iris-1); }
+.scheme-art .iris-2 { stop-color: var(--art-iris-2); } .scheme-art .iris-3 { stop-color: var(--art-iris-3); }
+.scheme-art .iris-4 { stop-color: var(--art-iris-4); } .scheme-art .iris-5 { stop-color: var(--art-iris-5); }
+.scheme-art .iris-6 { stop-color: var(--art-iris-6); } .scheme-art .iris-7 { stop-color: var(--art-iris-7); }
+.scheme-art .caustic-0 { stop-color: #fff; stop-opacity: .34; } .scheme-art .caustic-1 { stop-color: #fff; stop-opacity: 0; }
+.scheme-art .pupil-0, .scheme-art .pupil-1 { stop-color: var(--art-pupil); } .scheme-art .pupil-2 { stop-color: var(--art-pupil-edge); stop-opacity: .9; }
+.scheme-art .pupil-3 { stop-color: var(--art-pupil-edge); stop-opacity: 0; }
+.scheme-art .rim-0 { stop-color: var(--art-current-glow); stop-opacity: 0; } .scheme-art .rim-1 { stop-color: var(--art-current-glow); stop-opacity: .55; }
+.scheme-art .rim-2 { stop-color: var(--art-current); stop-opacity: .9; } .scheme-art .rim-3 { stop-color: var(--art-current-glow); stop-opacity: .45; }
+.scheme-art .rim-4 { stop-color: var(--art-current-glow); stop-opacity: 0; }
+.scheme-art .gloss-0 { stop-color: #fff; stop-opacity: .22; } .scheme-art .gloss-1 { stop-color: #fff; stop-opacity: 0; }
+.scheme-art .spark-0 { stop-color: var(--art-spark); } .scheme-art .spark-1 { stop-color: var(--art-spark); stop-opacity: .95; }
+.scheme-art .spark-2 { stop-color: var(--art-current); stop-opacity: .5; } .scheme-art .spark-3 { stop-color: var(--art-current-glow); stop-opacity: 0; }
+.scheme-art .catch-0, .scheme-art .catch-1 { stop-color: #fff; } .scheme-art .catch-2 { stop-color: #fff; stop-opacity: .75; }
+.scheme-art .iris-boundary { stroke: var(--art-iris-7); stroke-width: 1; stroke-opacity: .5; }
+.scheme-art .iris-fibre { fill: none; stroke-linecap: round; }
+.scheme-art .iris-fibre.dark { stroke: var(--art-fibre-dark); stroke-width: .7; stroke-opacity: .22; }
+.scheme-art .iris-fibre.light { stroke: var(--art-fibre-light); stroke-width: .9; stroke-opacity: .38; }
+.scheme-art .collarette { fill: none; stroke: var(--art-fibre-dark); stroke-width: 1.2; stroke-opacity: .2; }
+/* the scheme */
+.scheme-art .e { stroke: var(--art-faint); stroke-width: 1.02; stroke-opacity: .75; }
+.scheme-art .e.recomputed { stroke: var(--art-recomputed); stroke-width: 1.42; stroke-opacity: .92; }
+.scheme-art .n { fill: var(--art-bead); fill-opacity: .8; stroke: var(--art-faint); stroke-width: 1.12; }
+.scheme-art .n.recomputed, .scheme-art .n.revealed { fill-opacity: 1; }
 .scheme-art .n.recomputed { fill: var(--art-recomputed); stroke: var(--art-recomputed); }
 .scheme-art .n.revealed { fill: var(--art-revealed); stroke: var(--art-revealed); }
-.scheme-art .n.src.revealed { fill: var(--art-revealed); }
-.scheme-art .n.root { fill: #17283e; stroke: var(--art-ink); }
-.scheme-art .iris-boundary { fill: var(--page); stroke: var(--art-faint); stroke-width: 1.5; }
-.scheme-art .pupil-boundary { fill: none; stroke: var(--art-ink); stroke-width: 1.1; }
-.scheme-art .catchlight { fill: #fff; }
-.scheme-art .lid { fill: none; stroke: var(--art-ink); stroke-linecap: round; }
-.scheme-art .lid-upper { stroke-width: 3.5; }
-.scheme-art .lid-lower { stroke-width: 2.4; }
+/* before the verifier's current reaches them, recomputed values wait, faint and hollow */
+.scheme-art .e.recomputed.wait { stroke-opacity: .2; }
+.scheme-art .n.recomputed.wait { fill: var(--art-bead); fill-opacity: .8; stroke-opacity: .6; }
+.scheme-art .pupil-boundary { fill: none; stroke: var(--art-pupil); stroke-width: 1.4; stroke-opacity: .55; }
+/* the verifier's current, drawn without filters: a wide faint glow, a thin bright core, a spark */
+.scheme-art .current line { fill: none; stroke-linecap: round; }
+.scheme-art .current .trace { stroke: var(--art-recomputed); stroke-width: 1.42; stroke-opacity: .92; }
+.scheme-art .current .glow { stroke: var(--art-current-glow); stroke-width: 5; stroke-opacity: .3; }
+.scheme-art .current .core { stroke: var(--art-current); stroke-width: 1.6; }
+.scheme-art .current .pulse { fill: none; stroke: var(--art-current); }
+.scheme-art .current .pulse.gold { stroke: var(--art-revealed); }
+/* lids, their shade on the eyeball and the reflections of the cornea */
+.scheme-art .lid-shade { fill: none; stroke: var(--art-shade); stroke-opacity: .02; }
+.scheme-art .waterline { fill: none; stroke: #fff; stroke-width: 3; stroke-opacity: .35; }
+.scheme-art .catchlight-2 { fill: #fff; opacity: .45; }
+.scheme-art .lid { fill: var(--art-lid); stroke: var(--art-lid); stroke-width: 1; stroke-linejoin: round; }
+.scheme-art .lid-crease { fill: var(--art-lid); fill-opacity: .2; }
 .hero h1 { font-size: 34px; }
 @media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .art-wrap { max-width: 420px; margin: 0 auto; } }
 

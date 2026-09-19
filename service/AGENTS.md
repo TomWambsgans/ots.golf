@@ -81,10 +81,11 @@ verification badges or fabricated commit links. A passing macOS proof check does
 production sandbox safety.
 
 Keep the homepage headline “Think one-time signatures are easy? Prove it.” The mandala forms
-the iris of an eye, with a dark pupil and a small catchlight. The eye fills its illustration
-column. Choose a fresh random interval of four to eight seconds between blinks, and change the
-signature highlights only while the eye is fully closed. Pause automatic motion when the page
-is hidden or reduced motion is requested.
+the iris of a shaded, lit eye whose pupil is the root. Each cycle, current leaves every revealed
+value and flows along the recomputed edges to the root at one constant speed; a node lights when
+all its inputs arrive. Once the root is reached the eye blinks, and a fresh uniform signature is
+lit only while the eye is fully closed. The eye fills its illustration column. Reduced motion
+shows a static lit signature; pause automatic motion when the page is hidden.
 Keep the homepage concise: each upper card shows
 its linked title, attributed record and cost; detailed requirements belong in the rules.
 Do not restore the removed paragraph beginning “Each lower-bound class has its own optimum.”
