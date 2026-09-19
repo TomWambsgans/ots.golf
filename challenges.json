@@ -67,7 +67,7 @@
     },
     {
       "slug": "reference-generality-2",
-      "title": "Upper bound",
+      "title": "Generality 2/3 witness",
       "direction": "-",
       "submission_root": "formal/Submissions/ReferenceGenerality2",
       "module_prefix": "Submissions.ReferenceGenerality2",
@@ -82,12 +82,11 @@
         "OptimalOTS.Dag"
       ],
       "framework": "generality-2",
-      "kind": "upper",
-      "historical_framework_title": "Historical DAG"
+      "kind": "upper"
     },
     {
       "slug": "reference-generality-1",
-      "title": "Upper bound",
+      "title": "Generality 1/3 witness",
       "direction": "-",
       "submission_root": "formal/Submissions/ReferenceGenerality1",
       "module_prefix": "Submissions.ReferenceGenerality1",
@@ -103,8 +102,7 @@
         "OptimalOTS.WholeWords"
       ],
       "framework": "generality-1",
-      "kind": "upper",
-      "historical_framework_title": "Whole-word reference"
+      "kind": "upper"
     },
     {
       "slug": "lower-generality-1",

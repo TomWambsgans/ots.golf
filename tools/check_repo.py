@@ -5,9 +5,9 @@
     python3 tools/check_repo.py --official --submissions ../ots.golf-submissions
 
 Requires the service environment and NumPy for the research-tool tests. --official builds Lean and
-runs the official pipeline for every track whose submission root exists in the --submissions
-checkout. Linux sandbox acceptance and the browser check
-are separate commands: verifier/check_linux_sandbox.py and service/browser_check.py.
+runs the official pipeline for the core's two witness roots and for every track whose root exists
+in the --submissions checkout. Linux sandbox acceptance and the browser check are separate
+commands: verifier/check_linux_sandbox.py and service/browser_check.py.
 """
 from __future__ import annotations
 
@@ -65,13 +65,14 @@ def main() -> int:
             import json
             cfg = json.loads((ROOT / 'challenges.json').read_text())
             source = args.submissions.resolve()
-            present = [t for t in cfg['tracks'] if (source / t['submission_root'] / 'Solution.lean').is_file()]
-            if not present:
-                print(f'No submission roots found in {source}', file=sys.stderr)
-                return 1
-            for track in present:
+            # The witnesses of the lower-bound classes live in the core; every other root comes
+            # from the submissions checkout.
+            witnesses = [t for t in cfg['tracks'] if (ROOT / t['submission_root'] / 'Solution.lean').is_file()]
+            present = [t for t in cfg['tracks'] if t not in witnesses
+                       and (source / t['submission_root'] / 'Solution.lean').is_file()]
+            for track, origin in [(t, ROOT) for t in witnesses] + [(t, source) for t in present]:
                 check(f"official pipeline {track['slug']}",
-                      [sys.executable, 'verifier/verify.py', track['slug'], '--source', str(source)])
+                      [sys.executable, 'verifier/verify.py', track['slug'], '--source', str(origin)])
         if args.paper:
             check('paper', ['latexmk', '-pdf', '-interaction=nonstopmode', '-halt-on-error',
                             'looking-for-optimal-OTS.tex'], ROOT / 'paper')

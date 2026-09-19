@@ -20,7 +20,9 @@ challenges.json              tracks, limits, protected files
 
 Protected files (listed in `challenges.json`, pinned in `verifier/protected.sha256`) come from
 the trusted contract. A submission consists of one submission root's contents. The core holds no
-proofs of any track; reference proofs are ordinary submissions.
+proofs of any track; reference proofs are ordinary submissions. It does hold the two witness
+proofs, `formal/Submissions/ReferenceGenerality1/` and `ReferenceGenerality2/`, which show that
+the Generality 1/3 and 2/3 lower-bound statements are not vacuous.
 
 ## Frameworks
 
@@ -53,9 +55,9 @@ All five public tracks are open.
 The DAG classes share the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. See `docs/lower-generality-1.md` for the definition and proof.
 
-The legacy `reference-generality-2` and `reference-generality-1` tracks stay registered: their reference proofs at 106
-witness that secure DAG and whole-word schemes exist. Their pinned exports and local verifier
-command remain available; public admission is closed.
+The witnesses `reference-generality-1` and `reference-generality-2` are registered like tracks so
+the verifier can check them, but they are not tracks: they live in the core (a secure whole-word
+scheme and a secure DAG scheme, both at 106) and accept no pull requests.
 
 ## Oracle model
 
@@ -85,7 +87,8 @@ lower-bound attacks forge on a new message; each lower root proves in its own `W
 that strong security implies the weak experiment it analyses, so the bounds hold for weakly secure
 schemes as well.
 
-**Legacy DAG upper reference** (`formal/Submissions/ReferenceGenerality2/`, retained for local verification):
+**Generality 2/3 witness** (`formal/Submissions/ReferenceGenerality2/` in the core; the Generality 1/3
+witness adds `theorem wholeWords : scheme.graph.WholeWords`):
 
 ```lean
 noncomputable def OptimalOTS.Challenge.ReferenceGenerality2.scheme : Scheme paperParams := ...
@@ -187,8 +190,8 @@ python3 .contract/verifier/verify.py lower-generality-2 --source .              
 ```
 
 Replace `lower-generality-2` by `lower-generality-1` or `lower-generality-3` for the other lower tracks, or by
-`upper-compressions` or `upper-riscv` for the upper tracks; `reference-generality-2` and `reference-generality-1` verify the
-legacy references locally. From a core checkout, pass the submissions checkout as `--source`.
+`upper-compressions` or `upper-riscv` for the upper tracks; `reference-generality-1` and `reference-generality-2` verify the
+witnesses with `--source .`. For tracks, pass the submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
 Linux); the `lake build` line fetches Mathlib and builds VCVio and the contract. `verify.py` first

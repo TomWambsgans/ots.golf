@@ -33,8 +33,8 @@ of any track.
   Lean verifier, costing at most the claim in cycles on every execution.
 
 The reference proofs are submitted as ordinary pull requests to the submissions repository.
-The legacy DAG and whole-word upper tracks remain registered for local verification of their
-reference proofs. [AGENTS.md](AGENTS.md) defines the exact requirements, exports and submission workflow.
+Two witness proofs in this repository, `ReferenceGenerality1` and `ReferenceGenerality2`, show that
+secure whole-word and DAG schemes exist, so those lower bounds are not vacuous. [AGENTS.md](AGENTS.md) defines the exact requirements, exports and submission workflow.
 
 ## Model
 
@@ -70,8 +70,8 @@ python3 verifier/verify.py lower-generality-1 --source ../ots.golf-submissions
 
 `--source` is a submissions checkout; the verifier takes only that track's root, and the contract
 and tooling come from this checkout. Use `lower-generality-3` or `lower-generality-2` for the other lower tracks,
-`upper-compressions` for the Upper bound, `upper-riscv` for the RISC-V implementation, and `reference-generality-2` or
-`reference-generality-1` for the historical references. macOS verification runs unsandboxed for trusted
+`upper-compressions` for the Upper bound, `upper-riscv` for the RISC-V implementation, and `reference-generality-1` or
+`reference-generality-2` with `--source .` for the witnesses in this repository. macOS verification runs unsandboxed for trusted
 local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
@@ -92,8 +92,9 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
 - [Upper bound proof](docs/upper-compressions.md), [RISC-V track](docs/upper-riscv.md),
   [contract audit](docs/AUDIT.md) and the [documentation index](docs/README.md).
 - Submission roots (`formal/Submissions/<Root>/` in the submissions repository): `LowerGenerality3`,
-  `LowerGenerality2`, `LowerGenerality1`, `UpperCompressions` and `UpperRiscv`; the legacy `ReferenceGenerality2` and
-  `ReferenceGenerality1` references show that secure DAG and whole-word schemes exist.
+  `LowerGenerality2`, `LowerGenerality1`, `UpperCompressions` and `UpperRiscv`.
+- `formal/Submissions/ReferenceGenerality1/`, `ReferenceGenerality2/`: the witnesses that secure
+  whole-word and DAG schemes exist.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 
 The competition and chart were inspired by [better.codes](https://better.codes) and

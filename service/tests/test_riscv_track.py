@@ -94,7 +94,7 @@ class RiscvTrackTests(unittest.TestCase):
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['upper-compressions']
         self.assertIsNone(contract.upper_riscv_track())
-        self.assertEqual(seed_demo.refresh(self.session), 47)
+        self.assertEqual(seed_demo.refresh(self.session), 40)
         self.assertNotIn('upper-riscv', self.client.get('/').text)
         self.assertNotIn('id="upper-riscv"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
@@ -107,11 +107,11 @@ class RiscvTrackTests(unittest.TestCase):
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 47)
+        self.assertEqual(len(before), 40)
         self.config['upper_tracks'].append('upper-riscv')
         self.assertEqual(seed_demo.refresh(self.session), 18)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 65)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 58)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)

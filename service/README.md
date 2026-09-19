@@ -40,8 +40,7 @@ The homepage has three lower frameworks, each with its own leaderboard, and two 
 `/?framework=generality-1|generality-2|generality-3` filters the lower tables only; `#lower` and `#upper` select
 the direction. Scores appear as attributed submissions; rules define the contract's requirements
 without scores. The RISC-V upper track has its own card, leaderboard and chart with an
-independent cycle axis, never combined with compression bounds. The legacy `reference-generality-2`
-demos remain accessible under Historical DAG.
+independent cycle axis, never combined with compression bounds. The two witnesses have no demo rows and no leaderboard.
 
 The database is a disposable cache: the website rebuilds it from GitHub at startup
 (`app.resync`), so an empty data directory comes back as before; see

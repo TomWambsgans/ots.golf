@@ -1,7 +1,8 @@
 # Documentation
 
 Submission rules and track requirements are in [AGENTS.md](../AGENTS.md). The proof guides describe
-reference proofs whose submission roots live in the submissions repository, not in this core.
+reference proofs whose submission roots live in the submissions repository; only the two witnesses
+(`ReferenceGenerality1`, `ReferenceGenerality2`) live in this core.
 
 - [lower-generality-3.md](lower-generality-3.md): Generality 3/3 lower bound for arbitrary oracle algorithms.
 - [lower-generality-2.md](lower-generality-2.md): Generality 2/3 lower bound for DAG schemes.

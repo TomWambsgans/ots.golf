@@ -77,16 +77,19 @@ services stopped.
 
 Run these with the public webhook disconnected and the production configuration in place:
 
-1. As the verifier user, run the isolation probe, then every reference proof. The core holds no
-   proofs: `/srv/ots/submissions-check` is a separate checkout of a submissions repository holding
-   each track's reference root (before launch, the maintainer's fork), never the trusted checkout.
+1. As the verifier user, run the isolation probe, the two witnesses kept in the core, then every
+   track's reference proof: `/srv/ots/submissions-check` is a separate checkout of a submissions
+   repository holding each track's reference root (before launch, the maintainer's fork), never
+   the trusted checkout.
 
    ```sh
    sudo -u ots -H bash -c 'set -a; . /etc/ots/public.env; set +a
      export PATH="$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin"
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
-     for t in lower-generality-1 lower-generality-2 lower-generality-3 reference-generality-2 reference-generality-1 upper-compressions upper-riscv; do
+     python3 verifier/verify.py reference-generality-1 --source . &&
+     python3 verifier/verify.py reference-generality-2 --source . &&
+     for t in lower-generality-1 lower-generality-2 lower-generality-3 upper-compressions upper-riscv; do
        python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
      done'
    ```

@@ -177,7 +177,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertIn('href="/#upper">Upper bound · compressions</a>',
               self.client.get('/solvers/satoshi-nakamoto').text)
 
-    def test_legacy_upper_records_do_not_initialize_upper_compressions(self):
+    def test_lower_records_do_not_initialize_upper_compressions(self):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
         self.session.commit()
         html = self.client.get('/').text
@@ -189,7 +189,7 @@ class FrameworkTests(unittest.TestCase):
         cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'upper-compressions']
         with patch.object(contract, 'load', return_value=cfg):
             self.assertIsNone(contract.upper_compressions_track())
-            self.assertEqual(seed_demo.refresh(self.session), 31)
+            self.assertEqual(seed_demo.refresh(self.session), 24)
             self.assertEqual(seed_demo.refresh(self.session), 0)
             html = self.client.get('/').text
             self.assertNotIn('data-track="upper-compressions"', html)
@@ -204,13 +204,13 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 31)
+        self.assertEqual(len(before), 24)
         self.assertEqual(seed_demo.refresh(self.session), 16)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         for identifier, old in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 47)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 40)
 
     def test_refresh_restores_one_missing_fixture_in_an_existing_track(self):
         seed_demo.refresh(self.session)
@@ -312,7 +312,6 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertTrue('href="/?framework=generality-2#lower">Lower bound · Generality 2/3</a>' in html)
-        self.assertTrue('href="/rules#legacy-certificates">Historical DAG</a>' in html)
         self.assertIn('href="/?framework=generality-1#lower">Lower bound · Generality 1/3</a>', html)
         self.assertNotIn('Any oracle algorithm', html)
         self.assertIn('Upper bound · compressions</a>', html)
@@ -356,7 +355,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(timestamps)
         self.assertTrue(all('T' in stamp for stamp in timestamps))
 
-    def test_public_submission_queue_does_not_admit_legacy_upper_tracks(self):
+    def test_public_submission_queue_does_not_admit_witnesses(self):
         for track in ('reference-generality-2',):
             with self.assertRaises(HTTPException) as caught:
                 queue_submission(self.session, User(login='tester'), track, 'local', 'a' * 40,

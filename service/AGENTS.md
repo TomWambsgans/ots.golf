@@ -42,10 +42,8 @@ execution must terminate and refine the Lean oracle specification. Render the se
 leaderboard and rules section only while the track is admitted in the metadata. Its chart
 has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
-filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
-The legacy `reference-generality-2` reference uses its `historical_framework_title` metadata on submission and
-solver pages.
-The lower demo rows remain visible by default; legacy upper demos remain in historical solver pages.
+filter. Reject public submissions to the witness roots; they have no demo rows or leaderboard.
+The lower demo rows remain visible by default.
 Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,
 submission page and solver profile refer to the same record row. Demo rows are clearly marked and
 never receive verified badges or fabricated commit links.

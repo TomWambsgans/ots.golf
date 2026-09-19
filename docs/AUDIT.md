@@ -1,7 +1,8 @@
 # Audit of the bare-oracle contract
 
 Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
-semantics, and the reference proofs (submission roots kept in the submissions repository). The
+semantics, the two witness roots kept in this core, and the reference proofs (submission roots kept in the
+submissions repository). The
 lower bounds are generic **1**, unrestricted DAG
 **18**, and whole-word DAG **93**. Generic upper has a complete **106** certificate, including
 perfect correctness, deterministic verification and signing failure at most `2^-128`; RISC-V upper
