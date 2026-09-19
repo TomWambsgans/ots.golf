@@ -165,8 +165,16 @@ table.params th:first-child { width: 44%; }
 .diagram-heading { font-weight: 600; }
 .diagram-text { fill: var(--ink); font: 15px system-ui, sans-serif; }
 .diagram-emphasis { fill: var(--accent-ink); font: 600 15px system-ui, sans-serif; }
-.wots-diagram .wots-verify { stroke: var(--accent); stroke-width: 2; }
-.wots-diagram .wots-verify-arrow path { fill: var(--accent); }
+.diagram-small { font-size: 12px; }
+.diagram-sub { font-size: 10px; }
+.wots-diagram .diagram-edges { stroke: var(--line); }
+.wots-diagram marker path { fill: var(--line); }
+.wots-diagram .diagram-node { fill: var(--surface); stroke: var(--muted); }
+.wots-diagram .diagram-node + .diagram-text { fill: var(--muted); }
+.wots-diagram .diagram-reveal { fill: var(--ink); stroke: var(--ink); stroke-width: 1.5; }
+.wots-diagram .diagram-reveal + .diagram-emphasis { fill: var(--surface); }
+.wots-diagram .wots-verify { stroke: var(--ink); stroke-width: 2; }
+.wots-diagram .wots-verify-arrow path { fill: var(--ink); }
 
 /* rules page: each rule is a line that unfolds into its explanation */
 .rules-list { max-width: 86ch; margin: 6px 0 8px; border-top: 1px solid var(--line); }

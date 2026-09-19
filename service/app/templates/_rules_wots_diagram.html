@@ -1,58 +1,47 @@
 <figure class="rules-diagram wots-diagram">
-  <div class="rules-diagram-scroll" tabindex="0" aria-label="WOTS+ message and checksum chains; scroll horizontally on small screens">
-    <svg viewBox="0 0 760 466" role="img" aria-labelledby="wots-figure-title wots-figure-desc">
-      <title id="wots-figure-title">A signature reveals one value from each chain</title>
-      <desc id="wots-figure-desc">A small base-4 example with five independent chains, each three
-      steps long. The three message digits are 1, 3 and 0. Their checksum is 5, written as the
-      base-4 digits 1 and 1, giving two more chains. Each row highlights the signature value
-      at the position selected by its digit. Verification hashes forward from that value to
-      the public endpoint: two, zero, three, two and two steps respectively. Numbers in the
-      nodes mark chain positions.</desc>
+  <div class="rules-diagram-scroll" tabindex="0" aria-label="Hash chains of a one-time signature; scroll horizontally on small screens">
+    <svg viewBox="0 0 640 236" role="img" aria-labelledby="wots-figure-title wots-figure-desc">
+      <title id="wots-figure-title">A signature reveals one value from each hash chain</title>
+      <desc id="wots-figure-desc">Four independent hash chains of three steps, drawn as rows of four
+      nodes from the secret on the left to the public endpoint on the right. The message is encoded
+      as the digits 1, 3, 0 and 2, one per chain; each digit selects the chain value revealed by the
+      signature, and verification hashes forward from it to the endpoint. The digits sum to the
+      fixed target 6.</desc>
       <defs>
-        <marker id="wots-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
-        <marker id="wots-verify-arrow" class="wots-verify-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
+        <marker id="wots-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
+        <marker id="wots-verify-arrow" class="wots-verify-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z"/></marker>
       </defs>
-      <text class="diagram-heading" x="16" y="24">One chain per digit · a small base-4 example</text>
       <g class="diagram-note" text-anchor="middle">
-        <text x="238" y="60">Secret</text>
-        <text x="445" y="60">Chain positions</text>
-        <text x="652" y="60">Public endpoint</text>
+        <text x="150" y="22">secret</text>
+        <text x="345" y="22">hash → hash → hash</text>
+        <text x="540" y="22">public endpoint</text>
       </g>
-      {% for label, digit, y in [
-        ('Message digit 1', 1, 108),
-        ('Message digit 2', 3, 170),
-        ('Message digit 3', 0, 232),
-        ('Checksum digit 1', 1, 330),
-        ('Checksum digit 2', 1, 392)
-      ] %}
+      {% for digit in [1, 3, 0, 2] %}
+      {% set y = 56 + 44 * loop.index0 %}
       <g class="wots-chain">
-        <text class="diagram-text" x="16" y="{{ y - 6 }}">{{ label }}</text>
-        <text class="diagram-note" x="16" y="{{ y + 14 }}">digit = {{ digit }}</text>
+        <text class="diagram-text" x="16" y="{{ y + 5 }}">d<tspan class="diagram-sub" dy="4">{{ loop.index }}</tspan><tspan dy="-4"> = {{ digit }}</tspan></text>
         {% for step in range(3) %}
         <path class="diagram-edges{% if step >= digit %} wots-verify{% endif %}"
-              d="M{{ 266 + 138 * step }} {{ y }} H{{ 347 + 138 * step }}"
+              d="M{{ 150 + 130 * step + 15 }} {{ y }} H{{ 150 + 130 * (step + 1) - 15 }}"
               marker-end="url(#{{ 'wots-verify-arrow' if step >= digit else 'wots-arrow' }})"/>
         {% endfor %}
         {% for step in range(4) %}
-        {% set x = 238 + 138 * step %}
-        {% if step == digit %}
-        <rect class="diagram-node diagram-reveal" x="{{ x - 27 }}" y="{{ y - 20 }}" width="54" height="40" rx="6"/>
-        {% else %}
-        <circle class="diagram-node" cx="{{ x }}" cy="{{ y }}" r="20"/>
-        {% endif %}
-        <text class="{{ 'diagram-emphasis' if step == digit else 'diagram-text' }}" x="{{ x }}" y="{{ y + 5 }}" text-anchor="middle">{{ step }}</text>
+        {% set x = 150 + 130 * step %}
+        <circle class="diagram-node{% if step == digit %} diagram-reveal{% endif %}" cx="{{ x }}" cy="{{ y }}" r="13"/>
+        <text class="{{ 'diagram-emphasis' if step == digit else 'diagram-text' }} diagram-small" x="{{ x }}" y="{{ y + 4 }}" text-anchor="middle">{{ step }}</text>
         {% endfor %}
       </g>
       {% endfor %}
-      <path class="diagram-edges" d="M16 272 H724"/>
-      <text class="diagram-note" x="16" y="297">Checksum: (3 − 1) + (3 − 3) + (3 − 0) = 5 = (11)₄</text>
-      <rect class="diagram-node diagram-reveal" x="138" y="440" width="22" height="16" rx="3"/>
-      <text class="diagram-note" x="170" y="453">Revealed signature value</text>
-      <path class="diagram-edges wots-verify" d="M422 448 H464" marker-end="url(#wots-verify-arrow)"/>
-      <text class="diagram-note" x="478" y="453">Verifier hashes forward</text>
+      <g class="diagram-note">
+        <circle class="diagram-node diagram-reveal" cx="24" cy="222" r="6"/>
+        <text x="38" y="226">signature value</text>
+        <path class="diagram-edges wots-verify" d="M160 222 H196" marker-end="url(#wots-verify-arrow)"/>
+        <text x="204" y="226">verifier hashes forward</text>
+        <text x="640" y="226" text-anchor="end">1 + 3 + 0 + 2 = 6, the fixed target</text>
+      </g>
     </svg>
   </div>
-  <figcaption>Each row starts from a separate secret. Signing reveals one value per chain;
-  verification follows the blue arrows to recover the public endpoints. Numbers mark positions
-  along each chain. WOTS+ uses a chain for every message and checksum digit.</figcaption>
+  <figcaption>Each chain starts from its own secret. The message is encoded as digits, one per chain;
+  the signature reveals one chain value per digit, and the verifier hashes forward to the public
+  endpoint. The encoding keeps the digit sum fixed, so no digit can be lowered without raising another.</figcaption>
 </figure>
