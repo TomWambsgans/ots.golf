@@ -78,3 +78,64 @@ as separate union terms is exact to within `2^-116` at the top of the range, and
    matter there). The practical constructions would then still use 256-bit nonces.
 4. **Lower the target** to about `B / 2^126.4` for 128-bit nonces. This weakens the security
    statement and needs a decision by the organisers.
+
+
+## Option 2: the disjoint-event signing lemma (2026-09-19, follow-up)
+
+Notation at signing time for the signed message `m1`: `I = 2^128` index values, `M = numValid`
+accepted indices, `q = M / I`; `V` the set of distinct accepted indices held by cached encoding
+entries, `r = |V| / M`; for message `m`: `a_m` cached accepted `m`-entries, `b_m` of them sharing
+their index with another cached entry (the set `W`), `N_m` uncached `m`-nonces. `L = 2^20`.
+
+### 1. The signing lemma (paper proof, complete)
+
+At a trial with `U` untried nonces of which `NF` are uncached, the signer stops on a cached
+accepted nonce with probability `a / U` (bad for `b` of them) and on a fresh accepted answer with
+probability `q NF / U` (bad with probability `r`, the index being uniform over the accepted set).
+So bad mass `≤ ρ ·` stop mass at every trial, with
+
+    ρ = max_{c ∈ [N − L, N]} f(c),   f(c) = (r q c + b) / (a + q c) = r + (b − r a) / (a + q c),
+
+and by induction over the trials, `E[1_bad] ≤ ρ · P(stop) ≤ ρ`. This replaces the union
+`r + L · pairs / (2^n − L)` by one disjoint case split, and `ρ ≤ r + (b − r a)^+ / (a + q (N − L))`.
+The induction step is exactly the one of `signIdxLoop_bound`, with the continuation value
+`F + λ ρ · [no signature]` in place of `F`. This part is ready to formalize.
+
+### 2. The stage-A potential (the open part)
+
+The attacker chooses `m1` after stage A, so the potential must dominate `max_m G_m` with
+`G_m = r + (b_m − r a_m)^+ / (a_m + q (N_m − L))`, and grow by at most `κ = 2^-127` per encoding
+query (encoding queries charge nothing else; `384 ∉ {144, 400, 912}`).
+
+* **One message (proved on paper, checked numerically).** With `D = a + qN`, one fresh encoding
+  query at `m` changes `G_m` by at most `ε (a + q(N−1) − (N−1)|V|/I) / D ≤ ε`, `ε = 2^-128`:
+  invalid answers move `G` by `q (G − r) / (D − q)`, fresh accepted indices raise `r`, hits on `V`
+  raise `b`. `tools/nonce128_own_charge.py` evaluates the exact expectation on 40,000 random states
+  in the regime `N ≥ I/2` (guaranteed by `encCount ≤ 2^127`): worst charge `0.987 ε`. So an attacker
+  who concentrates on one message is charged half of `κ`, and the target holds with room to spare.
+* **Several messages (numerically, no proof yet).** A query at `m0` can also raise `G_h` for the
+  message `h` whose entry it collides with, by `1/D_h`. Summing these jumps over messages
+  (a `Σ_m` potential) charges up to `ε(1 + 2r)` and fails above `B ≈ 2^128/3`; the maximum only pays
+  a jump when `G_h + 1/D_h` exceeds the current maximum. `tools/nonce128_max_charge.py` computes
+  the exact expected increase of `max_m G_m` on 3,000 adversarial states (many single-entry
+  messages, colliding pairs, mixed, large messages; every choice of queried message): worst
+  `0.999 ε`, below `κ = 2 ε` with a factor-2 margin.
+* **What a proof needs.** Bound `E[max_m G'_m] − max_m G_m ≤ 2 ε` by the three outcome classes
+  (invalid answer: only `G_{m0}` moves, by `q (G_{m0} − r)^+ / (D_0 − q)`; fresh accepted index:
+  every `G_m` moves by at most `1/M`, total `ε (1 − r)`; hit on `V`: `G_{m0}` moves by at most
+  `(δ − G_{m0}) / D_0`, `δ ∈ {1, 2}`, and the holder's `G_h` by `1/D_h`, which raises the maximum
+  only by `(G_h + 1/D_h − Φ)^+ ≤ min(1, (b_h − r a_h + 1)^+) / D_h`) and the constraints `D_m ≥ M/2`,
+  `Σ_m (a_m − b_m) ≤ |V|`. The per-class bounds above sum to about `(1 − r) + 2(G_{m0} − r)^+ +
+  (|V|(1 − G_{m0}) + a_0 − b_0)/D_0 + Σ_m (a_m − b_m) min(1, (b_m − r a_m + 1)^+)/D_m` (in units of
+  `ε`), which is `≤ 2` on every state tried, but a clean inequality over all states is not proved.
+
+### 3. Status and cost of finishing
+
+Nothing in the contract or the roots changed: `paperParams.nonceBits` is still 256. Finishing
+option 2 needs (1) a rigorous proof of the multi-message bound in section 2, (2) a new signing
+lemma in the Lean roots (section 1), (3) replacing the global `encTerm` (`cntV / numSets + L ·
+pairs / (2^n − L)`) in `Potentials.ΦA` by `max_m G_m`, a maximum over all `2^256` messages of
+ratios, with the charge lemma of (1), and (4) doing this in the four upper roots (`GenericUpper`,
+`RiscvUpper`, and the historical `Upper`, `DisclosureUpper`), fixing the 512-bit index-query length
+in `Values.lean`, and then the parameter switch itself (lower roots already build at 128 bits).
+Step (1) is new mathematics; steps (2)–(4) are a multi-week Lean effort.
