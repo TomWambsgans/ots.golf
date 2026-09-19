@@ -5,7 +5,7 @@
     <p>All parties share one random oracle: every distinct bit string gets an independent uniform
     256-bit answer. Hashing is the only cryptographic primitive.</p>
     <p id="cost">A hash call costs one <strong>compression</strong> per started 512-bit block of its
-    input, tweaks included, and at least one. Every call is charged, even a repeated one. Everything
+    input. Every call is charged, even a repeated one. Everything
     else is free.{% if riscv_upper_track %} The RISC-V track additionally counts instructions.{% endif %}</p>
     <p><em>A per-key public parameter, useful for multi-user security, costs nothing: as Justin Drake
     observed, a block-based hash can pad the parameter to a full block, absorb it once and cache the
