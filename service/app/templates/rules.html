@@ -68,7 +68,7 @@
     <summary><h2>Upper bound and Generality 3/3 lower bound: any algorithm</h2></summary>
     <div class="more prose" id="generic-algorithms">
       <p>A scheme consists of three terminating oracle programs: key generation, signing and
-      verification. They may use private randomness and adaptive queries. Whenever honest signing
+      verification. They may use private randomness. Whenever honest signing
       returns a signature, verification accepts with probability one. For every message chosen as
       a function of the public key, signing failure is at most <strong>2<sup>−128</sup></strong>
       {% if riscv_upper_track %}for every algorithm track{% else %}in both tracks{% endif %}. This probability averages over
