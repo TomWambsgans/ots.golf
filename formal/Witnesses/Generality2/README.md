@@ -6,7 +6,7 @@ quantifies over secure DAG schemes; this proof shows that class is non-empty.
 
 ```lean
 theorem OptimalOTS.Witnesses.generality2 :
-    ∃ S : Scheme paperParams paperDagFormat, S.Secure ∧ ∀ i, S.verifyCost i ≤ 106
+    ∃ S : Scheme, S.Secure ∧ ∀ i, S.verifyCost i ≤ 106
 ```
 
 Check it from `formal/` with `lake build Witnesses` (also run by `tools/check_repo.py --formal`).

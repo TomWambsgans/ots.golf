@@ -35,19 +35,20 @@ depend on its answer, so a larger lower bound requires a different attack.
 ## Checked certificate
 
 ```lean
-OptimalOTS.LowerGenerality3.candidate :
-  AlgorithmVerificationLowerBound paperParams (1 / 2) 1
-
 OptimalOTS.Challenge.LowerGenerality3.candidate :
-  AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) 1
+  LowerBoundGenerality3 1
 
-OptimalOTS.LowerGenerality3.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
-  AlgorithmVerificationLowerBound paperParams ε 1
+OptimalOTS.LowerGenerality3.paper_lowerBound_one :
+  LowerBoundGenerality3 1
+
+OptimalOTS.LowerGenerality3.no_zero_verifier (hc : S.Correct)
+  (ha : S.SigningFailureAtMost (1 / 2)) ... : ¬ S.VerifyCostAtMost 0
 ```
 
-`AlgorithmVerificationLowerBound P ε c` quantifies over every `AlgorithmScheme P`
-satisfying `Admissible ε` and `Secure`. It proves that every pathwise verification
-budget is at least `c`. The attack forges on a fresh message; `AlgorithmScheme.Secure.weaklySecure`,
+`LowerBoundGenerality3 c` quantifies over every `OracleAlgorithm.Scheme` that is
+`Admissible` (signing failure at most `1 / 2 ^ signingFailureBits`) and `Secure`. It proves
+that every pathwise verification budget is at least `c`. The attack forges on a fresh message;
+`OracleAlgorithm.Scheme.Secure.weaklySecure`,
 proved in the submission root, bridges the strong hypothesis to the weak experiment the proof
 analyses.
 
@@ -73,8 +74,8 @@ Generic lower submission command, from the core with a submissions checkout:
 python3 verifier/verify.py lower-generality-3 --source ../ots.golf-submissions
 ```
 
-The generic lower challenge pins the `2^-128` failure allowance. Its certificate applies the
-general lemma with the exact inequality `2^-128 ≤ 1/2`.
+The generic lower challenge pins the `2^-128` failure allowance. `paper_lowerBound_one` applies
+the general lemma `no_zero_verifier` with the exact inequality `2^-128 ≤ 1/2`.
 
 The separate [one-query argument](research/generic-one-query.md) is research toward 2. Its
 transcript lemmas await Lean proofs, and its randomized-verifier normal form is moot now that

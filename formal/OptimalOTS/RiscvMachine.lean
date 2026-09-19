@@ -7,7 +7,7 @@ import RiscvZkvm.Rv64
 A subset of RV64IM with the pinned `riscv-zkvm` semantics and two system calls, selected by
 `t0`: HALT (`t0 = 0`) ends the run and rejects if `a0 = 0`, accepts if `a0 = 1`; HASH
 (`t0 = 1`) queries the competition's random oracle. Each instruction, including HALT, costs one
-cycle; HASH costs `blockCost paperParams` of its input length. Having no other system call, the
+cycle; HASH costs `blockCost` of its input length. Having no other system call, the
 machine is deterministic given the oracle's answers. It is Harvard-style: the code is an
 instruction list in its own address space, separate from data memory, so a program cannot
 modify its code.
@@ -61,20 +61,20 @@ def bytesOfVector {n : ℕ} (v : BitVec n) : List Byte :=
 
 /-- Raw input layout, with no parsing or scheme-specific preprocessing by the loader.
 `a0/a1/a2` point to pk/message/signature; `a3` holds the signature bit length, capped at
-`signatureBits + 1` to distinguish every oversized input from an admissible one. Only the first
-`signatureBits` signature bits are loaded. All remaining memory and registers initially contain
+`maxSignatureBits + 1` to distinguish every oversized input from an admissible one. Only the
+first `maxSignatureBits` signature bits are loaded. All remaining memory and registers initially contain
 zero. -/
-def initialState (image : Image) (pk : PublicKey paperParams) (m : Message paperParams)
+def initialState (image : Image) (pk : PublicKey) (m : Message)
     (signature : List Bool) : MachineState :=
   let blank : MachineState :=
     { regs := fun _ => 0, mem := fun _ => 0, code := loadProgram codeBase image.code,
       pc := codeBase }
   let s := (((blank.writeBytesAsWords dataBase image.data).writeBytesAsWords publicKeyBase
     (bytesOfVector pk)).writeBytesAsWords messageBase (bytesOfVector m)).writeBytesAsWords
-    signatureBase (bytesOfBits (signature.take paperParams.signatureBits))
+    signatureBase (bytesOfBits (signature.take maxSignatureBits))
   ((((s.setReg .x2 stackTop).setReg .x10 publicKeyBase).setReg .x11 messageBase).setReg
     .x12 signatureBase).setReg .x13
-    (BitVec.ofNat 64 (min signature.length (paperParams.signatureBits + 1)))
+    (BitVec.ofNat 64 (min signature.length (maxSignatureBits + 1)))
 
 /-- HASH reads `a1` bits at byte pointer `a0`, least significant bit first in each byte. -/
 def hashInput (s : MachineState) : Query :=
@@ -89,7 +89,7 @@ def hashArgumentsValid (s : MachineState) : Bool :=
     isValidDwordAccess (s.getReg .x12 + 16) && isValidDwordAccess (s.getReg .x12 + 24)
 
 /-- Input is read before output is written, so buffers may overlap. -/
-def writeHash (s : MachineState) (answer : BitVec 256) : MachineState :=
+def writeHash (s : MachineState) (answer : BitVec hashBits) : MachineState :=
   (s.writeWords (s.getReg .x12)
     [answer.extractLsb' 0 64, answer.extractLsb' 64 64,
      answer.extractLsb' 128 64, answer.extractLsb' 192 64]).setPC (s.pc + 4)
@@ -101,7 +101,7 @@ def addCycles (n : ℕ) : Outcome → Outcome := Option.map fun result => (resul
 
 /-- Execute at most `fuel` instructions. Fuel only witnesses termination; the score is the cycle
 count. HASH queries the competition's oracle on its exact input. -/
-def execute : ℕ → MachineState → OracleComp (Spec paperParams) Outcome
+def execute : ℕ → MachineState → OracleComp Spec Outcome
   | 0, _ => pure none
   | fuel + 1, s =>
     match s.code s.pc with
@@ -116,8 +116,8 @@ def execute : ℕ → MachineState → OracleComp (Spec paperParams) Outcome
         else if s.getReg .x5 = hashCall then
           if hashArgumentsValid s then do
             let input := hashInput s
-            let answer ← hash paperParams input.2
-            addCycles (blockCost paperParams input.1) <$> execute fuel (writeHash s answer)
+            let answer ← hash input.2
+            addCycles (blockCost input.1) <$> execute fuel (writeHash s answer)
           else pure none
         else pure none
       | _ => match step s with

@@ -1,7 +1,7 @@
 # The upper-bound proof: architecture
 
 The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`, also
-wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Scheme paperParams paperDagFormat` (Section 7 of the paper: 63 chains of length 14,
+wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Dag.Scheme` (Section 7 of the paper: 63 chains of length 14,
 21 group digests, 7 subtree digests, one root) with
 
 ```
@@ -21,7 +21,7 @@ the proof, what a label used to say is read off the string: an index query is a 
 non-keygen point that begins with an honest value) only counts strings carrying the node's tweak, so a
 fresh answer threatens one node, not every node with that input length: this is where a scheme without
 tweaks would lose its 127 bits to a multi-target attack. `Scheme.Secure` demands: for every adversary `A` and every `B` with
-`CostAtMost P (experiment S A) B`, `probTrue P (experiment S A) < B / 2^127`.
+`CostAtMost (experiment S A) B`, `probTrue (experiment S A) < B / 2^127`.
 
 ## A correction to the paper
 

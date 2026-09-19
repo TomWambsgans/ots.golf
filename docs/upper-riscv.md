@@ -81,12 +81,14 @@ comp 32 166 = 42088166900081964050093337199455360 ≥ 2^115
 indices are accepted (`Valid.card_validSet`), so signing succeeds within the `2^20` trials with
 failure below `2^-128` as before.
 
-The paper scheme of the contract accepts an index when it is below `numSets`; this root therefore
+The DAG scheme of the contract accepts an index when it is below `Dag.numCuts`; this root therefore
 carries `GScheme.lean`, the same graph scheme with the acceptance predicate `i ∈ validSet`, and the
 security proof of the forest ported to it (`SignIdx`, `EncCharges`, `SignRho`, `Rows`,
 `RowPotential`, `Potentials`, `StageB`, `Assembly`, `Main`). The RISC-V contract itself (`OptimalOTS.Riscv.Submission`) takes any
-`AlgorithmScheme paperParams` and is unchanged. `ForestAlgorithm.certificate` proves all OTS
-requirements and a 186-compression bound; `Wire.certificate` transfers them to raw signature bits.
+`OracleAlgorithm.Scheme`. `ForestAlgorithm.certificate` proves all OTS requirements and a
+186-compression bound for the typed-signature scheme of `TypedScheme.lean` (internal to this
+root); `Wire.certificate` transfers them, through `WireAdapter.lean`, to `Wire.scheme` on raw
+signature bits. `Candidate.lean` builds the submission `{ scheme := Wire.scheme, image, fuel }`.
 
 The implementation, `CompactProgram.lean`, keeps one 32-byte slot per chain, group and subtree and
 hashes in place: after the index query, a straight-line sweep over the 32 nibbles accumulates

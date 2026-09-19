@@ -1,7 +1,7 @@
 import Witnesses.Generality1.Cuts
 
 /-!
-# The concrete scheme as a `Scheme paperParams paperDagFormat`
+# The concrete scheme as a `Scheme`
 
 `forestScheme` is the scheme of Section 8 of the paper: the graph of `Forest.Names`, with the
 `2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.  Every signature
@@ -15,6 +15,9 @@ noncomputable section
 open scoped Classical
 
 namespace OptimalOTS
+
+open OptimalOTS.Dag
+
 
 namespace Forest
 
@@ -33,7 +36,7 @@ theorem setsName_injective : Function.Injective setsName := by
   exact Fin.castLE_injective _ (family.equivFin.symm.injective (Subtype.ext h))
 
 /-- The concrete scheme. -/
-def forestScheme : Scheme paperParams paperDagFormat where
+def forestScheme : Scheme where
   graph := graph
   sets := fun i => fins (setsName i)
   root_not_mem := by
@@ -46,7 +49,7 @@ def forestScheme : Scheme paperParams paperDagFormat where
     exact (no_hidden_source_iff (setsName i)).mpr (isCut_of_mem_family (setsName_mem i)).covers
   reveal_le := by
     intro i
-    show graph.revealBits (fins (setsName i)) ≤ 5376
+    show graph.revealBits (fins (setsName i)) + 128 ≤ 5504
     rw [revealBits_eq, Finset.sum_const_nat fun n hn => (isCut_of_mem_family (setsName_mem i)).values n hn]
     have := card_le_of_mem_family (setsName_mem i)
     omega
@@ -62,9 +65,9 @@ theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i),
   cost_of_mem_family (setsName_mem i)
 
 /-- Every signature verifies in `106` compressions. -/
-theorem forestScheme_verifyCost (i : Fin paperDagFormat.numSets) : forestScheme.verifyCost i = 106 := by
-  show idxCost paperParams paperDagFormat + graph.reconstructCost (fins (setsName i)) = 106
-  have hidx : idxCost paperParams paperDagFormat = 1 := by decide
+theorem forestScheme_verifyCost (i : Fin numCuts) : forestScheme.verifyCost i = 106 := by
+  show idxCost + graph.reconstructCost (fins (setsName i)) = 106
+  have hidx : idxCost = 1 := by decide
   rw [reconstructCost_eq, hidx]
   have h := cost_setsName i
   omega

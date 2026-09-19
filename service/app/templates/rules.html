@@ -71,9 +71,8 @@
       deterministic. Whenever honest signing
       returns a signature, verification accepts with probability one. Signing may fail, but only
       with probability at most <strong>2<sup>−128</sup></strong>, for any message.</p>
-      <p>Signature encodings must be lossless.
-      Every possible signer output fits in 5,504 bits.
-      A compression claim bounds the verifier's cost on every input, whether it accepts or
+      <p>Signatures are bit strings. Every possible signer output has at most 5,504 bits, and
+      verification rejects longer strings. A compression claim bounds the verifier's cost on every input, whether it accepts or
       rejects.</p>
     </div>
   </details>
@@ -111,7 +110,10 @@
         <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts,
         possibly repeated. Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
         it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>20</sup></code> uniformly
-        sampled 128-bit nonces without replacement, stopping at the first valid index or failing.</li>
+        sampled 128-bit nonces without replacement, stopping at the first valid index or failing.
+        The <code>2<sup>20</sup></code> trials are what the signing budget pays for, one compression
+        each; <code>2<sup>115</sup></code> is the smallest power of two for which they all fail with
+        probability at most <code>2<sup>−128</sup></code>.</li>
         <li><strong>Reveal.</strong> Send the nonce and the cut's node values in node order,
         with at most 5,376 payload bits.</li>
         <li><strong>Verify.</strong> Reject invalid indices or wrong payload lengths; otherwise
@@ -179,7 +181,7 @@
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
       {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
       <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
-      <a href="{{ source }}formal/OptimalOTS/Model.lean">parameters, budgets and oracle</a>,
+      <a href="{{ source }}formal/OptimalOTS/Model.lean">constants and oracle</a>,
       <a href="{{ source }}formal/OptimalOTS/OracleAlgorithm.lean">generic interface and statements</a>,
       <a href="{{ source }}formal/OptimalOTS/Dag.lean">DAG contract</a>,
       <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a>,

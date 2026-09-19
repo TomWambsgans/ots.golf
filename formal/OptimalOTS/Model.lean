@@ -8,8 +8,8 @@ import VCVio.EvalDist.BitVec
 /-!
 # The shared model
 
-The competition's parameters and budgets, the random oracle, and the cost of a query. Every
-model (`Dag.lean`, `OracleAlgorithm.lean`, `RiscvMachine.lean`) builds on this file. All parties
+The competition's constants, the random oracle, and the cost of a query. Every model
+(`Dag.lean`, `OracleAlgorithm.lean`, `RiscvMachine.lean`) builds on this file. All parties
 share one random oracle on bit strings, without implicit labels or domain separation. Uniform
 sampling is free; every hash query is charged for its complete input, including repeated queries.
 -/
@@ -22,41 +22,32 @@ open scoped Classical
 
 namespace OptimalOTS
 
-/-! ## 1. Parameters -/
+/-! ## 1. Constants
 
-/-- Lengths (in bits), the security level, and the budgets every scheme must respect. -/
-structure Params where
-  /-- Output length of the random oracle. -/
-  hashBits : ℕ
-  /-- Input bits per compression block. For positive `blockBits`, hashing `k` bits costs
-  `max 1 ⌈k / blockBits⌉`. -/
-  blockBits : ℕ
-  /-- Public-key length. -/
-  pkBits : ℕ
-  /-- Length of messages. -/
-  msgBits : ℕ
-  /-- Security level; see the `Secure` definitions of the models. -/
-  securityBits : ℕ
-  /-- Maximal signature length in bits, including any nonce. -/
-  signatureBits : ℕ
-  /-- Maximal query cost of key generation, in compressions. -/
-  keygenCost : ℕ
-  /-- Maximal query cost of signing, in compressions. -/
-  signCost : ℕ
+Lengths are in bits, costs in compressions. -/
 
-/-- The competition's parameters. -/
-def paperParams : Params where
-  hashBits := 256
-  blockBits := 512
-  pkBits := 128
-  msgBits := 256
-  securityBits := 127
-  signatureBits := 5504
-  keygenCost := 1024
-  signCost := 2 ^ 20
+/-- Output length of the random oracle. -/
+def hashBits : ℕ := 256
+/-- Input bits per compression: hashing `k` bits costs `max 1 ⌈k / blockBits⌉`. -/
+def blockBits : ℕ := 512
+/-- Public-key length. -/
+def pkBits : ℕ := 128
+/-- Message length. -/
+def msgBits : ℕ := 256
+/-- Security level: an attack with budget `B` succeeds with probability below
+`B / 2 ^ securityBits`. -/
+def securityBits : ℕ := 127
+/-- Maximal signature length, including any nonce. -/
+def maxSignatureBits : ℕ := 5504
+/-- Maximal cost of key generation. -/
+def keygenBudget : ℕ := 1024
+/-- Maximal cost of signing. -/
+def signBudget : ℕ := 2 ^ 20
+/-- Signing may fail with probability at most `1 / 2 ^ signingFailureBits`. -/
+def signingFailureBits : ℕ := 128
 
-abbrev Message (P : Params) := BitVec P.msgBits
-abbrev PublicKey (P : Params) := BitVec P.pkBits
+abbrev Message := BitVec msgBits
+abbrev PublicKey := BitVec pkBits
 
 /-! ## 2. The random oracle and the cost of a query -/
 
@@ -66,41 +57,45 @@ full query cost. -/
 abbrev Query := Σ k : ℕ, BitVec k
 
 /-- The random oracle: an independent uniform `hashBits`-bit answer for every query. -/
-abbrev hashSpec (P : Params) : OracleSpec Query := Query →ₒ BitVec P.hashBits
+abbrev hashSpec : OracleSpec Query := Query →ₒ BitVec hashBits
 
 /-- The oracles of every party: free uniform sampling and the random oracle. -/
-abbrev Spec (P : Params) := unifSpec + hashSpec P
+abbrev Spec := unifSpec + hashSpec
 
 /-- Cost of hashing `k` bits: the number of started blocks, and at least one. -/
-def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.blockBits - 1) / P.blockBits)
+def blockCost (k : ℕ) : ℕ := max 1 ((k + blockBits - 1) / blockBits)
 
-/-- Cost of a query: uniform sampling is free, hashing `k` bits costs `blockCost P k`. -/
-def queryCost (P : Params) : (Spec P).Domain → ℕ
+/-- Cost of a query: uniform sampling is free, hashing `k` bits costs `blockCost k`. -/
+def queryCost : Spec.Domain → ℕ
   | .inl _ => 0
-  | .inr q => blockCost P q.1
+  | .inr q => blockCost q.1
 
 /-- `oa` costs at most `B` on every execution path, whatever the oracle answers. -/
-def CostAtMost (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (B : ℕ) : Prop :=
-  oa.IsQueryBound B (fun t b => queryCost P t ≤ b) (fun t b => b - queryCost P t)
+def CostAtMost {α : Type} (oa : OracleComp Spec α) (B : ℕ) : Prop :=
+  oa.IsQueryBound B (fun t b => queryCost t ≤ b) (fun t b => b - queryCost t)
+
+/-- `oa` uses no private randomness: on every path, every query goes to the hash oracle. -/
+def Deterministic {α : Type} (oa : OracleComp Spec α) : Prop :=
+  oa.IsQueryBound () (fun t _ => t.isRight = true) (fun _ u => u)
 
 /-- Query the random oracle on input `u`. -/
-def hash (P : Params) {k : ℕ} (u : BitVec k) : OracleComp (Spec P) (BitVec P.hashBits) :=
-  liftM ((Spec P).query (.inr ⟨k, u⟩))
+def hash {k : ℕ} (u : BitVec k) : OracleComp Spec (BitVec hashBits) :=
+  liftM (Spec.query (.inr ⟨k, u⟩))
 
 /-- Sample a uniform bit string (free). -/
-def sampleBits (P : Params) (n : ℕ) : OracleComp (Spec P) (BitVec n) :=
+def sampleBits (n : ℕ) : OracleComp Spec (BitVec n) :=
   liftM ($ᵗ BitVec n : ProbComp (BitVec n))
 
 /-- Random-oracle semantics: uniform sampling is forwarded, and every hash query is answered by
 one lazily sampled table shared by the whole experiment. -/
-def oracleImpl (P : Params) : QueryImpl (Spec P) (StateT (hashSpec P).QueryCache ProbComp) :=
+def oracleImpl : QueryImpl Spec (StateT hashSpec.QueryCache ProbComp) :=
   (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)).liftTarget
-      (StateT (hashSpec P).QueryCache ProbComp) +
-    randomOracle (spec := hashSpec P)
+      (StateT hashSpec.QueryCache ProbComp) +
+    randomOracle (spec := hashSpec)
 
 /-- Probability that a Boolean experiment outputs `true` in the random-oracle model. -/
-def probTrue (P : Params) (oa : OracleComp (Spec P) Bool) : ℝ≥0∞ :=
-  Pr[= true | (simulateQ (oracleImpl P) oa).run' ∅]
+def probTrue (oa : OracleComp Spec Bool) : ℝ≥0∞ :=
+  Pr[= true | (simulateQ oracleImpl oa).run' ∅]
 
 /-! ## 3. Bit strings -/
 

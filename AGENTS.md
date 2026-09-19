@@ -12,8 +12,8 @@ reading.
 
 ```
 formal/                      the Lean project (lake root)
-  OptimalOTS/Model.lean      shared model: Params, paperParams, the random oracle and its costs
-  OptimalOTS/Dag.lean        DAG model: DagFormat, Scheme, Secure, verifyCost
+  OptimalOTS/Model.lean      shared model: constants, the random oracle and its costs
+  OptimalOTS/Dag.lean        DAG model in namespace OptimalOTS.Dag: signing format, Scheme, Secure, verifyCost
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/<Root>/        a submission root; lives in the submissions repository, never here
 verifier/                    checks, contract pin, comparator configs, verify.py
@@ -69,7 +69,7 @@ needs claim ≥ record + 1):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality1.candidate :
-    WholeWordVerificationLowerBound paperParams paperDagFormat <claim> := ...
+    LowerBoundGenerality1 <claim> := ...
 ```
 
 **Generality 2/3 lower track** (`formal/Submissions/LowerGenerality2/`, same direction and record
@@ -77,10 +77,10 @@ rule):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality2.candidate :
-    VerificationLowerBound paperParams paperDagFormat <claim> := ...
+    LowerBoundGenerality2 <claim> := ...
 ```
 
-`VerificationLowerBound` quantifies over strongly `Secure` schemes, the notion every track uses. The
+`LowerBoundGenerality2` quantifies over strongly `Secure` schemes, the notion every track uses. The
 lower-bound attacks forge on a new message; each lower root proves in its own `WeakSecurity.lean`
 that strong security implies the weak experiment it analyses, so the bounds hold for weakly secure
 schemes as well.
@@ -90,7 +90,7 @@ rule):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality3.candidate :
-    AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) <claim> := ...
+    LowerBoundGenerality3 <claim> := ...
 ```
 
 This theorem must cover every admissible, secure algorithm and every pathwise verification
@@ -99,17 +99,16 @@ budget. The challenge fixes signing failure at most `2^-128`, matching the upper
 **Upper bound track** (`formal/Submissions/UpperCompressions/`, smaller is better):
 
 ```lean
-noncomputable def OptimalOTS.Challenge.UpperCompressions.scheme : AlgorithmScheme paperParams := ...
-theorem OptimalOTS.Challenge.UpperCompressions.admissible :
-    scheme.Admissible (1 / 2 ^ 128) := ...
+noncomputable def OptimalOTS.Challenge.UpperCompressions.scheme : OracleAlgorithm.Scheme := ...
+theorem OptimalOTS.Challenge.UpperCompressions.admissible : scheme.Admissible := ...
 theorem OptimalOTS.Challenge.UpperCompressions.secure : scheme.Secure := ...
 theorem OptimalOTS.Challenge.UpperCompressions.cost : scheme.VerifyCostAtMost <claim> := ...
 ```
 
 `scheme` is a definition hole: any term of the stated type is admissible, and the theorems pin it
 down. Admissibility includes perfect correctness, deterministic verification, signing failure at
-most `2^-128`, an injective signature encoding of at most 5504 bits, rejection of oversized
-signatures, and pathwise limits of 1024 key-generation compressions and `2^20` signing
+most `2^-128`, signatures that are bit strings of at most 5504 bits, rejection of longer bit
+strings, and pathwise limits of 1024 key-generation compressions and `2^20` signing
 compressions. Availability is averaged over honest key generation and signing from a fresh oracle,
 for every message chosen as a function of the public key. Verification cost covers every input and
 oracle-answer path, including rejection. A record needs claim ≤ record − 1.
@@ -121,7 +120,8 @@ noncomputable def OptimalOTS.Challenge.UpperRiscv.submission : Riscv.Submission 
 theorem OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate <claim> := ...
 ```
 
-`Riscv.Submission` bundles the OTS algorithms, a fixed RV64IM image and a per-input fuel witness.
+`Riscv.Submission` bundles an `OracleAlgorithm.Scheme`, a fixed RV64IM image and a per-input fuel
+witness.
 The certificate proves the Upper bound admissibility and 127-bit strong security of the OTS, exact
 refinement of its Lean verifier by the machine's complete oracle computation on every public key,
 message and raw signature bit string, and at most `<claim>` cycles on every execution, accepting

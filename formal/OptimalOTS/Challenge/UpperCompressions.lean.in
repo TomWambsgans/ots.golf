@@ -5,11 +5,11 @@ import OptimalOTS.OracleAlgorithm
 namespace OptimalOTS.Challenge.UpperCompressions
 
 /-- The submitted key-generation, signing, and verification algorithms. -/
-noncomputable def scheme : AlgorithmScheme paperParams := sorry
+noncomputable def scheme : OracleAlgorithm.Scheme := sorry
 
-/-- Correctness, deterministic verification, signing failure at most `2⁻¹²⁸`, and the
-competition's size and cost budgets. -/
-theorem admissible : scheme.Admissible (1 / 2 ^ 128) := sorry
+/-- Correctness, deterministic verification, bounded signing failure, and the competition's size
+and cost budgets. -/
+theorem admissible : scheme.Admissible := sorry
 
 /-- Strong unforgeability in the shared random-oracle experiment. -/
 theorem secure : scheme.Secure := sorry

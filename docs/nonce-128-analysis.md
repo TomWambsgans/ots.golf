@@ -1,6 +1,6 @@
 # A 128-bit nonce: what breaks and why (2026-09-19)
 
-Question: can the competition move from `paperParams.nonceBits = 256` to 128 bits (the SPHINCS+
+Question: can the competition move from `nonceBits = 256` to 128 bits (the SPHINCS+
 convention at 128-bit security) while keeping the signature budget, the strong-unforgeability
 target `probTrue < B / 2^127` for every budget `B`, and all current claims?
 
@@ -27,13 +27,13 @@ is the signing-loop charge in the security proof.
 The security proof bounds the attacker by a potential that must grow, on average, by at most
 `κ = 2ε = 2^-127` per compression. A non-encoding query spends its whole `κ` on the hidden-keygen
 and second-preimage events. An encoding query (`H(m ‖ η)`) spends `ε` on the "index guess" event
-(the signer's fresh index lands on an index the attacker already holds: `|V| / numSets`, which grows
-by exactly `q / numSets = 2^-128` per query, `q = numSets / 2^128`), and the remaining `ε` must pay
+(the signer's fresh index lands on an index the attacker already holds: `|V| / numCuts`, which grows
+by exactly `q / numCuts = 2^-128` per query, `q = numCuts / 2^128`), and the remaining `ε` must pay
 for the "pairs" event: the signer's nonce is one the attacker queried in advance, and that entry's
 index is shared with another entry, giving a strong forgery (same cut, other nonce or message).
 
 Today that event is bounded by a union over the `2^20` trials,
-`trialLimit · pairs / (2^nonceBits − trialLimit)`, with per-query charge
+`trials · pairs / (2^nonceBits − trials)`, with per-query charge
 `2^20 · 2 · encCount / (2^128 (2^nonceBits − 2^20))`. It fits in `ε` iff `2^148 ≲ 2^nonceBits`.
 
 Sharper, and correct at any nonce length: the signer stops at the first valid index, so it ends at
@@ -70,14 +70,14 @@ as separate union terms is exact to within `2^-116` at the top of the range, and
 
 1. **Keep 256 bits** (current contract). Nothing changes.
 2. **Prove the disjoint-event version.** Bound the bad event by
-   `(|W_m1| + μ · |V| / numSets) / (cntV_m1 + μ)` with `μ = q N` (the signer ends either on one of the
+   `(|W_m1| + μ · |V| / numCuts) / (cntV_m1 + μ)` with `μ = q N` (the signer ends either on one of the
    `cntV_m1` cached valid nonces or on a fresh one), and build a potential for this ratio. This is a
    new signing lemma and new potentials in both upper roots: research-level work, not a refactor.
 3. **Split the parameter.** Set `nonceBits := 128` for the DAG model only (the three lower roots
    already build), and let the upper algorithm schemes keep a 256-bit nonce inside their own signature
    encoding. The algorithm interface prescribes no nonce format, and 256 + 5248 still fits the 5504-bit
-   budget. This needs the upper roots to be built over a parameter record with `nonceBits = 256`,
-   whose `AlgorithmScheme` coincides with the one over `paperParams` (only hash, key and message widths
+   budget. This needs the upper roots to be built over a separate parameter record with `nonceBits = 256`,
+   whose algorithm-scheme type coincides with the competition's (only hash, key and message widths
    matter there). The practical constructions would then still use 256-bit nonces.
 4. **Lower the target** to about `B / 2^126.4` for 128-bit nonces. This weakens the security
    statement and needs a decision by the organisers.
@@ -184,8 +184,8 @@ expected increase of `Ψ` on random multi-row states) all stay near `ε`, well b
 ## 4. Result: the contract at 128 bits (2026-09-19)
 
 The plan of section 3 is carried out in all four upper roots. The contract changes are
-`nonceBits := 128` (the DAG format), `signatureBits := 5376`
-(`paperParams`), and the machine loading at most 5376 signature bits with the length capped at
+`nonceBits := 128` (now `Dag.nonceBits`), a 5376-bit signature limit (the `signatureBits`
+field of the former parameter record), and the machine loading at most 5376 signature bits with the length capped at
 5377 (`RiscvMachine.lean`). The reveal budget stays 5248: the payload budget, the cuts and every
 cost are unchanged, and the signature shrinks by the 128 nonce bits that are no longer sent.
 

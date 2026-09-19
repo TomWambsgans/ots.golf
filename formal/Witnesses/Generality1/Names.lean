@@ -42,6 +42,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 /-- Node names. -/
@@ -607,14 +610,14 @@ theorem detVal_local (n : Name) (x y : Asg)
   | tr => rfl
 
 /-- A deterministic node of the graph. -/
-def detKind (v : Fin N) (n : Name) (h : ofFin v = n) : NodeKind 256 N lenF v :=
+def detKind (v : Fin N) (n : Name) (h : ofFin v = n) : NodeKind N lenF v :=
   .det ((Name.parents n).map nameEquiv.toEmbedding)
       (by exact det_parents_lt h)
       (fun x => (detVal n x).cast (by rw [lenF, h]))
       (by intro x y hxy; exact congrArg _ (detVal_local _ x y hxy))
 
 /-- The kind of the node `v = n.fin`. -/
-def kindOf (v : Fin N) : (n : Name) → ofFin v = n → NodeKind 256 N lenF v
+def kindOf (v : Fin N) : (n : Name) → ofFin v = n → NodeKind N lenF v
   | .src _, _ => .source
   | .ch k t, h => .hash (Name.ci k t).fin
       (by exact hash_parent_lt h (Finset.mem_singleton_self _)) (by rw [lenF, h]; rfl)
@@ -649,7 +652,7 @@ theorem kindOf_parents (v : Fin N) (n : Name) (h : ofFin v = n) :
   cases n <;> simp [kindOf, detKind, NodeKind.parents, Name.parents, nameEquiv]
 
 /-- The computation graph of the scheme. -/
-def graph : Graph paperParams where
+def graph : Graph where
   size := N
   len := lenF
   kind v := kindOf v (ofFin v) rfl
@@ -684,7 +687,7 @@ theorem graph_nodeCost_fin (n : Name) : graph.nodeCost n.fin = n.cost := by
   unfold Graph.nodeCost
   rw [graph_kind_fin]
   cases n <;> simp only [kindOf, detKind, graph_len_fin] <;>
-    simp [Name.cost, Name.len, blockCost, paperParams]
+    simp [Name.cost, Name.len, blockCost, blockBits]
 
 theorem graph_keygenCost : graph.keygenCost = 912 := by
   show ∑ v : Fin N, graph.nodeCost v = 912

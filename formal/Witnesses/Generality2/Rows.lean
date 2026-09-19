@@ -19,17 +19,21 @@ open scoped Classical
 
 namespace OptimalOTS
 
-variable (P : Params) (F : DagFormat)
+open OptimalOTS.Dag
 
-theorem append_pair_inj {m m' : Message P} {η η' : Nonce F} (h : m ++ η = m' ++ η') :
+
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
+
+theorem append_pair_inj {m m' : Message} {η η' : Nonce} (h : m ++ η = m' ++ η') :
     m = m' ∧ η = η' := by
   have key : ∀ i, (m ++ η).getLsbD i = (m' ++ η').getLsbD i := fun i => by rw [h]
   simp only [BitVec.getLsbD_append] at key
   constructor
   · apply BitVec.eq_of_getLsbD_eq
     intro i hi
-    have := key (i + F.nonceBits)
-    simp only [show ¬ (i + F.nonceBits < F.nonceBits) by omega, if_false, Nat.add_sub_cancel]
+    have := key (i + nonceBits)
+    simp only [show ¬ (i + nonceBits < nonceBits) by omega, if_false, Nat.add_sub_cancel]
       at this
     exact this
   · apply BitVec.eq_of_getLsbD_eq
@@ -38,28 +42,28 @@ theorem append_pair_inj {m m' : Message P} {η η' : Nonce F} (h : m ++ η = m' 
     simp only [hi, if_true] at this
     exact this
 
-theorem exists_append (u : EncInput P F) : ∃ (m : Message P) (η : Nonce F), u = m ++ η := by
-  refine ⟨u.extractLsb' F.nonceBits P.msgBits, u.setWidth F.nonceBits, ?_⟩
+theorem exists_append (u : EncInput) : ∃ (m : Message) (η : Nonce), u = m ++ η := by
+  refine ⟨u.extractLsb' nonceBits msgBits, u.setWidth nonceBits, ?_⟩
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
   rw [BitVec.getLsbD_append]
   split_ifs with h
   · simp [BitVec.getLsbD_setWidth, h]
   · rw [BitVec.getLsbD_extractLsb']
-    have : i - F.nonceBits < P.msgBits := by omega
-    simp [this, show F.nonceBits + (i - F.nonceBits) = i by omega]
+    have : i - nonceBits < msgBits := by omega
+    simp [this, show nonceBits + (i - nonceBits) = i by omega]
 
 /-- Cached nonces of row `m`. -/
-def rowCached (d : Cache P) (m : Message P) : Finset (Nonce F) :=
-  Finset.univ.filter fun η => (d (encQuery P F (m ++ η))).isSome
+def rowCached (d : Cache) (m : Message) : Finset Nonce :=
+  Finset.univ.filter fun η => (d (encQuery (m ++ η))).isSome
 
 /-- Accepted nonces of row `m` with index `i` that no other entry shares. -/
-def rowHit (d : Cache P) (m : Message P) (i : ℕ) : Finset (Nonce F) :=
-  Finset.univ.filter fun η => ∃ w, d (encQuery P F (m ++ η)) = some w ∧ idxOf P F w < F.numSets ∧
-    ¬ IdxPre P F d (m ++ η) (idxOf P F w) ∧ idxOf P F w = i
+def rowHit (d : Cache) (m : Message) (i : ℕ) : Finset Nonce :=
+  Finset.univ.filter fun η => ∃ w, d (encQuery (m ++ η)) = some w ∧ idxOf w < numCuts ∧
+    ¬ IdxPre d (m ++ η) (idxOf w) ∧ idxOf w = i
 
-theorem mem_V_iff {d : Cache P} {i : ℕ} :
-    i ∈ V P F d ↔ ∃ u w, d (encQuery P F u) = some w ∧ idxOf P F w < F.numSets ∧ idxOf P F w = i := by
+theorem mem_V_iff {d : Cache} {i : ℕ} :
+    i ∈ V d ↔ ∃ u w, d (encQuery u) = some w ∧ idxOf w < numCuts ∧ idxOf w = i := by
   constructor
   · intro h
     obtain ⟨u, hu, rfl⟩ := Finset.mem_image.1 h
@@ -67,20 +71,20 @@ theorem mem_V_iff {d : Cache P} {i : ℕ} :
     obtain ⟨w, hw, hi⟩ := hu
     exact ⟨u, w, hw, hi, by simp [hw]⟩
   · rintro ⟨u, w, hw, hi, rfl⟩
-    exact mem_V P F hw hi
+    exact mem_V hw hi
 
-theorem V_lt_numSets (d : Cache P) : ∀ i ∈ V P F d, i < F.numSets := by
+theorem V_lt_numCuts (d : Cache) : ∀ i ∈ V d, i < numCuts := by
   intro i hi
-  obtain ⟨u, w, -, hw, rfl⟩ := (mem_V_iff P F).1 hi
+  obtain ⟨u, w, -, hw, rfl⟩ := (mem_V_iff).1 hi
   exact hw
 
-theorem card_V_le_numSets (d : Cache P) : (V P F d).card ≤ F.numSets := by
-  calc (V P F d).card ≤ (Finset.range F.numSets).card :=
-        Finset.card_le_card fun i hi => Finset.mem_range.2 (V_lt_numSets P F d i hi)
-    _ = F.numSets := Finset.card_range _
+theorem card_V_le_numCuts (d : Cache) : (V d).card ≤ numCuts := by
+  calc (V d).card ≤ (Finset.range numCuts).card :=
+        Finset.card_le_card fun i hi => Finset.mem_range.2 (V_lt_numCuts d i hi)
+    _ = numCuts := Finset.card_range _
 
-theorem rowHit_subset (d : Cache P) (m : Message P) (i : ℕ) :
-    rowHit P F d m i ⊆ rowAcc P F d m \ rowBad P F d m := by
+theorem rowHit_subset (d : Cache) (m : Message) (i : ℕ) :
+    rowHit d m i ⊆ rowAcc d m \ rowBad d m := by
   intro η hη
   simp only [rowHit, Finset.mem_filter, Finset.mem_univ, true_and] at hη
   obtain ⟨w, hw, hi, hn, -⟩ := hη
@@ -91,18 +95,18 @@ theorem rowHit_subset (d : Cache P) (m : Message P) (i : ℕ) :
   cases hw'
   exact hn hpre
 
-theorem rowHit_eq_empty (d : Cache P) (m : Message P) {i : ℕ} (hi : i ∉ V P F d) :
-    rowHit P F d m i = ∅ := by
+theorem rowHit_eq_empty (d : Cache) (m : Message) {i : ℕ} (hi : i ∉ V d) :
+    rowHit d m i = ∅ := by
   ext η
   simp only [rowHit, Finset.mem_filter, Finset.mem_univ, true_and, Finset.notMem_empty,
     iff_false]
   rintro ⟨w, hw, hv, -, rfl⟩
-  exact hi (mem_V P F hw hv)
+  exact hi (mem_V hw hv)
 
 /-- Every non-shared accepted entry of row `m` has its index in `V`. -/
-theorem sum_rowHit (d : Cache P) (m : Message P) :
-    ∑ i ∈ V P F d, (rowHit P F d m i).card = (rowAcc P F d m \ rowBad P F d m).card := by
-  have hdisj : ∀ i ∈ V P F d, ∀ j ∈ V P F d, i ≠ j → Disjoint (rowHit P F d m i) (rowHit P F d m j) := by
+theorem sum_rowHit (d : Cache) (m : Message) :
+    ∑ i ∈ V d, (rowHit d m i).card = (rowAcc d m \ rowBad d m).card := by
+  have hdisj : ∀ i ∈ V d, ∀ j ∈ V d, i ≠ j → Disjoint (rowHit d m i) (rowHit d m j) := by
     intro i _ j _ hij
     rw [Finset.disjoint_left]
     intro η h1 h2
@@ -118,28 +122,28 @@ theorem sum_rowHit (d : Cache P) (m : Message P) :
   simp only [Finset.mem_biUnion, Finset.mem_sdiff]
   constructor
   · rintro ⟨i, -, hη⟩
-    exact Finset.mem_sdiff.1 (rowHit_subset P F d m i hη)
+    exact Finset.mem_sdiff.1 (rowHit_subset d m i hη)
   · rintro ⟨hacc, hbad⟩
     simp only [rowAcc, Finset.mem_filter, Finset.mem_univ, true_and] at hacc
     obtain ⟨w, hw, hi⟩ := hacc
-    refine ⟨idxOf P F w, mem_V P F hw hi, ?_⟩
+    refine ⟨idxOf w, mem_V hw hi, ?_⟩
     simp only [rowHit, Finset.mem_filter, Finset.mem_univ, true_and]
     refine ⟨w, hw, hi, fun hpre => hbad ?_, rfl⟩
     simp only [rowBad, Finset.mem_filter, Finset.mem_univ, true_and]
     exact ⟨w, hw, hi, hpre⟩
 
 /-- Non-shared accepted entries of all rows hold distinct indices. -/
-theorem sum_rowFree_le (d : Cache P) :
-    ∑ m, (rowAcc P F d m \ rowBad P F d m).card ≤ (V P F d).card := by
+theorem sum_rowFree_le (d : Cache) :
+    ∑ m, (rowAcc d m \ rowBad d m).card ≤ (V d).card := by
   rw [← Finset.card_sigma]
   refine Finset.card_le_card_of_injOn
-    (fun p => ((d (encQuery P F (p.1 ++ p.2))).map (idxOf P F)).getD 0) ?_ ?_
+    (fun p => ((d (encQuery (p.1 ++ p.2))).map (idxOf)).getD 0) ?_ ?_
   · intro p hp
     simp only [Finset.coe_sigma, Set.mem_sigma_iff, Finset.mem_coe, Finset.mem_univ,
       true_and, Finset.mem_sdiff, rowAcc, Finset.mem_filter] at hp
     obtain ⟨⟨w, hw, hi⟩, -⟩ := hp
     simp only [Finset.mem_coe, hw, Option.map_some, Option.getD_some]
-    exact mem_V P F hw hi
+    exact mem_V hw hi
   · intro p hp p' hp' heq
     simp only [Finset.coe_sigma, Set.mem_sigma_iff, Finset.mem_coe, Finset.mem_univ,
       true_and, Finset.mem_sdiff, rowAcc, rowBad, Finset.mem_filter] at hp hp'
@@ -151,12 +155,12 @@ theorem sum_rowFree_le (d : Cache P) :
     refine ⟨w, hw, hi, p'.1 ++ p'.2, ?_, w', hw', heq.symm⟩
     intro he
     apply hne
-    obtain ⟨h1, h2⟩ := append_pair_inj P F he
+    obtain ⟨h1, h2⟩ := append_pair_inj he
     exact Sigma.ext h1.symm (heq_of_eq h2.symm)
 
 /-- Rows partition the encoding entries. -/
-theorem sum_rowCached_le (d : Cache P) :
-    ∑ m, (rowCached P F d m).card ≤ encCount P F d := by
+theorem sum_rowCached_le (d : Cache) :
+    ∑ m, (rowCached d m).card ≤ encCount d := by
   rw [← Finset.card_sigma]
   refine Finset.card_le_card_of_injOn (fun p => p.1 ++ p.2) ?_ ?_
   · intro p hp
@@ -165,36 +169,36 @@ theorem sum_rowCached_le (d : Cache P) :
     simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq]
     exact hp
   · intro p _ p' _ heq
-    obtain ⟨h1, h2⟩ := append_pair_inj P F heq
+    obtain ⟨h1, h2⟩ := append_pair_inj heq
     exact Sigma.ext h1 (heq_of_eq h2)
 
 /-! ## One fresh encoding answer -/
 
 section Step
 
-variable {P F} {d : Cache P} {m₀ : Message P} {η₀ : Nonce F} (w : BitVec P.hashBits)
+variable {P} {d : Cache} {m₀ : Message} {η₀ : Nonce} (w : BitVec hashBits)
 
-theorem cacheQuery_enc_apply (m : Message P) (η : Nonce F) :
-    (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) (encQuery P F (m ++ η)) =
-      if m = m₀ ∧ η = η₀ then some w else d (encQuery P F (m ++ η)) := by
+theorem cacheQuery_enc_apply (m : Message) (η : Nonce) :
+    (d.cacheQuery (encQuery (m₀ ++ η₀)) w) (encQuery (m ++ η)) =
+      if m = m₀ ∧ η = η₀ then some w else d (encQuery (m ++ η)) := by
   split_ifs with h
   · obtain ⟨rfl, rfl⟩ := h
     exact QueryCache.cacheQuery_self _ _ _
   · refine QueryCache.cacheQuery_of_ne _ _ fun he => h ?_
-    exact append_pair_inj P F (encQuery_inj P F he)
+    exact append_pair_inj (encQuery_inj he)
 
-variable (hfresh : d (encQuery P F (m₀ ++ η₀)) = none)
+variable (hfresh : d (encQuery (m₀ ++ η₀)) = none)
 include hfresh
 
-theorem rowCached_cacheQuery (m : Message P) :
-    (rowCached P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) m).card =
-      (rowCached P F d m).card + if m = m₀ then 1 else 0 := by
+theorem rowCached_cacheQuery (m : Message) :
+    (rowCached (d.cacheQuery (encQuery (m₀ ++ η₀)) w) m).card =
+      (rowCached d m).card + if m = m₀ then 1 else 0 := by
   by_cases hm : m = m₀
   · subst hm
     rw [if_pos rfl]
-    have hnot : η₀ ∉ rowCached P F d m := by
+    have hnot : η₀ ∉ rowCached d m := by
       simp [rowCached, hfresh]
-    have : rowCached P F (d.cacheQuery (encQuery P F (m ++ η₀)) w) m = insert η₀ (rowCached P F d m) := by
+    have : rowCached (d.cacheQuery (encQuery (m ++ η₀)) w) m = insert η₀ (rowCached d m) := by
       ext η
       simp only [rowCached, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
         cacheQuery_enc_apply]
@@ -206,15 +210,15 @@ theorem rowCached_cacheQuery (m : Message P) :
     simp only [rowCached, Finset.mem_filter, Finset.mem_univ, true_and, cacheQuery_enc_apply,
       hm, false_and, if_false]
 
-theorem rowAcc_cacheQuery (m : Message P) :
-    (rowAcc P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) m).card =
-      (rowAcc P F d m).card + if m = m₀ ∧ idxOf P F w < F.numSets then 1 else 0 := by
-  by_cases hm : m = m₀ ∧ idxOf P F w < F.numSets
+theorem rowAcc_cacheQuery (m : Message) :
+    (rowAcc (d.cacheQuery (encQuery (m₀ ++ η₀)) w) m).card =
+      (rowAcc d m).card + if m = m₀ ∧ idxOf w < numCuts then 1 else 0 := by
+  by_cases hm : m = m₀ ∧ idxOf w < numCuts
   · obtain ⟨rfl, hi⟩ := hm
     rw [if_pos ⟨rfl, hi⟩]
-    have hnot : η₀ ∉ rowAcc P F d m := by
+    have hnot : η₀ ∉ rowAcc d m := by
       simp [rowAcc, hfresh]
-    have : rowAcc P F (d.cacheQuery (encQuery P F (m ++ η₀)) w) m = insert η₀ (rowAcc P F d m) := by
+    have : rowAcc (d.cacheQuery (encQuery (m ++ η₀)) w) m = insert η₀ (rowAcc d m) := by
       ext η
       simp only [rowAcc, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
         cacheQuery_enc_apply]
@@ -234,10 +238,10 @@ theorem rowAcc_cacheQuery (m : Message P) :
     · simp only [h, if_false]
 
 theorem V_cacheQuery :
-    (V P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w)).card =
-      (V P F d).card + if idxOf P F w < F.numSets ∧ idxOf P F w ∉ V P F d then 1 else 0 := by
-  have hmem : ∀ i, i ∈ V P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) ↔
-      i ∈ V P F d ∨ (idxOf P F w < F.numSets ∧ idxOf P F w = i) := by
+    (V (d.cacheQuery (encQuery (m₀ ++ η₀)) w)).card =
+      (V d).card + if idxOf w < numCuts ∧ idxOf w ∉ V d then 1 else 0 := by
+  have hmem : ∀ i, i ∈ V (d.cacheQuery (encQuery (m₀ ++ η₀)) w) ↔
+      i ∈ V d ∨ (idxOf w < numCuts ∧ idxOf w = i) := by
     intro i
     rw [mem_V_iff, mem_V_iff]
     constructor
@@ -247,7 +251,7 @@ theorem V_cacheQuery :
         rw [QueryCache.cacheQuery_self] at hu
         cases hu
         exact Or.inr ⟨hi, rfl⟩
-      · rw [QueryCache.cacheQuery_of_ne _ _ (fun h => he (encQuery_inj P F h))] at hu
+      · rw [QueryCache.cacheQuery_of_ne _ _ (fun h => he (encQuery_inj h))] at hu
         exact Or.inl ⟨u, w', hu, hi, rfl⟩
     · rintro (⟨u, w', hu, hi, rfl⟩ | ⟨hi, rfl⟩)
       · have hne : u ≠ m₀ ++ η₀ := by
@@ -255,11 +259,11 @@ theorem V_cacheQuery :
           rw [hfresh] at hu
           cases hu
         refine ⟨u, w', ?_, hi, rfl⟩
-        rw [QueryCache.cacheQuery_of_ne _ _ (fun h => hne (encQuery_inj P F h))]
+        rw [QueryCache.cacheQuery_of_ne _ _ (fun h => hne (encQuery_inj h))]
         exact hu
       · exact ⟨m₀ ++ η₀, w, QueryCache.cacheQuery_self _ _ _, hi, rfl⟩
   split_ifs with h
-  · have : V P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) = insert (idxOf P F w) (V P F d) := by
+  · have : V (d.cacheQuery (encQuery (m₀ ++ η₀)) w) = insert (idxOf w) (V d) := by
       ext i
       rw [hmem, Finset.mem_insert]
       constructor
@@ -283,13 +287,13 @@ theorem V_cacheQuery :
 
 /-- A cached entry is shared after the answer only if it was shared before, or it is the new
 entry (then its index was already held), or it holds the new index alone. -/
-theorem rowBad_cacheQuery (m : Message P) :
-    (rowBad P F (d.cacheQuery (encQuery P F (m₀ ++ η₀)) w) m).card ≤
-      (rowBad P F d m).card + (rowHit P F d m (idxOf P F w)).card +
-        if m = m₀ ∧ idxOf P F w ∈ V P F d then 1 else 0 := by
-  set d' := d.cacheQuery (encQuery P F (m₀ ++ η₀)) w with hd'
-  have hsub : rowBad P F d' m ⊆ rowBad P F d m ∪ rowHit P F d m (idxOf P F w) ∪
-      (if m = m₀ ∧ idxOf P F w ∈ V P F d then {η₀} else ∅) := by
+theorem rowBad_cacheQuery (m : Message) :
+    (rowBad (d.cacheQuery (encQuery (m₀ ++ η₀)) w) m).card ≤
+      (rowBad d m).card + (rowHit d m (idxOf w)).card +
+        if m = m₀ ∧ idxOf w ∈ V d then 1 else 0 := by
+  set d' := d.cacheQuery (encQuery (m₀ ++ η₀)) w with hd'
+  have hsub : rowBad d' m ⊆ rowBad d m ∪ rowHit d m (idxOf w) ∪
+      (if m = m₀ ∧ idxOf w ∈ V d then {η₀} else ∅) := by
     intro η hη
     simp only [rowBad, Finset.mem_filter, Finset.mem_univ, true_and, hd',
       cacheQuery_enc_apply] at hη
@@ -299,10 +303,10 @@ theorem rowBad_cacheQuery (m : Message P) :
       simp only [and_self, if_true, Option.some.injEq] at hw₁
       subst hw₁
       apply Finset.mem_union_right
-      have hu' : d (encQuery P F u) = some w₂ := by
-        rwa [QueryCache.cacheQuery_of_ne _ _ (fun h => hu (encQuery_inj P F h))] at hw₂
-      have hV : idxOf P F w ∈ V P F d := by
-        rw [← hidx]; exact mem_V P F hu' (hidx ▸ hi₁)
+      have hu' : d (encQuery u) = some w₂ := by
+        rwa [QueryCache.cacheQuery_of_ne _ _ (fun h => hu (encQuery_inj h))] at hw₂
+      have hV : idxOf w ∈ V d := by
+        rw [← hidx]; exact mem_V hu' (hidx ▸ hi₁)
       rw [if_pos ⟨rfl, hV⟩]
       exact Finset.mem_singleton_self _
     · rw [if_neg hnew] at hw₁
@@ -310,7 +314,7 @@ theorem rowBad_cacheQuery (m : Message P) :
       · subst hu0
         rw [QueryCache.cacheQuery_self] at hw₂
         cases hw₂
-        by_cases hpre : IdxPre P F d (m ++ η) (idxOf P F w₁)
+        by_cases hpre : IdxPre d (m ++ η) (idxOf w₁)
         · refine Finset.mem_union_left _ (Finset.mem_union_left _ ?_)
           simp only [rowBad, Finset.mem_filter, Finset.mem_univ, true_and]
           exact ⟨w₁, hw₁, hi₁, hpre⟩
@@ -320,7 +324,7 @@ theorem rowBad_cacheQuery (m : Message P) :
       · refine Finset.mem_union_left _ (Finset.mem_union_left _ ?_)
         simp only [rowBad, Finset.mem_filter, Finset.mem_univ, true_and]
         refine ⟨w₁, hw₁, hi₁, u, hu, w₂, ?_, hidx⟩
-        rwa [QueryCache.cacheQuery_of_ne _ _ (fun h => hu0 (encQuery_inj P F h))] at hw₂
+        rwa [QueryCache.cacheQuery_of_ne _ _ (fun h => hu0 (encQuery_inj h))] at hw₂
   refine (Finset.card_le_card hsub).trans ?_
   refine (Finset.card_union_le _ _).trans ?_
   refine add_le_add ((Finset.card_union_le _ _)) ?_
@@ -332,26 +336,26 @@ end Step
 
 section Other
 
-variable {P F} {d : Cache P} {q : Query} (hq : ∀ u : EncInput P F, q ≠ encQuery P F u)
-  (w : BitVec P.hashBits)
+variable {P} {d : Cache} {q : Query} (hq : ∀ u : EncInput, q ≠ encQuery u)
+  (w : BitVec hashBits)
 include hq
 
-theorem enc_apply_of_ne (u : EncInput P F) : (d.cacheQuery q w) (encQuery P F u) = d (encQuery P F u) :=
+theorem enc_apply_of_ne (u : EncInput) : (d.cacheQuery q w) (encQuery u) = d (encQuery u) :=
   QueryCache.cacheQuery_of_ne _ _ (hq u).symm
 
-theorem rowCached_of_ne (m : Message P) : rowCached P F (d.cacheQuery q w) m = rowCached P F d m := by
+theorem rowCached_of_ne (m : Message) : rowCached (d.cacheQuery q w) m = rowCached d m := by
   simp only [rowCached, enc_apply_of_ne hq]
 
-theorem rowAcc_of_ne (m : Message P) : rowAcc P F (d.cacheQuery q w) m = rowAcc P F d m := by
+theorem rowAcc_of_ne (m : Message) : rowAcc (d.cacheQuery q w) m = rowAcc d m := by
   simp only [rowAcc, enc_apply_of_ne hq]
 
-theorem idxPre_of_ne (u : EncInput P F) (i : ℕ) : IdxPre P F (d.cacheQuery q w) u i ↔ IdxPre P F d u i := by
+theorem idxPre_of_ne (u : EncInput) (i : ℕ) : IdxPre (d.cacheQuery q w) u i ↔ IdxPre d u i := by
   simp only [IdxPre, enc_apply_of_ne hq]
 
-theorem rowBad_of_ne (m : Message P) : rowBad P F (d.cacheQuery q w) m = rowBad P F d m := by
+theorem rowBad_of_ne (m : Message) : rowBad (d.cacheQuery q w) m = rowBad d m := by
   simp only [rowBad, enc_apply_of_ne hq, idxPre_of_ne hq]
 
-theorem V_of_ne : V P F (d.cacheQuery q w) = V P F d := by
+theorem V_of_ne : V (d.cacheQuery q w) = V d := by
   ext i
   simp only [mem_V_iff, enc_apply_of_ne hq]
 

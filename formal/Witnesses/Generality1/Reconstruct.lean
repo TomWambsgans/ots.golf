@@ -19,6 +19,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 /-! ## Bit strings -/
 
 theorem testBit_foldr_bits (l : List Bool) (i : ℕ) :
@@ -121,12 +124,14 @@ theorem flatMap_chunks {n : ℕ} (len : Fin n → ℕ) :
       rw [chunkOff_cons_of_lt len a L (hL.1 v hv), List.drop_drop]
     rw [h2, ih hL.2 (l.drop (len a)) (by rw [List.length_drop]; omega), List.take_append_drop]
 
-namespace Graph
+namespace Dag.Graph
 
-variable {P : Params} {F : DagFormat} (G : Graph P)
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
+variable (G : Graph)
 
 /-- The reconstruction equation at a single node. -/
-def ReconEqAt (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment)
+def ReconEqAt (d : Cache) (A : Finset (Fin G.size)) (given y : G.Assignment)
     (v : Fin G.size) : Prop :=
   (v ∈ A → y v = given v) ∧
     (v ∉ A → ¬ G.Visited A v → y v = 0) ∧
@@ -138,7 +143,7 @@ def ReconEqAt (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment)
 
 /-- `y` satisfies the reconstruction equations from the values `given` on `A`, with every hash
 answer recorded in the cache `d`. -/
-def ReconEqs (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment) : Prop :=
+def ReconEqs (d : Cache) (A : Finset (Fin G.size)) (given y : G.Assignment) : Prop :=
   ∀ v, (v ∈ A → y v = given v) ∧
     (v ∉ A → ¬ G.Visited A v → y v = 0) ∧
     (v ∉ A → G.Visited A v →
@@ -147,7 +152,7 @@ def ReconEqs (d : Cache P) (A : Finset (Fin G.size)) (given y : G.Assignment) : 
       (∀ ps hlt f hf, G.kind v = .det ps hlt f hf → y v = f y) ∧
       (G.kind v = .source → y v = 0))
 
-theorem ReconEqAt.mono {d d' : Cache P} (h : Cache.Sub d d') {A : Finset (Fin G.size)}
+theorem ReconEqAt.mono {d d' : Cache} (h : Cache.Sub d d') {A : Finset (Fin G.size)}
     {given y : G.Assignment} {v : Fin G.size} (he : G.ReconEqAt d A given y v) :
     G.ReconEqAt d' A given y v := by
   obtain ⟨h1, h2, h3⟩ := he
@@ -158,7 +163,7 @@ theorem ReconEqAt.mono {d d' : Cache P} (h : Cache.Sub d d') {A : Finset (Fin G.
   exact ⟨w, h _ _ hw, hy⟩
 
 /-- The equation at `v` only looks at the values at nodes `≤ v`. -/
-theorem ReconEqAt.congr {d : Cache P} {A : Finset (Fin G.size)} {given y y' : G.Assignment}
+theorem ReconEqAt.congr {d : Cache} {A : Finset (Fin G.size)} {given y y' : G.Assignment}
     {v : Fin G.size} (h : ∀ u, u ≤ v → y' u = y u) (he : G.ReconEqAt d A given y v) :
     G.ReconEqAt d A given y' v := by
   obtain ⟨h1, h2, h3⟩ := he
@@ -173,15 +178,17 @@ theorem ReconEqAt.congr {d : Cache P} {A : Finset (Fin G.size)} {given y y' : G.
   · rw [hv, h32 ps hlt f hf hk]
     exact hf y y' fun w hw => (h w (hlt w hw).le).symm
 
-end Graph
+end Dag.Graph
 
 /-! ## Support of a hash query -/
 
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
 /-- A hash query records its answer in the cache. -/
-theorem hash_support {P : Params} {k : ℕ} (u : BitVec k) (c : Cache P) :
-    ∀ p ∈ support (run P (hash P u) c), Cache.Sub c p.2 ∧ p.2 ⟨k, u⟩ = some p.1 := by
+theorem hash_support {k : ℕ} (u : BitVec k) (c : Cache) :
+    ∀ p ∈ support (run (hash u) c), Cache.Sub c p.2 ∧ p.2 ⟨k, u⟩ = some p.1 := by
   intro p hp
-  have h : hash P u = liftM ((Spec P).query (.inr ⟨k, u⟩)) >>= pure := (bind_pure _).symm
+  have h : hash u = liftM (Spec.query (.inr ⟨k, u⟩)) >>= pure := (bind_pure _).symm
   rw [h, run_query_bind] at hp
   simp only [run_pure] at hp
   rw [support_bind] at hp
@@ -190,24 +197,24 @@ theorem hash_support {P : Params} {k : ℕ} (u : BitVec k) (c : Cache P) :
   rw [support_pure, Set.mem_singleton_iff] at hp
   subst hp
   rcases hc : c ⟨k, u⟩ with _ | w
-  · rw [oracleImpl_run_inr_none P hc, support_bind] at hv
+  · rw [oracleImpl_run_inr_none hc, support_bind] at hv
     simp only [Set.mem_iUnion] at hv
     obtain ⟨w, -, hw⟩ := hv
     simp only [support_pure, Set.mem_singleton_iff, Prod.mk.injEq] at hw
     obtain ⟨rfl, rfl⟩ := hw
     exact ⟨Cache.sub_cacheQuery_of_none hc _, QueryCache.cacheQuery_self ..⟩
-  · rw [oracleImpl_run_inr_some P hc, support_pure] at hv
+  · rw [oracleImpl_run_inr_some hc, support_pure] at hv
     simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hv
     obtain ⟨rfl, rfl⟩ := hv
     exact ⟨Cache.Sub.refl _, hc⟩
 
-namespace Graph
+namespace Dag.Graph
 
-variable {P : Params} {F : DagFormat} (G : Graph P)
+variable (G : Graph)
 
 /-- Support of evaluating one node (with source value `0`). -/
-theorem evalNode_support (x : G.Assignment) (v : Fin G.size) (c : Cache P) :
-    ∀ p ∈ support (run P (G.evalNode x v (pure 0)) c),
+theorem evalNode_support (x : G.Assignment) (v : Fin G.size) (c : Cache) :
+    ∀ p ∈ support (run (G.evalNode x v (pure 0)) c),
       Cache.Sub c p.2 ∧
       (∀ q hq hl, G.kind v = .hash q hq hl →
         ∃ w, p.2 ⟨G.len q, x q⟩ = some w ∧ p.1 = w.cast hl.symm) ∧
@@ -242,7 +249,7 @@ theorem evalNode_support (x : G.Assignment) (v : Fin G.size) (c : Cache P) :
 
 /-- One step of `reconstruct`. -/
 def reconStep (A : Finset (Fin G.size)) (given : G.Assignment) (x : G.Assignment)
-    (v : Fin G.size) : OracleComp (Spec P) G.Assignment :=
+    (v : Fin G.size) : OracleComp Spec G.Assignment :=
   if v ∈ A then pure (Function.update x v (given v))
   else if G.Visited A v then Function.update x v <$> G.evalNode x v (pure 0)
   else pure (Function.update x v 0)
@@ -252,8 +259,8 @@ theorem reconstruct_eq_foldlM (A : Finset (Fin G.size)) (given : G.Assignment) :
       (List.finRange G.size).foldlM (G.reconStep A given) (fun _ => 0) := rfl
 
 theorem reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment) (x : G.Assignment)
-    (a : Fin G.size) (c : Cache P) :
-    ∀ p ∈ support (run P (G.reconStep A given x a) c),
+    (a : Fin G.size) (c : Cache) :
+    ∀ p ∈ support (run (G.reconStep A given x a) c),
       Cache.Sub c p.2 ∧ (∀ w, w ≠ a → p.1 w = x w) ∧ G.ReconEqAt p.2 A given p.1 a := by
   intro p hp
   unfold reconStep at hp
@@ -288,9 +295,9 @@ theorem reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment) (x : 
 
 /-- Folding the reconstruction step over an increasing list: the equations hold at the nodes of
 the list and every other node is still `0`. -/
-theorem foldlM_reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment) (c : Cache P)
+theorem foldlM_reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment) (c : Cache)
     (l : List (Fin G.size)) (hl : l.Pairwise (· < ·)) :
-    ∀ p ∈ support (run P (l.foldlM (G.reconStep A given) (fun _ => 0)) c),
+    ∀ p ∈ support (run (l.foldlM (G.reconStep A given) (fun _ => 0)) c),
       Cache.Sub c p.2 ∧ (∀ v ∈ l, G.ReconEqAt p.2 A given p.1 v) ∧
         (∀ v, v ∉ l → p.1 v = 0) := by
   induction l using List.reverseRecOn with
@@ -323,8 +330,8 @@ theorem foldlM_reconStep_support (A : Finset (Fin G.size)) (given : G.Assignment
 
 /-- Every outcome of reconstruction satisfies the reconstruction equations with respect to the
 final cache, which extends the initial one. -/
-theorem reconstruct_support (A : Finset (Fin G.size)) (given : G.Assignment) (c : Cache P) :
-    ∀ p ∈ support (run P (G.reconstruct A given) c),
+theorem reconstruct_support (A : Finset (Fin G.size)) (given : G.Assignment) (c : Cache) :
+    ∀ p ∈ support (run (G.reconstruct A given) c),
       Cache.Sub c p.2 ∧ G.ReconEqs p.2 A given p.1 := by
   intro p hp
   rw [reconstruct_eq_foldlM] at hp
@@ -413,13 +420,13 @@ theorem encode_decode (A : Finset (Fin G.size)) (l : List Bool)
   have := chunkOff_add_le G.len L hL v hv
   omega
 
-end Graph
+end Dag.Graph
 
 /-- The index query records its answer in the cache. -/
-theorem index_support {P : Params} {F : DagFormat} (m : Message P) (η : Nonce F) (c : Cache P) :
-    ∀ p ∈ support (run P (index P F m η) c),
-      Cache.Sub c p.2 ∧ ∃ w, p.2 ⟨P.msgBits + F.nonceBits, m ++ η⟩ = some w ∧
-        p.1 = (w.setWidth F.idxBits).toNat := by
+theorem index_support (m : Message) (η : Nonce) (c : Cache) :
+    ∀ p ∈ support (run (index m η) c),
+      Cache.Sub c p.2 ∧ ∃ w, p.2 ⟨msgBits + nonceBits, m ++ η⟩ = some w ∧
+        p.1 = (w.setWidth idxBits).toNat := by
   intro p hp
   unfold index at hp
   rw [run_map, support_map, Set.mem_image] at hp
@@ -430,12 +437,12 @@ theorem index_support {P : Params} {F : DagFormat} (m : Message P) (η : Nonce F
 
 /-- Every accepting run of the verifier is witnessed in the final cache: the index answer, and
 an assignment satisfying the reconstruction equations whose root prefix is the public key. -/
-theorem verify_support {P : Params} {F : DagFormat} (S : Scheme P F) (pk : PublicKey P) (m : Message P)
-    (σ : Signature F) (c : Cache P) :
-    ∀ p ∈ support (run P (S.verify pk m σ) c),
+theorem verify_support (S : Scheme) (pk : PublicKey) (m : Message)
+    (σ : Signature) (c : Cache) :
+    ∀ p ∈ support (run (S.verify pk m σ) c),
       Cache.Sub c p.2 ∧ (p.1 = true →
-        ∃ w, p.2 ⟨P.msgBits + F.nonceBits, m ++ σ.1⟩ = some w ∧
-          ∃ hi : (w.setWidth F.idxBits).toNat < F.numSets,
+        ∃ w, p.2 ⟨msgBits + nonceBits, m ++ σ.1⟩ = some w ∧
+          ∃ hi : (w.setWidth idxBits).toNat < numCuts,
             σ.2.length = S.graph.revealBits (S.sets ⟨_, hi⟩) ∧
             ∃ y : S.graph.Assignment,
               S.graph.ReconEqs p.2 (S.sets ⟨_, hi⟩) (S.graph.decode (S.sets ⟨_, hi⟩) σ.2) y ∧
@@ -447,7 +454,7 @@ theorem verify_support {P : Params} {F : DagFormat} (S : Scheme P F) (pk : Publi
   obtain ⟨⟨i, c₁⟩, hi₁, hp⟩ := hp
   obtain ⟨hsub₁, w, hw, rfl⟩ := index_support m σ.1 c ⟨i, c₁⟩ hi₁
   dsimp only at hp hw
-  by_cases hi : (w.setWidth F.idxBits).toNat < F.numSets
+  by_cases hi : (w.setWidth idxBits).toNat < numCuts
   · rw [dif_pos hi] at hp
     by_cases hlen : σ.2.length = S.graph.revealBits (S.sets ⟨_, hi⟩)
     · rw [if_pos hlen, run_bind, support_bind] at hp

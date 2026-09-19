@@ -22,6 +22,9 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 attribute [local irreducible] experiment forestScheme
@@ -33,7 +36,7 @@ theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
     ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
 
 theorem kappa_mul_lt {B : ℕ} (h912 : 912 ≤ B) :
-    κ * ((B - 912 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
+    κ * ((B - 912 : ℕ) : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ securityBits := by
   rw [kappa_eq]
   show _ < (B : ℝ≥0∞) / 2 ^ 127
   rw [ENNReal.div_eq_inv_mul]
@@ -41,7 +44,7 @@ theorem kappa_mul_lt {B : ℕ} (h912 : 912 ≤ B) :
     (ENNReal.inv_ne_top.2 (by simp)) ?_
   exact_mod_cast Nat.sub_lt (by omega) (by norm_num)
 
-theorem one_lt_div {B : ℕ} (h : 2 ^ 127 < B) : (1 : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ paperParams.securityBits := by
+theorem one_lt_div {B : ℕ} (h : 2 ^ 127 < B) : (1 : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ securityBits := by
   show (1 : ℝ≥0∞) < (B : ℝ≥0∞) / 2 ^ 127
   rw [ENNReal.lt_div_iff_mul_lt (Or.inl (by simp)) (Or.inl (by simp)), one_mul]
   exact_mod_cast h

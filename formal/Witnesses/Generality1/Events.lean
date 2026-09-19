@@ -25,6 +25,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 open Name
@@ -143,7 +146,7 @@ theorem val_of_hashOf (ξ : Rec) {v h : Name} (hh : hashOf v = some h) :
 /-! ## The kinds of the nodes -/
 
 theorem graph_kind_hash {h p : Name} (hp : hashParent h = some p) :
-    ∃ (hlt : p.fin < h.fin) (hl : graph.len h.fin = paperParams.hashBits),
+    ∃ (hlt : p.fin < h.fin) (hl : graph.len h.fin = hashBits),
       graph.kind h.fin = .hash p.fin hlt hl := by
   rw [graph_kind_fin]
   cases h <;> simp only [hashParent, Option.some.injEq, reduceCtorEq] at hp <;> subst hp <;>
@@ -164,7 +167,7 @@ theorem graph_kind_det {n : Name} (hc : n.cost = 0) (hs : ∀ k, n ≠ src k) :
 
 section Recon
 
-variable {A : Finset Name} {d : Cache paperParams} {given y : graph.Assignment}
+variable {A : Finset Name} {d : Cache} {given y : graph.Assignment}
 
 theorem yv_mem (hy : graph.ReconEqs d (fins A) given y) {n : Name} (hn : n ∈ A) :
     yv y n = (given n.fin).cast (graph_len_fin n) := by
@@ -326,7 +329,7 @@ end Recon
 /-! ## The walk -/
 
 /-- One step of the walk through a hash node: `v` feeds the hash node `h`. -/
-theorem hash_step {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
+theorem hash_step {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache}
     {given y : graph.Assignment} (hy : graph.ReconEqs d (fins A) given y)
     (hacc : trunc (yv y rh) = pkOf ξ) {v h : Name} (hch : child v = some h)
     (hhp : hashParent h = some v) (hv : ∀ m, Above m v → m ∉ A)
@@ -357,7 +360,7 @@ theorem hash_step {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperPa
         rw [hw, ← yv_of_hashOf hy hv' hv'E, heq, val_of_hashOf ξ hv']
 
 /-- **The walk.** -/
-theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
+theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache}
     {given y : graph.Assignment} (hy : graph.ReconEqs d (fins A) given y)
     (hacc : trunc (yv y rh) = pkOf ξ) {v : Name} (hv : ∀ m, Above m v → m ∉ A)
     (hvh : v.cost = 0) (hne : yv y v ≠ val ξ v) : Spr d ξ := by
@@ -485,7 +488,7 @@ theorem up {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
 /-! ## The events -/
 
 /-- Signing failed: everything is hidden. -/
-theorem events_none {A' : Finset Name} (hA' : IsCut A') {ξ : Rec} {d : Cache paperParams}
+theorem events_none {A' : Finset Name} (hA' : IsCut A') {ξ : Rec} {d : Cache}
     {given y : graph.Assignment} (hy : graph.ReconEqs d (fins A') given y)
     (hacc : trunc (yv y rh) = pkOf ξ) : Spr d ξ ∨ Cache.Hits d (kc ξ) := by
   have hrE : Evaluated A' rh := ⟨hA'.rh_not_mem, fun m hm => absurd hm (not_above_rh m)⟩
@@ -506,7 +509,7 @@ theorem events_none {A' : Finset Name} (hA' : IsCut A') {ξ : Rec} {d : Cache pa
 /-- The forgery uses a different disclosure set of the same cost. -/
 theorem events_ne {A A' : Finset Name} (hA : IsCut A) (hA' : IsCut A')
     (hcost : ∑ n ∈ evaluatedSet A, n.cost = ∑ n ∈ evaluatedSet A', n.cost) (hne : A ≠ A')
-    {ξ : Rec} {d : Cache paperParams} {given y : graph.Assignment}
+    {ξ : Rec} {d : Cache} {given y : graph.Assignment}
     (hy : graph.ReconEqs d (fins A') given y) (hacc : trunc (yv y rh) = pkOf ξ) :
     Spr d ξ ∨ Cache.Hits d (fHid (some A) ξ) := by
   obtain ⟨v, hvA, hvE⟩ := exists_mem_evaluated_of_ne hA hA' hcost hne
@@ -545,16 +548,20 @@ theorem events_ne {A A' : Finset Name} (hA : IsCut A) (hA' : IsCut A')
   · left
     exact up hA' hy hacc hvE.2 (cost_of_hashOf hh) hvne
 
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
 /-- `encode` only reads the values on the set. -/
-theorem encode_congr {P : Params} (G : Graph P) (A : Finset (Fin G.size))
+theorem encode_congr (G : Graph) (A : Finset (Fin G.size))
     {x x' : G.Assignment} (h : ∀ v ∈ A, x v = x' v) : G.encode A x = G.encode A x' := by
   unfold Graph.encode
   refine List.flatMap_congr fun v hv => ?_
   rw [List.mem_filter, decide_eq_true_iff] at hv
   rw [h v hv.2]
 
+attribute [local semireducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
 /-- The forgery uses the signed disclosure set with different values. -/
-theorem events_same {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache paperParams}
+theorem events_same {A : Finset Name} (hA : IsCut A) {ξ : Rec} {d : Cache}
     {x' : List Bool} {y : graph.Assignment}
     (hy : graph.ReconEqs d (fins A) (graph.decode (fins A) x') y)
     (hacc : trunc (yv y rh) = pkOf ξ) (hlen : x'.length = graph.revealBits (fins A))

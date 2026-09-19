@@ -27,9 +27,14 @@ open scoped Classical
 
 namespace OptimalOTS
 
-namespace Graph
+open OptimalOTS.Dag
 
-variable {P : Params} {F : DagFormat} (G : Graph P)
+
+namespace Dag.Graph
+
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
+variable (G : Graph)
 
 /-- The node `w` has its value in `x` if it is a constant node (a deterministic node without
 parents). -/
@@ -37,7 +42,7 @@ def ConstAt (x : G.Assignment) (w : Fin G.size) : Prop :=
   ∀ ps hps f hf, G.kind w = .det ps hps f hf → ps = ∅ → x w = f x
 
 /-- A public way to read, from a query, the hash node it belongs to. -/
-structure Tagging (G : Graph P) where
+structure Tagging (G : Graph) where
   tag : Query → Option (Fin G.size)
   /-- The parent of every hash node is a deterministic node whose output carries the tag of that
   hash node, as soon as its constant parents have their values. -/
@@ -52,7 +57,7 @@ def point (x : G.Assignment) (v : Fin G.size) : Option Query :=
   | _ => none
 
 /-- The cache written by key generation for the record `ξ`. -/
-def keygenCache (ξ : G.Rec) : Cache P :=
+def keygenCache (ξ : G.Rec) : Cache :=
   (List.finRange G.size).foldl
     (fun c v => match G.point (G.evalRec ξ) v with
       | some q => c.cacheQuery q (ξ.2 v)
@@ -83,8 +88,8 @@ theorem point_inj (T : G.Tagging) {x x' : G.Assignment} (hx : G.TagOK T x) (hx' 
   Option.some.inj ((hx v q h).symm.trans (hx' v' q h'))
 
 /-- One step of the cache fold: record the keygen point of `v` under `x` with answer `y v`. -/
-def cacheStep (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits) (c : Cache P)
-    (v : Fin G.size) : Cache P :=
+def cacheStep (x : G.Assignment) (y : Fin G.size → BitVec hashBits) (c : Cache)
+    (v : Fin G.size) : Cache :=
   match G.point x v with
   | some q => c.cacheQuery q (y v)
   | none => c
@@ -92,19 +97,19 @@ def cacheStep (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits) (c : Cac
 theorem keygenCache_eq (ξ : G.Rec) :
     G.keygenCache ξ = (List.finRange G.size).foldl (G.cacheStep (G.evalRec ξ) ξ.2) ∅ := rfl
 
-theorem cacheStep_of_eq_some (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
-    (c : Cache P) {v : Fin G.size} {q : Query} (h : G.point x v = some q) :
+theorem cacheStep_of_eq_some (x : G.Assignment) (y : Fin G.size → BitVec hashBits)
+    (c : Cache) {v : Fin G.size} {q : Query} (h : G.point x v = some q) :
     G.cacheStep x y c v = c.cacheQuery q (y v) := by
   simp [cacheStep, h]
 
-theorem cacheStep_of_eq_none (x : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
-    (c : Cache P) {v : Fin G.size} (h : G.point x v = none) :
+theorem cacheStep_of_eq_none (x : G.Assignment) (y : Fin G.size → BitVec hashBits)
+    (c : Cache) {v : Fin G.size} (h : G.point x v = none) :
     G.cacheStep x y c v = c := by
   simp [cacheStep, h]
 
 theorem foldl_cacheStep_eq_some_iff (T : G.Tagging) {x : G.Assignment} (hx : G.TagOK T x)
-    (y : Fin G.size → BitVec P.hashBits) (q : Query) (w : BitVec P.hashBits) :
-    ∀ (l : List (Fin G.size)) (c : Cache P),
+    (y : Fin G.size → BitVec hashBits) (q : Query) (w : BitVec hashBits) :
+    ∀ (l : List (Fin G.size)) (c : Cache),
       (l.foldl (G.cacheStep x y) c) q = some w ↔
         (∃ v ∈ l, G.point x v = some q ∧ y v = w) ∨
           (c q = some w ∧ ∀ v ∈ l, G.point x v ≠ some q)
@@ -159,7 +164,7 @@ theorem tagOK_evalRec (T : G.Tagging) (ξ : G.Rec) : G.TagOK T (G.evalRec ξ) :=
   rw [hk'] at h
   exact h
 
-theorem keygenCache_apply_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) (w : BitVec P.hashBits) :
+theorem keygenCache_apply_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) (w : BitVec hashBits) :
     G.keygenCache ξ q = some w ↔ ∃ v, G.point (G.evalRec ξ) v = some q ∧ ξ.2 v = w := by
   rw [keygenCache_eq, G.foldl_cacheStep_eq_some_iff T (G.tagOK_evalRec T ξ)]
   simp [List.mem_finRange]
@@ -167,7 +172,7 @@ theorem keygenCache_apply_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) (w : BitV
 /-! ## Node-kind case lemmas -/
 
 theorem point_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) :
+    {hl : G.len v = hashBits} (hk : G.kind v = .hash p hp hl) :
     G.point x v = some ⟨G.len p, x p⟩ := by
   simp [point, hk]
 
@@ -180,7 +185,7 @@ theorem point_of_kind_eq_det (x : G.Assignment) {v : Fin G.size} {ps hps f hf}
   simp [point, hk]
 
 theorem recVal_of_kind_eq_hash (ξ : G.Rec) {v p : Fin G.size} {hp : p < v}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) (x : G.Assignment) :
+    {hl : G.len v = hashBits} (hk : G.kind v = .hash p hp hl) (x : G.Assignment) :
     G.recVal ξ v x = (ξ.2 v).cast hl.symm := by
   simp [recVal, hk, NodeKind.value]
 
@@ -193,17 +198,17 @@ theorem recVal_of_kind_eq_det (ξ : G.Rec) {v : Fin G.size} {ps hps f hf}
   simp [recVal, hk, NodeKind.value]
 
 theorem evalNode_of_kind_eq_hash (x : G.Assignment) {v p : Fin G.size} {hp : p < v}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl)
-    (s : OracleComp (Spec P) (BitVec (G.len v))) :
-    G.evalNode x v s = (fun y => y.cast hl.symm) <$> hash P (x p) := by
+    {hl : G.len v = hashBits} (hk : G.kind v = .hash p hp hl)
+    (s : OracleComp Spec (BitVec (G.len v))) :
+    G.evalNode x v s = (fun y => y.cast hl.symm) <$> hash (x p) := by
   simp [evalNode, hk]
 
 theorem evalNode_of_kind_eq_source (x : G.Assignment) {v : Fin G.size} (hk : G.kind v = .source)
-    (s : OracleComp (Spec P) (BitVec (G.len v))) : G.evalNode x v s = s := by
+    (s : OracleComp Spec (BitVec (G.len v))) : G.evalNode x v s = s := by
   simp [evalNode, hk]
 
 theorem evalNode_of_kind_eq_det (x : G.Assignment) {v : Fin G.size} {ps hps f hf}
-    (hk : G.kind v = .det ps hps f hf) (s : OracleComp (Spec P) (BitVec (G.len v))) :
+    (hk : G.kind v = .det ps hps f hf) (s : OracleComp Spec (BitVec (G.len v))) :
     G.evalNode x v s = pure (f x) := by
   simp [evalNode, hk]
 
@@ -215,7 +220,7 @@ theorem nodeCost_of_kind_eq_det {v : Fin G.size} {ps hps f hf}
     (hk : G.kind v = .det ps hps f hf) : G.nodeCost v = 0 := by
   simp [nodeCost, hk]
 
-end Graph
+end Dag.Graph
 
 /-! ## Folds of updates -/
 
@@ -303,19 +308,21 @@ theorem sum_avg_update {ι : Type} [Fintype ι] [DecidableEq ι] {R : ι → Typ
 
 /-! ## Running a single query -/
 
-theorem run_query (P : Params) (t : (Spec P).Domain) (c : Cache P) :
-    run P (liftM ((Spec P).query t)) c = (oracleImpl P t).run c := by
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
+theorem run_query (t : Spec.Domain) (c : Cache) :
+    run (liftM (Spec.query t)) c = (oracleImpl t).run c := by
   simp only [run, simulateQ_spec_query]
 
 /-! ## Sampling the sources -/
 
-namespace Graph
+namespace Dag.Graph
 
-variable {P : Params} {F : DagFormat} (G : Graph P)
+variable (G : Graph)
 
-theorem E_run_sampleFold (g : G.Assignment × Cache P → ℝ≥0∞) :
-    ∀ (l : List (Fin G.size)), l.Nodup → ∀ (z : G.Assignment) (c : Cache P),
-      E (run P (l.foldlM (fun z v => Function.update z v <$> sampleBits P (G.len v)) z) c) g =
+theorem E_run_sampleFold (g : G.Assignment × Cache → ℝ≥0∞) :
+    ∀ (l : List (Fin G.size)), l.Nodup → ∀ (z : G.Assignment) (c : Cache),
+      E (run (l.foldlM (fun z v => Function.update z v <$> sampleBits (G.len v)) z) c) g =
         ∑ y : G.Assignment, (Fintype.card G.Assignment : ℝ≥0∞)⁻¹ *
           g (l.foldl (fun z v => Function.update z v (y v)) z, c)
   | [], _, z, c => by
@@ -331,8 +338,8 @@ theorem E_run_sampleFold (g : G.Assignment × Cache P → ℝ≥0∞) :
       fun u u' y => ?_
     simp only [foldl_update_of_update_not_mem y u' l ha]
 
-theorem E_run_sampleAssignment (g : G.Assignment × Cache P → ℝ≥0∞) (c : Cache P) :
-    E (run P G.sampleAssignment c) g =
+theorem E_run_sampleAssignment (g : G.Assignment × Cache → ℝ≥0∞) (c : Cache) :
+    E (run G.sampleAssignment c) g =
       ∑ y : G.Assignment, (Fintype.card G.Assignment : ℝ≥0∞)⁻¹ * g (y, c) := by
   unfold Graph.sampleAssignment
   rw [G.E_run_sampleFold g _ (List.nodup_finRange _)]
@@ -341,19 +348,19 @@ theorem E_run_sampleAssignment (g : G.Assignment × Cache P → ℝ≥0∞) (c :
 /-! ## Evaluating the nodes -/
 
 /-- The cache `c` holds no query tagged with a node of `l`. -/
-def Fresh (T : G.Tagging) (l : List (Fin G.size)) (c : Cache P) : Prop :=
+def Fresh (T : G.Tagging) (l : List (Fin G.size)) (c : Cache) : Prop :=
   ∀ v ∈ l, ∀ q : Query, T.tag q = some v → c q = none
 
 theorem fresh_empty (T : G.Tagging) (l : List (Fin G.size)) : G.Fresh T l ∅ :=
   fun _ _ _ _ => rfl
 
-theorem Fresh.tail {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
+theorem Fresh.tail {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache}
     (h : G.Fresh T (a :: l) c) : G.Fresh T l c :=
   fun v hv => h v (List.mem_cons_of_mem a hv)
 
-theorem Fresh.cacheQuery {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache P}
+theorem Fresh.cacheQuery {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)} {c : Cache}
     (h : G.Fresh T (a :: l) c) (ha : a ∉ l) {q : Query} (hq : T.tag q = some a)
-    (u : BitVec P.hashBits) : G.Fresh T l (c.cacheQuery q u) := by
+    (u : BitVec hashBits) : G.Fresh T l (c.cacheQuery q u) := by
   intro v hv q' hq'
   have hne : q' ≠ q := by
     rintro rfl
@@ -415,8 +422,8 @@ theorem Tagged.update {T : G.Tagging} {a : Fin G.size} {l : List (Fin G.size)}
     simp only [List.mem_cons, not_or]
     exact ⟨hpa, hpl⟩
 
-theorem foldl_recVal_update_of_not_mem (z : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
-    {a : Fin G.size} (u' : BitVec P.hashBits) (l : List (Fin G.size)) (ha : a ∉ l)
+theorem foldl_recVal_update_of_not_mem (z : G.Assignment) (y : Fin G.size → BitVec hashBits)
+    {a : Fin G.size} (u' : BitVec hashBits) (l : List (Fin G.size)) (ha : a ∉ l)
     (x : G.Assignment) :
     l.foldl (fun x v => Function.update x v (G.recVal (z, Function.update y a u') v x)) x =
       l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x := by
@@ -424,22 +431,22 @@ theorem foldl_recVal_update_of_not_mem (z : G.Assignment) (y : Fin G.size → Bi
   have hva : v ≠ a := fun h => ha (h ▸ hv)
   simp only [recVal, Function.update_of_ne hva]
 
-theorem foldl_cacheStep_update_of_not_mem (Fn : G.Assignment) (y : Fin G.size → BitVec P.hashBits)
-    {a : Fin G.size} (u' : BitVec P.hashBits) (l : List (Fin G.size)) (ha : a ∉ l)
-    (c : Cache P) :
+theorem foldl_cacheStep_update_of_not_mem (Fn : G.Assignment) (y : Fin G.size → BitVec hashBits)
+    {a : Fin G.size} (u' : BitVec hashBits) (l : List (Fin G.size)) (ha : a ∉ l)
+    (c : Cache) :
     l.foldl (G.cacheStep Fn (Function.update y a u')) c = l.foldl (G.cacheStep Fn y) c := by
   refine List.foldl_ext _ _ c fun c v hv => ?_
   have hva : v ≠ a := fun h => ha (h ▸ hv)
   simp only [cacheStep, Function.update_of_ne hva]
 
 theorem E_run_evalFold (T : G.Tagging) (z : G.Assignment)
-    (g : G.Assignment × Cache P → ℝ≥0∞) :
-    ∀ (l : List (Fin G.size)), l.Pairwise (· < ·) → ∀ (x : G.Assignment) (c : Cache P),
+    (g : G.Assignment × Cache → ℝ≥0∞) :
+    ∀ (l : List (Fin G.size)), l.Pairwise (· < ·) → ∀ (x : G.Assignment) (c : Cache),
       G.Fresh T l c → G.Tagged T l x →
-      E (run P (l.foldlM (fun x v => Function.update x v <$> G.evalNode x v (pure (z v))) x) c)
+      E (run (l.foldlM (fun x v => Function.update x v <$> G.evalNode x v (pure (z v))) x) c)
           g =
-        ∑ y : Fin G.size → BitVec P.hashBits,
-          (Fintype.card (Fin G.size → BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
+        ∑ y : Fin G.size → BitVec hashBits,
+          (Fintype.card (Fin G.size → BitVec hashBits) : ℝ≥0∞)⁻¹ *
             g (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x,
               l.foldl (G.cacheStep
                 (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x) y) c)
@@ -474,9 +481,9 @@ theorem E_run_evalFold (T : G.Tagging) (z : G.Assignment)
         htagged.1 a (List.mem_cons_self ..) p hp hl hk hpa
       have hcq : c ⟨G.len p, x p⟩ = none := hfresh a (List.mem_cons_self ..) _ htq
       rw [G.evalNode_of_kind_eq_hash x hk, hash, run_map, run_map, run_query,
-        oracleImpl_run_inr_none P hcq]
+        oracleImpl_run_inr_none hcq]
       simp only [E_map, E_bind, E_pure, E_uniform]
-      have key := sum_avg_update (R := fun _ => BitVec P.hashBits) a
+      have key := sum_avg_update (R := fun _ => BitVec hashBits) a
         (fun u y => g (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x))
             (Function.update x a (u.cast hl.symm)),
           l.foldl (G.cacheStep (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x))
@@ -499,22 +506,22 @@ theorem E_run_evalFold (T : G.Tagging) (z : G.Assignment)
         rw [G.cacheStep_of_eq_some _ _ _ hF, G.recVal_of_kind_eq_hash _ hk]
 
 theorem E_run_evaluate (T : G.Tagging) (z : G.Assignment)
-    (g : G.Assignment × Cache P → ℝ≥0∞) :
-    E (run P (G.evaluate z) ∅) g =
-      ∑ y : Fin G.size → BitVec P.hashBits,
-        (Fintype.card (Fin G.size → BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
+    (g : G.Assignment × Cache → ℝ≥0∞) :
+    E (run (G.evaluate z) ∅) g =
+      ∑ y : Fin G.size → BitVec hashBits,
+        (Fintype.card (Fin G.size → BitVec hashBits) : ℝ≥0∞)⁻¹ *
           g (G.evalRec (z, y), G.keygenCache (z, y)) := by
   unfold Graph.evaluate
   rw [G.E_run_evalFold T z g _ (List.pairwise_lt_finRange _) _ ∅ (G.fresh_empty T _)
     (G.tagged_finRange T _)]
   rfl
 
-end Graph
+end Dag.Graph
 
 /-- Key generation of a tagged graph is a uniform record. -/
-theorem E_run_keygen {P : Params} {F : DagFormat} (S : Scheme P F) (T : S.graph.Tagging)
-    (g : (PublicKey P × S.graph.Assignment) × Cache P → ℝ≥0∞) :
-    E (run P S.keygen ∅) g =
+theorem E_run_keygen (S : Scheme) (T : S.graph.Tagging)
+    (g : (PublicKey × S.graph.Assignment) × Cache → ℝ≥0∞) :
+    E (run S.keygen ∅) g =
       ∑ ξ : S.graph.Rec, (Fintype.card S.graph.Rec : ℝ≥0∞)⁻¹ *
         g ((S.publicKey (S.graph.evalRec ξ), S.graph.evalRec ξ), S.graph.keygenCache ξ) := by
   have hA0 : (Fintype.card S.graph.Assignment : ℝ≥0∞) ≠ 0 := by
@@ -533,11 +540,11 @@ theorem E_run_keygen {P : Params} {F : DagFormat} (S : Scheme P F) (T : S.graph.
 /-! ## Budgets -/
 
 /-- A lifted `ProbComp` costs nothing: the continuation keeps the whole budget. -/
-theorem costAtMost_liftM_bind {P : Params} {α β : Type} (pc : ProbComp α)
-    (k : α → OracleComp (Spec P) β) {b : ℕ}
-    (h : CostAtMost P ((liftM pc : OracleComp (Spec P) α) >>= k) b) :
-    ∀ x ∈ support pc, CostAtMost P (k x) b := by
-  change CostAtMost P (liftComp pc (Spec P) >>= k) b at h
+theorem costAtMost_liftM_bind {α β : Type} (pc : ProbComp α)
+    (k : α → OracleComp Spec β) {b : ℕ}
+    (h : CostAtMost ((liftM pc : OracleComp Spec α) >>= k) b) :
+    ∀ x ∈ support pc, CostAtMost (k x) b := by
+  change CostAtMost (liftComp pc Spec >>= k) b at h
   induction pc using OracleComp.inductionOn generalizing b with
   | pure x =>
     intro x' hx'
@@ -547,8 +554,8 @@ theorem costAtMost_liftM_bind {P : Params} {α β : Type} (pc : ProbComp α)
   | query_bind t mx ih =>
     intro x hx
     rw [liftComp_bind] at h
-    have hq : liftComp (liftM (OracleSpec.query t) : ProbComp _) (Spec P) =
-        (liftM ((Spec P).query (.inl t)) : OracleComp (Spec P) _) := by
+    have hq : liftComp (liftM (OracleSpec.query t) : ProbComp _) Spec =
+        (liftM (Spec.query (.inl t)) : OracleComp Spec _) := by
       simp [liftComp]; rfl
     rw [hq, bind_assoc, costAtMost_query_bind_iff] at h
     obtain ⟨-, h⟩ := h
@@ -558,16 +565,16 @@ theorem costAtMost_liftM_bind {P : Params} {α β : Type} (pc : ProbComp α)
     have := ih u (h u) x hx
     simpa [queryCost] using this
 
-namespace Graph
+namespace Dag.Graph
 
-variable {P : Params} {F : DagFormat} (G : Graph P)
+variable (G : Graph)
 
-theorem costAtMost_sampleFold_bind {β : Type} (k : G.Assignment → OracleComp (Spec P) β)
+theorem costAtMost_sampleFold_bind {β : Type} (k : G.Assignment → OracleComp Spec β)
     {b : ℕ} :
     ∀ (l : List (Fin G.size)) (z : G.Assignment),
-      CostAtMost P
-        (l.foldlM (fun z v => Function.update z v <$> sampleBits P (G.len v)) z >>= k) b →
-      ∀ y : G.Assignment, CostAtMost P (k (l.foldl (fun z v => Function.update z v (y v)) z)) b
+      CostAtMost
+        (l.foldlM (fun z v => Function.update z v <$> sampleBits (G.len v)) z >>= k) b →
+      ∀ y : G.Assignment, CostAtMost (k (l.foldl (fun z v => Function.update z v (y v)) z)) b
   | [], z, h, y => by rwa [List.foldlM_nil, pure_bind] at h
   | a :: l, z, h, y => by
     rw [List.foldlM_cons, bind_assoc, sampleBits, bind_map_left] at h
@@ -575,13 +582,13 @@ theorem costAtMost_sampleFold_bind {β : Type} (k : G.Assignment → OracleComp 
     exact costAtMost_sampleFold_bind k l _ this y
 
 theorem costAtMost_evalFold_bind (z : G.Assignment) {β : Type}
-    (k : G.Assignment → OracleComp (Spec P) β) :
+    (k : G.Assignment → OracleComp Spec β) :
     ∀ (l : List (Fin G.size)) (x : G.Assignment) (b : ℕ),
-      CostAtMost P
+      CostAtMost
         (l.foldlM (fun x v => Function.update x v <$> G.evalNode x v (pure (z v))) x >>= k) b →
       (l.map G.nodeCost).sum ≤ b ∧
-        ∀ y : Fin G.size → BitVec P.hashBits,
-          CostAtMost P (k (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x))
+        ∀ y : Fin G.size → BitVec hashBits,
+          CostAtMost (k (l.foldl (fun x v => Function.update x v (G.recVal (z, y) v x)) x))
             (b - (l.map G.nodeCost).sum)
   | [], x, b, h => by
     refine ⟨by simp, fun y => ?_⟩
@@ -606,28 +613,28 @@ theorem costAtMost_evalFold_bind (z : G.Assignment) {β : Type}
     · rw [G.evalNode_of_kind_eq_hash x hk, hash, bind_map_left, bind_map_left,
         costAtMost_query_bind_iff] at h
       obtain ⟨hc, h⟩ := h
-      have hcost : queryCost P (.inr ⟨G.len p, x p⟩) = G.nodeCost a := by
+      have hcost : queryCost (.inr ⟨G.len p, x p⟩) = G.nodeCost a := by
         simp [queryCost, nodeCost, hk]
       rw [hcost] at hc h
       refine ⟨?_, fun y => ?_⟩
-      · have := (costAtMost_evalFold_bind z k l _ _ (h (0 : BitVec P.hashBits))).1
+      · have := (costAtMost_evalFold_bind z k l _ _ (h (0 : BitVec hashBits))).1
         omega
       · have := (costAtMost_evalFold_bind z k l _ _ (h (y a))).2 y
         simp only [List.foldl_cons, G.recVal_of_kind_eq_hash _ hk]
         rw [Nat.sub_add_eq]
         exact this
 
-end Graph
+end Dag.Graph
 
 /-- A budget for `S.keygen >>= k` covers key generation and leaves `B - keygenCost` for the
 continuation at every record. -/
-theorem costAtMost_keygen_bind {P : Params} {F : DagFormat} (S : Scheme P F) {β : Type}
-    (k : PublicKey P × S.graph.Assignment → OracleComp (Spec P) β) {B : ℕ}
-    (h : CostAtMost P (S.keygen >>= k) B) :
+theorem costAtMost_keygen_bind (S : Scheme) {β : Type}
+    (k : PublicKey × S.graph.Assignment → OracleComp Spec β) {B : ℕ}
+    (h : CostAtMost (S.keygen >>= k) B) :
     S.graph.keygenCost ≤ B ∧ ∀ ξ : S.graph.Rec,
-      CostAtMost P (k (S.publicKey (S.graph.evalRec ξ), S.graph.evalRec ξ))
+      CostAtMost (k (S.publicKey (S.graph.evalRec ξ), S.graph.evalRec ξ))
         (B - S.graph.keygenCost) := by
-  have h' : CostAtMost P (S.graph.sampleAssignment >>= fun z =>
+  have h' : CostAtMost (S.graph.sampleAssignment >>= fun z =>
       S.graph.evaluate z >>= fun x => k (S.publicKey x, x)) B := by
     simpa only [Scheme.keygen, Graph.keygen, bind_assoc, pure_bind] using h
   unfold Graph.sampleAssignment at h'
@@ -635,8 +642,8 @@ theorem costAtMost_keygen_bind {P : Params} {F : DagFormat} (S : Scheme P F) {β
   simp only [foldl_update_finRange] at hs
   have he : ∀ z : S.graph.Assignment,
       ((List.finRange S.graph.size).map S.graph.nodeCost).sum ≤ B ∧
-        ∀ y : Fin S.graph.size → BitVec P.hashBits,
-          CostAtMost P (k (S.publicKey (S.graph.evalRec (z, y)), S.graph.evalRec (z, y)))
+        ∀ y : Fin S.graph.size → BitVec hashBits,
+          CostAtMost (k (S.publicKey (S.graph.evalRec (z, y)), S.graph.evalRec (z, y)))
             (B - ((List.finRange S.graph.size).map S.graph.nodeCost).sum) := fun z =>
     S.graph.costAtMost_evalFold_bind z (fun x => k (S.publicKey x, x)) _ _ B (hs z)
   have hK : S.graph.keygenCost = ((List.finRange S.graph.size).map S.graph.nodeCost).sum := by

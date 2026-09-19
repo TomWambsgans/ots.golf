@@ -113,7 +113,7 @@ restrictions in the descriptions. Keep the existing slugs and Lean names. Histor
 references retain their historical names; the generality levels apply only to lower bounds.
 
 Keep the homepage score cards compact, with the correct cost unit beside every score.
-Use “lossless encoding” in public prose for the contract's injective signature encoding.
+Oracle-algorithm signatures are plain bit strings; say so directly in public prose.
 Name the bound direction explicitly in each score-card and framework rule heading. The algorithm
 rule section covers upper constructions and Generality 3/3 lower bounds; the RISC-V section states
 its machine, refinement, termination and cycle requirements, the cycle bound covering every
