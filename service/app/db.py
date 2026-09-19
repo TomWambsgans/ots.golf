@@ -1,6 +1,8 @@
 """Database: users and submissions, in SQLite (WAL) under the data directory."""
 from __future__ import annotations
 
+import hashlib
+
 import json
 import fcntl
 import re
@@ -17,6 +19,16 @@ from .config import settings
 def utcnow() -> datetime:
     """Naive UTC, which is what every backend stores faithfully."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def stable_id(*parts: str) -> str:
+    """A submission id that depends only on what was submitted, so every page link survives
+    rebuilding the database from GitHub."""
+    return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()[:32]
+
+
+def pr_submission_id(pr_repository: str, pr_number: int, commit: str) -> str:
+    return stable_id("pr", pr_repository.lower(), str(pr_number), commit.lower())
 
 
 class Base(DeclarativeBase):

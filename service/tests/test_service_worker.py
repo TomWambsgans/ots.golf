@@ -245,6 +245,26 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(update.call_args.args[:2], ('owner/repo', 123))
             post.assert_not_called()
 
+    def test_pr_submission_ids_are_stable_and_failed_heads_requeue_under_the_same_id(self):
+        pr = {'state': 'open', 'user': {'login': 'alice', 'id': 42},
+              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('generic-lower', [])):
+            first = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+        from app.db import pr_submission_id
+        self.assertEqual(first['id'], pr_submission_id('owner/repo', 9, 'b' * 40))
+        with self.sessions() as session:
+            sub = session.get(Submission, first['id'])
+            sub.status = 'failed'
+            session.commit()
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('generic-lower', [])):
+            again = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+        self.assertEqual(again['id'], first['id'])
+        with self.sessions() as session:
+            self.assertEqual(session.get(Submission, first['id']).status, 'pending')
+            self.assertEqual(len(list(session.scalars(select(Submission)))), 1)
+
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()
         sub.pr_url = 'https://github.com/owner/core/pull/7'

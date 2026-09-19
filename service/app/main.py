@@ -24,7 +24,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
-from .db import SessionLocal, Submission, User, get_session, init_db, local_lock, schedule_report, utcnow
+from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
+                 schedule_report, stable_id, utcnow)
 
 APP_DIR = Path(__file__).resolve().parent
 @asynccontextmanager
@@ -175,10 +176,23 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
                                                                           "policy_rejected", "timeout")))).first()
     if dup:
         raise HTTPException(409, f"this commit is already submitted: {dup.id}")
-    sub = Submission(track=track, user_id=user.id, source_repo=repo, commit=commit,
-                     description=(description or "").strip() or None, co_authors=json.dumps(co_authors),
-                     assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
-    session.add(sub)
+    fields = dict(track=track, user_id=user.id, source_repo=repo, commit=commit,
+                  description=(description or "").strip() or None, co_authors=json.dumps(co_authors),
+                  assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
+    probe = Submission(**fields)
+    sid = (pr_submission_id(probe.pr_repository, pr_number, commit) if probe.pr_repository
+           else stable_id("local", track, repo, commit))
+    sub = session.get(Submission, sid)
+    if sub is None:
+        sub = Submission(id=sid, **fields)
+        session.add(sub)
+    else:   # the same head after an infrastructure failure: check it again under the same id
+        for key, value in fields.items():
+            setattr(sub, key, value)
+        sub.status, sub.claim, sub.is_record, sub.record_at = "pending", None, False, None
+        sub.started_at = sub.finished_at = sub.duration_s = None
+        sub.created_at = utcnow()
+        sub.detail = json.dumps({k: v for k, v in sub.detail_dict.items() if k in ("github_comment_id", "merge")})
     schedule_report(session, sub)
     session.commit()
     return sub
