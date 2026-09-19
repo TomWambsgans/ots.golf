@@ -34,7 +34,9 @@ class ServiceWorkerTests(unittest.TestCase):
                         patch.object(settings, 'contract_repo', 'owner/core'),
                         patch.object(settings, 'submissions_repo', 'owner/repo'),
                         patch.object(settings, 'github_token', ''),
-                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions)]
+                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions),
+                        patch('app.worker.github.merge_pr', return_value=(False, 'not in tests')),
+                        patch.object(settings, 'auto_merge', False)]
         for p in self.patches:
             p.start()
         with self.sessions() as session:
@@ -351,6 +353,55 @@ class ServiceWorkerTests(unittest.TestCase):
         with patch.object(settings, 'phony', False), patch('app.resync.ensure_baselines', return_value=5) as ensure:
             main.prepare_board()
         ensure.assert_called_once()
+
+    def deliver(self, sub, merge_result):
+        with self.sessions() as session:
+            schedule_report(session, session.get(Submission, sub.id))
+            session.commit()
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
+             patch('app.worker.github.post_comment', return_value=11), \
+             patch('app.worker.github.merge_pr', return_value=merge_result) as merge:
+            if 'auto_merge_off' in self._testMethodName:
+                worker.deliver_report(sub.id)
+            else:
+                with patch.object(settings, 'auto_merge', True):
+                    worker.deliver_report(sub.id)
+        return merge
+
+    def test_verified_record_is_merged_automatically_and_promoted(self):
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_called_once()
+        self.assertEqual(merge.call_args.args[:3], ('owner/repo', 7, 'a' * 40))
+        with self.sessions() as session:
+            stored = session.get(Submission, sub.id)
+            self.assertTrue(stored.is_record)
+            self.assertTrue(stored.detail_dict['merge']['automatic'])
+            self.assertIsNotNone(session.get(GithubReport, sub.id))   # the comment is updated to "new record"
+
+    def test_non_record_is_never_merged(self):
+        self.submission(claim=25, record=True, pr=5)
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_not_called()
+        with self.sessions() as session:
+            self.assertFalse(session.get(Submission, sub.id).is_record)
+
+    def test_refused_merge_is_explained_on_the_pull_request(self):
+        sub = self.submission(claim=19)
+        self.deliver(sub, (False, 'Pull Request is not mergeable'))
+        with self.sessions() as session:
+            stored = session.get(Submission, sub.id)
+            self.assertFalse(stored.is_record)
+            self.assertEqual(stored.detail_dict['merge_blocked'], 'Pull Request is not mergeable')
+        with patch('app.worker.github.post_status'), patch('app.worker.github.update_comment') as update:
+            worker.report(stored)
+        self.assertIn('GitHub refused the automatic merge', update.call_args.args[2])
+
+    def test_auto_merge_off_never_merges(self):
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_not_called()
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()

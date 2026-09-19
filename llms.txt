@@ -45,7 +45,7 @@ Submit a pull request to leanEthereum/ots.golf-submissions changing only one adm
 Solution.lean and claim.txt (NOTES.md and README.md are optional), obey import and size limits, and use the pinned toolchain. Exported
 proofs may use only propext, Quot.sound and Classical.choice: no sorry or native_decide.
 Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution.
-A verified improvement becomes a record only when that exact head is merged.
+A verified strict improvement is merged automatically, pinned to its verified head, and becomes the record.
 Write a NOTES.md in the root: idea, result, what failed and why, what to try next. It is published
 whatever the verdict. Non-record submissions are welcome for their notes. Every checked head stays
 fetchable from the submissions repository as pull/<N>/head, even after its fork is deleted.

@@ -28,9 +28,14 @@ services stopped.
    this bootstrap is not a hermetic operating-system image. The repository pins the proof tool commits
    and the Python dependency lockfile.
 
-2. Add a fine-grained token for `leanEthereum/ots.golf-submissions` to `/etc/ots/secrets.env`:
-   contents read, commit statuses and pull requests read/write, without contents write.
-   No core-repository write access is needed. The file already contains a generated webhook secret.
+2. Add a token for a dedicated bot account (not a person) to `/etc/ots/secrets.env`. It is a
+   fine-grained token for `leanEthereum/ots.golf-submissions` only, with contents read/write, commit
+   statuses read/write and pull requests read/write. Contents write is used only to merge a verified
+   pull request that beats the record, pinned to its verified head. Protect `main` with a repository
+   ruleset without any bypass: changes only through pull requests, the `ots.golf/verifier` status
+   required, no force pushes, no deletion. The token can then merge only a head the verifier passed,
+   and never push code of its own. `OTS_AUTO_MERGE=0` leaves merges to maintainers and lets the token
+   drop contents write. No core-repository write access is needed. The file already contains a generated webhook secret.
    Keep it `root:root 0600`. Do not put credentials in `/etc/ots/public.env`, the checkout, Git
    configuration, the `ots` account's home, or the verifier environment.
 
@@ -178,5 +183,5 @@ their intentional status.
 
 Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
 merge event. A merge marker received before verification is stored and applied after a successful
-check. The service never merges PRs or updates the trusted checkout. Generic upper records, like
-lower records, require successful verification and confirmation that the same head was merged.
+check. The service merges only verified record-breaking PRs and never updates the trusted checkout.
+Generic upper records, like lower records, require successful verification and a merge of the same head.

@@ -70,8 +70,9 @@ rules and documentation together, then refresh and inspect localhost.
 
 A public pull request to the submissions repository must change exactly one admitted submission root. The authenticated webhook
 checks the repository, files and current head; the worker verifies that exact commit on the trusted
-tree. A verified improvement becomes a record only after GitHub's API confirms that the verified
-head was merged. Merges received before verification are remembered. The service never merges PRs.
+tree. A verified strict improvement is merged automatically by the web process, pinned to the
+verified head (GitHub refuses if the head moved), and becomes the record; `OTS_AUTO_MERGE=0` turns this
+off, leaving merges to maintainers. Merges received before verification are remembered.
 The trusted core checkout remains independent of submission merges. Historical result reports
 retain the PR's repository and are never redirected to the same PR number in another repository.
 
@@ -100,6 +101,7 @@ directory; lock files enforce this across processes on the same host.
 | `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
+| `OTS_AUTO_MERGE` | `1` | merge a verified record-breaking PR automatically; needs contents write |
 | `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows the reference baselines |
 | `OTS_RESYNC_ON_START` | `1` | rebuild missing submissions from GitHub when the website starts |
 | `OTS_BOT_LOGIN` | token's login | account whose PR comments carry verdicts |

@@ -19,7 +19,8 @@ the ideas, results and dead ends of every checked submission, newest first.
 Change only one directory per PR. Put the claim in `claim.txt` and export the required declarations
 from `Solution.lean`. Follow the [submission rules](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md), including import, file,
 resource and axiom limits. The PR author, description, and optional `Assisted by:` and `Co-authors:`
-lines supply attribution. A verified improvement becomes a record when that exact PR head is merged.
+lines supply attribution. A verified strict improvement is merged automatically, pinned to its verified
+head, and becomes the record.
 
 Add a `NOTES.md` to the root you change: the idea, the result, what did not work and why, and what
 you would try next. It is published with the verdict, whatever the verdict, and joins the journal.

@@ -143,6 +143,22 @@ def read_file(owner_repo: str, path: str, commit: str, max_bytes: int = 64 * 102
         return r.content[:max_bytes].decode("utf-8", errors="replace")
 
 
+def merge_pr(owner_repo: str, number: int, sha: str, title: str) -> tuple[bool, str]:
+    """Merge a pull request, but only if its head is still exactly `sha`. Returns whether it merged,
+    and GitHub's reason when it did not (a conflict, a newer push, a closed pull request)."""
+    if not SHA_RE.fullmatch(sha):
+        raise ValueError("not a commit id")
+    with httpx.Client(timeout=60) as client:
+        r = client.put(f"{API}/repos/{owner_repo}/pulls/{number}/merge", headers=_headers(),
+                       json={"sha": sha, "merge_method": "merge", "commit_title": title})
+    if r.status_code == 200 and r.json().get("merged"):
+        return True, ""
+    if r.status_code in (405, 409, 422):
+        return False, str(r.json().get("message") or f"HTTP {r.status_code}")[:300]
+    _check(r, f"merge #{number}")
+    return False, f"HTTP {r.status_code}"
+
+
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*?)\n-->", re.S)
 VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")

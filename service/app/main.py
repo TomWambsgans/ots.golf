@@ -446,7 +446,8 @@ def llms():
 The model, verifier and reference certificates are maintained in {settings.contract_url}.
 Proof pull requests and merged record submissions belong in {settings.submissions_url}.
 The verifier checks only the submitted root against its trusted core checkout. A verified
-improvement becomes a record after its exact head is confirmed merged in the submissions repository.
+improvement is merged automatically in the submissions repository, pinned to its verified head, and
+becomes the record.
 The verdict is posted there as a commit status and a comment linking to
 {base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
 
