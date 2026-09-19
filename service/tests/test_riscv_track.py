@@ -58,14 +58,14 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 5513 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(61000, 'satoshi-nakamoto', 'cycles'), (47000, 'hal-finney', 'cycles'),
-                          (38000, 'ralph-merkle', 'cycles'), (30053, 'vitalik-buterin', 'cycles'),
-                          (24000, 'leslie-lamport', 'cycles'), (19000, 'hal-finney', 'cycles'),
-                          (15200, 'satoshi-nakamoto', 'cycles'), (12300, 'vitalik-buterin', 'cycles'),
-                          (10100, 'ralph-merkle', 'cycles'), (8500, 'hal-finney', 'cycles'),
-                          (7400, 'leslie-lamport', 'cycles'), (6620, 'hal-finney', 'cycles'),
-                          (6510, 'vitalik-buterin', 'cycles'), (6440, 'hal-finney', 'cycles'),
-                          (6370, 'vitalik-buterin', 'cycles'), (6340, 'vitalik-buterin', 'cycles'),
+                         [(7000, 'satoshi-nakamoto', 'cycles'), (6920, 'hal-finney', 'cycles'),
+                          (6850, 'ralph-merkle', 'cycles'), (6780, 'vitalik-buterin', 'cycles'),
+                          (6720, 'leslie-lamport', 'cycles'), (6660, 'hal-finney', 'cycles'),
+                          (6610, 'satoshi-nakamoto', 'cycles'), (6560, 'vitalik-buterin', 'cycles'),
+                          (6520, 'ralph-merkle', 'cycles'), (6480, 'hal-finney', 'cycles'),
+                          (6440, 'leslie-lamport', 'cycles'), (6410, 'hal-finney', 'cycles'),
+                          (6380, 'vitalik-buterin', 'cycles'), (6350, 'hal-finney', 'cycles'),
+                          (6330, 'vitalik-buterin', 'cycles'), (6310, 'vitalik-buterin', 'cycles'),
                           (5513, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
