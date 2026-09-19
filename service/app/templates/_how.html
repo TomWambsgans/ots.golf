@@ -5,7 +5,7 @@
     <p>All parties share one random oracle: every distinct bit string gets an independent uniform
     256-bit answer. Hashing is the only cryptographic primitive.</p>
     <p id="cost">A hash call costs one <strong>compression</strong> per started 512-bit block of its
-    input.</p>
+    input: hashing a bit string <code>x</code> costs <code>max(1, ⌈|x| / 512⌉)</code> compressions.</p>
     <p><em>A per-key public parameter, useful for multi-user security, costs (almost) nothing: a block-based
     hash can pad the parameter to a full block, absorb it once and cache the internal state, so every
     later call starts from that state for free (thanks Justin Drake for this idea).</em></p>
@@ -16,8 +16,8 @@
   <div class="more prose">
     <p>The attacker sees the public key, queries the oracle at will, receives one signature on a
     message of its choice, and then outputs a forgery. If the whole experiment (key generation,
-    signing, the attacker's queries and the final verification) makes <code>B</code> queries, the
-    attacker must win with probability below <code>B / 2<sup>127</sup></code>.</p>
+    signing, the attacker's queries and the final verification) costs at most <code>B</code>
+    compressions, the attacker must win with probability below <code>B / 2<sup>127</sup></code>.</p>
     <p>Winning means <strong>strong unforgeability</strong>: the forgery is any accepted
     message-signature pair other than the one the signer produced. If signing failed, any accepted
     pair wins.</p>
