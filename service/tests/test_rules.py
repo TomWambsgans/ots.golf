@@ -47,7 +47,6 @@ class RulesTests(unittest.TestCase):
         self.assertIn('<h3>Upper bounds</h3>', html)
         self.assertIn('<h3 id="model">Lower bounds</h3>', html)
         self.assertIn('whole 128-bit words', html)
-        self.assertIn('41 words', html)
         self.assertIn('Each deterministic node performs one of two operations:', html)
         self.assertNotIn('hash origins', html)
         self.assertNotIn('Reed–Solomon', html)
@@ -64,15 +63,13 @@ class RulesTests(unittest.TestCase):
         self.assertIn('formal/OptimalOTS/AlgorithmWeak.lean', html)
         self.assertIn('formal/OptimalOTS/WholeWords.lean', html)
 
-    def test_whole_word_rules_keep_variable_input_length_and_two_hash_halves(self):
+    def test_whole_word_rules_keep_word_sizes_and_two_hash_halves(self):
         html = self.rules_body()
         section = re.search(r'<details id="whole-word-model">.*?</details>',
                             html, re.S).group(0)
         self.assertIn('256 bits', section)
         self.assertIn('whole 128-bit words', section)
         self.assertIn('fixed low or high half directly from a hash output', section)
-        self.assertIn('A hash accepts any number of words', section)
-        self.assertIn('max(1, ⌈n / 4⌉)', section)
 
     def test_rules_separate_proof_prs_from_core_sources(self):
         with patch.object(settings, 'contract_repo', 'org/core'), \

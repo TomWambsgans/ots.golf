@@ -130,10 +130,6 @@
       word; each hash returns 256 bits. Each deterministic node performs one of two operations:
       select a fixed low or high half directly from a hash output, or concatenate complete earlier
       values. Concatenation may reorder, repeat, group or be empty; each value may feed multiple nodes.</p>
-      <p>Disclosures still form cuts and reveal complete node values. The 5,248-bit payload fits at
-      most <strong>41 words</strong>, plus the 256-bit nonce. A hash accepts any number of words:
-      <code>n</code> words cost <code>max(1, ⌈n / 4⌉)</code> compressions. The same DAG signing,
-      verification and cost budgets apply.</p>
     </div>
   </details>
 
