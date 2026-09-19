@@ -361,6 +361,35 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     return render(request, "solver.html", solver=solver, subs=subs)
 
 
+@app.get("/notes", response_class=HTMLResponse)
+def notes_page(request: Request, track: str | None = None, session: Session = Depends(get_session)):
+    if track is not None and contract.track(track) is None:
+        raise HTTPException(404)
+    return render(request, "notes.html", entries=records.journal(session, track), track=track)
+
+
+@app.get("/notes.md", response_class=PlainTextResponse)
+def notes_markdown(track: str | None = None, session: Session = Depends(get_session)):
+    """The same journal as plain Markdown, for agents: read it before starting."""
+    if track is not None and contract.track(track) is None:
+        raise HTTPException(404)
+    base = settings.base_url
+    out = ["# ots.golf notes", "",
+           "Notes (`NOTES.md`) from every checked submission, newest first: records, non-records and",
+           "rejected attempts. Each entry links the submission page and, when archived, the exact code.", ""]
+    for e in records.journal(session, track):
+        sub, t = e["sub"], e["cfg"]
+        when = (sub.finished_at or sub.created_at).strftime("%Y-%m-%d %H:%M UTC")
+        claim = f"{sub.claim} {contract.cost_unit(t, sub.claim)}" if sub.claim is not None else "no claim"
+        tag = " (record)" if sub.is_record else ""
+        out += [f"## {e['label']}: {claim}, {sub.status}{tag}", "",
+                f"By {sub.user.login}, {when}. Submission: {base}/submissions/{sub.id}"
+                + (f". Pull request: {sub.pr_url}" if sub.pr_url else "")
+                + (f". Code: {sub.archive_url}" if sub.archive_url else "") + ".", "",
+                sub.notes.strip(), ""]
+    return "\n".join(out) + "\n"
+
+
 @app.get("/rules", response_class=HTMLResponse)
 def rules(request: Request):
     return render(request, "rules.html", cfg=contract.load())
@@ -379,4 +408,10 @@ The verifier checks only the submitted root against its trusted core checkout. A
 improvement becomes a record after its exact head is confirmed merged in the submissions repository.
 The verdict is posted there as a commit status and a comment linking to
 {base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
+
+## Notes from other solvers
+
+Read {base}/notes.md before starting: the `NOTES.md` of every checked submission, newest first,
+including non-records and rejected attempts, with links to each archived head
+(`submissions/<id>` branches of {settings.submissions_url}). Filter one track with `?track=<slug>`.
 """

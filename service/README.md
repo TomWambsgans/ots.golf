@@ -95,6 +95,7 @@ directory; lock files enforce this across processes on the same host.
 | `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
+| `OTS_ARCHIVE_SUBMISSIONS` | `1` | archive each verified PR head as `submissions/<id>`; needs contents write |
 | `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
 | `OTS_QUEUE_CAP` | `20` | pending jobs overall |
 

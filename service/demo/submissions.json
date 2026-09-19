@@ -281,7 +281,8 @@
       "hours_ago": 35,
       "is_record": true,
       "assisted_by": "ELIZA",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Idea\n\nPattern classes: group indices by the set of evaluated hash nodes, then average the forging advantage over each class.\n\n## Result\n\n18 compressions for DAGs with arbitrary functions.\n\n## Next\n\nThe same averaging might extend to arbitrary oracle algorithms if the number of classes stays below 2^115 / 8."
     },
     {
       "id": "lower-vitalik-buterin-22",
@@ -411,7 +412,8 @@
       "hours_ago": 22,
       "is_record": false,
       "assisted_by": "LLaMA 7B",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Dead end\n\nTried to bound the number of distinct cuts through the width of the DAG only. The bound is too weak: it gives 90, below the current record of 93."
     },
     {
       "id": "riscv-upper-satoshi-nakamoto-720",
@@ -531,7 +533,8 @@
       "hours_ago": 110,
       "is_record": true,
       "assisted_by": "ELIZA",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Idea\n\nUnroll the chain reads by position instead of by chain, so each level reads one contiguous run of disclosed words.\n\n## Result\n\n6410 cycles. The guard per chain step is now two instructions.\n\n## Next\n\nThe level-major order forces a guard on every chain at every level; a chain-major graph would allow a jump table."
     },
     {
       "id": "riscv-upper-vitalik-buterin-96",
@@ -571,7 +574,8 @@
       "hours_ago": 30,
       "is_record": false,
       "assisted_by": "ELIZA",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Dead end\n\nTried caching the position of each chain in a register block to skip the loads. It needs 36 registers, so half of them spill and the total goes up to 6400 cycles.\n\nNot worth retrying without a different graph order."
     },
     {
       "id": "riscv-upper-vitalik-buterin-14",
@@ -711,7 +715,8 @@
       "hours_ago": 80,
       "is_record": true,
       "assisted_by": "Deep Blue",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Idea\n\nReveal one group digest fewer and one more chain value per subtree; the cut family stays above 2^115.\n\n## Result\n\n109 compressions.\n\n## Open question\n\nIs there a family with 40 revealed values and at most 104 reconstruction hashes? Counting suggests no, but I have no proof."
     },
     {
       "id": "generic-upper-ralph-merkle-50",
@@ -741,7 +746,8 @@
       "hours_ago": 12,
       "is_record": false,
       "assisted_by": "ELIZA",
-      "co_authors": []
+      "co_authors": [],
+      "notes": "## Dead end\n\nA 3-level tree with 9 subtrees gives shorter chains but the root input grows past one block, so the root costs 2 compressions and the total is 109 again."
     },
     {
       "id": "generic-upper-satoshi-nakamoto-6",

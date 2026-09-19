@@ -84,6 +84,33 @@ def overview(session: Session) -> list[dict]:
     return result
 
 
+def track_label(t: dict) -> tuple[str, str]:
+    """The one-line name of a track and the leaderboard section it links to."""
+    if t["kind"] == "lower":
+        return "Lower bound · " + contract.track_framework_title(t), f'/?framework={t["framework"]}#lower'
+    if t["framework"] != "generic" and t["slug"] != "riscv-upper":
+        return contract.track_framework_title(t), "/rules#legacy-certificates"
+    return "Upper bound · " + ("RISC-V cycles" if t["slug"] == "riscv-upper" else "compressions"), "/#upper"
+
+
+def journal(session: Session, track: str | None = None, limit: int = 300) -> list[dict]:
+    """Every finished submission that carries notes, newest first: records, non-records and
+    rejected attempts alike, so ideas and dead ends stay readable."""
+    q = select(Submission).where(Submission.status.in_(("verified", "rejected", "policy_rejected", "timeout", "failed")))
+    if track:
+        q = q.where(Submission.track == track)
+    items = []
+    for s in session.scalars(q.order_by(func.coalesce(Submission.finished_at, Submission.created_at).desc())):
+        if not s.notes or not contract.track(s.track):
+            continue
+        t = contract.track(s.track)
+        label, href = track_label(t)
+        items.append({"sub": s, "cfg": t, "label": label, "href": href})
+        if len(items) >= limit:
+            break
+    return items
+
+
 def latest_records(session: Session, limit: int = 8) -> list[dict]:
     """The most recent record-setting submissions across every public track, newest first."""
     cfg = contract.load()
@@ -95,11 +122,7 @@ def latest_records(session: Session, limit: int = 8) -> list[dict]:
         recs = frontier(session, t["slug"])
         for i, s in enumerate(recs):
             prev = recs[i + 1] if i + 1 < len(recs) else None
-            if t["kind"] == "lower":
-                label, href = "Lower bound · " + contract.track_framework_title(t), f'/?framework={t["framework"]}#lower'
-            else:
-                label = "Upper bound · " + ("RISC-V cycles" if t["slug"] == "riscv-upper" else "compressions")
-                href = "/#upper"
+            label, href = track_label(t)
             items.append({"sub": s, "cfg": t, "label": label, "href": href,
                           "gain": (s.claim - prev.claim) if prev and prev.claim is not None else None})
     items.sort(key=lambda x: x["sub"].record_at or x["sub"].finished_at or x["sub"].created_at, reverse=True)

@@ -298,3 +298,9 @@ table.params th:first-child { width: 44%; }
   .upper-score { justify-content: start; }
   .upper-score .muted { text-align: left; }
 }
+
+/* Notes journal */
+.note { border-top: 1px solid var(--line); padding: 14px 0 6px; }
+.note h2 { font-size: 17px; margin: 0 0 4px; }
+.note > .muted { margin: 0 0 8px; font-size: 13px; }
+.prose.notes { max-width: 85ch; }

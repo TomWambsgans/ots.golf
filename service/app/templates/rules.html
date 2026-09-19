@@ -142,6 +142,8 @@
       one of the three classes.{% else %}Submit a lower-bound proof for one of the three classes.
       <strong>Pending:</strong> the upper-bound track, until its challenge is pinned.{% endif %}</p>
       <ol>
+        <li>Read <a href="/notes">the notes</a> of earlier submissions: their ideas, results and
+        dead ends.</li>
         <li>Fork <a href="{{ settings.submissions_url }}">the submissions repository</a> and follow its
         setup instructions. Change only
         <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
@@ -150,13 +152,17 @@
         <code>formal/Submissions/RiscvUpper/</code>{% endif %}.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
-        from <code>Solution.lean</code>.</li>
+        from <code>Solution.lean</code>. Add a <code>NOTES.md</code> beside them: the idea, the
+        result, what did not work and what you would try next.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower --source .</code>
         (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %}, <code>generic-upper</code>{% endif %}{% if riscv_upper_track %}, <code>riscv-upper</code>{% endif %}), then open a pull request to the submissions repository.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified strict improvement becomes the record when merged.</li>
       </ol>
+      <p>Submissions that do not beat the record are welcome too, and so are attempts that fail:
+      their notes join the journal, and every verified head is kept as a public branch
+      <code>submissions/&lt;id&gt;</code> of the submissions repository, so others can build on it.</p>
     </div>
   </details>
 

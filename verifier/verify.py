@@ -120,7 +120,19 @@ def bounded_output(cmd: list[str], limit: int, timeout: int = 60) -> bytes:
 
 
 def valid_name(name: str) -> bool:
-    return bool(LEAN_FILE_RE.fullmatch(name)) or name in {"claim.txt", "README.md"}
+    return bool(LEAN_FILE_RE.fullmatch(name)) or name in {"claim.txt", "NOTES.md", "README.md"}
+
+
+NOTES_MAX_BYTES = 64 * 1024
+
+
+def read_notes(root: Path) -> str | None:
+    """The submitter's notes (`NOTES.md`), published with the result whatever the verdict."""
+    path = root / "NOTES.md"
+    if path.is_symlink() or not path.is_file():
+        return None
+    text = path.read_bytes()[:NOTES_MAX_BYTES].decode("utf-8", errors="replace").strip()
+    return text or None
 
 
 def export_submission(source: str, commit: str | None, rel_root: str, dest: Path,
@@ -140,7 +152,7 @@ def export_submission(source: str, commit: str | None, rel_root: str, dest: Path
             raise PolicyReject(f"{rel_root} exceeds {max_total_bytes} bytes in total")
         for name, _ in entries:
             if not valid_name(name):
-                raise PolicyReject(f"{name!r}: only flat .lean files, claim.txt and README.md are allowed")
+                raise PolicyReject(f"{name!r}: only flat .lean files, claim.txt, NOTES.md and README.md are allowed")
 
     if commit is None:
         src = Path(source) / rel_root
@@ -345,6 +357,9 @@ def main() -> int:
         result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged,
                                               max_files=lim["max_files"], max_file_bytes=lim["max_file_bytes"],
                                               max_total_bytes=lim["max_total_bytes"])
+        notes = read_notes(staged / t["submission_root"])
+        if notes:
+            result["notes"] = notes
         # 2. the trusted tree, allowlisted: only what a verification needs, so the copy can never
         #    recurse into work directories, tool checkouts or unrelated files
         def skip(names_to_skip):

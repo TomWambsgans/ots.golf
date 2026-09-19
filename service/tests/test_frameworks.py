@@ -420,3 +420,40 @@ class FrameworkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NotesJournalTests(unittest.TestCase):
+    def setUp(self):
+        self.engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
+        Base.metadata.create_all(self.engine)
+        self.session = Session(self.engine, expire_on_commit=False)
+        app.dependency_overrides[get_session] = lambda: self.session
+        self.client = TestClient(app)
+        seed_demo.add_rows(self.session, seed_demo.ROWS)
+        self.session.commit()
+
+    def tearDown(self):
+        self.client.close()
+        app.dependency_overrides.clear()
+        self.session.close()
+        self.engine.dispose()
+
+    def test_journal_lists_notes_of_records_and_non_records_newest_first(self):
+        html = self.client.get('/notes').text
+        self.assertIn('<a href="/notes">Notes</a>', html)
+        self.assertIn('Pattern classes: group indices', html)
+        self.assertIn('Not worth retrying without a different graph order.', html)
+        self.assertIn('Upper bound · compressions', html)
+        md = self.client.get('/notes.md')
+        self.assertTrue(md.headers['content-type'].startswith('text/plain'))
+        entries = [line for line in md.text.splitlines() if line.startswith('## ') and ': ' in line]
+        self.assertGreaterEqual(len(entries), 6)
+        self.assertIn('/submissions/', md.text)
+        self.assertLess(md.text.index('A 3-level tree with 9 subtrees'), md.text.index('Pattern classes'))
+
+    def test_journal_filters_by_track_and_rejects_unknown_tracks(self):
+        md = self.client.get('/notes.md?track=riscv-upper').text
+        self.assertIn('RISC-V cycles', md)
+        self.assertNotIn('Pattern classes', md)
+        self.assertEqual(self.client.get('/notes?track=nope').status_code, 404)
+

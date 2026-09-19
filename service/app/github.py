@@ -93,6 +93,22 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
     _check(r, f"status on {owner_repo}@{sha[:10]}")
 
 
+def archive_head(owner_repo: str, branch: str, sha: str) -> None:
+    """Point `refs/heads/<branch>` of the submissions repository at a checked pull-request head, so the
+    exact code stays public after its fork is gone. Creating an existing, identical ref is a no-op."""
+    if not SHA_RE.fullmatch(sha):
+        raise ValueError("not a commit id")
+    with httpx.Client(timeout=30) as client:
+        r = client.post(f"{API}/repos/{owner_repo}/git/refs", headers=_headers(),
+                        json={"ref": f"refs/heads/{branch}", "sha": sha})
+        if r.status_code == 422:
+            existing = client.get(f"{API}/repos/{owner_repo}/git/ref/heads/{branch}", headers=_headers())
+            _check(existing, f"archive {branch}")
+            if existing.json().get("object", {}).get("sha") == sha:
+                return
+        _check(r, f"archive {branch}")
+
+
 def post_comment(owner_repo: str, number: int, body: str) -> int | None:
     if not settings.github_token:
         return

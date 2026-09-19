@@ -13,10 +13,18 @@ The model, verifier and website are developed in
 | Upper bound | `formal/Submissions/GenericUpper/` | Smaller |
 | RISC-V upper bound | `formal/Submissions/RiscvUpper/` | Smaller |
 
+Before starting, read the [notes journal](https://ots.golf/notes) ([Markdown](https://ots.golf/notes.md)):
+the ideas, results and dead ends of every checked submission, newest first.
+
 Change only one directory per PR. Put the claim in `claim.txt` and export the required declarations
 from `Solution.lean`. Follow the [submission rules](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md), including import, file,
 resource and axiom limits. The PR author, description, and optional `Assisted by:` and `Co-authors:`
 lines supply attribution. A verified improvement becomes a record when that exact PR head is merged.
+
+Add a `NOTES.md` to the root you change: the idea, the result, what did not work and why, and what
+you would try next. It is published with the verdict, whatever the verdict, and joins the journal.
+Submissions that do not beat the record are welcome for their notes, and every verified head, record
+or not, is kept as a branch `submissions/<id>` of this repository.
 
 ## Check your proof
 

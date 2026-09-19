@@ -3,7 +3,8 @@
 
     check_submission.py TRACK [--root DIR] [--json]
 
-Checks: the root is flat and holds only `.lean` files, `claim.txt` and an optional `README.md`;
+Checks: the root is flat and holds only `.lean` files, `claim.txt`, and optional `NOTES.md` and
+`README.md`;
 `Solution.lean` exists; the claim is canonical; every import is Mathlib, VCVio, the statement, or
 a sibling file of the same root; the size limits hold. Exit 0 iff the root is admissible.
 These are policy checks; soundness is comparator's job.
@@ -19,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from contract import LEAN_FILE_RE, ContractError, load_challenges, read_claim, repo_root, track  # noqa: E402
 
-OTHER_ALLOWED = {"claim.txt", "README.md"}
+OTHER_ALLOWED = {"claim.txt", "NOTES.md", "README.md"}
 
 
 def strip_comments(text: str) -> str:
@@ -88,7 +89,7 @@ def check(root: Path, slug: str) -> dict:
             errors.append(f"{rel}: not a regular file")
             continue
         if not (LEAN_FILE_RE.fullmatch(p.name) or p.name in OTHER_ALLOWED):
-            errors.append(f"{rel}: only `.lean` files (identifier names), claim.txt and README.md are admitted")
+            errors.append(f"{rel}: only `.lean` files (identifier names), claim.txt, NOTES.md and README.md are admitted")
             continue
         size = p.stat().st_size
         total += size
