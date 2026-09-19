@@ -15,5 +15,6 @@
   {% if sub.detail_dict.failure %}<dt>Why</dt><dd><pre class="why">{{ sub.detail_dict.failure.message }}</pre></dd>{% endif %}
 </dl>
 {% if sub.description %}<h2>Description</h2><div class="prose">{{ sub.description|md|safe }}</div>{% endif %}
+{% if sub.notes %}<h2 id="notes">Notes</h2><div class="prose notes">{{ sub.notes|md|safe }}</div>{% endif %}
 {% if sub.log_path %}<p><a href="/submissions/{{ sub.id }}/log">Verifier transcript</a></p>{% endif %}
 {% endblock %}

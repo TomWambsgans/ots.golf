@@ -18,7 +18,8 @@ from contract import ContractError, read_claim
 from render_challenge import render
 from linux_exec import isolation_check
 from linux_storage import MAX_WORK_BYTES, linux_work_preflight, mount_path
-from verify import PolicyReject, bounded_output, export_submission, linux_command, linux_preflight, run, tools_env
+from verify import (PolicyReject, bounded_output, export_submission, linux_command, linux_preflight,
+                    read_notes, run, tools_env)
 
 
 class VerifierTests(unittest.TestCase):
@@ -95,6 +96,15 @@ class VerifierTests(unittest.TestCase):
 
     def test_bom_does_not_hide_imports(self):
         (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.Upper.Solution\n")
+        self.assertFalse(check(self.root, "generic-lower")["ok"])
+
+    def test_notes_are_admitted_exported_and_read(self):
+        (self.sub / "NOTES.md").write_text("# Idea\n\nTried a wider cut; dead end.\n")
+        self.assertTrue(check(self.root, "generic-lower")["ok"])
+        self.export()
+        self.assertEqual(read_notes(self.root / "out" / self.rel), "# Idea\n\nTried a wider cut; dead end.")
+        self.assertIsNone(read_notes(self.sub.parent))
+        (self.sub / "notes.txt").write_text("not admitted")
         self.assertFalse(check(self.root, "generic-lower")["ok"])
 
     def test_disallowed_and_missing_sibling_imports(self):

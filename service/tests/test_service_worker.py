@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import httpx
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -148,6 +149,23 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertTrue(checked.is_record)
             self.assertEqual(checked.detail_dict['merge']['head'], sub.commit)
             self.assertIsNotNone(session.get(GithubReport, sub.id))
+
+    def test_notes_from_the_verifier_are_stored_and_rendered(self):
+        sub = self.submission(claim=None, status='pending')
+        result = {'status': 'rejected', 'track': sub.track, 'commit': sub.commit, 'tail': 'bad proof',
+                  'notes': '## Dead end\n\nThe averaging lemma loses a factor of two.'}
+        with patch('app.worker.run_pipeline', return_value=(result, None)):
+            worker.process(sub.id)
+        with self.sessions() as session:
+            self.assertEqual(session.get(Submission, sub.id).notes, result['notes'])
+            main.app.dependency_overrides[main.get_session] = lambda: session
+            try:
+                with TestClient(main.app) as client:
+                    page = client.get(f'/submissions/{sub.id}').text
+            finally:
+                main.app.dependency_overrides.clear()
+        self.assertIn('<h2 id="notes">Notes</h2>', page)
+        self.assertIn('The averaging lemma loses a factor of two.', page)
 
     def test_failed_merged_proof_cannot_become_record(self):
         sub = self.submission(claim=None, status='pending')

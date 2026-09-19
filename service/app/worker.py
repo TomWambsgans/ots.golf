@@ -222,6 +222,11 @@ def process(sub_id: str) -> None:
             failure = {"code": sub.status, "message": msg}
         detail = sub.detail_dict  # preserve merge-before-verification and the durable comment identity
         detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"))
+        notes = result.get("notes")
+        if isinstance(notes, str) and notes.strip():
+            detail["notes"] = notes[:64 * 1024]
+        else:
+            detail.pop("notes", None)
         sub.detail = json.dumps(detail)
         promote(session, sub)
         schedule_report(session, sub)

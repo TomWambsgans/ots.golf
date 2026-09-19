@@ -77,6 +77,12 @@ class Submission(Base):
             return {}
 
     @property
+    def notes(self) -> str | None:
+        """The submitter's `NOTES.md`, as read by the verifier from the checked head."""
+        value = self.detail_dict.get("notes")
+        return value if isinstance(value, str) and value.strip() else None
+
+    @property
     def commit_url(self) -> str | None:
         if self.source_repo.startswith("https://github.com/"):
             return f"{self.source_repo.removesuffix('.git')}/commit/{self.commit}"
