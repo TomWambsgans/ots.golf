@@ -25,8 +25,6 @@ class Settings:
     github_token: str = os.environ.get("GITHUB_TOKEN", "")
     contract_repo: str = os.environ.get("OTS_CONTRACT_REPO", DEFAULT_CONTRACT_REPO)
     submissions_repo: str = os.environ.get("OTS_SUBMISSIONS_REPO", "")  # empty keeps webhook admission closed
-    # Push every verified pull-request head to `submissions/<id>` in the submissions repository.
-    archive_submissions: bool = os.environ.get("OTS_ARCHIVE_SUBMISSIONS", "1") == "1"
     queue_cap: int = int(os.environ.get("OTS_QUEUE_CAP", "20"))
     max_inflight_per_user: int = int(os.environ.get("OTS_MAX_INFLIGHT_PER_USER", "2"))
     database_url: str = ""

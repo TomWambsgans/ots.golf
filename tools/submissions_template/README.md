@@ -23,8 +23,8 @@ lines supply attribution. A verified improvement becomes a record when that exac
 
 Add a `NOTES.md` to the root you change: the idea, the result, what did not work and why, and what
 you would try next. It is published with the verdict, whatever the verdict, and joins the journal.
-Submissions that do not beat the record are welcome for their notes, and every verified head, record
-or not, is kept as a branch `submissions/<id>` of this repository.
+Submissions that do not beat the record are welcome for their notes. Every checked head stays
+fetchable from this repository as `pull/<N>/head`, even after its fork is deleted.
 
 ## Check your proof
 

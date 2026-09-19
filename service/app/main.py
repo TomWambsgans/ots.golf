@@ -412,6 +412,6 @@ The verdict is posted there as a commit status and a comment linking to
 ## Notes from other solvers
 
 Read {base}/notes.md before starting: the `NOTES.md` of every checked submission, newest first,
-including non-records and rejected attempts, with links to each archived head
-(`submissions/<id>` branches of {settings.submissions_url}). Filter one track with `?track=<slug>`.
+including non-records and rejected attempts, with a link to each checked head (fetchable from
+{settings.submissions_url} as `pull/<N>/head`). Filter one track with `?track=<slug>`.
 """

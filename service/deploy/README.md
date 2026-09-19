@@ -29,11 +29,8 @@ services stopped.
    and the Python dependency lockfile.
 
 2. Add a fine-grained token for `leanEthereum/ots.golf-submissions` to `/etc/ots/secrets.env`:
-   commit statuses and pull requests read/write, and contents read/write. Contents write is used
-   only to archive each verified pull-request head as a branch `submissions/<id>`; protect `main`
-   with a repository ruleset (no direct pushes, changes only through merged pull requests) so the
-   token cannot move the default branch. To keep the token read-only instead, set
-   `OTS_ARCHIVE_SUBMISSIONS=0`. No core-repository write access is needed. The file already contains a generated webhook secret.
+   contents read, commit statuses and pull requests read/write, without contents write.
+   No core-repository write access is needed. The file already contains a generated webhook secret.
    Keep it `root:root 0600`. Do not put credentials in `/etc/ots/public.env`, the checkout, Git
    configuration, the `ots` account's home, or the verifier environment.
 

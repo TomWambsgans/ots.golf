@@ -34,8 +34,7 @@ class ServiceWorkerTests(unittest.TestCase):
                         patch.object(settings, 'contract_repo', 'owner/core'),
                         patch.object(settings, 'submissions_repo', 'owner/repo'),
                         patch.object(settings, 'github_token', ''),
-                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions),
-                        patch('app.worker.github.archive_head')]
+                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions)]
         for p in self.patches:
             p.start()
         with self.sessions() as session:
@@ -245,42 +244,6 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(status.call_args.args[0], 'owner/repo')
             self.assertEqual(update.call_args.args[:2], ('owner/repo', 123))
             post.assert_not_called()
-
-    def test_verified_head_is_archived_and_linked(self):
-        sub = self.submission()
-        with self.sessions() as session:
-            schedule_report(session, session.get(Submission, sub.id))
-            session.commit()
-        with patch.object(settings, 'github_token', 'test'), \
-             patch('app.worker.github.archive_head') as archive, patch('app.worker.github.post_status'), \
-             patch('app.worker.github.post_comment', return_value=321):
-            worker.deliver_report(sub.id)
-        archive.assert_called_once_with('owner/repo', f'submissions/{sub.id}', 'a' * 40)
-        with self.sessions() as session:
-            stored = session.get(Submission, sub.id)
-            self.assertEqual(stored.detail_dict['archive_branch'], f'submissions/{sub.id}')
-            self.assertEqual(stored.archive_url, f'https://github.com/owner/repo/tree/submissions/{sub.id}')
-
-    def test_rejected_head_is_not_archived(self):
-        sub = self.submission(status='rejected', claim=None)
-        with patch('app.worker.github.archive_head') as archive, patch('app.worker.github.post_status'), \
-             patch('app.worker.github.post_comment', return_value=1):
-            worker.report(sub)
-        archive.assert_not_called()
-
-    def test_failed_archive_is_retried_with_the_report(self):
-        sub = self.submission()
-        with self.sessions() as session:
-            schedule_report(session, session.get(Submission, sub.id))
-            session.commit()
-        with patch.object(settings, 'github_token', 'test'), \
-             patch('app.worker.github.archive_head', side_effect=RuntimeError('no contents permission')), \
-             patch('app.worker.github.post_status') as status, patch('app.worker.github.post_comment', return_value=5):
-            worker.deliver_report(sub.id)
-        status.assert_called_once()
-        with self.sessions() as session:
-            self.assertEqual(session.get(GithubReport, sub.id).attempts, 1)
-            self.assertNotIn('archive_branch', session.get(Submission, sub.id).detail_dict)
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()

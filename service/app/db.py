@@ -84,12 +84,19 @@ class Submission(Base):
 
     @property
     def archive_url(self) -> str | None:
-        """The public branch keeping this verified head, once it has been archived."""
-        branch = self.detail_dict.get("archive_branch")
-        if not isinstance(branch, str) or not self.pr_url:
+        """The checked commit inside the submissions repository. GitHub keeps every pull-request head
+        there (`refs/pull/<N>/head`), so the code and its notes stay public after the fork is gone."""
+        if not self.pr_repository:
             return None
-        repo = self.pr_url.split("/pull/")[0]
-        return f"{repo}/tree/{branch}"
+        return f"https://github.com/{self.pr_repository}/tree/{self.commit}"
+
+    @property
+    def fetch_command(self) -> str | None:
+        """How to get the exact checked code with git."""
+        if not self.pr_repository:
+            return None
+        return (f"git fetch https://github.com/{self.pr_repository}.git pull/{self.pr_number}/head"
+                f" && git checkout {self.commit}")
 
     @property
     def commit_url(self) -> str | None:
