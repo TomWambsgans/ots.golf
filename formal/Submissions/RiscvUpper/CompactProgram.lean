@@ -39,7 +39,7 @@ def chainPrologue (k : ℕ) : Code :=
 def chainBlock (k : ℕ) : Code := chainPrologue k ++ chainTable k
 
 def chainSetup : Code :=
-  constant .x18 chainsBase ++ constant .x9 (Riscv.signatureBase.toNat + 32) ++
+  constant .x18 chainsBase ++ constant .x9 (Riscv.signatureBase.toNat + 16) ++
   [.ADDI .x5 .x0 1, .ADDI .x11 .x0 144]
 
 /-- The cursor passes the 36 disclosed chain words. -/

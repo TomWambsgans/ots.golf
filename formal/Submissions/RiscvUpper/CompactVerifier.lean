@@ -9,7 +9,7 @@ import Submissions.RiscvUpper.DecoderExecution
 The compact image observes exactly the certified raw-signature verifier, preserving every oracle
 query, and every accepting run costs at most `cycleBound` cycles: one cycle per executed
 instruction, with the 912-bit root hash charged two. The index phase (query, nibble checks and
-position stores) costs 271 cycles and the chain phase 973 cycles on every accepted index.
+position stores) costs 267 cycles and the chain phase 973 cycles on every accepted index.
 -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
@@ -19,16 +19,16 @@ open scoped Classical
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
-theorem index_take (bits : List Bool) : ofBits 256 (bits.take 256) = ofBits 256 bits := by
+theorem index_take (bits : List Bool) : ofBits 128 (bits.take 128) = ofBits 128 bits := by
   simpa only [List.drop_zero] using
-    ofBits_drop_take bits (cap := 256) (start := 0) (len := 256) le_rfl
+    ofBits_drop_take bits (cap := 128) (start := 0) (len := 128) le_rfl
 
 /-- The specification after the accepted index and wire-length checks. -/
 noncomputable def acceptedTail (pk : PublicKey paperParams) (bits : List Bool)
     (answer : BitVec paperParams.hashBits) : OracleComp (Spec paperParams) (Option Bool) :=
   some <$> (if hi : (answer.setWidth paperParams.idxBits).toNat ∈ validSet paperParams then
-      if bits.length = 5504 then (do
-        let y ← directReconstruct ⟨_, hi⟩ (bits.drop 256)
+      if bits.length = 5376 then (do
+        let y ← directReconstruct ⟨_, hi⟩ (bits.drop 128)
         return decide ((y rh.fin).setWidth 128 = pk))
       else return false
     else return false)
@@ -37,8 +37,8 @@ noncomputable def acceptedTail (pk : PublicKey paperParams) (bits : List Bool)
 theorem directVerify_unfold (pk : PublicKey paperParams) (m : Message paperParams)
     (bits : List Bool) :
     some <$> directVerify pk m bits = (do
-      let answer ← hash paperParams (m ++ ofBits 256 bits)
-      if Accepted (answer.setWidth 128).toNat ∧ bits.length = 5504 then
+      let answer ← hash paperParams (m ++ ofBits 128 bits)
+      if Accepted (answer.setWidth 128).toNat ∧ bits.length = 5376 then
         acceptedTail pk bits answer
       else pure (some false)) := by
   unfold directVerify index acceptedTail
@@ -50,7 +50,7 @@ theorem directVerify_unfold (pk : PublicKey paperParams) (m : Message paperParam
   · have hi' : (answer.setWidth paperParams.idxBits).toNat ∈ validSet paperParams :=
       (acceptedIdx answer hi).2
     rw [dif_pos hi']
-    by_cases hlen : bits.length = 5504
+    by_cases hlen : bits.length = 5376
     · rw [if_pos hlen, if_pos ⟨hi, hlen⟩]
     · rw [if_neg hlen, if_neg (fun h => hlen h.2), pure_bind]
       rfl
@@ -68,7 +68,7 @@ theorem initial_pc (pk : PublicKey paperParams) (m : Message paperParams) (bits 
 set_option allowUnsafeReducibility true
 attribute [local reducible] paperParams Forest.graph
 
-theorem verifier_length : verifier.length = 2651 := by decide +kernel
+theorem verifier_length : verifier.length = 2647 := by decide +kernel
 
 theorem image_valid : image.Valid := by
   refine ⟨?_, ?_, ?_⟩
@@ -106,25 +106,25 @@ theorem decodedInput_aligned (image : Riscv.Image) (pk : PublicKey paperParams)
   decide
 
 /-- The certified accepting-path cycle count. -/
-def cycleBound : ℕ := 1632
+def cycleBound : ℕ := 1628
 
-/-- The index phase and the chain phase are charged their exact executed costs, 271 and 973
+/-- The index phase and the chain phase are charged their exact executed costs, 267 and 973
 cycles for every accepted index. -/
 theorem cost_arith : 973 + (groups.length +
-    (subtrees.length + (root.length + 1 + decision.length))) + 271 = cycleBound := by
+    (subtrees.length + (root.length + 1 + decision.length))) + 267 = cycleBound := by
   decide +kernel
 
 theorem lengths : indexAndChecks.length + (chains.length +
-    (groups.length + (subtrees.length + (root.length + decision.length)))) = 2651 := by
+    (groups.length + (subtrees.length + (root.length + decision.length)))) = 2647 := by
   have h := verifier_length
   simp only [verifier, List.length_append] at h
   omega
 
 /-- The accepted branch of the specification, as the reader over `order`. -/
 theorem acceptedTail_eq (pk : PublicKey paperParams) (bits : List Bool) (answer : BitVec 256)
-    (hi : (answer.setWidth 128).toNat ∈ validSet paperParams) (hlen : bits.length = 5504) :
+    (hi : (answer.setWidth 128).toNat ∈ validSet paperParams) (hlen : bits.length = 5376) :
     acceptedTail pk bits answer =
-      runNodes' ⟨_, hi⟩ (bits.drop 256) order (fun _ => 0) 0 >>= fun r =>
+      runNodes' ⟨_, hi⟩ (bits.drop 128) order (fun _ => 0) 0 >>= fun r =>
         pure (some (@decide ((r.1 rh.fin).setWidth 128 = pk) (Classical.propDecidable _))) := by
   have hi' : (@BitVec.setWidth paperParams.hashBits paperParams.idxBits answer).toNat ∈
       validSet paperParams := hi
@@ -138,7 +138,7 @@ theorem acceptedTail_eq (pk : PublicKey paperParams) (bits : List Bool) (answer 
 /-- The compact image computes exactly the specified verifier within its fuel, and every
 accepting run costs at most `cycleBound` cycles. -/
 theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
-    Riscv.Refines 2651 (Riscv.initialState image pk m bits) (some <$> directVerify pk m bits)
+    Riscv.Refines 2647 (Riscv.initialState image pk m bits) (some <$> directVerify pk m bits)
       cycleBound := by
   have located := Riscv.CodeAt.initial image pk m bits image_valid
   rw [image_code, ← initial_pc pk m bits] at located
@@ -147,7 +147,7 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
   simp only [List.append_assoc] at located
   rw [directVerify_unfold, ← cost_arith]
   apply indexAndChecks_refines image pk m bits image_data_length
-    (chains.length + (groups.length + (subtrees.length + (root.length + decision.length)))) 2651
+    (chains.length + (groups.length + (subtrees.length + (root.length + decision.length)))) 2647
     (fun answer => acceptedTail pk bits answer)
     _ (by have h1 := lengths; have h2 := indexAndChecks_length; omega) located.append_left
     (by rw [lengths])
@@ -164,7 +164,7 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
   refine Riscv.Refines.mono ?_ (show chainsCost (acceptedIdx answer hi) +
     (groups.length + (subtrees.length + (root.length + 1 + decision.length))) ≤ _ by
       have := chainsCost_le (acceptedIdx answer hi); omega)
-  apply chains_refines (acceptedIdx answer hi) (bits.drop 256) pk
+  apply chains_refines (acceptedIdx answer hi) (bits.drop 128) pk
     (groups ++ (subtrees ++ (root ++ decision))) _
     (groups.length + (subtrees.length + (root.length + 1 + decision.length)))
     (groups.length + (subtrees.length + (root.length + decision.length))) ?_ _
@@ -175,7 +175,7 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
   rw [runNodes'_append]
   simp only [bind_assoc]
   -- the groups
-  apply groups_refines (acceptedIdx answer hi) (bits.drop 256) pk (subtrees ++ (root ++ decision)) _
+  apply groups_refines (acceptedIdx answer hi) (bits.drop 128) pk (subtrees ++ (root ++ decision)) _
     (subtrees.length + (root.length + 1 + decision.length))
     (subtrees.length + (root.length + decision.length)) ?_ u y cursor1 left2 done1 located3 hleft2
   intro v z cursor2 done2 located4 left3 hleft3
@@ -183,13 +183,13 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
   rw [runNodes'_append]
   simp only [bind_assoc]
   -- the subtrees
-  apply subtrees_refines (acceptedIdx answer hi) (bits.drop 256) pk (root ++ decision) _
+  apply subtrees_refines (acceptedIdx answer hi) (bits.drop 128) pk (root ++ decision) _
     (root.length + 1 + decision.length) (root.length + decision.length) ?_ v z cursor2 left3 done2
     located4 hleft3
   intro w t cursor3 done3 located5 left4 hleft4
   dsimp only
   -- the root and the decision
-  exact rootDecision_refines (acceptedIdx answer hi) (bits.drop 256) pk w t cursor3 left4 done3 located5 hleft4
+  exact rootDecision_refines (acceptedIdx answer hi) (bits.drop 128) pk w t cursor3 left4 done3 located5 hleft4
 
 /--
 info: 'OptimalOTS.RiscvUpperProgram.Compact.image_refines' depends on axioms: [propext, Classical.choice, Quot.sound]

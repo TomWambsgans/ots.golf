@@ -550,7 +550,7 @@ theorem indexAndChecks_split : indexAndChecks = indexPrefix ++ [.ECALL] ++ index
 
 theorem indexChecks_length : indexChecks.length = 249 := by decide +kernel
 
-theorem indexAndChecks_length : indexAndChecks.length = 277 := by decide +kernel
+theorem indexAndChecks_length : indexAndChecks.length = 273 := by decide +kernel
 
 theorem indexLengthCheck_length : indexLengthCheck.length = 3 := rfl
 
@@ -564,7 +564,7 @@ theorem indexLengthCheck_ready (s : MachineState) : Riscv.LinearReady s indexLen
   simp [indexLengthCheck, constant, Riscv.LinearReady, Riscv.linearInstruction, Riscv.memoryReady]
 
 theorem indexLengthCheck_test (s : MachineState) :
-    (indexLengthCheck.foldl execInstrBr s).getReg .x26 = 5504 ^^^ s.getReg .x13 := rfl
+    (indexLengthCheck.foldl execInstrBr s).getReg .x26 = 5376 ^^^ s.getReg .x13 := rfl
 
 theorem indexLengthCheck_preserves (s : MachineState) (r : Reg) (h : r ≠ .x26) :
     (indexLengthCheck.foldl execInstrBr s).getReg r = s.getReg r := by

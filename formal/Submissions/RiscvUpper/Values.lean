@@ -250,7 +250,7 @@ theorem len_hashParent {h p : Name} (hp : hashParent h = some p) : 128 ≤ p.len
 /-- The input of a hash node never has the length of an index query. -/
 theorem len_hashParent_ne_enc {h p : Name} (hp : hashParent h = some p) :
     p.len ≠ paperParams.msgBits + paperParams.nonceBits := by
-  have e : paperParams.msgBits + paperParams.nonceBits = 512 := rfl
+  have e : paperParams.msgBits + paperParams.nonceBits = 384 := rfl
   rw [e]
   rcases len_hashParent_cases hp with e | e | e <;> omega
 
@@ -285,7 +285,7 @@ theorem pointOf_inj_input {ξ ξ' : Rec} {h p : Name} (e : pointOf ξ h p = poin
   simp only [pointOf, Sigma.mk.inj_iff, heq_eq_eq, true_and] at e
   exact e
 
-/-- A keygen point is not an index query: its length is 144, 400 or 912, never 512. -/
+/-- A keygen point is not an index query: its length is 144, 400 or 912, never 384. -/
 theorem pointOf_ne_encQuery {h p : Name} (hp : hashParent h = some p) (ξ : Rec)
     (u : EncInput paperParams) : pointOf ξ h p ≠ encQuery paperParams u :=
   ne_encQuery_of_length_ne paperParams (len_hashParent_ne_enc hp) u

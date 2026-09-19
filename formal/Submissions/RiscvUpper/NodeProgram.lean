@@ -77,7 +77,7 @@ def nodeCode (n : Name) : Code :=
   whenNonzero .x24 readDisclosure ++ whenNonzero .x25 (operation (nodeOp n))
 
 def reconstruction : Code :=
-  constant .x9 (Riscv.signatureBase.toNat + 32) ++ order.flatMap nodeCode
+  constant .x9 (Riscv.signatureBase.toNat + 16) ++ order.flatMap nodeCode
 
 /-- Compare the root hash's low 128 bits with the public key and halt. -/
 def decision : Code :=

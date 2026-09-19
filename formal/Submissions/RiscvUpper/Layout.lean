@@ -56,7 +56,7 @@ namespace OptimalOTS.RiscvUpperForest.Wire
 /-- The machine's fixed-length check is exactly the specification's payload-length check. -/
 theorem payload_length_iff (bits : List Bool) (i : Idx paperParams) :
     (decode bits).2.length = Forest.forestScheme.graph.revealBits (Forest.forestScheme.sets i) ↔
-      bits.length = 5504 := by
+      bits.length = 5376 := by
   rw [Forest.fixed_revealBits]
   simp only [decode, List.length_drop]
   omega

@@ -94,8 +94,8 @@ theorem indexHash_payload (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
     (hdata : image.data.length ≤ 1048576) :
     MemBits (Riscv.writeHash (indexInputState image pk m bits) answer)
-      (Riscv.signatureBase + 32) (ofBits 5248 (bits.drop 256)) := by
-  have payload := memBits_extract (start := 256) (len := 5248)
+      (Riscv.signatureBase + 16) (ofBits 5248 (bits.drop 128)) := by
+  have payload := memBits_extract (start := 128) (len := 5248)
     (initialState_signature image pk m bits hdata) (by decide) (by decide)
   rw [ofBits_extract _ (by decide), ofBits_drop_take _ (by decide)] at payload
   apply memBits_frame_interval (Riscv.initialState image pk m bits) _ _ _ (by decide)
@@ -103,7 +103,7 @@ theorem indexHash_payload (image : Riscv.Image) (pk : PublicKey paperParams)
   intro addr lo hi
   apply indexHash_frame
   left
-  change addr.toNat < 4194384 + (5248 + 7) / 8 at hi
+  change addr.toNat < 4194368 + (5248 + 7) / 8 at hi
   unfold scratchBase
   omega
 

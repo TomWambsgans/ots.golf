@@ -14,19 +14,19 @@ namespace OptimalOTS.RiscvUpperForest.Wire
 attribute [local irreducible] validSet numValid
 
 def decode (bits : List Bool) : Signature paperParams :=
-  (ofBits 256 (bits.take 256), bits.drop 256)
+  (ofBits 128 (bits.take 128), bits.drop 128)
 
 theorem decode_encode (σ : Signature paperParams) :
     decode (AlgorithmAdapter.encodeSignature σ) = σ := by
   rcases σ with ⟨nonce, payload⟩
   simp only [decode, AlgorithmAdapter.encodeSignature]
-  have hn : (toBits nonce).length = 256 := length_toBits nonce
+  have hn : (toBits nonce).length = 128 := length_toBits nonce
   simp [← hn]
   exact Prod.ext (ofBits_toBits nonce) rfl
 
-theorem encode_decode (bits : List Bool) (hlen : 256 ≤ bits.length) :
+theorem encode_decode (bits : List Bool) (hlen : 128 ≤ bits.length) :
     AlgorithmAdapter.encodeSignature (decode bits) = bits := by
-  change toBits (ofBits 256 (bits.take 256)) ++ bits.drop 256 = bits
+  change toBits (ofBits 128 (bits.take 128)) ++ bits.drop 128 = bits
   rw [toBits_ofBits _ (by simp [hlen]), List.take_append_drop]
 
 theorem reveal_positive (i : Idx paperParams) :
@@ -60,8 +60,8 @@ theorem canonical (pk : PublicKey paperParams) (m : Message paperParams) (bits :
     (accepted : true ∈ support (RiscvUpperForest.scheme.verify pk m (decode bits))) :
     RiscvUpperForest.scheme.encodeSignature (decode bits) = bits := by
   have positive := accepted_payload_positive pk m (decode bits) accepted
-  have hlen : 256 ≤ bits.length := by
-    change 0 < (bits.drop 256).length at positive
+  have hlen : 128 ≤ bits.length := by
+    change 0 < (bits.drop 128).length at positive
     rw [List.length_drop] at positive
     omega
   exact encode_decode bits hlen

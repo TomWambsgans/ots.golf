@@ -76,8 +76,8 @@ theorem decodedInput_publicKey (image : Riscv.Image) (pk : PublicKey paperParams
 theorem decodedInput_payload (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
     (hdata : image.data.length ≤ 1048576) :
-    MemBits (decodedInput image pk m bits answer) (Riscv.signatureBase + 32)
-      (ofBits 5248 (bits.drop 256)) := by
+    MemBits (decodedInput image pk m bits answer) (Riscv.signatureBase + 16)
+      (ofBits 5248 (bits.drop 128)) := by
   apply checked_memBits _ _ _ (by decide) (by decide) (by decide)
   exact indexHash_payload image pk m bits answer hdata
 

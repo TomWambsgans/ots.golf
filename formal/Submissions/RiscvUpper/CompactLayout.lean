@@ -88,7 +88,7 @@ theorem _root_.OptimalOTS.RiscvUpperProgram.Direct.ExecutionContext.frameInputs 
   · apply memBits_frame_interval s t _ _ (by decide) (by decide) context.payloadBits
     intro addr _ hi
     apply frame
-    change addr.toNat < 4194384 + (5248 + 7) / 8 at hi
+    change addr.toNat < 4194368 + (5248 + 7) / 8 at hi
     unfold chainsBase
     omega
   · apply memBits_frame_interval s t _ _ (by decide) (by decide) context.publicKey

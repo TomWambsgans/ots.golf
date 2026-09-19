@@ -118,14 +118,14 @@ theorem tree_consumed : (treeNodes.map (consumedBits index)).sum = 640 := by
 
 theorem chainSetup_effect (s : MachineState) :
     (chainSetup.foldl execInstrBr s).getReg .x18 = BitVec.ofNat 64 chainsBase ∧
-    (chainSetup.foldl execInstrBr s).getReg .x9 = Riscv.signatureBase + 32 ∧
+    (chainSetup.foldl execInstrBr s).getReg .x9 = Riscv.signatureBase + 16 ∧
     (chainSetup.foldl execInstrBr s).getReg .x5 = Riscv.hashCall ∧
     (chainSetup.foldl execInstrBr s).getReg .x11 = 144 ∧
     (∀ r, r ≠ .x18 → r ≠ .x9 → r ≠ .x5 → r ≠ .x11 →
       (chainSetup.foldl execInstrBr s).getReg r = s.getReg r) ∧
     (chainSetup.foldl execInstrBr s).mem = s.mem := by
   have baseLit : literalValue chainsBase = BitVec.ofNat 64 chainsBase := by decide +kernel
-  have cursorLit : literalValue (Riscv.signatureBase.toNat + 32) = Riscv.signatureBase + 32 := by
+  have cursorLit : literalValue (Riscv.signatureBase.toNat + 16) = Riscv.signatureBase + 16 := by
     decide +kernel
   simp only [chainSetup, List.foldl_append, List.foldl_cons, List.foldl_nil, execInstrBr]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -295,7 +295,7 @@ theorem chains_refines (tail : Code)
     · rw [vRegs .x18 (by decide)]; exact invV.regs.base
     · rw [vRegs .x5 (by decide)]; exact invV.regs.call
     · rw [vRegs .x11 (by decide)]; exact invV.regs.length
-    · show w.getReg .x9 = Riscv.signatureBase + 32 + BitVec.ofNat 64 (4608 / 8)
+    · show w.getReg .x9 = Riscv.signatureBase + 16 + BitVec.ofNat 64 (4608 / 8)
       rw [v9, invV.cursorReg]
     · rw [tree_consumed]
     · intro k hk

@@ -98,14 +98,14 @@ theorem reconstruct_eq (A : Finset Name) (payload : List Bool) :
   funext x n
   exact step_eq A _ x n
 
-/-- Raw signatures begin with the 256-bit signing nonce. -/
+/-- Raw signatures begin with the 128-bit signing nonce. -/
 def verify (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
     OracleComp (Spec paperParams) Bool := do
-  let i ← index paperParams m (ofBits 256 (bits.take 256))
+  let i ← index paperParams m (ofBits 128 (bits.take 128))
   if hi : i ∈ validSet paperParams then
     let A := Forest.setsName ⟨i, hi⟩
-    if (bits.drop 256).length = graph.revealBits (fins A) then
-      let y ← reconstruct A (bits.drop 256)
+    if (bits.drop 128).length = graph.revealBits (fins A) then
+      let y ← reconstruct A (bits.drop 128)
       return decide ((y rh.fin).setWidth 128 = pk)
     else return false
   else return false
@@ -115,12 +115,12 @@ theorem verify_eq (pk : PublicKey paperParams) (m : Message paperParams) (bits :
     verify pk m bits = Wire.scheme.verify pk m bits := by
   change verify pk m bits = Forest.forestScheme.verify pk m (Wire.decode bits)
   unfold verify GScheme.verify Wire.decode
-  apply congrArg (fun f => index paperParams m (ofBits 256 (bits.take 256)) >>= f)
+  apply congrArg (fun f => index paperParams m (ofBits 128 (bits.take 128)) >>= f)
   funext i
   by_cases hi : i ∈ validSet paperParams
   · rw [dif_pos hi, dif_pos hi]
-    change (if (bits.drop 256).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _) =
-      (if (bits.drop 256).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _)
+    change (if (bits.drop 128).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _) =
+      (if (bits.drop 128).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _)
     split_ifs with hlen
     · rw [reconstruct_eq]
       congr 1

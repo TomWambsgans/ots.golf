@@ -11,7 +11,7 @@ probTrue (GScheme.experiment forestScheme A) ≤ 2 ε (B - 912),  ε = 2 ^ (-128
 
 The proof follows `DESIGN.md`: key generation is a uniform record (`E_run_keygen`); the
 attacker's first stage is coupled to a run without the keygen cache (`iub`), charged through the
-potential `ΦA` by the master lemma; the signing loop is handled by `signIdx_bound`; the second
+potential `ΦA` by the master lemma; the signing loop is handled by `signRho_bound`; the second
 stage is coupled to a run without the hidden keygen points (`iub` again), and the events lemma
 turns an accepted forgery into one of the charged events.
 
@@ -135,12 +135,13 @@ theorem stageA_cont (pk : BitVec 128) (x : Message paperParams × A.State) (d : 
   have hsig : E (run paperParams (signIdx paperParams x.1) d) (fun p => ∑ ξ ∈ T, w *
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + sumW T * encTerm d + κ * sumW (fiberA pk) * b' := by
-    refine signIdx_bound paperParams numValid_pos (numValid_le paperParams) (by decide) (by decide) x.1 d
+    refine signRho_bound paperParams (numValid_le paperParams) (by decide) x.1 d
       (β := Bool) (J := {ξ // ξ ∈ fiberA pk}) (fun j r => stB A pk x.1 x.2 (sigOf j.1 r))
       (fun r d' => ∑ ξ ∈ T, w * E (run paperParams (stB A pk x.1 x.2 (sigOf ξ r))
         (Cache.extend d' (kc ξ))) g)
-      (fun c => ∑ ξ ∈ T, w * ind (Spr c ξ)) hΦ (κ * sumW (fiberA pk)) (sumW T) Inv Inv_fresh Inv_cached
-      ?_ hI hB'
+      (fun c => ∑ ξ ∈ T, w * ind (Spr c ξ)) hΦ (κ * sumW (fiberA pk)) (sumW T) (encTerm d)
+      Inv Inv_fresh Inv_cached ?_
+      (fun c h1 h2 => psi_dom paperRowHyp (two_encCount_le hI) x.1 c h1 h2) hI hB'
     intro r d' b'' hd' hI' hB''
     have hB''' : ∀ ξ ∈ T, CostAtMost paperParams (stB A pk x.1 x.2 (sigOf ξ r)) b'' := by
       intro ξ hξ

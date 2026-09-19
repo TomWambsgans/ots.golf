@@ -148,10 +148,10 @@ theorem directReconstruct_eq (i : Idx paperParams) (payload : List Bool) :
 /-- The complete verifier compiled to the direct node program. -/
 def directVerify (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
     OracleComp (Spec paperParams) Bool := do
-  let i ← index paperParams m (ofBits 256 (bits.take 256))
+  let i ← index paperParams m (ofBits 128 (bits.take 128))
   if hi : i ∈ validSet paperParams then
-    if bits.length = 5504 then
-      let y ← directReconstruct ⟨i, hi⟩ (bits.drop 256)
+    if bits.length = 5376 then
+      let y ← directReconstruct ⟨i, hi⟩ (bits.drop 128)
       return decide ((y rh.fin).setWidth 128 = pk)
     else return false
   else return false
@@ -161,12 +161,12 @@ theorem directVerify_eq (pk : PublicKey paperParams) (m : Message paperParams) (
     directVerify pk m bits = Wire.scheme.verify pk m bits := by
   rw [← verify_eq]
   unfold directVerify verify
-  apply congrArg (fun f => index paperParams m (ofBits 256 (bits.take 256)) >>= f)
+  apply congrArg (fun f => index paperParams m (ofBits 128 (bits.take 128)) >>= f)
   funext i
   by_cases hi : i ∈ validSet paperParams
   · rw [dif_pos hi, dif_pos hi]
     have hlen := Wire.payload_length_iff bits ⟨i, hi⟩
-    change (bits.drop 256).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) ↔ bits.length = 5504 at hlen
+    change (bits.drop 128).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) ↔ bits.length = 5376 at hlen
     simp only [hlen, directReconstruct_eq]
   · rw [dif_neg hi, dif_neg hi]
 

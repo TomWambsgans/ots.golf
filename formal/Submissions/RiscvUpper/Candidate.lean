@@ -14,7 +14,7 @@ noncomputable def submission : Riscv.Submission where
   sign := Wire.scheme.sign
   verify := Wire.scheme.verify
   image := RiscvUpperProgram.Compact.image
-  fuel := fun _ _ _ => 2651
+  fuel := fun _ _ _ => 2647
 
 theorem submission_scheme : submission.scheme = Wire.scheme := rfl
 
@@ -31,18 +31,18 @@ theorem submission_secure : submission.scheme.Secure := by
 every execution terminates within the fixed fuel and issues exactly the specified queries. -/
 theorem submission_implements : submission.Implements := by
   refine ⟨RiscvUpperProgram.Compact.image_valid, fun pk m bits => ?_⟩
-  change Riscv.observe 2651 (Riscv.initialState RiscvUpperProgram.Compact.image pk m bits) =
+  change Riscv.observe 2647 (Riscv.initialState RiscvUpperProgram.Compact.image pk m bits) =
     some <$> Wire.scheme.verify pk m bits
   rw [(RiscvUpperProgram.Compact.image_refines pk m bits).1, ForestVerifier.directVerify_eq]
 
-/-- Every accepting run executes at most 1632 cycles: one per executed instruction, two for
+/-- Every accepting run executes at most 1628 cycles: one per executed instruction, two for
 the 912-bit root hash, with the nibble checks and the chain sweeps charged by the path taken. -/
-theorem submission_cost : submission.AcceptCostAtMost 1632 := by
+theorem submission_cost : submission.AcceptCostAtMost 1628 := by
   intro pk m bits cycles accepted
   exact (RiscvUpperProgram.Compact.image_refines pk m bits).2 true cycles accepted
 
-/-- Every requirement of a scored RISC-V submission, at 1632 cycles. -/
-theorem machineCertificate : submission.Certificate 1632 :=
+/-- Every requirement of a scored RISC-V submission, at 1628 cycles. -/
+theorem machineCertificate : submission.Certificate 1628 :=
   ⟨submission_admissible, submission_secure, submission_implements, submission_cost⟩
 
 /--

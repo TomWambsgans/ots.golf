@@ -48,10 +48,10 @@ def hashScratch (bits : ℕ) : Code :=
 def indexPrefix : Code :=
   constant .x11 0 ++ constant .x19 scratchBase ++
   constant .x7 Riscv.signatureBase.toNat ++
-  copy128 .x7 0 .x19 0 ++ copy128 .x7 16 .x19 16 ++
+  copy128 .x7 0 .x19 0 ++
   constant .x7 Riscv.messageBase.toNat ++
-  copy128 .x7 0 .x19 32 ++ copy128 .x7 16 .x19 48 ++
-  [.ADDI .x10 .x19 0, .ADDI .x11 .x0 512, .ADDI .x12 .x19 128, .ADDI .x5 .x0 1]
+  copy128 .x7 0 .x19 16 ++ copy128 .x7 16 .x19 32 ++
+  [.ADDI .x10 .x19 0, .ADDI .x11 .x0 384, .ADDI .x12 .x19 128, .ADDI .x5 .x0 1]
 
 /-- The word holding nibble `k` of the 128-bit index: the low word for `k < 16`. -/
 def nibbleReg (k : ℕ) : Reg := if k < 16 then .x20 else .x21
@@ -79,7 +79,7 @@ def nibbleFinish : Code :=
 /-- The complete acceptance test of the index, which also writes the 36 chain positions. -/
 def nibbleChecks : Code := nibbleSetup ++ (List.range 32).flatMap nibbleStep ++ nibbleFinish
 
-def indexLengthCheck : Code := constant .x26 5504 ++ [.XOR .x26 .x26 .x13]
+def indexLengthCheck : Code := constant .x26 5376 ++ [.XOR .x26 .x26 .x13]
 
 def indexChecks : Code :=
   nibbleChecks ++ whenNonzero .x26 reject ++ indexLengthCheck ++ whenNonzero .x26 reject

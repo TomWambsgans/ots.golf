@@ -24,7 +24,7 @@ def CursorReady (s : MachineState) : Prop :=
 
 /-- Consuming at most forty-one disclosure words keeps the cursor in its allocated buffer. -/
 theorem cursorReady_of_wordIndex (s : MachineState) (k : ℕ) (bound : k ≤ 41)
-    (cursor : s.getReg .x9 = BitVec.ofNat 64 (Riscv.signatureBase.toNat + 32 + 16 * k)) :
+    (cursor : s.getReg .x9 = BitVec.ofNat 64 (Riscv.signatureBase.toNat + 16 + 16 * k)) :
     CursorReady s := by
   have base : Riscv.signatureBase.toNat = 4194352 := rfl
   simp only [CursorReady, cursor, base, BitVec.toNat_ofNat]

@@ -409,11 +409,11 @@ theorem prologueLinear_effect (a : MachineState) (k : ℕ) (hk : k < 36) :
 
 /-- The prologue's loads and stores are valid: the payload word and the slot. -/
 theorem payload_access (k j : ℕ) (hk : k < 36) (hj : j < 2) :
-    isValidDwordAccess (Riscv.signatureBase + 32 + signExtend12 (BitVec.ofNat 12 (16 * k + 8 * j))) = true := by
+    isValidDwordAccess (Riscv.signatureBase + 16 + signExtend12 (BitVec.ofNat 12 (16 * k + 8 * j))) = true := by
   rw [signExtend12_nonnegative _ (by omega)]
-  have hs : (Riscv.signatureBase + 32 + BitVec.ofNat 64 (16 * k + 8 * j)).toNat =
-      4194384 + (16 * k + 8 * j) := by
-    have hb : (Riscv.signatureBase + 32).toNat = 4194384 := by decide
+  have hs : (Riscv.signatureBase + 16 + BitVec.ofNat 64 (16 * k + 8 * j)).toNat =
+      4194368 + (16 * k + 8 * j) := by
+    have hb : (Riscv.signatureBase + 16).toNat = 4194368 := by decide
     rw [BitVec.toNat_add, hb, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega),
       Nat.mod_eq_of_lt (by omega)]
   simp only [isValidDwordAccess, isAligned8, isValidMemAddr, MEM_START, MEM_END,
@@ -423,7 +423,7 @@ theorem payload_access (k j : ℕ) (hk : k < 36) (hj : j < 2) :
 
 theorem prologueLinear_ready (a : MachineState) (k : ℕ) (hk : k < 36)
     (base : a.getReg .x18 = BitVec.ofNat 64 chainsBase)
-    (cursor : a.getReg .x9 = Riscv.signatureBase + 32)
+    (cursor : a.getReg .x9 = Riscv.signatureBase + 16)
     (positions : a.getReg .x8 = BitVec.ofNat 64 positionsBase) :
     Riscv.LinearReady a (prologueLinear k) := by
   have hslot : chainSlot k < 2048 := by unfold chainSlot; omega
@@ -453,7 +453,7 @@ theorem prologueLinear_ready (a : MachineState) (k : ℕ) (hk : k < 36)
 structure StepInv (s : MachineState) (x : graph.Assignment) (k : Fin 63) : Prop where
   context : Direct.ExecutionContext s index payload pk
   regs : ChainRegs s
-  cursorReg : s.getReg .x9 = Riscv.signatureBase + 32
+  cursorReg : s.getReg .x9 = Riscv.signatureBase + 16
   pointer : s.getReg .x10 = slotAddr k
   pointer' : s.getReg .x12 = slotAddr k
   pcAligned : s.pc.toNat % 4 = 0
@@ -731,7 +731,7 @@ theorem steps_refines (k : Fin 63) (hk : k.val < 36) (tail : Code)
 structure ChainsInv (s : MachineState) (x : graph.Assignment) (k : ℕ) : Prop where
   context : Direct.ExecutionContext s index payload pk
   regs : ChainRegs s
-  cursorReg : s.getReg .x9 = Riscv.signatureBase + 32
+  cursorReg : s.getReg .x9 = Riscv.signatureBase + 16
   pcAligned : s.pc.toNat % 4 = 0
   done : ∀ k' : Fin 63, k'.val < 36 → k'.val < k → Holds s k' (x (cv k' 13).fin)
 
@@ -892,8 +892,8 @@ theorem prologue_copy_frame (a : MachineState) (k : Fin 63) (hk : k.val < 36)
 /-- The prologue's copy moves chain `k`'s disclosed word into its slot. -/
 theorem prologue_copy_holds (a : MachineState) (k : Fin 63) (hk : k.val < 36)
     (base : a.getReg .x18 = BitVec.ofNat 64 chainsBase)
-    (cursor : a.getReg .x9 = Riscv.signatureBase + 32)
-    (payloadBits : MemBits a (Riscv.signatureBase + 32) (ofBits 5248 payload)) :
+    (cursor : a.getReg .x9 = Riscv.signatureBase + 16)
+    (payloadBits : MemBits a (Riscv.signatureBase + 16) (ofBits 5248 payload)) :
     Holds ((copy128 .x9 (16 * k.val) .x18 (chainSlot k)).foldl execInstrBr a) k
       (ofBits 128 (payload.drop (128 * k.val))) := by
   have source : MemBits a (a.getReg .x9 + BitVec.ofNat 64 (16 * k.val))
@@ -906,7 +906,7 @@ theorem prologue_copy_holds (a : MachineState) (k : Fin 63) (hk : k.val < 36)
       a.getReg .x9 + BitVec.ofNat 64 (16 * k.val) := by
     rw [cursor]
     apply (aligned_iff _).mpr
-    have hb : (Riscv.signatureBase + 32).toNat = 4194384 := by decide
+    have hb : (Riscv.signatureBase + 16).toNat = 4194368 := by decide
     simp (disch := omega) only [BitVec.toNat_add, hb, BitVec.toNat_ofNat, Nat.mod_eq_of_lt]
     omega
   have moved := copy128_memBits a .x9 .x18 (16 * k.val) (chainSlot k) (by decide) (by decide) (by decide)
@@ -958,7 +958,7 @@ theorem prologue_refines (k : Fin 63) (hk : k.val < 36) (rest : Code) (s : Machi
   set a := execInstrBr s (.AUIPC .x28 0) with ha
   have a18 : a.getReg .x18 = BitVec.ofNat 64 chainsBase := by
     rw [aRegs .x18 (by decide)]; exact inv.regs.base
-  have a9 : a.getReg .x9 = Riscv.signatureBase + 32 := by
+  have a9 : a.getReg .x9 = Riscv.signatureBase + 16 := by
     rw [aRegs .x9 (by decide)]; exact inv.cursorReg
   have a8 : a.getReg .x8 = s.getReg .x8 := aRegs .x8 (by decide)
   -- the straight-line part

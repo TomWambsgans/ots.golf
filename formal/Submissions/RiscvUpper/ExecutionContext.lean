@@ -12,12 +12,12 @@ structure ExecutionContext (s : MachineState) (index : Idx paperParams)
     (payload : List Bool) (pk : PublicKey paperParams) : Prop where
   positionBase : s.getReg .x8 = BitVec.ofNat 64 positionsBase
   positions : PositionMemory s (fixedPositions index)
-  payloadBits : MemBits s (Riscv.signatureBase + 32) (ofBits 5248 payload)
+  payloadBits : MemBits s (Riscv.signatureBase + 16) (ofBits 5248 payload)
   publicKey : MemBits s Riscv.publicKeyBase pk
 
 /-- The bit cursor names the next complete signature word. -/
 def CursorAt (s : MachineState) (cursor : ℕ) : Prop :=
-  s.getReg .x9 = Riscv.signatureBase + 32 + BitVec.ofNat 64 (cursor / 8)
+  s.getReg .x9 = Riscv.signatureBase + 16 + BitVec.ofNat 64 (cursor / 8)
 
 /-- Stores in the node arena preserve all input and decoder memory below it. -/
 def FrameBelow (s t : MachineState) : Prop :=
@@ -42,7 +42,7 @@ theorem ExecutionContext.frame {s t : MachineState} {index : Idx paperParams}
   · apply memBits_frame_interval s t _ _ (by decide) (by decide) context.payloadBits
     intro addr _ hi
     apply frame
-    change addr.toNat < 4194384 + (5248 + 7) / 8 at hi
+    change addr.toNat < 4194368 + (5248 + 7) / 8 at hi
     unfold slotsBase
     omega
   · apply memBits_frame_interval s t _ _ (by decide) (by decide) context.publicKey
