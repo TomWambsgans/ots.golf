@@ -84,8 +84,8 @@ class RiscvTrackTests(unittest.TestCase):
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('5513 cycles', detail)
-        self.assertIn('every accepting execution', detail)
-        self.assertIn('href="/rules#riscv-upper"', detail)
+        self.assertIn('Upper bound · RISC-V cycles', detail)
+        self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertIn('RISC-V upper bound</a>', profile)

@@ -143,8 +143,8 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(points[0]['demo'])
         detail = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('1 compression', detail)
-        self.assertIn('arbitrary oracle algorithms', detail)
-        self.assertIn('href="/rules#generic-algorithms"', detail)
+        self.assertIn('Lower bound · Generality 3/3', detail)
+        self.assertNotIn('This claim covers', detail)
         self.assertNotIn('demo', detail)
         self.assertNotIn('DAG framework', detail)
         self.assertNotIn('baseline', detail.lower())
@@ -178,8 +178,8 @@ class FrameworkTests(unittest.TestCase):
             sub = self.session.get(Submission, point['id'])
             self.assertEqual(sub.track, 'generic-upper')
             detail = self.client.get(f'/submissions/{sub.id}').text
-            self.assertIn('perfect correctness, signing failure at most 2<sup>−128</sup>', detail)
-            self.assertIn('127-bit strong security', detail)
+            self.assertIn('Upper bound · compressions', detail)
+            self.assertNotIn('must prove', detail)
             self.assertIn('href="/#upper"', detail)
             self.assertNotIn('signing success at least 1/2', detail)
             self.assertIn('href="/#upper">Upper bound</a>',
@@ -311,7 +311,7 @@ class FrameworkTests(unittest.TestCase):
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f"/submissions/{sub.id}").text
         self.assertTrue('href="/?framework=disclosure#lower">Generality 1/3</a>' in html)
-        self.assertIn('Hash inputs and disclosures contain only whole 128-bit words.', html)
+        self.assertIn('Lower bound · Generality 1/3', html)
         self.assertNotIn('Fictional local demo', html)
 
     def test_solver_page_names_framework_and_bound_kind(self):
