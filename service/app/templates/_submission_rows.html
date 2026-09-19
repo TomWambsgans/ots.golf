@@ -8,7 +8,7 @@
   </td>
   <td class="muted">{{ s.assisted_by or '' }}</td>
   <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
-  <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
+  <td class="muted nowrap" title="{{ (s.finished_at or s.created_at)|dt }}">{{ (s.finished_at or s.created_at)|date }}</td>
 </tr>
 {% else %}
 <tr><td colspan="{{ 6 if show_track else 5 }}" class="muted">Nothing yet.</td></tr>
@@ -29,7 +29,7 @@
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
   </td>
-  <td class="r lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
+  <td class="r lb-date muted" title="{{ (s.record_at or s.finished_at or s.created_at)|dt }}">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
 </tr>
 {%- endmacro %}
 
