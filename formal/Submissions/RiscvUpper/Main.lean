@@ -3,7 +3,7 @@ import Submissions.RiscvUpper.Assembly
 /-!
 # Security of the concrete scheme
 
-`forestScheme_secure`: the scheme of Section 8 of the paper satisfies `Scheme.Secure`, the
+`forestScheme_secure`: the scheme of Section 8 of the paper satisfies `GScheme.Secure`, the
 127-bit strong unforgeability requirement of `OptimalOTS.Statement`, and every signature verifies
 in `141` compressions (`forestScheme_verifyCost`).
 
@@ -24,7 +24,7 @@ namespace OptimalOTS
 
 namespace Forest
 
-attribute [local irreducible] experiment forestScheme
+attribute [local irreducible] GScheme.experiment forestScheme
 
 theorem kappa_eq : κ = ((2 : ℝ≥0∞) ^ 127)⁻¹ := by
   unfold κ ε

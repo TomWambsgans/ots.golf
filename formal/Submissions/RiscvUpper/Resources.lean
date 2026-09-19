@@ -20,12 +20,12 @@ theorem length_encode (G : Graph P) (A : Finset (Fin G.size)) (x : G.Assignment)
   ext v
   simp
 
-theorem signLoop_returns (S : Scheme P) (x : S.graph.Assignment) (m : Message P) :
+theorem signLoop_returns (S : GScheme P) (x : S.graph.Assignment) (m : Message P) :
     ∀ k tried σ, some σ ∈ support (S.signLoop x m k tried) →
       ∃ i, σ.2 = S.graph.encode (S.sets i) x
-  | 0, _, _, h => by simp [Scheme.signLoop] at h
+  | 0, _, _, h => by simp [GScheme.signLoop] at h
   | k + 1, tried, σ, h => by
-    rw [Scheme.signLoop] at h
+    rw [GScheme.signLoop] at h
     split_ifs at h with hf
     · rw [support_bind] at h
       simp only [Set.mem_iUnion] at h
@@ -39,7 +39,7 @@ theorem signLoop_returns (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
       · exact signLoop_returns S x m k _ σ h
     · simp at h
 
-theorem signatureSize (S : Scheme P) :
+theorem signatureSize (S : GScheme P) :
     S.toAlgorithm.SignatureSizeAtMost (P.nonceBits + P.maxRevealBits) := by
   change ∀ (sk : S.graph.Assignment) (m : Message P) (σ : Signature P),
     some σ ∈ support (S.sign sk m) → (encodeSignature σ).length ≤ P.nonceBits + P.maxRevealBits
@@ -48,7 +48,7 @@ theorem signatureSize (S : Scheme P) :
   rw [length_encodeSignature, hi, length_encode]
   exact Nat.add_le_add_left (S.reveal_le i) _
 
-theorem rejectsOversized (S : Scheme P) :
+theorem rejectsOversized (S : GScheme P) :
     S.toAlgorithm.RejectsOversized (P.nonceBits + P.maxRevealBits) := by
   change ∀ (pk : PublicKey P) (m : Message P) (σ : Signature P),
     P.nonceBits + P.maxRevealBits < (encodeSignature σ).length →
@@ -57,10 +57,10 @@ theorem rejectsOversized (S : Scheme P) :
   change P.nonceBits + P.maxRevealBits < (encodeSignature σ).length at hlen
   rw [length_encodeSignature] at hlen
   change true ∈ support (S.verify pk m σ) at hmem
-  rw [Scheme.verify, support_bind] at hmem
+  rw [GScheme.verify, support_bind] at hmem
   simp only [Set.mem_iUnion] at hmem
   obtain ⟨i, _, hmem⟩ := hmem
-  by_cases hi : i < P.numSets
+  by_cases hi : i ∈ validSet P
   · have hwrong : σ.2.length ≠ S.graph.revealBits (S.sets ⟨i, hi⟩) := by
       have h := S.reveal_le ⟨i, hi⟩
       omega
@@ -68,16 +68,16 @@ theorem rejectsOversized (S : Scheme P) :
     cases hmem
   · simp [hi] at hmem
 
-theorem keygenCost (S : Scheme P) : S.toAlgorithm.KeygenCostAtMost P.keygenBudget :=
-  AlgorithmCosts.Scheme.costAtMost_keygen S
+theorem keygenCost (S : GScheme P) : S.toAlgorithm.KeygenCostAtMost P.keygenBudget :=
+  AlgorithmCosts.GScheme.costAtMost_keygen S
 
-theorem signCost (S : Scheme P) (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) :
+theorem signCost (S : GScheme P) (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) :
     S.toAlgorithm.SignCostAtMost P.trialLimit :=
-  AlgorithmCosts.Scheme.costAtMost_sign S hidx
+  AlgorithmCosts.GScheme.costAtMost_sign S hidx
 
-theorem verifyCost (S : Scheme P) (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
+theorem verifyCost (S : GScheme P) (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
     {v : ℕ} (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) :
     S.toAlgorithm.VerifyCostAtMost (1 + v) :=
-  AlgorithmCosts.Scheme.costAtMost_verify S hidx hv
+  AlgorithmCosts.GScheme.costAtMost_verify S hidx hv
 
 end OptimalOTS.AlgorithmAdapter

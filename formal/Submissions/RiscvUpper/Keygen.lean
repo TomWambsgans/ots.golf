@@ -1,5 +1,6 @@
 import Submissions.RiscvUpper.Master
 import Submissions.RiscvUpper.Semantics
+import Submissions.RiscvUpper.GScheme
 
 /-!
 # Key generation under the lazy random oracle
@@ -504,7 +505,7 @@ theorem E_run_evaluate (T : G.Tagging) (z : G.Assignment)
 end Graph
 
 /-- Key generation of a tagged graph is a uniform record. -/
-theorem E_run_keygen {P : Params} (S : Scheme P) (T : S.graph.Tagging)
+theorem E_run_keygen {P : Params} (S : GScheme P) (T : S.graph.Tagging)
     (g : (PublicKey P × S.graph.Assignment) × Cache P → ℝ≥0∞) :
     E (run P S.keygen ∅) g =
       ∑ ξ : S.graph.Rec, (Fintype.card S.graph.Rec : ℝ≥0∞)⁻¹ *
@@ -512,7 +513,7 @@ theorem E_run_keygen {P : Params} (S : Scheme P) (T : S.graph.Tagging)
   have hA0 : (Fintype.card S.graph.Assignment : ℝ≥0∞) ≠ 0 := by
     exact_mod_cast Fintype.card_ne_zero
   have hAt : (Fintype.card S.graph.Assignment : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-  unfold Scheme.keygen Graph.keygen
+  unfold GScheme.keygen Graph.keygen
   rw [run_bind, E_bind]
   simp only [run_pure, E_pure]
   rw [run_bind, E_bind, S.graph.E_run_sampleAssignment]
@@ -613,7 +614,7 @@ end Graph
 
 /-- A budget for `S.keygen >>= k` covers key generation and leaves `B - keygenCost` for the
 continuation at every record. -/
-theorem costAtMost_keygen_bind {P : Params} (S : Scheme P) {β : Type}
+theorem costAtMost_keygen_bind {P : Params} (S : GScheme P) {β : Type}
     (k : PublicKey P × S.graph.Assignment → OracleComp (Spec P) β) {B : ℕ}
     (h : CostAtMost P (S.keygen >>= k) B) :
     S.graph.keygenCost ≤ B ∧ ∀ ξ : S.graph.Rec,
@@ -621,7 +622,7 @@ theorem costAtMost_keygen_bind {P : Params} (S : Scheme P) {β : Type}
         (B - S.graph.keygenCost) := by
   have h' : CostAtMost P (S.graph.sampleAssignment >>= fun z =>
       S.graph.evaluate z >>= fun x => k (S.publicKey x, x)) B := by
-    simpa only [Scheme.keygen, Graph.keygen, bind_assoc, pure_bind] using h
+    simpa only [GScheme.keygen, Graph.keygen, bind_assoc, pure_bind] using h
   unfold Graph.sampleAssignment at h'
   have hs := S.graph.costAtMost_sampleFold_bind _ _ _ h'
   simp only [foldl_update_finRange] at hs

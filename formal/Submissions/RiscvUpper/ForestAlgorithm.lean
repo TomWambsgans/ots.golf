@@ -7,7 +7,7 @@ import Submissions.RiscvUpper.Availability
 # The verified forest under the generic algorithm interface
 
 The forest satisfies the generic challenge: perfect correctness, signing failure at most
-`2⁻¹²⁸`, 127-bit strong security, and verification within 141 compressions on every path.
+`2⁻¹²⁸`, 127-bit strong security, and verification within 186 compressions on every path.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -17,7 +17,7 @@ open scoped Classical
 namespace OptimalOTS.RiscvUpperForest
 
 attribute [local irreducible] Forest.forestScheme
-attribute [local irreducible] Scheme.sign Scheme.signLoop
+attribute [local irreducible] GScheme.sign GScheme.signLoop
 attribute [local irreducible] AlgorithmScheme.Secure AlgorithmScheme.VerifyCostAtMost
   AlgorithmScheme.KeygenCostAtMost AlgorithmScheme.SignCostAtMost
   AlgorithmScheme.SignatureSizeAtMost AlgorithmScheme.RejectsOversized
@@ -26,7 +26,7 @@ def scheme : AlgorithmScheme paperParams := Forest.forestScheme.toAlgorithm
 
 theorem experiment_eq (A : scheme.Adversary) :
     scheme.experiment A =
-      OptimalOTS.experiment Forest.forestScheme
+      GScheme.experiment Forest.forestScheme
         (AlgorithmAdapter.toDAGAdversary Forest.forestScheme A) :=
   AlgorithmAdapter.experiment_eq Forest.forestScheme A
 
@@ -34,11 +34,11 @@ theorem secure : scheme.Secure :=
   (AlgorithmAdapter.secure_iff Forest.forestScheme).2 Forest.forestScheme_secure
 
 /-- This bound covers all public keys, messages and signatures, including rejecting inputs. -/
-theorem cost : scheme.VerifyCostAtMost 141 := by
-  apply AlgorithmAdapter.verifyCost Forest.forestScheme (v := 140) (by decide)
+theorem cost : scheme.VerifyCostAtMost 186 := by
+  apply AlgorithmAdapter.verifyCost Forest.forestScheme (v := 185) (by decide)
   intro i
   have h := Forest.forestScheme_verifyCost i
-  change 1 + Forest.forestScheme.graph.reconstructCost (Forest.forestScheme.sets i) = 141 at h
+  change 1 + Forest.forestScheme.graph.reconstructCost (Forest.forestScheme.sets i) = 186 at h
   omega
 
 theorem keygen_cost : scheme.KeygenCostAtMost AlgorithmScheme.paperLimits.keygenCost :=
@@ -70,10 +70,10 @@ theorem admissible : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
   keygenCost := keygen_cost
   signCost := sign_cost
 
-/-- A complete admissible, strongly secure, 141-compression generic upper construction. -/
+/-- A complete admissible, strongly secure, 186-compression construction. -/
 theorem certificate :
     scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) ∧
-    scheme.Secure ∧ scheme.VerifyCostAtMost 141 :=
+    scheme.Secure ∧ scheme.VerifyCostAtMost 186 :=
   ⟨admissible, secure, cost⟩
 
 /--

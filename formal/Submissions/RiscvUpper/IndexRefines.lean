@@ -46,30 +46,46 @@ theorem checkedBranch_refines (s : MachineState) (fuel : ℕ)
       (by omega)
     exact (Riscv.Refines.branch fetch (by decide) (by decide) transition rej).mono (by omega)
 
-/-- The suffix either rejects or reaches its continuation in eight cycles. -/
+theorem capped_length_eq (bits : List Bool) :
+    (5504 : Word) ^^^ BitVec.ofNat 64 (min bits.length 5505) = 0#64 ↔ bits.length = 5504 := by
+  rw [BitVec.xor_eq_zero_iff]
+  constructor
+  · intro h
+    have hn := congrArg BitVec.toNat h
+    simp only [BitVec.toNat_ofNat] at hn
+    have bound : min bits.length 5505 < 2 ^ 64 := by omega
+    rw [Nat.mod_eq_of_lt bound] at hn
+    change 5504 = min bits.length 5505 at hn
+    omega
+  · intro h
+    simp [h]
+
+/-- The suffix either rejects or reaches its continuation in 243 cycles. -/
 theorem indexChecks_refines (s : MachineState) (fuel : ℕ)
     (scratch : s.getReg .x19 = BitVec.ofNat 64 scratchBase)
-    (located : Riscv.CodeAt s s.pc indexChecks) (bound : 14 ≤ fuel)
+    (located : Riscv.CodeAt s s.pc indexChecks) (bound : 249 ≤ fuel)
     {q : OracleComp (Spec paperParams) (Option Bool)} {c : ℕ} (hc : 3 ≤ c)
-    (h : s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64 →
-      (5504 : Word) ^^^ s.getReg .x13 = 0#64 →
-      Riscv.Refines (fuel - 8) (checkedIndexState s) q c) :
+    (h : Accepted (indexOf s) → (5504 : Word) ^^^ s.getReg .x13 = 0#64 →
+      Riscv.Refines (fuel - 243) (checkedIndexState s) q c) :
     Riscv.Refines fuel s
-      (if s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64 ∧
-          (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q else pure (some false)) (c + 8) := by
-  let a := indexLoads.foldl execInstrBr s
-  let b := skipReject a
-  let d := indexLengthCheck.foldl execInstrBr b
+      (if Accepted (indexOf s) ∧ (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q
+        else pure (some false)) (c + 243) := by
   have code : Riscv.CodeAt s s.pc
-      (indexLoads ++ (whenNonzero .x26 reject ++
+      (nibbleChecks ++ (whenNonzero .x26 reject ++
         (indexLengthCheck ++ whenNonzero .x26 reject))) := by
     simpa only [indexChecks, List.append_assoc] using located
-  have aPC : a.pc = s.pc + BitVec.ofNat 64 (4 * indexLoads.length) :=
-    Riscv.linear_fold_pc s _ (indexLoads_ready s scratch)
+  have ready := nibbleChecks_ready s scratch
+  obtain ⟨aTest, -, a13, -, -, -, -, -⟩ := nibbleChecks_effect s
+  have aPC := Riscv.linear_fold_pc s _ ready
+  have aCodeEq := Riscv.fold_code s nibbleChecks
+  unfold checkedIndexState at h
+  generalize ha : nibbleChecks.foldl execInstrBr s = a at aTest a13 aPC aCodeEq h
+  let b := skipReject a
+  let d := indexLengthCheck.foldl execInstrBr b
   have aCode : Riscv.CodeAt a a.pc (whenNonzero .x26 reject ++
       (indexLengthCheck ++ whenNonzero .x26 reject)) := by
     rw [aPC]
-    exact code.append_right.code_eq (Riscv.fold_code s indexLoads)
+    exact code.append_right.code_eq aCodeEq
   have bCode : Riscv.CodeAt b b.pc (indexLengthCheck ++ whenNonzero .x26 reject) :=
     aCode.append_right.code_eq rfl
   have dPC : d.pc = b.pc + BitVec.ofNat 64 (4 * indexLengthCheck.length) :=
@@ -77,52 +93,54 @@ theorem indexChecks_refines (s : MachineState) (fuel : ℕ)
   have dCode : Riscv.CodeAt d d.pc (whenNonzero .x26 reject) := by
     rw [dPC]
     exact bCode.append_right.code_eq (Riscv.fold_code b indexLengthCheck)
-  have aTest : a.getReg .x26 = s.getMem (s.getReg .x19 + 136) >>> 51 :=
-    (indexLoads_registers s).2.2.1
-  have dTest : d.getReg .x26 = (5504 : Word) ^^^ s.getReg .x13 := rfl
-  have loadLength : indexLoads.length = 3 := rfl
+  have dTest : d.getReg .x26 = (5504 : Word) ^^^ s.getReg .x13 := by
+    show (indexLengthCheck.foldl execInstrBr b).getReg .x26 = _
+    rw [indexLengthCheck_test]
+    change 5504 ^^^ a.getReg .x13 = _
+    rw [a13]
   have checkLength : indexLengthCheck.length = 3 := rfl
-  have step2 (hA : s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64) :
-      Riscv.Refines (fuel - 7) d
+  have step2 (hA : Accepted (indexOf s)) :
+      Riscv.Refines (fuel - 242) d
         (if (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q else pure (some false)) (c + 1) := by
-    have hb := checkedBranch_refines d (fuel - 7) dCode (by omega) (q := q) (c := c) hc
+    have hb := checkedBranch_refines d (fuel - 242) dCode (by omega) (q := q) (c := c) hc
       (fun hB => by
         rw [dTest] at hB
         have := h hA hB
-        rw [show fuel - 8 = fuel - 7 - 1 by omega] at this
+        rw [show fuel - 243 = fuel - 242 - 1 by omega] at this
         exact this)
     rwa [dTest] at hb
-  have step3 (hA : s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64) :
-      Riscv.Refines (fuel - 4) b
+  have step3 (hA : Accepted (indexOf s)) :
+      Riscv.Refines (fuel - 239) b
         (if (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q else pure (some false)) (c + 4) := by
     have := Riscv.Refines.linear indexLengthCheck bCode.append_left (indexLengthCheck_ready b)
       (step2 hA)
-    rwa [checkLength, show 3 + (fuel - 7) = fuel - 4 by omega, show 3 + (c + 1) = c + 4 by omega]
+    rwa [checkLength, show 3 + (fuel - 242) = fuel - 239 by omega, show 3 + (c + 1) = c + 4 by omega]
       at this
-  have step4 : Riscv.Refines (fuel - 3) a
-      (if s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64 then
+  have step4 : Riscv.Refines (fuel - 238) a
+      (if Accepted (indexOf s) then
         (if (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q else pure (some false))
       else pure (some false)) (c + 4 + 1) := by
-    have hb := checkedBranch_refines a (fuel - 3) aCode.append_left (by omega)
+    have hb := checkedBranch_refines a (fuel - 238) aCode.append_left (by omega)
       (q := if (5504 : Word) ^^^ s.getReg .x13 = 0#64 then q else pure (some false))
       (c := c + 4) (by omega)
       (fun hA => by
         rw [aTest] at hA
         have := step3 hA
-        rw [show fuel - 4 = fuel - 3 - 1 by omega] at this
+        rw [show fuel - 239 = fuel - 238 - 1 by omega] at this
         exact this)
-    rwa [aTest] at hb
-  have step5 := Riscv.Refines.linear indexLoads code.append_left (indexLoads_ready s scratch) step4
-  rw [loadLength, show 3 + (fuel - 3) = fuel by omega] at step5
+    exact hb.congr (if_congr aTest rfl rfl)
+  rw [← ha] at step4
+  have step5 := Riscv.Refines.linear nibbleChecks code.append_left ready step4
+  rw [nibbleChecks_length, show 238 + (fuel - 238) = fuel by omega] at step5
   refine (step5.congr ?_).mono (by omega)
-  by_cases hA : s.getMem (s.getReg .x19 + 136) >>> 51 = 0#64
+  by_cases hA : Accepted (indexOf s)
   · by_cases hB : (5504 : Word) ^^^ s.getReg .x13 = 0#64
     · rw [if_pos hA, if_pos hB, if_pos ⟨hA, hB⟩]
     · rw [if_pos hA, if_neg hB, if_neg (fun h => hB h.2)]
   · rw [if_neg hA, if_neg (fun h => hA h.1)]
 
 /-- The machine issues the specified first query, rejects exactly the invalid index and length
-cases, and otherwise enters any proved continuation, at 36 cycles plus the continuation. -/
+cases, and otherwise enters any proved continuation, at 271 cycles plus the continuation. -/
 theorem indexAndChecks_refines (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (hdata : image.data.length ≤ 1048576)
     (rest fuel : ℕ) (q : BitVec 256 → OracleComp (Spec paperParams) (Option Bool)) (c : ℕ)
@@ -130,15 +148,15 @@ theorem indexAndChecks_refines (image : Riscv.Image) (pk : PublicKey paperParams
     (located : Riscv.CodeAt (Riscv.initialState image pk m bits)
       (Riscv.initialState image pk m bits).pc indexAndChecks)
     (bound : indexAndChecks.length + rest ≤ fuel)
-    (continuation : ∀ answer, (answer.setWidth 128).toNat < 2 ^ 115 → bits.length = 5504 →
+    (continuation : ∀ answer, Accepted (answer.setWidth 128).toNat → bits.length = 5504 →
       ∀ left, rest ≤ left →
         Riscv.Refines left
           (checkedIndexState (Riscv.writeHash (indexInputState image pk m bits) answer))
           (q answer) c) :
     Riscv.Refines fuel (Riscv.initialState image pk m bits) (do
       let answer ← hash paperParams (m ++ ofBits 256 bits)
-      if (answer.setWidth 128).toNat < 2 ^ 115 ∧ bits.length = 5504 then q answer
-      else pure (some false)) (c + 36) := by
+      if Accepted (answer.setWidth 128).toNat ∧ bits.length = 5504 then q answer
+      else pure (some false)) (c + 271) := by
   rw [indexAndChecks_parts] at located
   have ready := indexPrefix_ready image pk m bits
   have callLocated : Riscv.CodeAt (indexInputState image pk m bits)
@@ -148,11 +166,11 @@ theorem indexAndChecks_refines (image : Riscv.Image) (pk : PublicKey paperParams
     rw [Riscv.linear_fold_pc _ _ ready]
     exact located.append_right.code_eq (Riscv.fold_code _ _)
   have length := indexPrefix_length
-  have enough : 42 + rest ≤ fuel := by simpa only [indexAndChecks_length] using bound
+  have enough : 277 + rest ≤ fuel := by simpa only [indexAndChecks_length] using bound
   have afterHash : ∀ answer, Riscv.Refines (fuel - 28)
       (Riscv.writeHash (indexInputState image pk m bits) answer)
-      (if (answer.setWidth 128).toNat < 2 ^ 115 ∧ bits.length = 5504 then q answer
-        else pure (some false)) (c + 8) := by
+      (if Accepted (answer.setWidth 128).toNat ∧ bits.length = 5504 then q answer
+        else pure (some false)) (c + 243) := by
     intro answer
     let s := Riscv.writeHash (indexInputState image pk m bits) answer
     have sameCode : s.code = (indexInputState image pk m bits).code := by
@@ -160,25 +178,22 @@ theorem indexAndChecks_refines (image : Riscv.Image) (pk : PublicKey paperParams
       simp [Riscv.writeHash]
     have scratch : s.getReg .x19 = BitVec.ofNat 64 scratchBase := rfl
     have size : s.getReg .x13 = BitVec.ofNat 64 (min bits.length 5505) := rfl
-    have high := writeHash_word (indexInputState image pk m bits) answer 1 (by decide)
-    change s.getMem (s.getReg .x19 + 136) = answer.extractLsb' 64 64 at high
-    have fit : answer.extractLsb' 64 64 >>> 51 = 0#64 ↔
-        (answer.setWidth 128).toNat < 2 ^ 115 := by
-      rw [highWord_shift_zero (answer.extractLsb' 0 64), answer_low128]
+    have index := indexOf_hash image pk m bits answer
+    change indexOf s = (answer.setWidth 128).toNat at index
     have hr := indexChecks_refines s (fuel - 28) scratch
       (callLocated.tail.code_eq sameCode) (by omega) (q := q answer) (c := c) hc (fun hA hB => by
-        rw [high, fit] at hA
+        rw [index] at hA
         rw [size, capped_length_eq] at hB
-        exact continuation answer hA hB (fuel - 28 - 8) (by omega))
+        exact continuation answer hA hB (fuel - 28 - 243) (by omega))
     refine hr.congr ?_
-    simp only [high, size, fit, capped_length_eq]
+    simp only [index, size, capped_length_eq]
   have hashed := Riscv.Refines.hash (fuel := fuel - 28) callLocated.head
     (indexInput_registers image pk m bits).1 (indexInput_hashValid image pk m bits) afterHash
   rw [indexInput_hash image pk m bits hdata] at hashed
   have lin := Riscv.Refines.linear indexPrefix located.append_left ready hashed
   rw [length, show 27 + (fuel - 28 + 1) = fuel by omega] at lin
   refine lin.mono ?_
-  change 27 + (blockCost paperParams 512 + (c + 8)) ≤ c + 36
+  change 27 + (blockCost paperParams 512 + (c + 243)) ≤ c + 271
   have : blockCost paperParams 512 = 1 := by decide
   omega
 

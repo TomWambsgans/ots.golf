@@ -8,15 +8,6 @@ open RiscvZkvm.Rv64
 
 set_option maxRecDepth 100000
 
-/-- The prefix ends immediately before the index HASH call. -/
-def indexPrefix : Code :=
-  constant .x11 0 ++ constant .x19 scratchBase ++
-  constant .x7 Riscv.signatureBase.toNat ++
-  copy128 .x7 0 .x19 0 ++ copy128 .x7 16 .x19 16 ++
-  constant .x7 Riscv.messageBase.toNat ++
-  copy128 .x7 0 .x19 32 ++ copy128 .x7 16 .x19 48 ++
-  [.ADDI .x10 .x19 0, .ADDI .x11 .x0 512, .ADDI .x12 .x19 128, .ADDI .x5 .x0 1]
-
 def indexInputState (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) : MachineState :=
   indexPrefix.foldl execInstrBr (Riscv.initialState image pk m bits)
@@ -85,9 +76,8 @@ theorem indexInput_hashValid (image : Riscv.Image) (pk : PublicKey paperParams)
   rw [hr.2.1, hr.2.2.1, hr.2.2.2.1]
   decide +kernel
 
-theorem indexPrefix_at_start : indexPrefix ++ [.ECALL] <+: indexAndChecks := by
-  refine ⟨indexAndChecks.drop 28, ?_⟩
-  decide +kernel
+theorem indexPrefix_at_start : indexPrefix ++ [.ECALL] <+: indexAndChecks :=
+  ⟨indexChecks, rfl⟩
 
 theorem indexInput_pc (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) :

@@ -74,7 +74,7 @@ theorem FrameInputs.setPC {s : MachineState} (pc : Word) : FrameInputs s (s.setP
   fun _ _ => rfl
 
 /-- The reconstruction context survives any writes at or above the chain array. -/
-theorem _root_.OptimalOTS.RiscvUpperProgram.Direct.ExecutionContext.frameInputs {s t : MachineState} {index : Fin (2 ^ 115)}
+theorem _root_.OptimalOTS.RiscvUpperProgram.Direct.ExecutionContext.frameInputs {s t : MachineState} {index : Idx paperParams}
     {payload : List Bool} {pk : PublicKey paperParams}
     (context : Direct.ExecutionContext s index payload pk) (frame : FrameInputs s t)
     (base : t.getReg .x8 = s.getReg .x8) : Direct.ExecutionContext t index payload pk := by

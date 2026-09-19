@@ -1,10 +1,11 @@
 import Submissions.RiscvUpper.FixedChoice
+import Submissions.RiscvUpper.GScheme
 
 /-!
-# The fixed-layout forest
+# The nibble-layout forest
 
-A computably indexed family of cuts with 41 revealed 128-bit values. Verification
-costs 141 compressions. The graph and security argument are shared with the original forest.
+A family of cuts indexed by the accepted indices, with 41 revealed 128-bit values. Verification
+costs 186 compressions. The graph and security argument are shared with the original forest.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -20,14 +21,12 @@ namespace Forest
 open Name
 
 /-- A fixed disclosure layout, with chain positions decoded from the index. -/
-def setsName (i : Fin (2 ^ 115)) : Finset Name := cutOf (fixedChoice i)
+def setsName (i : Idx paperParams) : Finset Name := cutOf (fixedChoice i)
 
 theorem setsName_injective : Function.Injective setsName := fixedCut_injective
 
-theorem numSets_eq : paperParams.numSets = 2 ^ 115 := rfl
-
 /-- The concrete scheme. -/
-def forestScheme : Scheme paperParams where
+def forestScheme : GScheme paperParams where
   graph := graph
   sets := fun i => fins (setsName i)
   root_not_mem := by
@@ -53,7 +52,7 @@ def forestScheme : Scheme paperParams where
 
 theorem forestScheme_graph : forestScheme.graph = graph := rfl
 
-theorem forestScheme_sets (i : Fin paperParams.numSets) : forestScheme.sets i = fins (setsName i) :=
+theorem forestScheme_sets (i : Idx paperParams) : forestScheme.sets i = fins (setsName i) :=
   rfl
 
 theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
@@ -62,15 +61,15 @@ theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
   have := congrArg names h
   simpa only [forestScheme_sets, names_fins] using this
 
-theorem isCut_setsName (i : Fin (2 ^ 115)) : IsCut (setsName i) :=
+theorem isCut_setsName (i : Idx paperParams) : IsCut (setsName i) :=
   fixedCut_isCut i
 
-theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i), n.cost = 140 :=
+theorem cost_setsName (i : Idx paperParams) : ∑ n ∈ evaluatedSet (setsName i), n.cost = 185 :=
   fixedCut_cost i
 
-/-- Every signature verifies in `141` compressions. -/
-theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 141 := by
-  show idxCost paperParams + graph.reconstructCost (fins (setsName i)) = 141
+/-- Every signature verifies in `186` compressions. -/
+theorem forestScheme_verifyCost (i : Idx paperParams) : forestScheme.verifyCost i = 186 := by
+  show idxCost paperParams + graph.reconstructCost (fins (setsName i)) = 186
   have hidx : idxCost paperParams = 1 := by decide
   rw [reconstructCost_eq, hidx]
   have h := cost_setsName i

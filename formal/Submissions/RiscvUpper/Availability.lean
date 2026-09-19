@@ -7,7 +7,8 @@ import Submissions.RiscvUpper.Adapter
 
 Key generation makes no 512-bit index query. For any message chosen from the public key,
 the signer therefore tries fresh, distinct nonce queries. Each trial fails with probability
-`8191 / 8192`. The `2^21` trials give failure at most `2^-256`, below the required `2^-128`.
+`miss = 1 - numValid / 2 ^ 128 ≤ 8191 / 8192`, and the `2^20` trials give failure at most
+`2^-128`.
 -/
 
 open OracleSpec OracleComp OracleComp.EvalDist ENNReal
@@ -16,26 +17,45 @@ open scoped Classical
 
 namespace OptimalOTS.Forest.Availability
 
-attribute [local irreducible] Finset.univ Finset.filter
+attribute [local irreducible] Finset.univ Finset.filter validSet numValid
 
 /-- Failure probability of one fresh index query. -/
-def miss : ℝ≥0∞ := 8191 / 8192
+def miss : ℝ≥0∞ :=
+  ((2 ^ 256 - numValid paperParams * 2 ^ 128 : ℕ) : ℝ≥0∞) * (((2 ^ 256 : ℕ) : ℝ≥0∞))⁻¹
+
+theorem miss_eq : miss = ((2 ^ 256 - numValid paperParams * 2 ^ 128 : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
+  rw [miss, div_eq_mul_inv, Nat.cast_pow, Nat.cast_ofNat]
+
+/-- At least `2 ^ 115` of the `2 ^ 128` indices are accepted. -/
+theorem miss_le : miss ≤ 8191 / 8192 := by
+  have hN : 2 ^ 243 ≤ numValid paperParams * 2 ^ 128 :=
+    calc 2 ^ 243 = 2 ^ 115 * 2 ^ 128 := by norm_num
+      _ ≤ _ := Nat.mul_le_mul_right _ numValid_ge
+  have ha : 2 ^ 256 - numValid paperParams * 2 ^ 128 ≤ 8191 * 2 ^ 243 := by
+    have h := Nat.sub_le_sub_left hN (2 ^ 256)
+    have e : 2 ^ 256 - 2 ^ 243 = 8191 * 2 ^ 243 := by norm_num
+    omega
+  calc miss = ((2 ^ 256 - numValid paperParams * 2 ^ 128 : ℕ) : ℝ≥0∞) / 2 ^ 256 := miss_eq
+    _ ≤ ((8191 * 2 ^ 243 : ℕ) : ℝ≥0∞) / 2 ^ 256 := ENNReal.div_le_div_right (Nat.cast_le.mpr ha) _
+    _ = 8191 / 8192 := by
+      rw [ENNReal.div_eq_div_iff (by norm_num) (by finiteness) (by norm_num) (by finiteness)]
+      norm_num
 
 private theorem uniform_miss_count (P : Params) (hidx : P.idxBits ≤ P.hashBits)
-    (hM : P.numSets ≤ 2 ^ P.idxBits) (a : ℝ≥0∞) :
-    E ($ᵗ BitVec P.hashBits) (fun w => if idxOf P w < P.numSets then 0 else a) =
-      ((2 ^ P.hashBits - P.numSets * 2 ^ (P.hashBits - P.idxBits) : ℕ) : ℝ≥0∞) *
+    (hM : numValid P ≤ 2 ^ P.idxBits) (a : ℝ≥0∞) :
+    E ($ᵗ BitVec P.hashBits) (fun w => if idxOf P w ∈ validSet P then 0 else a) =
+      ((2 ^ P.hashBits - numValid P * 2 ^ (P.hashBits - P.idxBits) : ℕ) : ℝ≥0∞) *
         (((2 ^ P.hashBits : ℕ) : ℝ≥0∞)⁻¹ * a) := by
-  have hv : (Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w < P.numSets).card =
-      P.numSets * 2 ^ (P.hashBits - P.idxBits) := by
-    have h := Analysis.card_idxOfOut_mem (P := P) hidx (Finset.range P.numSets)
-      (fun n hn => (Finset.mem_range.mp hn).trans_le hM)
-    convert h using 1 <;> simp [Analysis.idxOfOut, idxOf]
-  have hn : (Finset.univ.filter fun w : BitVec P.hashBits => ¬ idxOf P w < P.numSets).card =
-      2 ^ P.hashBits - P.numSets * 2 ^ (P.hashBits - P.idxBits) := by
+  have hv : (Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w ∈ validSet P).card =
+      numValid P * 2 ^ (P.hashBits - P.idxBits) := by
+    have h := Analysis.card_idxOfOut_mem (P := P) hidx (validSet P)
+      (fun n hn => mem_validSet_lt hn)
+    convert h using 1 <;> simp [Analysis.idxOfOut, idxOf, numValid]
+  have hn : (Finset.univ.filter fun w : BitVec P.hashBits => ¬ idxOf P w ∈ validSet P).card =
+      2 ^ P.hashBits - numValid P * 2 ^ (P.hashBits - P.idxBits) := by
     have h := Finset.card_filter_add_card_filter_not
       (s := (Finset.univ : Finset (BitVec P.hashBits)))
-      (p := fun w => idxOf P w < P.numSets)
+      (p := fun w => idxOf P w ∈ validSet P)
     rw [hv, Finset.card_univ, Fintype.card_bitVec] at h
     omega
   rw [E_uniform]
@@ -45,14 +65,12 @@ private theorem uniform_miss_count (P : Params) (hidx : P.idxBits ≤ P.hashBits
 
 private theorem uniform_miss (a : ℝ≥0∞) :
     E ($ᵗ BitVec paperParams.hashBits)
-      (fun w => if idxOf paperParams w < paperParams.numSets then 0 else a) = miss * a := by
-  rw [uniform_miss_count paperParams (by decide) (by norm_num [paperParams])]
-  rw [← mul_assoc]
-  congr 1
-  rw [← div_eq_mul_inv]
-  apply (ENNReal.div_eq_div_iff (by norm_num [paperParams]) (by finiteness)
-    (by norm_num) (by finiteness)).2
-  norm_num [miss, paperParams]
+      (fun w => if idxOf paperParams w ∈ validSet paperParams then 0 else a) = miss * a := by
+  rw [uniform_miss_count paperParams (by decide) (numValid_le paperParams), ← mul_assoc]
+  have h1 : paperParams.hashBits = 256 := rfl
+  have h2 : paperParams.hashBits - paperParams.idxBits = 128 := rfl
+  rw [h2, h1]
+  rfl
 
 /-- Exact failure probability while enough untried nonces remain and their queries are fresh. -/
 theorem loop_failure (m : Message paperParams) :
@@ -85,10 +103,10 @@ theorem loop_failure (m : Message paperParams) :
           E (run paperParams (afterHash paperParams m k tried η w)
             (c.cacheQuery (encQuery paperParams (m ++ η)) w))
             (fun p => if p.1.isNone then 1 else 0) =
-          if idxOf paperParams w < paperParams.numSets then 0 else miss ^ k := by
+          if idxOf paperParams w ∈ validSet paperParams then 0 else miss ^ k := by
         intro w
         unfold afterHash
-        by_cases hw : idxOf paperParams w < paperParams.numSets
+        by_cases hw : idxOf paperParams w ∈ validSet paperParams
         · rw [dif_pos hw, if_pos hw, run_pure, E_pure]
           rfl
         · rw [dif_neg hw, if_neg hw]
@@ -104,7 +122,7 @@ theorem loop_failure (m : Message paperParams) :
             exact hfresh η' (fun h => hη' (Finset.mem_insert_of_mem h))
       calc
         _ = E ($ᵗ BitVec paperParams.hashBits)
-            (fun w => if idxOf paperParams w < paperParams.numSets then 0 else miss ^ k) := by
+            (fun w => if idxOf paperParams w ∈ validSet paperParams then 0 else miss ^ k) := by
           congr 1
           funext w
           exact hkont w
@@ -133,14 +151,15 @@ private theorem bernoulli_reciprocal {p : ℝ} (hp : 0 ≤ p) (hp1 : p ≤ 1) (k
 
 /-- A block of 8192 trials fails with probability at most one half. -/
 private theorem miss_block : miss ^ 8192 ≤ 1 / 2 := by
+  refine (pow_le_pow_left' miss_le 8192).trans ?_
   have h := bernoulli_reciprocal (p := (1 : ℝ) / 8192) (by norm_num) (by norm_num) 8192
   have hbase : (1 : ℝ) - 1 / 8192 = 8191 / 8192 := by norm_num
   have hden : 1 + ((8192 : ℕ) : ℝ) * (1 / 8192) = 2 := by norm_num
   rw [hbase, hden] at h
   have h' := ENNReal.ofReal_le_ofReal h
   rw [ENNReal.ofReal_pow (by norm_num)] at h'
-  have hb : ENNReal.ofReal ((8191 : ℝ) / 8192) = miss := by
-    norm_num [miss, ENNReal.ofReal_div_of_pos]
+  have hb : ENNReal.ofReal ((8191 : ℝ) / 8192) = (8191 / 8192 : ℝ≥0∞) := by
+    norm_num [ENNReal.ofReal_div_of_pos]
   have hh : ENNReal.ofReal ((1 : ℝ) / 2) = (1 / 2 : ℝ≥0∞) := by
     norm_num [ENNReal.ofReal_div_of_pos]
   rwa [hb, hh] at h'

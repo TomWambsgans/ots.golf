@@ -13,19 +13,19 @@ set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
 attribute [local irreducible] Forest.setsName Forest.fixedPositions Forest.fixedDigits
 
-theorem consumedBits_word (i : Fin (2 ^ 115)) (n : Name) :
+theorem consumedBits_word (i : Idx paperParams) (n : Name) :
     consumedBits i n = if disclosed (fixedPositions i) n then 128 else 0 := by
   unfold consumedBits
   split_ifs with hd
   · exact (fixedCut_isCut i).values n (by simpa only [setsName] using (disclosed_eq i n).mp hd)
   · rfl
 
-theorem consumedBits_aligned (i : Fin (2 ^ 115)) (n : Name) : consumedBits i n % 128 = 0 := by
+theorem consumedBits_aligned (i : Idx paperParams) (n : Name) : consumedBits i n % 128 = 0 := by
   rw [consumedBits_word]
   split <;> decide
 
 /-- Exactly 41 whole words are consumed over the complete node sequence. -/
-theorem total_consumed (i : Fin (2 ^ 115)) : (order.map (consumedBits i)).sum = 5248 := by
+theorem total_consumed (i : Idx paperParams) : (order.map (consumedBits i)).sum = 5248 := by
   let cost (v : Fin N) := if v ∈ fins (setsName i) then graph.len v else 0
   have pointwise (n : Name) : consumedBits i n = cost n.fin := by
     simp only [cost, consumedBits, mem_fins, ← disclosed_eq, lenF_fin]

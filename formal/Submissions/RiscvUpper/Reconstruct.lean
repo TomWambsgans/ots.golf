@@ -1,10 +1,11 @@
 import Submissions.RiscvUpper.Master
 import Submissions.RiscvUpper.Semantics
+import Submissions.RiscvUpper.GScheme
 
 /-!
 # Reconstruction and verification under the lazy random oracle
 
-Support-level descriptions of the runs of `Graph.reconstruct`, `index` and `Scheme.verify`:
+Support-level descriptions of the runs of `Graph.reconstruct`, `index` and `GScheme.verify`:
 whatever the oracle answers, the final cache contains the answers to every query made, and the
 computed assignment satisfies the reconstruction equations with respect to that cache.
 
@@ -437,24 +438,24 @@ theorem index_support {P : Params} (m : Message P) (η : Nonce P) (c : Cache P) 
 
 /-- Every accepting run of the verifier is witnessed in the final cache: the index answer, and
 an assignment satisfying the reconstruction equations whose root prefix is the public key. -/
-theorem verify_support {P : Params} (S : Scheme P) (pk : PublicKey P) (m : Message P)
+theorem verify_support {P : Params} (S : GScheme P) (pk : PublicKey P) (m : Message P)
     (σ : Signature P) (c : Cache P) :
     ∀ p ∈ support (run P (S.verify pk m σ) c),
       Cache.Sub c p.2 ∧ (p.1 = true →
         ∃ w, p.2 ⟨P.msgBits + P.nonceBits, m ++ σ.1⟩ = some w ∧
-          ∃ hi : (w.setWidth P.idxBits).toNat < P.numSets,
+          ∃ hi : (w.setWidth P.idxBits).toNat ∈ validSet P,
             σ.2.length = S.graph.revealBits (S.sets ⟨_, hi⟩) ∧
             ∃ y : S.graph.Assignment,
               S.graph.ReconEqs p.2 (S.sets ⟨_, hi⟩) (S.graph.decode (S.sets ⟨_, hi⟩) σ.2) y ∧
               S.publicKey y = pk) := by
   intro p hp
-  unfold Scheme.verify at hp
+  unfold GScheme.verify at hp
   rw [run_bind, support_bind] at hp
   simp only [Set.mem_iUnion] at hp
   obtain ⟨⟨i, c₁⟩, hi₁, hp⟩ := hp
   obtain ⟨hsub₁, w, hw, rfl⟩ := index_support m σ.1 c ⟨i, c₁⟩ hi₁
   dsimp only at hp hw
-  by_cases hi : (w.setWidth P.idxBits).toNat < P.numSets
+  by_cases hi : (w.setWidth P.idxBits).toNat ∈ validSet P
   · rw [dif_pos hi] at hp
     by_cases hlen : σ.2.length = S.graph.revealBits (S.sets ⟨_, hi⟩)
     · rw [if_pos hlen, run_bind, support_bind] at hp

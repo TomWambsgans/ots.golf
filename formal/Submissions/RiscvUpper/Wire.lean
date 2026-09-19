@@ -7,7 +7,11 @@ open OracleComp ENNReal
 noncomputable section
 open scoped Classical
 
+set_option linter.constructorNameAsVariable false
+
 namespace OptimalOTS.RiscvUpperForest.Wire
+
+attribute [local irreducible] validSet numValid
 
 def decode (bits : List Bool) : Signature paperParams :=
   (ofBits 256 (bits.take 256), bits.drop 256)
@@ -25,7 +29,7 @@ theorem encode_decode (bits : List Bool) (hlen : 256 ≤ bits.length) :
   change toBits (ofBits 256 (bits.take 256)) ++ bits.drop 256 = bits
   rw [toBits_ofBits _ (by simp [hlen]), List.take_append_drop]
 
-theorem reveal_positive (i : Fin paperParams.numSets) :
+theorem reveal_positive (i : Idx paperParams) :
     0 < Forest.forestScheme.graph.revealBits (Forest.forestScheme.sets i) := by
   change 0 < Forest.graph.revealBits (Forest.fins (Forest.setsName i))
   rw [Forest.revealBits_eq]
@@ -43,7 +47,7 @@ theorem reveal_positive (i : Fin paperParams.numSets) :
 theorem accepted_payload_positive (pk : PublicKey paperParams) (m : Message paperParams)
     (σ : Signature paperParams) (accepted : true ∈ support (Forest.forestScheme.verify pk m σ)) :
     0 < σ.2.length := by
-  rw [Scheme.verify, support_bind] at accepted
+  rw [GScheme.verify, support_bind] at accepted
   simp only [Set.mem_iUnion] at accepted
   obtain ⟨i, _, accepted⟩ := accepted
   split_ifs at accepted with hi hlen
@@ -71,12 +75,12 @@ theorem admissible : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
   WireAdapter.admissible RiscvUpperForest.scheme decode decode_encode canonical
     AlgorithmScheme.paperLimits (1 / 2 ^ 128) RiscvUpperForest.admissible
 
-theorem cost : scheme.VerifyCostAtMost 141 :=
-  WireAdapter.verifyCost RiscvUpperForest.scheme decode 141 RiscvUpperForest.cost
+theorem cost : scheme.VerifyCostAtMost 186 :=
+  WireAdapter.verifyCost RiscvUpperForest.scheme decode 186 RiscvUpperForest.cost
 
 /-- A complete OTS certificate on its transmitted signature bits. -/
 theorem certificate : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) ∧
-    scheme.Secure ∧ scheme.VerifyCostAtMost 141 := ⟨admissible, secure, cost⟩
+    scheme.Secure ∧ scheme.VerifyCostAtMost 186 := ⟨admissible, secure, cost⟩
 
 /--
 info: 'OptimalOTS.RiscvUpperForest.Wire.certificate' depends on axioms: [propext, Classical.choice, Quot.sound]

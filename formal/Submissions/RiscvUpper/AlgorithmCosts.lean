@@ -144,9 +144,9 @@ theorem costAtMost_index {P : Params} (hidx : blockCost P (P.msgBits + P.nonceBi
     (m : Message P) (η : Nonce P) : CostAtMost P (index P m η) 1 :=
   CostAtMost.map (costAtMost_hash _ hidx.le) _
 
-namespace Scheme
+namespace GScheme
 
-variable {P : Params} (S : Scheme P)
+variable {P : Params} (S : GScheme P)
 
 theorem costAtMost_keygen : CostAtMost P S.keygen P.keygenBudget :=
   CostAtMost.mono (CostAtMost.bind_le (Graph.costAtMost_keygen S.graph)
@@ -157,7 +157,7 @@ theorem costAtMost_signLoop (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
     ∀ k tried, CostAtMost P (S.signLoop x m k tried) k
   | 0, _ => costAtMost_pure _ _
   | k + 1, tried => by
-      rw [Scheme.signLoop]
+      rw [GScheme.signLoop]
       split_ifs
       · refine CostAtMost.bind_le (costAtMost_liftM_probComp _ 0) (b₂ := k + 1) (fun j => ?_) (by simp)
         refine CostAtMost.bind_le (costAtMost_index hidx _ _) (b₂ := k) (fun i => ?_) (by omega)
@@ -173,7 +173,7 @@ theorem costAtMost_sign (hidx : blockCost P (P.msgBits + P.nonceBits) = 1)
 theorem costAtMost_verify (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) {v : ℕ}
     (hv : ∀ i, S.graph.reconstructCost (S.sets i) ≤ v) (pk : PublicKey P) (m : Message P)
     (σ : Signature P) : CostAtMost P (S.verify pk m σ) (1 + v) := by
-  unfold Scheme.verify
+  unfold GScheme.verify
   refine CostAtMost.bind_le (costAtMost_index hidx _ _) (b₂ := v) (fun i => ?_) le_rfl
   split_ifs with hi
   · dsimp only
@@ -184,7 +184,7 @@ theorem costAtMost_verify (hidx : blockCost P (P.msgBits + P.nonceBits) = 1) {v 
     · exact costAtMost_pure _ _
   · exact costAtMost_pure _ _
 
-end Scheme
+end GScheme
 
 end AlgorithmCosts
 end OptimalOTS

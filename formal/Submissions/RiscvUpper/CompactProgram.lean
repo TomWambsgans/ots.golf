@@ -96,8 +96,8 @@ def decision : Code :=
    .OR .x10 .x26 .x24, .SLTIU .x10 .x10 1, .ADDI .x5 .x0 0, .ECALL]
 
 def verifier : Code :=
-  indexAndChecks ++ decodePositions ++ chains ++ groups ++ subtrees ++ root ++ decision
+  indexAndChecks ++ chains ++ groups ++ subtrees ++ root ++ decision
 
-def image : Riscv.Image := ⟨verifier, tableData⟩
+def image : Riscv.Image := ⟨verifier, []⟩
 
 end OptimalOTS.RiscvUpperProgram.Compact

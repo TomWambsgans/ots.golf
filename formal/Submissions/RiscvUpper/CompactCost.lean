@@ -1,13 +1,13 @@
 import Submissions.RiscvUpper.CompactLevels
 
 /-! The chain phase costs the same for every index: each chain is read once at its disclosed level
-and hashed `14 - position` times, and the positions of a composition sum to a constant. -/
+and hashed `14 - position` times, and the nibbles of an accepted index sum to `target`. -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
 
 open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier
 
-variable (index : Fin (2 ^ 115))
+variable (index : Idx paperParams)
 
 theorem srcsCost_eq : srcsCost index = ∑ k : Fin 63, srcCost index (src k) := by
   rw [srcsCost, srcs, List.map_map, Fin.sum_univ_def]
@@ -39,12 +39,13 @@ theorem active_filter : (Finset.univ.filter fun k : Fin 63 => k.val < 36) = acti
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, fixed_active]
 
 theorem positions_sum :
-    ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), (14 - pos index k) = 121 := by
+    ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), (14 - pos index k) = target := by
   rw [active_filter]
   exact fixedPositions_sum index
 
 theorem positions_total :
-    ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), pos index k = 383 := by
+    ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), pos index k = 338 := by
+  have ht : target = 166 := rfl
   have hsum : ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), ((14 - pos index k) + pos index k) =
       ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), (14 : ℕ) := by
     apply Finset.sum_congr rfl
@@ -57,8 +58,8 @@ theorem positions_total :
   rw [hcard] at hsum
   omega
 
-/-- The chain phase costs exactly 4584 cycles on every index. -/
-theorem chainsCost_le : chainsCost index ≤ 4584 := by
+/-- The chain phase costs exactly 4854 cycles on every index. -/
+theorem chainsCost_le : chainsCost index ≤ 4854 := by
   unfold chainsCost
   rw [chainSetup_length, srcsCost_eq, levelsCost_zero]
   simp only [levelCost, chsCost_eq, cvsCost_eq]
@@ -86,6 +87,6 @@ theorem chainsCost_le : chainsCost index ≤ 4584 := by
     Finset.sum_const, smul_eq_mul]
   have hcard : (Finset.univ.filter fun k : Fin 63 => k.val < 36).card = 36 := by decide
   rw [hcard]
-  norm_num
+  norm_num [target]
 
 end OptimalOTS.RiscvUpperProgram.Compact

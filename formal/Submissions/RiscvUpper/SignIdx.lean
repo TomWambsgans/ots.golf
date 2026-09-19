@@ -1,10 +1,11 @@
 import Submissions.RiscvUpper.Master
+import Submissions.RiscvUpper.GScheme
 
 /-!
 # The signing loop
 
 `signIdx P m` is the signing loop returning the selected nonce and index instead of the
-signature; `Scheme.sign` is its image under encoding the revealed values.
+signature; `GScheme.sign` is its image under encoding the revealed values.
 
 The analysis of the loop, started from a cache `d`:
 
@@ -102,7 +103,7 @@ def idxOf (w : BitVec P.hashBits) : ℕ := (w.setWidth P.idxBits).toNat
 
 /-- The signing loop, returning the nonce and the index. -/
 def signIdxLoop (m : Message P) :
-    ℕ → Finset (Nonce P) → OracleComp (Spec P) (Option (Nonce P × Fin P.numSets))
+    ℕ → Finset (Nonce P) → OracleComp (Spec P) (Option (Nonce P × Idx P))
   | 0, _ => pure none
   | k + 1, tried =>
     let fresh := Finset.univ \ tried
@@ -110,7 +111,7 @@ def signIdxLoop (m : Message P) :
       let j ← (liftM ($[0..(fresh.card - 1)]) : OracleComp (Spec P) (Fin (fresh.card - 1 + 1)))
       let η : Nonce P := (fresh.equivFin.symm (Fin.cast (by omega) j)).1
       let i ← index P m η
-      if hi : i < P.numSets then
+      if hi : i ∈ validSet P then
         return some (η, ⟨i, hi⟩)
       else
         signIdxLoop m k (insert η tried)
@@ -118,7 +119,7 @@ def signIdxLoop (m : Message P) :
       pure none
 
 /-- Signing, returning the nonce and the index. -/
-def signIdx (m : Message P) : OracleComp (Spec P) (Option (Nonce P × Fin P.numSets)) :=
+def signIdx (m : Message P) : OracleComp (Spec P) (Option (Nonce P × Idx P)) :=
   signIdxLoop P m P.trialLimit ∅
 
 /-! ### Basic facts on encoding inputs -/
@@ -159,13 +160,13 @@ theorem liftM_uniformFin_eq (n : ℕ) :
 
 /-- The continuation of the loop after the encoding answer `w` at nonce `η`. -/
 def afterHash (m : Message P) (k : ℕ) (tried : Finset (Nonce P)) (η : Nonce P)
-    (w : BitVec P.hashBits) : OracleComp (Spec P) (Option (Nonce P × Fin P.numSets)) :=
-  if hi : idxOf P w < P.numSets then pure (some (η, ⟨idxOf P w, hi⟩))
+    (w : BitVec P.hashBits) : OracleComp (Spec P) (Option (Nonce P × Idx P)) :=
+  if hi : idxOf P w ∈ validSet P then pure (some (η, ⟨idxOf P w, hi⟩))
   else signIdxLoop P m k (insert η tried)
 
 /-- The body of the loop at nonce `η`: one encoding query, then stop or recurse. -/
 def loopBody (m : Message P) (k : ℕ) (tried : Finset (Nonce P)) (η : Nonce P) :
-    OracleComp (Spec P) (Option (Nonce P × Fin P.numSets)) :=
+    OracleComp (Spec P) (Option (Nonce P × Idx P)) :=
   (liftM ((Spec P).query (.inr (encQuery P (m ++ η)))) :
       OracleComp (Spec P) (BitVec P.hashBits)) >>= afterHash P m k tried η
 
@@ -258,33 +259,33 @@ theorem mem_support_run_inr_some {α : Type} {q : Query} {u : BitVec P.hashBits}
   obtain ⟨rfl, rfl⟩ := hu
   exact hp
 
-/-! ### `Scheme.sign` as the image of `signIdx` -/
+/-! ### `GScheme.sign` as the image of `signIdx` -/
 
-theorem signLoop_eq_map {P : Params} (S : Scheme P) (x : S.graph.Assignment) (m : Message P) :
+theorem signLoop_eq_map {P : Params} (S : GScheme P) (x : S.graph.Assignment) (m : Message P) :
     ∀ (k : ℕ) (tried : Finset (Nonce P)),
       S.signLoop x m k tried =
-        (Option.map fun r : Nonce P × Fin P.numSets => (r.1, S.graph.encode (S.sets r.2) x)) <$>
+        (Option.map fun r : Nonce P × Idx P => (r.1, S.graph.encode (S.sets r.2) x)) <$>
           signIdxLoop P m k tried := by
   intro k
   induction k with
-  | zero => intro tried; simp [Scheme.signLoop, signIdxLoop]
+  | zero => intro tried; simp [GScheme.signLoop, signIdxLoop]
   | succ k ih =>
     intro tried
     by_cases hc : 0 < (Finset.univ \ tried).card
-    · rw [Scheme.signLoop, signIdxLoop, dif_pos hc, dif_pos hc]
+    · rw [GScheme.signLoop, signIdxLoop, dif_pos hc, dif_pos hc]
       simp only [map_bind]
       refine bind_congr fun j => ?_
       refine bind_congr fun i => ?_
       split_ifs with hi
       · simp
       · exact ih _
-    · rw [Scheme.signLoop, signIdxLoop, dif_neg hc, dif_neg hc]
+    · rw [GScheme.signLoop, signIdxLoop, dif_neg hc, dif_neg hc]
       simp
 
-/-- `Scheme.sign` encodes the revealed values of the index found by `signIdx`. -/
-theorem sign_eq_map {P : Params} (S : Scheme P) (x : S.graph.Assignment) (m : Message P) :
+/-- `GScheme.sign` encodes the revealed values of the index found by `signIdx`. -/
+theorem sign_eq_map {P : Params} (S : GScheme P) (x : S.graph.Assignment) (m : Message P) :
     S.sign x m =
-      (Option.map fun r : Nonce P × Fin P.numSets => (r.1, S.graph.encode (S.sets r.2) x)) <$>
+      (Option.map fun r : Nonce P × Idx P => (r.1, S.graph.encode (S.sets r.2) x)) <$>
         signIdx P m :=
   signLoop_eq_map S x m P.trialLimit ∅
 
@@ -343,7 +344,7 @@ theorem signIdxLoop_support (m : Message P) :
         Cache.Sub d p.2 ∧
         (∀ q w, d q = none → p.2 q = some w →
           ∃ η : Nonce P, q = encQuery P (m ++ η) ∧
-            ∀ hi : idxOf P w < P.numSets, p.1 = some (η, ⟨idxOf P w, hi⟩)) ∧
+            ∀ hi : idxOf P w ∈ validSet P, p.1 = some (η, ⟨idxOf P w, hi⟩)) ∧
         (∀ η i, p.1 = some (η, i) →
           ∃ w, p.2 (encQuery P (m ++ η)) = some w ∧ idxOf P w = i.val) := by
   intro k
@@ -366,7 +367,7 @@ theorem signIdxLoop_support (m : Message P) :
       rcases hdq : d (encQuery P (m ++ η)) with _ | w
       · obtain ⟨w, hp⟩ := mem_support_run_inr_none P hdq hp
         rw [afterHash] at hp
-        by_cases hi : idxOf P w < P.numSets
+        by_cases hi : idxOf P w ∈ validSet P
         · rw [dif_pos hi, run_pure, support_pure] at hp
           simp only [Set.mem_singleton_iff] at hp
           subst hp
@@ -399,7 +400,7 @@ theorem signIdxLoop_support (m : Message P) :
           · exact h2 q w' (by rw [QueryCache.cacheQuery_of_ne _ _ hq]; exact hq1) hq2
       · have hp := mem_support_run_inr_some P hdq hp
         rw [afterHash] at hp
-        by_cases hi : idxOf P w < P.numSets
+        by_cases hi : idxOf P w ∈ validSet P
         · rw [dif_pos hi, run_pure, support_pure] at hp
           simp only [Set.mem_singleton_iff] at hp
           subst hp
@@ -426,7 +427,7 @@ theorem signIdx_support (m : Message P) (d : Cache P) :
       Cache.Sub d p.2 ∧
       (∀ q w, d q = none → p.2 q = some w →
         ∃ η : Nonce P, q = encQuery P (m ++ η) ∧
-          ∀ hi : idxOf P w < P.numSets, p.1 = some (η, ⟨idxOf P w, hi⟩)) ∧
+          ∀ hi : idxOf P w ∈ validSet P, p.1 = some (η, ⟨idxOf P w, hi⟩)) ∧
       (∀ η i, p.1 = some (η, i) → ∃ w, p.2 (encQuery P (m ++ η)) = some w ∧ idxOf P w = i.val) :=
   signIdxLoop_support P m P.trialLimit ∅ d
 
@@ -439,7 +440,7 @@ def IdxPre (d : Cache P) (u₁ : EncInput P) (i : ℕ) : Prop :=
 /-- Number of encoding entries with a valid index. -/
 def cntV (d : Cache P) : ℕ :=
   (Finset.univ.filter fun u : EncInput P =>
-    ∃ w, d (encQuery P u) = some w ∧ idxOf P w < P.numSets).card
+    ∃ w, d (encQuery P u) = some w ∧ idxOf P w ∈ validSet P).card
 
 /-- Number of ordered pairs of distinct encoding entries with equal indices. -/
 def pairs (d : Cache P) : ℕ :=
@@ -453,12 +454,12 @@ def EncInvariant (Φ : Cache P → ℝ≥0∞) : Prop :=
     Φ (c.cacheQuery (encQuery P u) w) = Φ c
 
 /-- `d'` extends `d` by the entries of a signing run with outcome `r`. -/
-def SignExt (m : Message P) (d : Cache P) (r : Option (Nonce P × Fin P.numSets)) (d' : Cache P) :
+def SignExt (m : Message P) (d : Cache P) (r : Option (Nonce P × Idx P)) (d' : Cache P) :
     Prop :=
   Cache.Sub d d' ∧
   (∀ q w, d q = none → d' q = some w →
     ∃ η : Nonce P, q = encQuery P (m ++ η) ∧
-      ∀ hi : idxOf P w < P.numSets, r = some (η, ⟨idxOf P w, hi⟩)) ∧
+      ∀ hi : idxOf P w ∈ validSet P, r = some (η, ⟨idxOf P w, hi⟩)) ∧
   (∀ η i, r = some (η, i) → ∃ w, d' (encQuery P (m ++ η)) = some w ∧ idxOf P w = i.val)
 
 /-- The set of ordered pairs counted by `pairs`. -/
@@ -480,26 +481,26 @@ theorem mem_W {d : Cache P} {u : EncInput P} {w : BitVec P.hashBits}
   exact ⟨hne.symm, w, w', hu, hu', hw'.symm⟩
 
 /-- The set counted by `cntV`. -/
-def validSet (d : Cache P) : Finset (EncInput P) :=
-  Finset.univ.filter fun u : EncInput P => ∃ w, d (encQuery P u) = some w ∧ idxOf P w < P.numSets
+def validInputs (d : Cache P) : Finset (EncInput P) :=
+  Finset.univ.filter fun u : EncInput P => ∃ w, d (encQuery P u) = some w ∧ idxOf P w ∈ validSet P
 
 /-- The valid indices of the entries of `d`. -/
 def V (d : Cache P) : Finset ℕ :=
-  (validSet P d).image fun u => ((d (encQuery P u)).map (idxOf P)).getD 0
+  (validInputs P d).image fun u => ((d (encQuery P u)).map (idxOf P)).getD 0
 
 theorem card_V_le (d : Cache P) : (V P d).card ≤ cntV P d := Finset.card_image_le
 
 theorem mem_V {d : Cache P} {u : EncInput P} {w : BitVec P.hashBits}
-    (hu : d (encQuery P u) = some w) (hw : idxOf P w < P.numSets) : idxOf P w ∈ V P d := by
+    (hu : d (encQuery P u) = some w) (hw : idxOf P w ∈ validSet P) : idxOf P w ∈ V P d := by
   refine Finset.mem_image.2 ⟨u, ?_, ?_⟩
-  · simp only [validSet, Finset.mem_filter, Finset.mem_univ, true_and]
+  · simp only [validInputs, Finset.mem_filter, Finset.mem_univ, true_and]
     exact ⟨w, hu, hw⟩
   · simp [hu]
 
 theorem V_lt (d : Cache P) : ∀ n ∈ V P d, n < 2 ^ P.idxBits := by
   intro n hn
   obtain ⟨u, hu, rfl⟩ := Finset.mem_image.1 hn
-  simp only [validSet, Finset.mem_filter, Finset.mem_univ, true_and] at hu
+  simp only [validInputs, Finset.mem_filter, Finset.mem_univ, true_and] at hu
   obtain ⟨w, hw, -⟩ := hu
   simp only [hw, Option.map_some, Option.getD_some]
   exact (w.setWidth P.idxBits).isLt
@@ -521,7 +522,7 @@ theorem E_query_unif (n : ℕ) (g : Fin (n + 1) → ℝ≥0∞) :
 theorem cache_eq_of_notMem {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hSub : Cache.Sub d d')
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets)
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P)
     {η : Nonce P} (hη : η ∉ tried) :
     d' (encQuery P (m ++ η)) = d (encQuery P (m ++ η)) := by
   rcases hdq : d (encQuery P (m ++ η)) with _ | w
@@ -533,10 +534,10 @@ theorem cache_eq_of_notMem {d d' : Cache P} {m : Message P} {tried : Finset (Non
 
 theorem new_cacheQuery {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets)
-    (η : Nonce P) {w : BitVec P.hashBits} (hw : ¬ idxOf P w < P.numSets) :
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P)
+    (η : Nonce P) {w : BitVec P.hashBits} (hw : ¬ idxOf P w ∈ validSet P) :
     ∀ q w', d q = none → (d'.cacheQuery (encQuery P (m ++ η)) w) q = some w' →
-      ∃ η' ∈ insert η tried, q = encQuery P (m ++ η') ∧ ¬ idxOf P w' < P.numSets := by
+      ∃ η' ∈ insert η tried, q = encQuery P (m ++ η') ∧ ¬ idxOf P w' ∈ validSet P := by
   intro q w' h1 h2
   by_cases hq : q = encQuery P (m ++ η)
   · subst hq
@@ -549,10 +550,10 @@ theorem new_cacheQuery {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P
 
 theorem new_insert {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets)
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P)
     (η : Nonce P) :
     ∀ q w, d q = none → d' q = some w →
-      ∃ η' ∈ insert η tried, q = encQuery P (m ++ η') ∧ ¬ idxOf P w < P.numSets :=
+      ∃ η' ∈ insert η tried, q = encQuery P (m ++ η') ∧ ¬ idxOf P w ∈ validSet P :=
   fun q w h1 h2 =>
     let ⟨η', hη', he, hi⟩ := hNew q w h1 h2
     ⟨η', Finset.mem_insert_of_mem hη', he, hi⟩
@@ -560,7 +561,7 @@ theorem new_insert {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
 theorem signExt_none {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hSub : Cache.Sub d d')
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets) :
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P) :
     SignExt P m d none d' := by
   unfold SignExt
   refine ⟨hSub, fun q w h1 h2 => ?_, fun η i h => by cases h⟩
@@ -570,8 +571,8 @@ theorem signExt_none {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
 theorem signExt_cached {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hSub : Cache.Sub d d')
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets)
-    {η : Nonce P} {w : BitVec P.hashBits} (hi : idxOf P w < P.numSets)
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P)
+    {η : Nonce P} {w : BitVec P.hashBits} (hi : idxOf P w ∈ validSet P)
     (hq : d' (encQuery P (m ++ η)) = some w) :
     SignExt P m d (some (η, ⟨idxOf P w, hi⟩)) d' := by
   unfold SignExt
@@ -585,8 +586,8 @@ theorem signExt_cached {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P
 theorem signExt_fresh {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)}
     (hSub : Cache.Sub d d')
     (hNew : ∀ q w, d q = none → d' q = some w →
-      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets)
-    {η : Nonce P} {w : BitVec P.hashBits} (hi : idxOf P w < P.numSets)
+      ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P)
+    {η : Nonce P} {w : BitVec P.hashBits} (hi : idxOf P w ∈ validSet P)
     (hq : d' (encQuery P (m ++ η)) = none) :
     SignExt P m d (some (η, ⟨idxOf P w, hi⟩)) (d'.cacheQuery (encQuery P (m ++ η)) w) := by
   unfold SignExt
@@ -605,11 +606,11 @@ theorem signExt_fresh {d d' : Cache P} {m : Message P} {tried : Finset (Nonce P)
     exact ⟨w, QueryCache.cacheQuery_self _ _ _, rfl⟩
 
 theorem ind_le_V {d : Cache P} {m : Message P} {η : Nonce P} {w : BitVec P.hashBits}
-    (hi : idxOf P w < P.numSets) :
-    (if ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Fin P.numSets)) = some (η', i) ∧
+    (hi : idxOf P w ∈ validSet P) :
+    (if ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Idx P)) = some (η', i) ∧
         IdxPre P d (m ++ η') i.val then (1 : ℝ≥0∞) else 0) ≤
       if idxOf P w ∈ V P d then 1 else 0 := by
-  by_cases h1 : ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Fin P.numSets)) =
+  by_cases h1 : ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Idx P)) =
       some (η', i) ∧ IdxPre P d (m ++ η') i.val
   · rw [if_pos h1]
     obtain ⟨η', i, he, hpre⟩ := h1
@@ -623,11 +624,11 @@ theorem ind_le_V {d : Cache P} {m : Message P} {η : Nonce P} {w : BitVec P.hash
   · rw [if_neg h1]; exact zero_le
 
 theorem ind_le_W {d : Cache P} {m : Message P} {η : Nonce P} {w : BitVec P.hashBits}
-    (hi : idxOf P w < P.numSets) (hw : d (encQuery P (m ++ η)) = some w) :
-    (if ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Fin P.numSets)) = some (η', i) ∧
+    (hi : idxOf P w ∈ validSet P) (hw : d (encQuery P (m ++ η)) = some w) :
+    (if ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Idx P)) = some (η', i) ∧
         IdxPre P d (m ++ η') i.val then (1 : ℝ≥0∞) else 0) ≤
       if m ++ η ∈ W P d then 1 else 0 := by
-  by_cases h1 : ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Fin P.numSets)) =
+  by_cases h1 : ∃ η' i, (some (η, ⟨idxOf P w, hi⟩) : Option (Nonce P × Idx P)) =
       some (η', i) ∧ IdxPre P d (m ++ η') i.val
   · rw [if_pos h1]
     obtain ⟨η', i, he, hpre⟩ := h1
@@ -643,18 +644,18 @@ theorem sum_inv_card_split {n : ℕ} (X : ℝ≥0∞) (Y Z : BitVec n → ℝ≥
   simp only [mul_add, Finset.sum_add_distrib, sum_inv_card_mul, Finset.mul_sum]
 
 theorem not_exists_none {d : Cache P} {m : Message P} :
-    ¬ ∃ (η : Nonce P) (i : Fin P.numSets),
-      (none : Option (Nonce P × Fin P.numSets)) = some (η, i) ∧ IdxPre P d (m ++ η) i.val := by
+    ¬ ∃ (η : Nonce P) (i : Idx P),
+      (none : Option (Nonce P × Idx P)) = some (η, i) ∧ IdxPre P d (m ++ η) i.val := by
   rintro ⟨_, _, h, _⟩
   cases h
 
 /-- The generalized signing bound: `k` further trials, nonces `tried` already used, current
 cache `d'` differing from `d` only by encoding entries at tried nonces. -/
-theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBits)
+theorem signIdxLoop_bound (hM : 0 < numValid P) (hM' : numValid P ≤ 2 ^ P.idxBits)
     (hidx : P.idxBits ≤ P.hashBits) (hL : P.trialLimit < 2 ^ P.nonceBits)
     (m : Message P) (d : Cache P) {β J : Type} [Nonempty J]
-    (kont : J → Option (Nonce P × Fin P.numSets) → OracleComp (Spec P) β)
-    (F : Option (Nonce P × Fin P.numSets) → Cache P → ℝ≥0∞)
+    (kont : J → Option (Nonce P × Idx P) → OracleComp (Spec P) β)
+    (F : Option (Nonce P × Idx P) → Cache P → ℝ≥0∞)
     (Φ : Cache P → ℝ≥0∞) (hΦ : EncInvariant P Φ) (κ lam : ℝ≥0∞)
     (I : Cache P → ℕ → Prop)
     (hI_fresh : ∀ c b q, I c b → c q = none → queryCost P (.inr q) ≤ b →
@@ -667,13 +668,13 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
     ∀ (k : ℕ) (tried : Finset (Nonce P)) (d' : Cache P) (b : ℕ),
       Cache.Sub d d' →
       (∀ q w, d q = none → d' q = some w →
-        ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w < P.numSets) →
+        ∃ η ∈ tried, q = encQuery P (m ++ η) ∧ ¬ idxOf P w ∈ validSet P) →
       Φ d' = Φ d →
       tried.card + k ≤ P.trialLimit →
       I d' b →
       (∀ j, CostAtMost P (signIdxLoop P m k tried >>= kont j) b) →
       E (run P (signIdxLoop P m k tried) d') (fun p => F p.1 p.2) ≤
-        Φ d + lam * ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d +
+        Φ d + lam * ((numValid P : ℝ≥0∞)⁻¹ * cntV P d +
           (k : ℝ≥0∞) * (((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)⁻¹ * pairs P d)) +
           κ * b := by
   intro k
@@ -701,73 +702,69 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
       simp only [hcR]
       have hc0 : ((Finset.univ \ tried).card : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.2 hc.ne'
       have hct : ((Finset.univ \ tried).card : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-      have hM0 : (P.numSets : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.2 hM.ne'
-      have hMt : (P.numSets : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+      have hM0 : (numValid P : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.2 hM.ne'
+      have hMt : (numValid P : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
       have hH0 : (Fintype.card (BitVec P.hashBits) : ℝ≥0∞) ≠ 0 :=
         Nat.cast_ne_zero.2 Fintype.card_ne_zero
       have hHt : (Fintype.card (BitVec P.hashBits) : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-      set C : ℝ≥0∞ := lam * ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d +
+      set C : ℝ≥0∞ := lam * ((numValid P : ℝ≥0∞)⁻¹ * cntV P d +
         (k : ℝ≥0∞) * (((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)⁻¹ * pairs P d)) with hC
       -- counting facts
       have hY : (∑ w : BitVec P.hashBits, lam * (if idxOf P w ∈ V P d then (1 : ℝ≥0∞) else 0)) ≤
           lam * ((cntV P d : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)) := by
         rw [← Finset.mul_sum, Finset.sum_boole, card_idxOf_mem P hidx _ (V_lt P d), ← Nat.cast_mul]
         exact mul_le_mul_right (Nat.cast_le.2 (Nat.mul_le_mul_right _ (card_V_le P d))) _
-      have hval : (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) =
-          (P.numSets : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ) := by
-        rw [Finset.sum_boole]
-        have h1 : (Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w < P.numSets) =
-            Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w ∈ Finset.range P.numSets := by
-          ext w; simp
-        rw [h1, card_idxOf_mem P hidx _ (fun n hn => lt_of_lt_of_le (Finset.mem_range.1 hn) hM'),
-          Finset.card_range, Nat.cast_mul]
-      have hsplit : (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) +
-          (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else 1) =
+      have hval : (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) =
+          (numValid P : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ) := by
+        rw [Finset.sum_boole, card_idxOf_mem P hidx _ (fun n hn => mem_validSet_lt hn), Nat.cast_mul]
+        rfl
+      have hsplit : (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) +
+          (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else 1) =
           (Fintype.card (BitVec P.hashBits) : ℝ≥0∞) := by
         rw [← Finset.sum_add_distrib]
         have h1 : ∀ w : BitVec P.hashBits,
-            ((if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) +
-              (if idxOf P w < P.numSets then (0 : ℝ≥0∞) else 1)) = 1 := by
+            ((if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) +
+              (if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else 1)) = 1 := by
           intro w; split_ifs <;> simp
         simp only [h1, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
-      have hZ : (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else C) =
-          (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else 1) * C := by
+      have hZ : (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else C) =
+          (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else 1) * C := by
         rw [Finset.sum_mul]
         exact Finset.sum_congr rfl fun w _ => by split_ifs <;> simp
       have hcQ : (cntV P d : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ) =
-          ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d) *
-            ((P.numSets : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)) := by
+          ((numValid P : ℝ≥0∞)⁻¹ * cntV P d) *
+            ((numValid P : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)) := by
         calc (cntV P d : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)
-            = ((P.numSets : ℝ≥0∞)⁻¹ * P.numSets) *
+            = ((numValid P : ℝ≥0∞)⁻¹ * numValid P) *
                 ((cntV P d : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)) := by
               rw [ENNReal.inv_mul_cancel hM0 hMt, one_mul]
           _ = _ := by ring
       have hCV : lam * ((cntV P d : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)) ≤
-          C * (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) := by
+          C * (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) := by
         rw [hval, hcQ, hC]
-        calc lam * ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d *
-                ((P.numSets : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)))
-            ≤ lam * (((P.numSets : ℝ≥0∞)⁻¹ * cntV P d +
+        calc lam * ((numValid P : ℝ≥0∞)⁻¹ * cntV P d *
+                ((numValid P : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ)))
+            ≤ lam * (((numValid P : ℝ≥0∞)⁻¹ * cntV P d +
                 (k : ℝ≥0∞) * (((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)⁻¹ * pairs P d)) *
-                ((P.numSets : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ))) :=
+                ((numValid P : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ))) :=
               mul_le_mul_right (mul_le_mul_left le_self_add _) _
           _ = _ := by ring
       have hkey : (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
             (∑ w : BitVec P.hashBits, lam * (if idxOf P w ∈ V P d then (1 : ℝ≥0∞) else 0)) +
           (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-            (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else C) ≤ C := by
+            (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else C) ≤ C := by
         calc (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
                 (∑ w : BitVec P.hashBits, lam * (if idxOf P w ∈ V P d then (1 : ℝ≥0∞) else 0)) +
               (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-                (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else C)
+                (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else C)
             ≤ (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-                (C * ∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) +
+                (C * ∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) +
               (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-                (C * ∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else 1) :=
+                (C * ∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else 1) :=
               add_le_add (mul_le_mul_right (hY.trans hCV) _) (le_of_eq (by rw [hZ]; ring))
           _ = (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ * (C *
-                ((∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) +
-                (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else 1))) := by
+                ((∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) +
+                (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else 1))) := by
               ring
           _ = (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
                 (C * (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)) := by rw [hsplit]
@@ -805,9 +802,9 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
               E (run P (afterHash P m k tried η w) (d'.cacheQuery (encQuery P (m ++ η)) w))
                 (fun p => F p.1 p.2) ≤
               Φ d + κ * b + lam * (if idxOf P w ∈ V P d then 1 else 0) +
-                (if idxOf P w < P.numSets then 0 else C) := by
+                (if idxOf P w ∈ validSet P then 0 else C) := by
             intro w
-            by_cases hi : idxOf P w < P.numSets
+            by_cases hi : idxOf P w ∈ validSet P
             · rw [afterHash, dif_pos hi, run_pure, E_pure, if_pos hi, add_zero]
               have hBk : ∀ j, CostAtMost P (kont j (some (η, ⟨idxOf P w, hi⟩)))
                   (b - queryCost P (.inr (encQuery P (m ++ η)))) := fun j => by
@@ -827,7 +824,7 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
                 rwa [afterHash, dif_neg hi] at this
               refine (ih (insert η tried) _ _ (hSub' w) (new_cacheQuery P hNew η hi) (hΦ' w)
                 hins (hI_fresh d' b _ hI hq hcost w) hBk).trans ?_
-              calc _ ≤ Φ d + lam * ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d +
+              calc _ ≤ Φ d + lam * ((numValid P : ℝ≥0∞)⁻¹ * cntV P d +
                     (k : ℝ≥0∞) * (((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)⁻¹ * pairs P d)) +
                     κ * b := add_le_add_right (mul_le_mul_right hb₁ _) _
                 _ = Φ d + κ * b + C := by rw [hC]; ring
@@ -835,24 +832,24 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
                     add_le_add_left le_self_add _
           calc _ ≤ ∑ w : BitVec P.hashBits, (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
                 (Φ d + κ * b + lam * (if idxOf P w ∈ V P d then 1 else 0) +
-                  (if idxOf P w < P.numSets then 0 else C)) :=
+                  (if idxOf P w ∈ validSet P then 0 else C)) :=
                 Finset.sum_le_sum fun w _ => mul_le_mul_right (perw w) _
             _ = Φ d + κ * b + (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
                   (∑ w : BitVec P.hashBits, lam * (if idxOf P w ∈ V P d then (1 : ℝ≥0∞) else 0)) +
                 (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-                  (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else C) :=
+                  (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else C) :=
                 sum_inv_card_split _ _ _
             _ = Φ d + κ * b + ((Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
                   (∑ w : BitVec P.hashBits, lam * (if idxOf P w ∈ V P d then (1 : ℝ≥0∞) else 0)) +
                 (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
-                  (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (0 : ℝ≥0∞) else C)) := by
+                  (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (0 : ℝ≥0∞) else C)) := by
                 rw [add_assoc]
             _ ≤ Φ d + κ * b + C := add_le_add_right hkey _
             _ ≤ (Φ d + κ * b + C) + lam * (if m ++ η ∈ W P d then 1 else 0) := le_self_add
         · -- cached encoding query
           rw [hdq] at hq
           rw [oracleImpl_run_inr_some P hq, E_pure]
-          by_cases hi : idxOf P w < P.numSets
+          by_cases hi : idxOf P w ∈ validSet P
           · rw [afterHash, dif_pos hi, run_pure, E_pure]
             have hBk : ∀ j, CostAtMost P (kont j (some (η, ⟨idxOf P w, hi⟩)))
                 (b - queryCost P (.inr (encQuery P (m ++ η)))) := fun j => by
@@ -874,7 +871,7 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
               rwa [afterHash, dif_neg hi] at this
             refine (ih (insert η tried) d' _ hSub (new_insert P hNew η) hΦd hins
               (hI_cached d' b _ hI (by simp [hq]) hcost) hBk).trans ?_
-            calc _ ≤ Φ d + lam * ((P.numSets : ℝ≥0∞)⁻¹ * cntV P d +
+            calc _ ≤ Φ d + lam * ((numValid P : ℝ≥0∞)⁻¹ * cntV P d +
                   (k : ℝ≥0∞) * (((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)⁻¹ * pairs P d)) +
                   κ * b := add_le_add_right (mul_le_mul_right hb₁ _) _
               _ = Φ d + κ * b + C := by rw [hC]; ring
@@ -927,11 +924,11 @@ theorem signIdxLoop_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBit
         _ ≤ _ := add_le_add_left (add_le_add_right zero_le _) _
 
 /-- **The signing bound.** -/
-theorem signIdx_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBits)
+theorem signIdx_bound (hM : 0 < numValid P) (hM' : numValid P ≤ 2 ^ P.idxBits)
     (hidx : P.idxBits ≤ P.hashBits) (hL : P.trialLimit < 2 ^ P.nonceBits)
     (m : Message P) (d : Cache P) {β J : Type} [Nonempty J]
-    (k : J → Option (Nonce P × Fin P.numSets) → OracleComp (Spec P) β)
-    (F : Option (Nonce P × Fin P.numSets) → Cache P → ℝ≥0∞)
+    (k : J → Option (Nonce P × Idx P) → OracleComp (Spec P) β)
+    (F : Option (Nonce P × Idx P) → Cache P → ℝ≥0∞)
     (Φ : Cache P → ℝ≥0∞) (hΦ : EncInvariant P Φ) (κ lam : ℝ≥0∞)
     (I : Cache P → ℕ → Prop)
     (hI_fresh : ∀ c b q, I c b → c q = none → queryCost P (.inr q) ≤ b →
@@ -943,7 +940,7 @@ theorem signIdx_bound (hM : 0 < P.numSets) (hM' : P.numSets ≤ 2 ^ P.idxBits)
         κ * b')
     {b : ℕ} (hI : I d b) (hB : ∀ j, CostAtMost P (signIdx P m >>= k j) b) :
     E (run P (signIdx P m) d) (fun p => F p.1 p.2) ≤
-      Φ d + lam * ((cntV P d : ℝ≥0∞) / P.numSets +
+      Φ d + lam * ((cntV P d : ℝ≥0∞) / numValid P +
         (P.trialLimit : ℝ≥0∞) * pairs P d / ((2 ^ P.nonceBits - P.trialLimit : ℕ) : ℝ≥0∞)) +
         κ * b := by
   have h := signIdxLoop_bound P hM hM' hidx hL m d k F Φ hΦ κ lam I hI_fresh hI_cached hF

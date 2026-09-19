@@ -1,8 +1,7 @@
-import Submissions.RiscvUpper.DecoderProof
-import Submissions.RiscvUpper.TableLoader
+import Submissions.RiscvUpper.IndexChecks
 import Submissions.RiscvUpper.NodeProgram
 
-/-! Input buffers and node slots survive index selection and position decoding. -/
+/-! Input buffers and node slots survive the index query and the nibble checks. -/
 
 namespace OptimalOTS.RiscvUpperProgram
 
@@ -42,24 +41,6 @@ theorem indexHash_frame (image : Riscv.Image) (pk : PublicKey paperParams)
     norm_num only [scratchBase, Nat.reduceAdd, Nat.reducePow] at h outside
     omega
 
-/-- Position decoding modifies only its 36-word array. -/
-theorem decoderBlock_frame (s : MachineState) (index : Fin (2 ^ 115))
-    (rankEq : rankOf s = index.val) (table : TableLoaded s) (addr : Word)
-    (outside : addr.toNat < positionsBase ∨ positionsBase + 288 ≤ addr.toNat) :
-    (decoderBlock.eval s).getMem addr = s.getMem addr := by
-  have hm := congrFun (decoderBlock_correct s index rankEq table).2 addr
-  change (decoderBlock.eval s).getMem addr = _ at hm
-  rw [hm]
-  apply writePositions_outside
-  intro j hj heq
-  have hlen := (Forest.unrankComposition_spec 36 121 index.val
-    (index.isLt.trans_le Forest.fixed_count)).1
-  have hj36 : j < 36 := by simpa only [List.length_map, hlen] using hj
-  have h := congrArg BitVec.toNat heq
-  simp only [Nat.zero_add, BitVec.toNat_add, BitVec.toNat_ofNat] at h
-  norm_num only [positionsBase, Nat.reduceAdd, Nat.reducePow] at h outside
-  omega
-
 /-- Node workspaces start at zero after the index HASH. -/
 theorem indexHash_nodes_zero (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
@@ -84,17 +65,15 @@ theorem indexHash_nodes_zero (image : Riscv.Image) (pk : PublicKey paperParams)
     try unfold scratchBase
     omega
 
-/-- Position decoding preserves a represented vector outside the position array. -/
-theorem decoderBlock_memBits (s : MachineState) (index : Fin (2 ^ 115))
-    (rankEq : rankOf s = index.val) (table : TableLoaded s)
-    {width : ℕ} (base : Word) (value : BitVec width) (aligned : base.toNat % 8 = 0)
-    (bounded : base.toNat + (width + 7) / 8 < 2 ^ 64)
+/-- The nibble checks preserve a represented vector outside the position array. -/
+theorem checked_memBits (s : MachineState) {width : ℕ} (base : Word) (value : BitVec width)
+    (aligned : base.toNat % 8 = 0) (bounded : base.toNat + (width + 7) / 8 < 2 ^ 64)
     (outside : base.toNat + (width + 7) / 8 ≤ positionsBase ∨
       positionsBase + 288 ≤ base.toNat) (represented : MemBits s base value) :
-    MemBits (decoderBlock.eval s) base value := by
+    MemBits (checkedIndexState s) base value := by
   apply memBits_frame_interval s _ base value aligned bounded represented
   intro addr lo hi
-  apply decoderBlock_frame s index rankEq table addr
+  apply checked_frame s addr
   omega
 
 /-- The index query preserves the transmitted public key. -/

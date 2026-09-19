@@ -426,3 +426,29 @@ drops from 19627 to **9041** (36 + 4033 + 4584 + 240 + 100 + 36 + 12). The certi
 in 335.8 seconds on macOS, 75 service tests pass, the baseline and protected pin were regenerated
 (contract id `d42e3243fec87a692e19f55dec49bf210826556a002eec94904ea37ec068f483`), and the fixture
 history keeps the same displayed cycle counts. Nothing was pushed or deployed.
+
+## RISC-V certificate at 5513 cycles: the nibble scheme (2026-09-18)
+
+The RISC-V OTS now reads its chain positions directly from the index instead of unranking a
+composition. The index (the 128-bit prefix of `H(message ‖ nonce)`) is accepted when its 32
+nibbles are at most 14 and sum to 166; chain `k < 32` is disclosed at position `14 - nibble k`
+and chains 32 to 35 at position 14, in the same forest graph and fixed layout as before. Exactly
+`comp 32 166 = 42088166900081964050093337199455360 ≥ 2^115` indices are accepted
+(`Valid.card_validSet`), so the `2^20` signing trials fail with probability below `2^-128` as
+before. Because the contract's paper scheme accepts an index when it is below `numSets`, the root
+now carries `GScheme.lean` (the same graph scheme with the acceptance predicate `i ∈ validSet`) and
+the forest security proof ported to it; the RISC-V contract (`OptimalOTS.Riscv.Submission`) is
+unchanged. The scheme verifies in 186 compressions (was 141).
+
+The machine replaces the 14619-instruction decoder by a 238-instruction straight-line nibble sweep
+that checks the index and stores the 36 positions (`Program.nibbleChecks`, proved through the
+`Swept` invariant in `IndexChecks.lean`); the chain sweeps now hash 166 steps. The claim drops from
+9041 to **5513** (271 + 4854 + 240 + 100 + 36 + 12); the image has 9674 instructions and no table
+data. The decoder files (`DecoderArithmetic`, `DecoderProof`, `DecoderCost`, `TableLoader`,
+`Unrank`) and the unused earlier-image proofs (`VerifierProof`, `DirectCost`, `LengthGuard`,
+`NodeExecution`, `ReconstructionExecution`, `DecisionProof`) were removed. The certificate uses only
+`propext`, `Classical.choice` and `Quot.sound`; the official verifier accepted `riscv-upper` at
+5513 in 275.8 seconds on macOS; the policy check reports 72 files and 989,283 bytes; 61 verifier
+tests and 75 service tests pass; the baseline and protected pin were regenerated (contract id
+`445712c7c5c3732ca3e6b3dcab9a07d8e9a04e383d2c825576ca8a513a3b67f5`), and the fixture history keeps
+the same displayed cycle counts. Nothing was pushed or deployed.

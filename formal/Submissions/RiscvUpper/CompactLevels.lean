@@ -48,7 +48,7 @@ theorem chs_nodup (t : Fin 14) : (chs t).Nodup :=
 theorem cvs_nodup (t : Fin 14) : (cvs t).Nodup :=
   (List.nodup_finRange 63).map fun _ _ h => (Name.cv.inj h).1
 
-variable (index : Fin (2 ^ 115)) (payload : List Bool) (pk : PublicKey paperParams)
+variable (index : Idx paperParams) (payload : List Bool) (pk : PublicKey paperParams)
 
 theorem srcs_code (after : List Name) :
     srcs.flatMap (srcSeg index payload pk after).code = readSweep 0 := by

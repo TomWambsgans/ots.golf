@@ -6,7 +6,7 @@ import Submissions.RiscvUpper.StageB
 For every adversary `A` whose experiment costs at most `B ≤ 2 ^ 127` on every path,
 
 ```
-probTrue (experiment forestScheme A) ≤ 2 ε (B - 912),  ε = 2 ^ (-128).
+probTrue (GScheme.experiment forestScheme A) ≤ 2 ε (B - 912),  ε = 2 ^ (-128).
 ```
 
 The proof follows `DESIGN.md`: key generation is a uniform record (`E_run_keygen`); the
@@ -36,7 +36,8 @@ namespace Forest
 
 open Name
 
-attribute [local irreducible] fiberA graph CostAtMost experiment rest rest₂ signIdx Scheme.keygen Scheme.sign
+attribute [local irreducible] fiberA graph CostAtMost GScheme.experiment rest rest₂ signIdx GScheme.keygen GScheme.sign
+attribute [local irreducible] validSet numValid
 
 variable (A : Adversary paperParams)
 /-! ## Stage A -/
@@ -134,7 +135,7 @@ theorem stageA_cont (pk : BitVec 128) (x : Message paperParams × A.State) (d : 
   have hsig : E (run paperParams (signIdx paperParams x.1) d) (fun p => ∑ ξ ∈ T, w *
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + sumW T * encTerm d + κ * sumW (fiberA pk) * b' := by
-    refine signIdx_bound paperParams (by decide) (by decide) (by decide) (by decide) x.1 d
+    refine signIdx_bound paperParams numValid_pos (numValid_le paperParams) (by decide) (by decide) x.1 d
       (β := Bool) (J := {ξ // ξ ∈ fiberA pk}) (fun j r => stB A pk x.1 x.2 (sigOf j.1 r))
       (fun r d' => ∑ ξ ∈ T, w * E (run paperParams (stB A pk x.1 x.2 (sigOf ξ r))
         (Cache.extend d' (kc ξ))) g)
@@ -236,7 +237,7 @@ theorem E_run_keygen_forest
 
 /-- The experiment as a uniform average over records of the continuation after key generation. -/
 theorem E_run_experiment (g' : Bool × Cache paperParams → ℝ≥0∞) :
-    E (run paperParams (experiment forestScheme A) ∅) g' =
+    E (run paperParams (GScheme.experiment forestScheme A) ∅) g' =
       ∑ ξ : Rec, w * E (run paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (kc ξ)) g' := by
   rw [experiment_eq]
   have h1 := run_bind paperParams forestScheme.keygen (rest A) ∅
@@ -244,7 +245,7 @@ theorem E_run_experiment (g' : Bool × Cache paperParams → ℝ≥0∞) :
   rfl
 
 /-- The budget after key generation, for the concrete scheme. -/
-theorem costAtMost_rest_forest {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) :
+theorem costAtMost_rest_forest {B : ℕ} (hB : CostAtMost paperParams (GScheme.experiment forestScheme A) B) :
     912 ≤ B ∧ ∀ ξ : Rec, CostAtMost paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (B - 912) := by
   rw [experiment_eq] at hB
   obtain ⟨h1, h2⟩ := costAtMost_keygen_bind forestScheme (rest A) hB
@@ -255,11 +256,11 @@ theorem costAtMost_rest_forest {B : ℕ} (hB : CostAtMost paperParams (experimen
         (B - graph.keygenCost) := h2 ξ
     rwa [publicKey_eq_pkOf, graph_keygenCost] at h2'
 
-theorem keygen_le {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) : 912 ≤ B :=
+theorem keygen_le {B : ℕ} (hB : CostAtMost paperParams (GScheme.experiment forestScheme A) B) : 912 ≤ B :=
   (costAtMost_rest_forest A hB).1
 
-theorem main_bound {B : ℕ} (hB : CostAtMost paperParams (experiment forestScheme A) B) (hB' : B ≤ 2 ^ 127) :
-    probTrue paperParams (experiment forestScheme A) ≤ κ * ((B - 912 : ℕ) : ℝ≥0∞) := by
+theorem main_bound {B : ℕ} (hB : CostAtMost paperParams (GScheme.experiment forestScheme A) B) (hB' : B ≤ 2 ^ 127) :
+    probTrue paperParams (GScheme.experiment forestScheme A) ≤ κ * ((B - 912 : ℕ) : ℝ≥0∞) := by
   obtain ⟨h912, hrest⟩ := costAtMost_rest_forest A hB
   rw [probTrue_eq, E_run_experiment]
   calc ∑ ξ : Rec, w * E (run paperParams (rest A (pkOf ξ, graph.evalRec ξ)) (kc ξ)) g

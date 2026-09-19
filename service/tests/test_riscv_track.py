@@ -24,7 +24,7 @@ class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
-        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=9041,
+        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=5513,
                        cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
         self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
@@ -56,11 +56,11 @@ class RiscvTrackTests(unittest.TestCase):
         compression = self.points(html, 'chart-points')
         machine = self.points(html, 'riscv-chart-points')
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
-        self.assertFalse(any(p['claim'] == 9041 for p in compression))
+        self.assertFalse(any(p['claim'] == 5513 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
                          [(30053, 'hal-finney', 'cycles'), (28513, 'vitalik-buterin', 'cycles'),
                           (27253, 'hal-finney', 'cycles'), (26113, 'vitalik-buterin', 'cycles'),
-                          (25053, 'vitalik-buterin', 'cycles'), (9041, 'satoshi-nakamoto', 'cycles')])
+                          (25053, 'vitalik-buterin', 'cycles'), (5513, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
@@ -77,7 +77,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('9041 cycles', detail)
+        self.assertIn('5513 cycles', detail)
         self.assertIn('every accepting execution', detail)
         self.assertIn('href="/rules#riscv-upper"', detail)
         self.assertNotIn('demo', detail)
@@ -123,7 +123,7 @@ class RiscvTrackTests(unittest.TestCase):
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM', '256 output bits'):
             self.assertIn(phrase, section)
-        self.assertNotIn('9041', html)
+        self.assertNotIn('5513', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
         self.assertIn('formal/Submissions/RiscvUpper/', html)
         self.assertIn('<code>riscv-upper</code>', html)

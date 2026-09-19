@@ -1,21 +1,17 @@
 import Submissions.RiscvUpper.Cuts
-import Submissions.RiscvUpper.Unrank
+import Submissions.RiscvUpper.Valid
 
 /-!
-# A computable family for the first machine implementation
+# The nibble layout
 
-Reveal subtree digests 5 and 6, group digests 12, 13 and 14, and one value from each
-of chains 0 through 35. The remaining chain lengths sum to 121. There are at least
-`2^115` such tuples, decoded in lexicographic order by `unrankComposition`.
+Reveal subtree digests 5 and 6, group digests 12, 13 and 14, and one value from each of chains
+0 through 35. Chain `k < 32` is revealed at position `14 - d_k`, where `d_k` is nibble `k` of
+the accepted index, and chains 32 to 35 at position 14. The remaining chain lengths sum to
+`target`, so every disclosure set is a cut of the same cost, and distinct indices give distinct
+cuts.
 -/
 
 namespace OptimalOTS.Forest
-
-theorem comp_36_121 : comp 36 121 = 41695891754464226932279920354981492 := by
-  rw [← compTable_getD 121 36 121 le_rfl]
-  decide +kernel
-
-theorem fixed_count : 2 ^ 115 ≤ comp 36 121 := by rw [comp_36_121]; norm_num
 
 def fixedE : Finset (Fin 7) := {5, 6}
 def fixedG : Finset (Fin 21) := {12, 13, 14}
@@ -29,44 +25,58 @@ theorem fixed_active (k : Fin 63) : k ∈ active fixedE fixedG ↔ k.val < 36 :=
     Finset.mem_insert, Finset.mem_singleton, subtreeOfChain, groupOfChain, Fin.ext_iff]
   omega
 
-def fixedDigits (i : Fin (2 ^ 115)) (k : Fin 36) : Fin 15 :=
-  let values := unrankComposition 36 121 i
-  have hs := unrankComposition_spec 36 121 i (i.isLt.trans_le fixed_count)
-  have hk : k.val < values.length := by rw [hs.1]; exact k.isLt
-  ⟨values[k.val], hs.2.1 _ (List.getElem_mem hk)⟩
+theorem nibble_le (i : Idx paperParams) (k : ℕ) (hk : k < 32) : nibble i.val k ≤ 14 :=
+  (mem_validSet_accepted i.2).1 k (Finset.mem_range.mpr hk)
 
-theorem fixedDigits_values (i : Fin (2 ^ 115)) :
-    List.ofFn (fun k => (fixedDigits i k).val) = unrankComposition 36 121 i := by
-  have hs := unrankComposition_spec 36 121 i (i.isLt.trans_le fixed_count)
-  apply List.ext_get (by simp [hs.1])
-  intro n h₁ h₂
-  simp only [List.get_eq_getElem, List.getElem_ofFn, fixedDigits]
+theorem nibble_sum (i : Idx paperParams) : ∑ k ∈ Finset.range 32, nibble i.val k = target :=
+  (mem_validSet_accepted i.2).2
 
-theorem fixedDigits_sum (i : Fin (2 ^ 115)) : ∑ k, (fixedDigits i k).val = 121 := by
-  rw [← List.sum_ofFn, fixedDigits_values]
-  exact (unrankComposition_spec 36 121 i (i.isLt.trans_le fixed_count)).2.2.1
+/-- The chain digits of an accepted index: its 32 nibbles, then four zeros. -/
+def fixedDigits (i : Idx paperParams) (k : Fin 36) : Fin 15 :=
+  if hk : k.val < 32 then ⟨nibble i.val k, Nat.lt_succ_of_le (nibble_le i k hk)⟩ else 0
+
+/-- The digit function on naturals. -/
+def digitAt (i : Idx paperParams) (k : ℕ) : ℕ := if k < 32 then nibble i.val k else 0
+
+theorem fixedDigits_val (i : Idx paperParams) (k : Fin 36) :
+    (fixedDigits i k).val = digitAt i k.val := by
+  unfold fixedDigits digitAt
+  split_ifs <;> rfl
+
+theorem fixedDigits_sum (i : Idx paperParams) : ∑ k, (fixedDigits i k).val = target := by
+  simp only [fixedDigits_val]
+  rw [Fin.sum_univ_eq_sum_range (digitAt i) 36]
+  rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ]
+  simp only [digitAt, show ¬ 32 < 32 by omega, show ¬ 33 < 32 by omega, show ¬ 34 < 32 by omega,
+    show ¬ 35 < 32 by omega, if_false, add_zero]
+  rw [← nibble_sum i]
+  exact Finset.sum_congr rfl fun k hk => if_pos (Finset.mem_range.mp hk)
 
 theorem fixedDigits_injective : Function.Injective fixedDigits := by
   intro i j h
-  have hv : unrankComposition 36 121 i = unrankComposition 36 121 j := by
-    rw [← fixedDigits_values i, ← fixedDigits_values j, h]
-  have hr := congrArg (rankComposition 121) hv
-  rw [(unrankComposition_spec 36 121 i (i.isLt.trans_le fixed_count)).2.2.2,
-    (unrankComposition_spec 36 121 j (j.isLt.trans_le fixed_count)).2.2.2] at hr
-  exact Fin.ext hr
+  apply Subtype.ext
+  have hi : i.val < 16 ^ 32 := by rw [← idxBits_eq]; exact Idx.isLt i
+  have hj : j.val < 16 ^ 32 := by rw [← idxBits_eq]; exact Idx.isLt j
+  rw [← ofNibbles_nibble i.val 32 hi, ← ofNibbles_nibble j.val 32 hj]
+  unfold ofNibbles
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hk' := Finset.mem_range.mp hk
+  have e := congrArg (fun d : Fin 36 → Fin 15 => (d ⟨k, by omega⟩).val) h
+  simp only [fixedDigits_val, digitAt, if_pos hk'] at e
+  rw [e]
 
-def fixedPositions (i : Fin (2 ^ 115)) (k : Fin 63) : Fin 15 :=
+def fixedPositions (i : Idx paperParams) (k : Fin 63) : Fin 15 :=
   if hk : k.val < 36 then Fin.rev (fixedDigits i ⟨k.val, hk⟩) else 14
 
-def fixedChoice (i : Fin (2 ^ 115)) : Choice := (fixedE, fixedG, fixedPositions i)
+def fixedChoice (i : Idx paperParams) : Choice := (fixedE, fixedG, fixedPositions i)
 
-theorem fixedPositions_normal (i : Fin (2 ^ 115)) :
+theorem fixedPositions_normal (i : Idx paperParams) :
     ∀ k ∉ active fixedE fixedG, fixedPositions i k = 14 := by
   intro k hk
   simp only [fixedPositions, dif_neg (mt (fixed_active k).mpr hk)]
 
-theorem fixedPositions_sum (i : Fin (2 ^ 115)) :
-    ∑ k ∈ active fixedE fixedG, (14 - (fixedPositions i k).val) = 121 := by
+theorem fixedPositions_sum (i : Idx paperParams) :
+    ∑ k ∈ active fixedE fixedG, (14 - (fixedPositions i k).val) = target := by
   rw [← fixedDigits_sum i]
   apply Finset.sum_bij (fun k hk => (⟨k.val, (fixed_active k).mp hk⟩ : Fin 36))
   · intro k hk; exact Finset.mem_univ _
@@ -78,11 +88,11 @@ theorem fixedPositions_sum (i : Fin (2 ^ 115)) :
     have := (fixedDigits i ⟨k.val, (fixed_active k).mp hk⟩).isLt
     omega
 
-theorem fixedPositions_mem (i : Fin (2 ^ 115)) :
-    fixedPositions i ∈ positions (active fixedE fixedG) 121 :=
+theorem fixedPositions_mem (i : Idx paperParams) :
+    fixedPositions i ∈ positions (active fixedE fixedG) target :=
   (mem_positions _ _ _).mpr ⟨fixedPositions_normal i, fixedPositions_sum i⟩
 
-attribute [local irreducible] fixedDigits unrankComposition
+attribute [local irreducible] fixedDigits
 
 theorem fixedCut_injective : Function.Injective (fun i => cutOf (fixedChoice i)) := by
   intro i j h
@@ -93,10 +103,10 @@ theorem fixedCut_injective : Function.Injective (fun i => cutOf (fixedChoice i))
   have hp := congrFun (congrArg (fun c : Choice => c.2.2) hc) ⟨k.val, by omega⟩
   simpa [fixedChoice, fixedPositions, k.isLt] using hp
 
-theorem fixedCut_isCut (i : Fin (2 ^ 115)) : IsCut (cutOf (fixedChoice i)) :=
+theorem fixedCut_isCut (i : Idx paperParams) : IsCut (cutOf (fixedChoice i)) :=
   isCut_cutOf_of_subset fixedG_allowed
 
-theorem fixedCut_card (i : Fin (2 ^ 115)) : (cutOf (fixedChoice i)).card ≤ 41 := by
+theorem fixedCut_card (i : Idx paperParams) : (cutOf (fixedChoice i)).card ≤ 41 := by
   have h1 := Finset.card_union_le (fixedE.image Name.ev ∪ fixedG.image Name.gv)
     ((active fixedE fixedG).image fun k => chainNode k (fixedPositions i k))
   have h2 := Finset.card_union_le (fixedE.image Name.ev) (fixedG.image Name.gv)
@@ -111,10 +121,12 @@ theorem fixedCut_card (i : Fin (2 ^ 115)) : (cutOf (fixedChoice i)).card ≤ 41 
     (active fixedE fixedG).image (fun k => chainNode k (fixedPositions i k))).card ≤ 41
   omega
 
-theorem fixedCut_cost (i : Fin (2 ^ 115)) :
-    ∑ n ∈ evaluatedSet (cutOf (fixedChoice i)), n.cost = 140 := by
+/-- Every disclosure set costs `target + 19 = 185` compressions to reconstruct. -/
+theorem fixedCut_cost (i : Idx paperParams) :
+    ∑ n ∈ evaluatedSet (cutOf (fixedChoice i)), n.cost = 185 := by
   rw [cost_cutOf_of_positions fixedG_allowed (fixedPositions_mem i)]
-  change 121 + (21 - 3 * fixedE.card - fixedG.card) + (7 - fixedE.card) + 2 = 140
+  change target + (21 - 3 * fixedE.card - fixedG.card) + (7 - fixedE.card) + 2 = 185
   rw [fixedE_card, fixedG_card]
+  rfl
 
 end OptimalOTS.Forest

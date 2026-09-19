@@ -46,7 +46,7 @@ The Upper bound track (`generic-upper`) accepts any oracle algorithm. Its pinned
 proves perfect correctness, signing failure at most 2⁻¹²⁸, 127-bit strong security, all size and
 resource limits, and a worst-case verification cost of 106 compressions. It has its own records,
 chart and leaderboard. The RISC-V upper bound track (`riscv-upper`) scores a verified RV64IM
-verifier by its proved accepting-execution cycle bound; its pinned certificate costs 9041 cycles.
+verifier by its proved accepting-execution cycle bound; its pinned certificate costs 5513 cycles.
 It has its own card, leaderboard and chart with an independent cycle axis, never combined with
 compression bounds. The framework filter applies to lower submissions.
 Legacy `upper` and `disclosure-upper` certificates and demos remain accessible under Historical

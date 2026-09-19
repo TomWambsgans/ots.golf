@@ -86,10 +86,6 @@ def decision : Code :=
    .LD .x24 .x18 8, .LD .x25 .x7 8, .XOR .x24 .x24 .x25,
    .OR .x10 .x26 .x24, .SLTIU .x10 .x10 1, .ADDI .x5 .x0 0, .ECALL]
 
-def verifier : Code := indexAndChecks ++ decodePositions ++ reconstruction ++ decision
-
-def image : Riscv.Image := ⟨verifier, tableData⟩
-
 /-- The fixed slot arena lies in admitted memory. -/
 theorem slotAddress_bounds (n : Name) :
     0x700000 ≤ slotAddress n ∧ slotAddress n + 128 ≤ 0x1000000 := by
@@ -106,21 +102,5 @@ theorem slotAddress_injective : Function.Injective slotAddress := by
   apply Name.idx_injective
   unfold slotAddress at h
   omega
-
-set_option maxRecDepth 500000 in
-theorem verifier_length : verifier.length = 114557 := by decide +kernel
-
-set_option maxRecDepth 500000 in
-/-- The direct implementation fits the public machine's code and data limits. -/
-theorem image_valid : image.Valid := by
-  refine ⟨?_, ?_, ?_⟩
-  · change verifier.length ≤ 262144
-    rw [verifier_length]
-    norm_num
-  · change tableData.length ≤ 1048576
-    rw [tableData_length]
-    norm_num
-  · have checked : verifier.all Riscv.admittedInstruction = true := by decide +kernel
-    exact List.all_eq_true.mp checked
 
 end OptimalOTS.RiscvUpperProgram.Direct

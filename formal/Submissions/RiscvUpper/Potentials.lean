@@ -33,6 +33,8 @@ namespace Forest
 
 open Name
 
+attribute [local irreducible] validSet numValid
+
 
 variable (A : Adversary paperParams)
 
@@ -54,8 +56,8 @@ def rest₂ (pk : PublicKey paperParams) (sk : graph.Assignment) (y : Message pa
 def rest (x : PublicKey paperParams × graph.Assignment) : OracleComp (Spec paperParams) Bool :=
   A.choose x.1 >>= rest₂ A x.1 x.2
 
-theorem experiment_eq : experiment forestScheme A = forestScheme.keygen >>= rest A := by
-  unfold experiment rest rest₂ stB
+theorem experiment_eq : GScheme.experiment forestScheme A = forestScheme.keygen >>= rest A := by
+  unfold GScheme.experiment rest rest₂ stB
   congr 1
 
 /-- The indicator of success. -/
@@ -73,21 +75,21 @@ theorem probTrue_eq_E_run (P : Params) (oa : OracleComp (Spec P) Bool) :
   rcases x with ⟨b, c⟩
   cases b <;> simp
 
-theorem probTrue_eq : probTrue paperParams (experiment forestScheme A) = E (run paperParams (experiment forestScheme A) ∅) g := by
-  generalize experiment forestScheme A = oa
+theorem probTrue_eq : probTrue paperParams (GScheme.experiment forestScheme A) = E (run paperParams (GScheme.experiment forestScheme A) ∅) g := by
+  generalize GScheme.experiment forestScheme A = oa
   rw [probTrue_eq_E_run]
   rfl
 
 /-- The signature of the record `ξ` for the outcome `r` of the signing loop. -/
-def sigOf (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Signature paperParams) :=
+def sigOf (ξ : Rec) (r : Option (Nonce paperParams × Idx paperParams)) : Option (Signature paperParams) :=
   r.map fun r => (r.1, graph.encode (forestScheme.sets r.2) (graph.evalRec ξ))
 
 /-- The disclosure set of the outcome of the signing loop. -/
-def cutOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option (Finset Name) :=
+def cutOf? (r : Option (Nonce paperParams × Idx paperParams)) : Option (Finset Name) :=
   r.map fun r => setsName r.2
 
 /-- The index of the outcome of the signing loop. -/
-def idxOf? (r : Option (Nonce paperParams × Fin paperParams.numSets)) : Option ℕ := r.map fun r => r.2.val
+def idxOf? (r : Option (Nonce paperParams × Idx paperParams)) : Option ℕ := r.map fun r => r.2.val
 
 theorem trunc_cast_pot {n m : ℕ} (h : n = m) (x : BitVec n) : trunc (x.cast h) = trunc x := by
   subst h; rfl
@@ -118,7 +120,7 @@ def Inv (c : Cache paperParams) (b : ℕ) : Prop := encCount paperParams c + b �
 
 /-- The encoding part of the first-stage potential. -/
 def encTerm (c : Cache paperParams) : ℝ≥0∞ :=
-  (cntV paperParams c : ℝ≥0∞) / paperParams.numSets +
+  (cntV paperParams c : ℝ≥0∞) / numValid paperParams +
     (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams c / ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)
 
 /-- The first-stage potential for the public key `pk`. -/
@@ -308,8 +310,7 @@ theorem hits_charge_B' {Ac : Finset Name} (hAc : IsCut Ac) (dt : Data) {T : Fins
 
 /-! ### The encoding term -/
 
-theorem numSets_ne_zero_pot : (paperParams.numSets : ℝ≥0∞) ≠ 0 := by
-  rw [numSets_eq]; simp
+theorem numSets_ne_zero_pot : (numValid paperParams : ℝ≥0∞) ≠ 0 := numValid_ne_zero
 
 theorem encTerm_cacheQuery_of_ne_enc (c : Cache paperParams) {q : Query}
     (hq : ∀ u : EncInput paperParams, q ≠ encQuery paperParams u) (u : BitVec paperParams.hashBits) :
@@ -328,15 +329,14 @@ theorem encTerm_avg_le (c : Cache paperParams) (hc : encCount paperParams c ≤ 
     (u₀ : EncInput paperParams) (hq : c (encQuery paperParams u₀) = none) :
     ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
         encTerm (c.cacheQuery (encQuery paperParams u₀) u) ≤ encTerm c + κ := by
-  have h1 := cntV_charge paperParams (by decide)
-    (by show 2 ^ 115 ≤ 2 ^ 128; exact Nat.pow_le_pow_right (by norm_num) (by norm_num)) c u₀ hq
+  have h1 := cntV_charge paperParams (by decide) (numValid_le paperParams) c u₀ hq
   have h2 := pairs_charge paperParams (by decide) c u₀ hq
   have hsplit : ∀ d : Cache paperParams,
-      encTerm d = (cntV paperParams d : ℝ≥0∞) * (paperParams.numSets : ℝ≥0∞)⁻¹ +
+      encTerm d = (cntV paperParams d : ℝ≥0∞) * (numValid paperParams : ℝ≥0∞)⁻¹ +
         (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams d *
           ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)⁻¹ := fun d => by
     unfold encTerm; simp only [div_eq_mul_inv]
-  set M : ℝ≥0∞ := (paperParams.numSets : ℝ≥0∞) with hM
+  set M : ℝ≥0∞ := (numValid paperParams : ℝ≥0∞) with hM
   set L : ℝ≥0∞ := (paperParams.trialLimit : ℝ≥0∞) with hL
   set D : ℝ≥0∞ := ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞) with hD
   set P2 : ℝ≥0∞ := 2 ^ paperParams.idxBits with hP2

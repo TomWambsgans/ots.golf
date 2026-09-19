@@ -47,10 +47,10 @@ theorem reconstruct_eq (G : Graph P) (A : Finset (Fin G.size)) (x y : G.Assignme
         simp
 
 /-- Successful signing records its selected index and returns that cut's complete encoding. -/
-theorem sign_result (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
+theorem sign_result (S : GScheme P) (x : S.graph.Assignment) (m : Message P)
     (σ : Signature P) (c d : Cache P)
     (h : (some σ, d) ∈ support (run P (S.sign x m) c)) :
-    ∃ i : Fin P.numSets, ∃ w : BitVec P.hashBits,
+    ∃ i : Idx P, ∃ w : BitVec P.hashBits,
       σ.2 = S.graph.encode (S.sets i) x ∧
       d ⟨P.msgBits + P.nonceBits, m ++ σ.1⟩ = some w ∧
       (w.setWidth P.idxBits).toNat = i.val := by
@@ -67,15 +67,15 @@ theorem sign_result (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
     exact ⟨i, w, rfl, hw, hi⟩
 
 /-- A signature from a consistent assignment verifies under any extension of its signing cache. -/
-theorem verify_accepts (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
+theorem verify_accepts (S : GScheme P) (x : S.graph.Assignment) (m : Message P)
     (σ : Signature P) (c : Cache P) (hc : S.graph.CacheConsistent x c)
-    (i : Fin P.numSets) (w : BitVec P.hashBits)
+    (i : Idx P) (w : BitVec P.hashBits)
     (hσ : σ.2 = S.graph.encode (S.sets i) x)
     (hw : c ⟨P.msgBits + P.nonceBits, m ++ σ.1⟩ = some w)
     (hi : (w.setWidth P.idxBits).toNat = i.val) :
     ∀ p ∈ support (run P (S.verify (S.publicKey x) m σ) c), p.1 = true := by
   intro p hp
-  unfold Scheme.verify at hp
+  unfold GScheme.verify at hp
   rw [run_bind, support_bind] at hp
   simp only [Set.mem_iUnion] at hp
   obtain ⟨⟨j, d⟩, hj, hp⟩ := hp
@@ -84,7 +84,7 @@ theorem verify_accepts (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
   rw [hww] at hj
   have hji : j = i.val := hj.trans hi
   subst j
-  rw [dif_pos i.isLt] at hp
+  rw [dif_pos i.2] at hp
   have hlen : σ.2.length = S.graph.revealBits (S.sets i) := by
     rw [hσ, S.graph.length_encode]
   rw [if_pos hlen, run_bind, support_bind] at hp
@@ -97,13 +97,13 @@ theorem verify_accepts (S : Scheme P) (x : S.graph.Assignment) (m : Message P)
     he S.graph.root Graph.Visited.root
   rw [run_pure, support_pure, Set.mem_singleton_iff] at hp
   subst p
-  simp only [Scheme.publicKey, hr, decide_true]
+  simp only [GScheme.publicKey, hr, decide_true]
 
 /-- Every DAG scheme's generic adapter is perfectly correct, including for messages selected
 as an arbitrary function of the public key. Signing failure is handled by the availability bound. -/
-theorem correct (S : Scheme P) : S.toAlgorithm.Correct := by
+theorem correct (S : GScheme P) : S.toAlgorithm.Correct := by
   intro message
-  dsimp only [Scheme.toAlgorithm]
+  dsimp only [GScheme.toAlgorithm]
   unfold probTrue
   rw [StateT.run'_eq, probOutput_eq_zero_iff, support_map]
   rintro ⟨⟨b, e⟩, h, hb⟩

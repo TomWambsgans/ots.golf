@@ -8,7 +8,7 @@ namespace OptimalOTS.RiscvUpperProgram.Direct
 open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier
 
 /-- The immutable input buffers and decoded chain positions used by reconstruction. -/
-structure ExecutionContext (s : MachineState) (index : Fin (2 ^ 115))
+structure ExecutionContext (s : MachineState) (index : Idx paperParams)
     (payload : List Bool) (pk : PublicKey paperParams) : Prop where
   positionBase : s.getReg .x8 = BitVec.ofNat 64 positionsBase
   positions : PositionMemory s (fixedPositions index)
@@ -28,7 +28,7 @@ theorem FrameBelow.refl (s : MachineState) : FrameBelow s s := fun _ _ => rfl
 theorem FrameBelow.trans {s t u : MachineState} (h : FrameBelow s t) (h' : FrameBelow t u) :
     FrameBelow s u := fun addr bound => (h' addr bound).trans (h addr bound)
 
-theorem ExecutionContext.frame {s t : MachineState} {index : Fin (2 ^ 115)}
+theorem ExecutionContext.frame {s t : MachineState} {index : Idx paperParams}
     {payload : List Bool} {pk : PublicKey paperParams}
     (context : ExecutionContext s index payload pk) (frame : FrameBelow s t)
     (base : t.getReg .x8 = s.getReg .x8) : ExecutionContext t index payload pk := by
@@ -52,7 +52,7 @@ theorem ExecutionContext.frame {s t : MachineState} {index : Fin (2 ^ 115)}
     unfold slotsBase
     omega
 
-theorem ExecutionContext.setPC {s : MachineState} {index : Fin (2 ^ 115)}
+theorem ExecutionContext.setPC {s : MachineState} {index : Idx paperParams}
     {payload : List Bool} {pk : PublicKey paperParams}
     (context : ExecutionContext s index payload pk) (pc : Word) :
     ExecutionContext (s.setPC pc) index payload pk :=
@@ -68,7 +68,7 @@ theorem CursorAt.ready {s : MachineState} {cursor : ℕ}
   rfl
 
 /-- A disclosed word is read from the same bit offset as the specification. -/
-theorem ExecutionContext.payload_word {s : MachineState} {index : Fin (2 ^ 115)}
+theorem ExecutionContext.payload_word {s : MachineState} {index : Idx paperParams}
     {payload : List Bool} {pk : PublicKey paperParams}
     (context : ExecutionContext s index payload pk) (cursor : ℕ)
     (atCursor : CursorAt s cursor) (aligned : cursor % 128 = 0)

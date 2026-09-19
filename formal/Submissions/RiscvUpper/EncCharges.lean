@@ -166,10 +166,10 @@ theorem card_idxOf_eq (hidx : P.idxBits ≤ P.hashBits) (w' : BitVec P.hashBits)
 theorem cntV_cacheQuery_enc (d : Cache P) (u : EncInput P) (hq : d (encQuery P u) = none)
     (w : BitVec P.hashBits) :
     cntV P (d.cacheQuery (encQuery P u) w) =
-      cntV P d + if idxOf P w < P.numSets then 1 else 0 := by
+      cntV P d + if idxOf P w ∈ validSet P then 1 else 0 := by
   unfold cntV
   have hu : u ∉ Finset.univ.filter fun u' : EncInput P =>
-      ∃ w, d (encQuery P u') = some w ∧ idxOf P w < P.numSets := by
+      ∃ w, d (encQuery P u') = some w ∧ idxOf P w ∈ validSet P := by
     simp [hq]
   have hne : ∀ u' : EncInput P, u' ≠ u →
       (d.cacheQuery (encQuery P u) w) (encQuery P u') = d (encQuery P u') :=
@@ -194,19 +194,15 @@ theorem cntV_cacheQuery_enc (d : Cache P) (u : EncInput P) (hq : d (encQuery P u
     · rw [hne u' h]
 
 /-- A fresh encoding answer is valid with probability `numSets / 2 ^ idxBits`. -/
-theorem cntV_charge (hidx : P.idxBits ≤ P.hashBits) (hM : P.numSets ≤ 2 ^ P.idxBits) (d : Cache P)
+theorem cntV_charge (hidx : P.idxBits ≤ P.hashBits) (hM : numValid P ≤ 2 ^ P.idxBits) (d : Cache P)
     (u : EncInput P) (hq : d (encQuery P u) = none) :
     ∑ w : BitVec P.hashBits, (Fintype.card (BitVec P.hashBits) : ℝ≥0∞)⁻¹ *
         (cntV P (d.cacheQuery (encQuery P u) w) : ℝ≥0∞) ≤
-      cntV P d + (P.numSets : ℝ≥0∞) / 2 ^ P.idxBits := by
-  have hval : (∑ w : BitVec P.hashBits, if idxOf P w < P.numSets then (1 : ℝ≥0∞) else 0) =
-      (P.numSets : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ) := by
-    rw [Finset.sum_boole]
-    have h1 : (Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w < P.numSets) =
-        Finset.univ.filter fun w : BitVec P.hashBits => idxOf P w ∈ Finset.range P.numSets := by
-      ext w; simp
-    rw [h1, card_idxOf_mem P hidx _ (fun n hn => lt_of_lt_of_le (Finset.mem_range.1 hn) hM),
-      Finset.card_range, Nat.cast_mul]
+      cntV P d + (numValid P : ℝ≥0∞) / 2 ^ P.idxBits := by
+  have hval : (∑ w : BitVec P.hashBits, if idxOf P w ∈ validSet P then (1 : ℝ≥0∞) else 0) =
+      (numValid P : ℝ≥0∞) * (2 ^ (P.hashBits - P.idxBits) : ℕ) := by
+    rw [Finset.sum_boole, card_idxOf_mem P hidx _ (fun n hn => mem_validSet_lt hn), Nat.cast_mul]
+    rfl
   simp only [cntV_cacheQuery_enc P d u hq, Nat.cast_add, Nat.cast_ite, Nat.cast_one,
     Nat.cast_zero, mul_add, Finset.sum_add_distrib, sum_inv_card_mul]
   rw [← Finset.mul_sum, hval, inv_card_mul_pow P hidx]

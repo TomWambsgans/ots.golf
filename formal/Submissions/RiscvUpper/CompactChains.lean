@@ -14,7 +14,7 @@ set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
 attribute [local irreducible] Forest.fixedPositions Forest.fixedDigits
 
-variable (index : Fin (2 ^ 115)) (payload : List Bool) (pk : PublicKey paperParams)
+variable (index : Idx paperParams) (payload : List Bool) (pk : PublicKey paperParams)
 
 /-- Position of chain `k` in the selected cut. -/
 abbrev pos (k : Fin 63) : ℕ := (fixedPositions index k).val

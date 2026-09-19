@@ -54,17 +54,17 @@ theorem E_add {α : Type} (p : ProbComp α) (g h : α → ℝ≥0∞) :
 
 theorem sigOf_none (ξ : Rec) : sigOf ξ none = none := rfl
 
-theorem sigOf_some (ξ : Rec) (η : Nonce paperParams) (i : Fin paperParams.numSets) :
+theorem sigOf_some (ξ : Rec) (η : Nonce paperParams) (i : Idx paperParams) :
     sigOf ξ (some (η, i)) = some (η, revealed (setsName i) ξ) := rfl
 
 theorem cutOf?_none : cutOf? none = none := rfl
 
-theorem cutOf?_some (η : Nonce paperParams) (i : Fin paperParams.numSets) :
+theorem cutOf?_some (η : Nonce paperParams) (i : Idx paperParams) :
     cutOf? (some (η, i)) = some (setsName i) := rfl
 
 theorem idxOf?_none : idxOf? none = none := rfl
 
-theorem idxOf?_some (η : Nonce paperParams) (i : Fin paperParams.numSets) :
+theorem idxOf?_some (η : Nonce paperParams) (i : Idx paperParams) :
     idxOf? (some (η, i)) = some i.val := rfl
 
 theorem sub_extend_left (c f : Cache paperParams) : Cache.Sub c (Cache.extend c f) :=
@@ -73,7 +73,7 @@ theorem sub_extend_left (c f : Cache paperParams) : Cache.Sub c (Cache.extend c 
 /-- With no keygen point of `ξ` in `d`, none is in `d'` either: the new entries of `d'` are
 encoding entries. -/
 theorem signExt_kc_none {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
+    {r : Option (Nonce paperParams × Idx paperParams)} (hd' : SignExt paperParams m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) {q : Query} (hq : (kc ξ q).isSome) : d' q = none := by
   rcases hq' : d' q with _ | v
   · rfl
@@ -85,7 +85,7 @@ theorem signExt_kc_none {m₁ : Message paperParams} {d d' : Cache paperParams}
     · exact hξ ⟨q, hq, by rw [hdq]; rfl⟩
 
 theorem not_hits_fHid_of_signExt {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
+    {r : Option (Nonce paperParams × Idx paperParams)} (hd' : SignExt paperParams m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) (A? : Option (Finset Name)) :
     ¬ Cache.Hits d' (fHid A? ξ) := by
   rintro ⟨q, hq, hq'⟩
@@ -96,7 +96,7 @@ theorem not_hits_fHid_of_signExt {m₁ : Message paperParams} {d d' : Cache pape
   simp at hq'
 
 theorem not_hits_extend_fExp_fHid {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
+    {r : Option (Nonce paperParams × Idx paperParams)} (hd' : SignExt paperParams m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) (A? : Option (Finset Name)) :
     ¬ Cache.Hits (Cache.extend d' (fExp A? ξ)) (fHid A? ξ) := by
   rw [Cache.hits_extend]
@@ -105,7 +105,7 @@ theorem not_hits_extend_fExp_fHid {m₁ : Message paperParams} {d d' : Cache pap
   · exact (disjoint_fExp_fHid A? ξ).not_hits h
 
 theorem spr_signExt_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
+    {r : Option (Nonce paperParams × Idx paperParams)} (hd' : SignExt paperParams m₁ d r d')
     (ξ : Rec) : Spr d' ξ ↔ Spr d ξ := by
   constructor
   · rintro ⟨h, p, hp, u, hu, htag, w, hw, htr⟩
@@ -119,7 +119,7 @@ theorem spr_signExt_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
   · exact Spr.mono hd'.1
 
 theorem spr_extend_fExp_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperParams × Fin paperParams.numSets)} (hd' : SignExt paperParams m₁ d r d')
+    {r : Option (Nonce paperParams × Idx paperParams)} (hd' : SignExt paperParams m₁ d r d')
     (ξ : Rec) (A? : Option (Finset Name)) :
     Spr (Cache.extend d' (fExp A? ξ)) ξ ↔ Spr d ξ := by
   constructor
@@ -152,7 +152,7 @@ theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (s
     (c : Cache paperParams) : ∀ p ∈ support (run paperParams (stB A pk m₁ st σ) c), Cache.Sub c p.2 ∧
       (p.1 = true → ∃ m₂ σ₂, σ.map (fun s => (m₁, s)) ≠ some (m₂, σ₂) ∧
         ∃ w, p.2 (encQuery paperParams (m₂ ++ σ₂.1)) = some w ∧
-          ∃ hi : idxOf paperParams w < paperParams.numSets,
+          ∃ hi : idxOf paperParams w ∈ validSet paperParams,
             σ₂.2.length = graph.revealBits (fins (setsName ⟨_, hi⟩)) ∧
             ∃ y : graph.Assignment,
               graph.ReconEqs p.2 (fins (setsName ⟨_, hi⟩))
@@ -179,7 +179,7 @@ theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (s
   exact (trunc_cast_eq (graph_len_fin rh) (y rh.fin)).trans hpk
 
 /-- An accepted forgery is one of the charged events. -/
-theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.numSets)) (m₁ : Message paperParams) (st : A.State)
+theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Idx paperParams)) (m₁ : Message paperParams) (st : A.State)
     (d d' c : Cache paperParams) (hd' : SignExt paperParams m₁ d r d') (hc : Cache.Sub d' c)
     (p : Bool × Cache paperParams) (hp : p ∈ support (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) c))
     (hok : p.1 = true) :
@@ -194,7 +194,7 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.
     · left
       rw [cutOf?_none, fHid_none]
       exact hh
-  · by_cases hji : (⟨idxOf paperParams w, hi⟩ : Fin (2 ^ 115)) = i
+  · by_cases hji : (⟨idxOf paperParams w, hi⟩ : Idx paperParams) = i
     · -- the forgery uses the signed disclosure set
       have hA : setsName ⟨idxOf paperParams w, hi⟩ = setsName i := congrArg setsName hji
       rw [hA] at hy hlen
@@ -213,7 +213,7 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.
         refine ⟨η, i, rfl, ?_⟩
         rcases hd'q : d' (encQuery paperParams (m₂ ++ σ₂.1)) with _ | w''
         · left
-          exact ⟨m₂ ++ σ₂.1, hd'q, w, hw, congrArg Fin.val hji⟩
+          exact ⟨m₂ ++ σ₂.1, hd'q, w, hw, congrArg Subtype.val hji⟩
         · have hw'' : w'' = w := Option.some.inj (((hc.trans hcp) _ _ hd'q).symm.trans hw)
           rcases hdq : d (encQuery paperParams (m₂ ++ σ₂.1)) with _ | w₃
           · exfalso
@@ -227,7 +227,7 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.
             have h3 := hd'.1 _ _ hdq
             rw [hd'q] at h3
             rw [← Option.some.inj h3, hw'']
-            exact congrArg Fin.val hji
+            exact congrArg Subtype.val hji
     · -- the forgery uses a different disclosure set of the same cost
       have hne' : setsName i ≠ setsName ⟨_, hi⟩ := fun h => hji (setsName_injective h).symm
       rcases events_ne (isCut_setsName i) (isCut_setsName ⟨_, hi⟩)
@@ -237,7 +237,7 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.
         exact hh
 
 /-- The second stage, coupled to the run without the hidden points. -/
-theorem stageB_iub (ξ : Rec) (r : Option (Nonce paperParams × Fin paperParams.numSets)) (m₁ : Message paperParams)
+theorem stageB_iub (ξ : Rec) (r : Option (Nonce paperParams × Idx paperParams)) (m₁ : Message paperParams)
     (st : A.State) (d d' : Cache paperParams) (hξ : ¬ Cache.Hits d (kc ξ)) (hd' : SignExt paperParams m₁ d r d') :
     E (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
       E (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (fExp (cutOf? r) ξ)))
@@ -293,7 +293,7 @@ theorem pkOf_of_subset_fiberA {pk : BitVec 128} {T : Finset Rec} (hT : T ⊆ fib
 /-- The second stage for the records `T` of a public key: signing succeeded. -/
 theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d : Cache paperParams)
     (T : Finset Rec) (hT : T ⊆ fiberA pk) (hTd : ∀ ξ ∈ T, ¬ Cache.Hits d (kc ξ))
-    (η : Nonce paperParams) (i : Fin paperParams.numSets) (d' : Cache paperParams) (hd' : SignExt paperParams m₁ d (some (η, i)) d')
+    (η : Nonce paperParams) (i : Idx paperParams) (d' : Cache paperParams) (hd' : SignExt paperParams m₁ d (some (η, i)) d')
     (b'' : ℕ) (hI : Inv d' b'')
     (hB : ∀ ξ ∈ T, CostAtMost paperParams (stB A pk m₁ st (sigOf ξ (some (η, i)))) b'') :
     ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ (some (η, i))))
@@ -466,7 +466,7 @@ theorem stageB_none (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
 /-- The second stage: the continuation bound handed to the signing lemma. -/
 theorem stageB (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d : Cache paperParams) (T : Finset Rec)
     (hT : T ⊆ fiberA pk) (hTd : ∀ ξ ∈ T, ¬ Cache.Hits d (kc ξ))
-    (r : Option (Nonce paperParams × Fin paperParams.numSets)) (d' : Cache paperParams) (hd' : SignExt paperParams m₁ d r d') (b'' : ℕ)
+    (r : Option (Nonce paperParams × Idx paperParams)) (d' : Cache paperParams) (hd' : SignExt paperParams m₁ d r d') (b'' : ℕ)
     (hI : Inv d' b'') (hB : ∀ ξ ∈ T, CostAtMost paperParams (stB A pk m₁ st (sigOf ξ r)) b'') :
     ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) +

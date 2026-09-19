@@ -102,7 +102,7 @@ theorem reconstruct_eq (A : Finset Name) (payload : List Bool) :
 def verify (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
     OracleComp (Spec paperParams) Bool := do
   let i ← index paperParams m (ofBits 256 (bits.take 256))
-  if hi : i < paperParams.numSets then
+  if hi : i ∈ validSet paperParams then
     let A := Forest.setsName ⟨i, hi⟩
     if (bits.drop 256).length = graph.revealBits (fins A) then
       let y ← reconstruct A (bits.drop 256)
@@ -114,10 +114,10 @@ def verify (pk : PublicKey paperParams) (m : Message paperParams) (bits : List B
 theorem verify_eq (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
     verify pk m bits = Wire.scheme.verify pk m bits := by
   change verify pk m bits = Forest.forestScheme.verify pk m (Wire.decode bits)
-  unfold verify Scheme.verify Wire.decode
+  unfold verify GScheme.verify Wire.decode
   apply congrArg (fun f => index paperParams m (ofBits 256 (bits.take 256)) >>= f)
   funext i
-  by_cases hi : i < paperParams.numSets
+  by_cases hi : i ∈ validSet paperParams
   · rw [dif_pos hi, dif_pos hi]
     change (if (bits.drop 256).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _) =
       (if (bits.drop 256).length = graph.revealBits (fins (setsName ⟨i, hi⟩)) then _ else _)
@@ -202,7 +202,7 @@ def evaluated (positions : Fin 63 → Fin 15) : Name → Bool
   | .rc | .rh => true
 
 /-- The machine's disclosure predicate agrees with the certified cut. -/
-theorem disclosed_eq (i : Fin (2 ^ 115)) (n : Name) :
+theorem disclosed_eq (i : Idx paperParams) (n : Name) :
     disclosed (fixedPositions i) n = true ↔ n ∈ Forest.setsName i := by
   rw [Forest.setsName]
   cases n with
@@ -236,7 +236,7 @@ private theorem evaluated_child {A : Finset Name} {n p : Name} (hc : child n = s
   ⟨he.2 p (Above.child hc), fun m hm => he.2 m (Above.step hc hm)⟩
 
 /-- The machine's computation predicate agrees with the certified reconstruction. -/
-theorem evaluated_eq (i : Fin (2 ^ 115)) (n : Name) :
+theorem evaluated_eq (i : Idx paperParams) (n : Name) :
     evaluated (fixedPositions i) n = true ↔ Evaluated (Forest.setsName i) n := by
   rw [Forest.setsName]
   have chain (k : Fin 63) (t : Fin 14) :

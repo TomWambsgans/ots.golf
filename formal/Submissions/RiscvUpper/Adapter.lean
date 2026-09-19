@@ -1,4 +1,5 @@
 import OptimalOTS.Algorithm
+import Submissions.RiscvUpper.GScheme
 
 /-!
 Every DAG scheme defines a generic oracle algorithm with the same wire data and oracle programs.
@@ -39,7 +40,7 @@ theorem encodeSignature_injective {P : Params} : Function.Injective (@encodeSign
 end AlgorithmAdapter
 
 /-- Same key generation, signing, verification and wire data; only the interface changes. -/
-def Scheme.toAlgorithm {P : Params} (S : Scheme P) : AlgorithmScheme P where
+def GScheme.toAlgorithm {P : Params} (S : GScheme P) : AlgorithmScheme P where
   SecretKey := S.graph.Assignment
   Signature := Signature P
   encodeSignature := AlgorithmAdapter.encodeSignature
@@ -50,7 +51,7 @@ def Scheme.toAlgorithm {P : Params} (S : Scheme P) : AlgorithmScheme P where
 
 namespace AlgorithmAdapter
 
-variable {P : Params} (S : Scheme P)
+variable {P : Params} (S : GScheme P)
 
 def toDAGAdversary (A : S.toAlgorithm.Adversary) : Adversary P where
   State := A.State
@@ -64,8 +65,8 @@ def fromDAGAdversary (A : Adversary P) : S.toAlgorithm.Adversary where
 
 /-- The adapter preserves the entire forgery experiment, including every party's queries. -/
 theorem experiment_eq (A : S.toAlgorithm.Adversary) :
-    S.toAlgorithm.experiment A = experiment S (toDAGAdversary S A) := by
-  simp only [AlgorithmScheme.experiment, experiment, Scheme.toAlgorithm, toDAGAdversary]
+    S.toAlgorithm.experiment A = GScheme.experiment S (toDAGAdversary S A) := by
+  simp only [AlgorithmScheme.experiment, experiment, GScheme.toAlgorithm, toDAGAdversary]
   apply bind_congr
   intro keys
   apply bind_congr
@@ -80,8 +81,8 @@ theorem experiment_eq (A : S.toAlgorithm.Adversary) :
   by_cases h : signed.map (fun s => (chosen.1, s)) ≠ some (forged.1, forged.2) <;> simp [h]
 
 theorem experiment_fromDAG_eq (A : Adversary P) :
-    S.toAlgorithm.experiment (fromDAGAdversary S A) = experiment S A := by
-  simp only [AlgorithmScheme.experiment, experiment, Scheme.toAlgorithm, fromDAGAdversary]
+    S.toAlgorithm.experiment (fromDAGAdversary S A) = GScheme.experiment S A := by
+  simp only [AlgorithmScheme.experiment, experiment, GScheme.toAlgorithm, fromDAGAdversary]
   apply bind_congr
   intro keys
   apply bind_congr
@@ -97,11 +98,11 @@ theorem experiment_fromDAG_eq (A : Adversary P) :
 
 theorem cost_experiment_iff (A : S.toAlgorithm.Adversary) (B : ℕ) :
     CostAtMost P (S.toAlgorithm.experiment A) B ↔
-      CostAtMost P (experiment S (toDAGAdversary S A)) B := by rw [experiment_eq]
+      CostAtMost P (GScheme.experiment S (toDAGAdversary S A)) B := by rw [experiment_eq]
 
 theorem probTrue_experiment_eq (A : S.toAlgorithm.Adversary) :
     probTrue P (S.toAlgorithm.experiment A) =
-      probTrue P (experiment S (toDAGAdversary S A)) := by rw [experiment_eq]
+      probTrue P (GScheme.experiment S (toDAGAdversary S A)) := by rw [experiment_eq]
 
 /-- The embedding preserves and reflects the exact security requirement. -/
 theorem secure_iff : S.toAlgorithm.Secure ↔ S.Secure := by
