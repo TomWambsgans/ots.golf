@@ -398,3 +398,15 @@ each lower root applies it once. The certified bounds 18, 93 and 1 are unchanged
 was regenerated (contract id `efa16b82ba5760cecc53174860b73e44e6cfd6461b4c56908d9b439713947049`),
 and the challenge stubs, rules page, README, agent instructions and proof notes say "secure" instead
 of "weakly secure".
+
+## RISC-V certificate at 19627 cycles: exact chain accounting (2026-09-18)
+
+The RISC-V certificate now charges the guarded chain sweeps by the path actually executed instead
+of their code length. `PureBlock.cost` and `steps_exact` (StructuredPure) give the exact
+instruction count of a structured block, `Refines.block_exact` turns it into a cycle bound, and the
+chain segments charge 9 or 4 cycles per guarded read and at most 9 or 3 per guarded hash step. Since
+every chain is read once and hashed `14 - position` times, and the positions of a composition sum
+to 121, the chain phase costs 4584 cycles on every index (`CompactCost.chainsCost_le`), down from
+the 9010 instructions it occupies. The claim drops from 24053 to **19627**; the decoder is still
+charged as straight-line code. The whole certificate rebuilds, the baseline and protected pin were
+regenerated, and the fixture history keeps the same displayed cycle counts.

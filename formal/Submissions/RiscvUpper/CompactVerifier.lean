@@ -1,4 +1,5 @@
 import Submissions.RiscvUpper.CompactTree
+import Submissions.RiscvUpper.CompactCost
 import Submissions.RiscvUpper.IndexRefines
 import Submissions.RiscvUpper.DecoderExecution
 
@@ -92,9 +93,10 @@ theorem order_eq : order = (srcs ++ levelsFrom 0) ++
   simp only [List.append_assoc]
 
 /-- The certified accepting-path cycle count. -/
-def cycleBound : ℕ := 24053
+def cycleBound : ℕ := 19627
 
-theorem cost_arith : decodePositions.length + (chains.length + (groups.length +
+/-- The chain phase is charged its exact executed cost, 4584 cycles for every index. -/
+theorem cost_arith : decodePositions.length + (4584 + (groups.length +
     (subtrees.length + (root.length + 1 + decision.length)))) + 36 = cycleBound := by
   decide +kernel
 
@@ -163,6 +165,9 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
     rw [decodedInput_pc image pk m bits answer image_data hi, checked_pc, decoderBlock_code,
       indexAndChecks_length, Nat.mul_add, BitVec.ofNat_add, ← BitVec.add_assoc]
     try rfl
+  refine Riscv.Refines.mono ?_ (show chainsCost ⟨_, hi⟩ +
+    (groups.length + (subtrees.length + (root.length + 1 + decision.length))) ≤ _ by
+      have := chainsCost_le ⟨_, hi⟩; omega)
   apply chains_refines ⟨_, hi⟩ (bits.drop 256) pk (groups ++ (subtrees ++ (root ++ decision))) _
     (groups.length + (subtrees.length + (root.length + 1 + decision.length)))
     (groups.length + (subtrees.length + (root.length + decision.length))) ?_ _

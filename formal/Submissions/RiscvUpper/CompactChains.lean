@@ -104,6 +104,17 @@ theorem readPrefix_test (p : ℕ) (hp : p < 15) (k : Fin 63) (hk : k.val < 36) (
   have hb := (fixedPositions index k).isLt
   exact ofNat_eq_iff _ _ (by omega) (by omega)
 
+/-- The cycles of a guarded read: the whole block when the chain is disclosed at this level,
+otherwise its three-instruction test and the branch. -/
+def readCost (p : ℕ) (k : Fin 63) : ℕ := if pos index k = p then 9 else 4
+
+theorem readChain_length (p k : ℕ) (hp : p < 2048) : (readChain p k).length = 9 := by
+  have h := PureBlock.guard_code_length true .x26 (.linear (readBody k))
+  simp only [PureBlock.code, if_true] at h
+  rw [← readBlock_code]
+  simp only [readBlock, PureBlock.code, if_true, List.length_append, readPrefix_length p k hp, h,
+    readBody_length]
+
 /-- The guarded read block either skips or copies the next payload word into slot `k`. -/
 theorem readBlock_refines (p : ℕ) (hp : p < 15) (k : Fin 63) (hk : k.val < 36) (s : MachineState)
     (cursor : ℕ) (context : Direct.ExecutionContext s index payload pk) (regs : ChainRegs s)
@@ -122,12 +133,23 @@ theorem readBlock_refines (p : ℕ) (hp : p < 15) (k : Fin 63) (hk : k.val < 36)
       t.getReg .x9 = s.getReg .x9 + 16 →
       (∀ r, r ≠ .x9 → r ≠ .x26 → r ≠ .x27 → t.getReg r = s.getReg r) →
       Riscv.CodeAt t t.pc tail → ∀ left, budget ≤ left → Riscv.Refines left t q c) :
-    Riscv.Refines fuel s q ((readChain p k).length + c) := by
+    Riscv.Refines fuel s q (readCost index p k + c) := by
   have ready := readBlock_ready p k (by omega) hk s context.positionBase regs.base
     (atCursor.ready (by omega) aligned)
   have code := readBlock_code p k
-  rw [← code] at located bound ⊢
-  apply Riscv.Refines.block (readBlock p k) s ready located.append_left budget fuel q c bound
+  rw [← code] at located bound
+  have costEq : (readBlock p k).cost s = readCost index p k := by
+    have test := readPrefix_test index payload pk p hp k hk s context
+    simp only [readBlock, PureBlock.cost, PureBlock.eval, readPrefix_length p k (by omega),
+      readBody_length, readCost]
+    by_cases hpos : pos index k = p
+    · have passed := test.mpr hpos
+      simp [hpos, passed]
+    · have npassed : ¬ PureBlock.passes true .x26 ((readPrefix p k).foldl execInstrBr s) :=
+        mt test.mp hpos
+      simp [hpos, npassed]
+  rw [← costEq]
+  apply Riscv.Refines.block_exact (readBlock p k) s ready located.append_left budget fuel q c bound
   intro left hleft
   have pc := PureBlock.eval_pc (readBlock p k) s ready
   have codeEq := PureBlock.eval_code (readBlock p k) s
@@ -300,7 +322,7 @@ def srcCode : Name → Code
   | _ => []
 
 def srcCost : Name → ℕ
-  | .src k => if k.val < 36 then (readChain 0 k.val).length else 0
+  | .src k => if k.val < 36 then readCost index 0 k else 0
   | _ => 0
 
 /-- Sources read so far hold their disclosed values. -/
@@ -309,7 +331,7 @@ def SrcInv (after : List Name) (s : MachineState) (x : graph.Assignment) (cursor
   ChainCtx index payload pk s cursor (rem ++ after) ∧
   ∀ k : Fin 63, k.val < 36 → pos index k = 0 → src k ∉ rem → Holds s k (x (src k).fin)
 
-def srcSeg (after : List Name) : Segment := ⟨srcCode, srcCost, SrcInv index payload pk after⟩
+def srcSeg (after : List Name) : Segment := ⟨srcCode, srcCost index, SrcInv index payload pk after⟩
 
 theorem src_fin_ne (k : Fin 63) (n : Name) (h : n ≠ src k) : n.fin ≠ (src k).fin :=
   fun e => h (Name.fin_injective e)
@@ -383,11 +405,11 @@ theorem src_refines (after : List Name) (k : Fin 63) :
   · intro s x cursor rest tail K c budget fuel _ inv located bound continuation
     obtain ⟨ctx, holds⟩ := inv
     have code : srcCode (src k) = readChain 0 k := by simp [srcCode, hk]
-    have cost : srcCost (src k) = (readChain 0 k).length := by simp [srcCost, hk]
+    have cost : srcCost index (src k) = readCost index 0 k := by simp [srcCost, hk]
     change Riscv.CodeAt s s.pc (srcCode (src k) ++ tail) at located
     change (srcCode (src k)).length + budget ≤ fuel at bound
     rw [code] at located bound
-    change Riscv.Refines fuel s _ (srcCost (src k) + c)
+    change Riscv.Refines fuel s _ (srcCost index (src k) + c)
     rw [cost, cursorStep_src]
     by_cases hd : pos index k = 0
     · have disclosed : k.val < 36 ∧ pos index k = 0 := ⟨hk, hd⟩
@@ -543,8 +565,13 @@ def chCode (t : Fin 14) : Name → Code
   | _ => []
 
 def chCost (t : Fin 14) : Name → ℕ
-  | .ch k _ => if k.val < 36 then (hashChain t.val k.val).length else 0
+  | .ch k _ => if k.val < 36 then (if pos index k ≤ t.val then 9 else 3) else 0
   | _ => 0
+
+theorem hashChain_length_le (t : Fin 14) (k : Fin 63) : (hashChain t k).length ≤ 9 := by
+  rw [hashChain_length, hashBody_length]
+  have := writeTag_le (BitVec.ofNat 16 (126 + 189 * t.val + k.val)) (chainSlot k + 16)
+  omega
 
 /-- Pending chains hold their tagged input; hashed chains hold the whole answer. -/
 def ChInv (t : Fin 14) (after : List Name) (s : MachineState) (x : graph.Assignment) (cursor : ℕ)
@@ -555,7 +582,7 @@ def ChInv (t : Fin 14) (after : List Name) (s : MachineState) (x : graph.Assignm
     (ch k t ∉ rem → Holds s k (x (ch k t).fin))
 
 def chSeg (t : Fin 14) (after : List Name) : Segment :=
-  ⟨chCode t, chCost t, ChInv index payload pk t after⟩
+  ⟨chCode t, chCost index t, ChInv index payload pk t after⟩
 
 /-- The input length is the chain input's node length. -/
 theorem ci_len (k : Fin 63) (t : Fin 14) : graph.len (ci k t).fin = 144 := graph_len_fin (ci k t)
@@ -622,14 +649,15 @@ theorem ch_refines (t : Fin 14) (after : List Name) (k : Fin 63) :
   · intro s x cursor rest tail K c budget fuel fresh inv located0 bound continuation
     obtain ⟨ctx, facts⟩ := inv
     have code : chCode t (ch k t) = hashChain t k := by simp [chCode, hk]
-    have cost : chCost t (ch k t) = (hashChain t k).length := by simp [chCost, hk]
+    have cost : chCost index t (ch k t) = if pos index k ≤ t.val then 9 else 3 := by
+      simp [chCost, hk]
     change Riscv.CodeAt s s.pc (chCode t (ch k t) ++ tail) at located0
     change (chCode t (ch k t)).length + budget ≤ fuel at bound
     rw [code] at located0 bound
     have located := located0
     rw [hashChain_parts, List.append_assoc] at located
     rw [hashChain_length] at bound
-    change Riscv.Refines fuel s _ (chCost t (ch k t) + c)
+    change Riscv.Refines fuel s _ (chCost index t (ch k t) + c)
     rw [cost, cursorStep_ch]
     have bodyLen := hashBody_length t k
     have tagLen := writeTag_le (BitVec.ofNat 16 (126 + 189 * t.val + k.val)) (chainSlot k + 16)
@@ -659,14 +687,17 @@ theorem ch_refines (t : Fin 14) (after : List Name) (k : Fin 63) :
     have fetch := uCode.append_left.head
     have skipLen : (hashBody t k ++ [Instr.ECALL]).length + 1 = (hashBody t k).length + 2 := by
       simp
-    rw [show fuel = (hashPrefix t k).length + ((fuel - 3) + 1) by rw [prefixLength]; omega,
-      show (hashChain t k).length + c =
-        (hashPrefix t k).length + (((hashBody t k).length + 1 + c) + 1) by
-          rw [prefixLength, total]; omega]
-    apply Riscv.Refines.linear _ located.append_left prefixReady
-    rw [← hu]
     by_cases he : pos index k ≤ t.val
     · -- the chain is hashed
+      rw [if_pos he]
+      refine Riscv.Refines.mono (c := (hashChain t k).length + c) ?_
+        (by have := hashChain_length_le t k; omega)
+      rw [show fuel = (hashPrefix t k).length + ((fuel - 3) + 1) by rw [prefixLength]; omega,
+        show (hashChain t k).length + c =
+          (hashPrefix t k).length + (((hashBody t k).length + 1 + c) + 1) by
+            rw [prefixLength, total]; omega]
+      apply Riscv.Refines.linear _ located.append_left prefixReady
+      rw [← hu]
       have taken : u.getReg .x26 ≠ 0 := by rw [uFlag, if_pos he]; decide
       rw [if_neg taken] at transition
       have evaluated : k.val < 36 ∧ pos index k ≤ t.val := ⟨hk, he⟩
@@ -811,6 +842,11 @@ theorem ch_refines (t : Fin 14) (after : List Name) (k : Fin 63) :
             rw [Function.update_of_ne neCh]
             exact Holds.frame hk hk' same _ (ch_len_le k' t) slotFrame ((facts k' hk' hp').2 hnot')
     · -- the chain is skipped
+      rw [if_neg he]
+      rw [show fuel = (hashPrefix t k).length + ((fuel - 3) + 1) by rw [prefixLength]; omega,
+        show 3 + c = (hashPrefix t k).length + (c + 1) by rw [prefixLength]; omega]
+      apply Riscv.Refines.linear _ located.append_left prefixReady
+      rw [← hu]
       have zero : u.getReg .x26 = 0 := by rw [uFlag, if_neg he]
       rw [if_pos zero] at transition
       have unevaluated : ¬ (k.val < 36 ∧ pos index k ≤ t.val) := fun h => he h.2
@@ -854,8 +890,8 @@ theorem ch_refines (t : Fin 14) (after : List Name) (k : Fin 63) :
             exact ⟨fun h => same (Name.ch.inj h).1, hnot⟩
           rw [Function.update_of_ne neCh]
           exact memBits_of_mem_eq nMem ((facts k' hk' hp').2 hnot')
-      exact (Riscv.Refines.branch fetch (branch_admitted _ bodyShort) (branch_ordinary _) transition
-        skipped).mono (by omega)
+      exact Riscv.Refines.branch fetch (branch_admitted _ bodyShort) (branch_ordinary _) transition
+        skipped
   · apply Segment.NodeRefines.ofPure
     · simp [chSeg, chCode, hk]
     · simp [chSeg, chCost, hk]
@@ -923,7 +959,7 @@ def cvCode (t : Fin 14) : Name → Code
   | _ => []
 
 def cvCost (t : Fin 14) : Name → ℕ
-  | .cv k _ => if k.val < 36 then (readChain (t.val + 1) k.val).length else 0
+  | .cv k _ => if k.val < 36 then readCost index (t.val + 1) k else 0
   | _ => 0
 
 /-- Evaluated chains hold their answers and, once visited, their values are the truncations;
@@ -938,7 +974,7 @@ def CvInv (t : Fin 14) (after : List Name) (s : MachineState) (x : graph.Assignm
     (pos index k = t.val + 1 → cv k t ∉ rem → Holds s k (x (cv k t).fin))
 
 def cvSeg (t : Fin 14) (after : List Name) : Segment :=
-  ⟨cvCode t, cvCost t, CvInv index payload pk t after⟩
+  ⟨cvCode t, cvCost index t, CvInv index payload pk t after⟩
 
 theorem cv_value (k : Fin 63) (t : Fin 14) (cursor : ℕ) (u : MachineState)
     (held : MemBits u (slotAddr k) (ofBits 128 (payload.drop cursor))) :
@@ -961,11 +997,11 @@ theorem cv_refines (t : Fin 14) (after : List Name) (k : Fin 63) :
   · intro s x cursor rest tail K c budget fuel _ inv located bound continuation
     obtain ⟨ctx, facts⟩ := inv
     have code : cvCode t (cv k t) = readChain (t.val + 1) k := by simp [cvCode, hk]
-    have cost : cvCost t (cv k t) = (readChain (t.val + 1) k).length := by simp [cvCost, hk]
+    have cost : cvCost index t (cv k t) = readCost index (t.val + 1) k := by simp [cvCost, hk]
     change Riscv.CodeAt s s.pc (cvCode t (cv k t) ++ tail) at located
     change (cvCode t (cv k t)).length + budget ≤ fuel at bound
     rw [code] at located bound
-    change Riscv.Refines fuel s _ (cvCost t (cv k t) + c)
+    change Riscv.Refines fuel s _ (cvCost index t (cv k t) + c)
     rw [cost, cursorStep_cv]
     by_cases hd : pos index k = t.val + 1
     · have disclosed : k.val < 36 ∧ pos index k = t.val + 1 := ⟨hk, hd⟩

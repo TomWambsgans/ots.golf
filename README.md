@@ -26,9 +26,9 @@ Each lower record applies to its class. The whole-word track retains its earlier
 The **Upper bound** track (`generic-upper`) has a verified **106-compression construction**, with
 perfect correctness, signing failure at most `2^-128`, 127-bit strong security, and the required
 size and cost proofs. The **RISC-V upper bound** track (`riscv-upper`) has a verified
-**24053-cycle RV64IM verifier** for a fixed-layout forest OTS: the machine's oracle computation is
+**19627-cycle RV64IM verifier** for a fixed-layout forest OTS: the machine's oracle computation is
 proved equal to the Lean verifier on every input, every execution terminates, and accepting
-executions cost at most 24053 cycles. The original DAG and historical partial-disclosure
+executions cost at most 19627 cycles. The original DAG and historical partial-disclosure
 upper certificates remain locally verifiable references.
 
 ## Model

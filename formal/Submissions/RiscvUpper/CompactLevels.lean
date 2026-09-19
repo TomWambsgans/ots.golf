@@ -69,7 +69,40 @@ theorem cvs_code (t : Fin 14) (after : List Name) :
   simp only [cvs, cvSeg, List.flatMap_map, readSweep]
   rfl
 
-/-- Every chain segment charges exactly its code length. -/
+/-- The cycles charged by the chain segments: read sweeps cost 9 per disclosed chain and 4 per
+skipped chain; hash sweeps cost at most 9 per hashed chain and 3 per skipped chain. -/
+def srcsCost : ℕ := (srcs.map (srcCost index)).sum
+def chsCost (t : Fin 14) : ℕ := ((chs t).map (chCost index t)).sum
+def cvsCost (t : Fin 14) : ℕ := ((cvs t).map (cvCost index t)).sum
+def levelCost (t : Fin 14) : ℕ := chsCost index t + cvsCost index t
+
+/-- The cycles of levels `n` and later. -/
+def levelsCost (n : ℕ) : ℕ := ∑ t : Fin 14, if n ≤ t.val then levelCost index t else 0
+
+theorem levelsCost_lt (n : ℕ) (h : n < 14) :
+    levelsCost index n = levelCost index ⟨n, h⟩ + levelsCost index (n + 1) := by
+  unfold levelsCost
+  have split : ∀ t : Fin 14, (if n ≤ t.val then levelCost index t else 0) =
+      (if t = ⟨n, h⟩ then levelCost index t else 0) + (if n + 1 ≤ t.val then levelCost index t else 0) := by
+    intro t
+    by_cases ht : t = ⟨n, h⟩
+    · subst ht
+      simp
+    · have hne : t.val ≠ n := fun e => ht (Fin.ext e)
+      rw [if_neg ht, Nat.zero_add]
+      by_cases hle : n ≤ t.val
+      · rw [if_pos hle, if_pos (by omega)]
+      · rw [if_neg hle, if_neg (by omega)]
+  rw [Finset.sum_congr rfl (fun t _ => split t), Finset.sum_add_distrib, Finset.sum_ite_eq']
+  simp
+
+theorem levelsCost_ge (n : ℕ) (h : ¬ n < 14) : levelsCost index n = 0 := by
+  unfold levelsCost
+  apply Finset.sum_eq_zero
+  intro t _
+  rw [if_neg (by have := t.isLt; omega)]
+
+/-- A segment charging exactly its code length costs the code's length in total. -/
 theorem cost_eq_length (seg : Segment) (nodes : List Name)
     (h : ∀ n ∈ nodes, seg.cost n = (seg.code n).length) :
     (nodes.map seg.cost).sum = (nodes.flatMap seg.code).length := by
@@ -78,13 +111,7 @@ theorem cost_eq_length (seg : Segment) (nodes : List Name)
   exact List.map_congr_left h
 
 theorem srcs_cost (after : List Name) :
-    (srcs.map (srcSeg index payload pk after).cost).sum = (readSweep 0).length := by
-  rw [← srcs_code index payload pk after]
-  apply cost_eq_length
-  intro n hn
-  obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-  simp only [srcSeg, srcCost, srcCode]
-  split_ifs <;> rfl
+    (srcs.map (srcSeg index payload pk after).cost).sum = srcsCost index := rfl
 
 theorem cis_cost (t : Fin 14) (after : List Name) :
     ((cis t).map (ciSeg index payload pk t after).cost).sum = 0 := by
@@ -94,22 +121,10 @@ theorem cis_cost (t : Fin 14) (after : List Name) :
   rfl
 
 theorem chs_cost (t : Fin 14) (after : List Name) :
-    ((chs t).map (chSeg index payload pk t after).cost).sum = (hashSweep t.val).length := by
-  rw [← chs_code index payload pk t after]
-  apply cost_eq_length
-  intro n hn
-  obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-  simp only [chSeg, chCost, chCode]
-  split_ifs <;> rfl
+    ((chs t).map (chSeg index payload pk t after).cost).sum = chsCost index t := rfl
 
 theorem cvs_cost (t : Fin 14) (after : List Name) :
-    ((cvs t).map (cvSeg index payload pk t after).cost).sum = (readSweep (t.val + 1)).length := by
-  rw [← cvs_code index payload pk t after]
-  apply cost_eq_length
-  intro n hn
-  obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-  simp only [cvSeg, cvCost, cvCode]
-  split_ifs <;> rfl
+    ((cvs t).map (cvSeg index payload pk t after).cost).sum = cvsCost index t := rfl
 
 /-! ## Transitions between segments -/
 
@@ -207,7 +222,7 @@ theorem level_refines (t : Fin 14) (after : List Name) (tail : Code)
       CiInv index payload pk t (chs t ++ cvs t ++ after) s x cursor (cis t) →
       Riscv.CodeAt s s.pc (level t.val ++ tail) → (level t.val).length + rest' ≤ fuel →
       Riscv.Refines fuel s (runNodes' index payload (levelNodes t) x cursor >>= K)
-        ((level t.val).length + c) := by
+        (levelCost index t + c) := by
   intro s x cursor fuel inv located bound
   have hashLen : (level t.val).length = (hashSweep t.val).length + (readSweep (t.val + 1)).length := by
     simp [level]
@@ -218,7 +233,7 @@ theorem level_refines (t : Fin 14) (after : List Name) (tail : Code)
       exact ci_refines index payload pk t (chs t ++ cvs t ++ after) k) (level t.val ++ tail)
     (fun r => runNodes' index payload (chs t) r.1 r.2 >>= fun r' =>
       runNodes' index payload (cvs t) r'.1 r'.2 >>= K)
-    ((level t.val).length + c) ((level t.val).length + rest') ?_ s x cursor fuel inv
+    (levelCost index t + c) ((level t.val).length + rest') ?_ s x cursor fuel inv
     (by rw [cis_code]; exact located) (by rw [cis_code]; simpa using bound)
   · rw [cis_cost, Nat.zero_add] at step1
     exact step1
@@ -229,12 +244,12 @@ theorem level_refines (t : Fin 14) (after : List Name) (tail : Code)
       obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
       exact ch_refines index payload pk t (cvs t ++ after) k) (readSweep (t.val + 1) ++ tail)
     (fun r' => runNodes' index payload (cvs t) r'.1 r'.2 >>= K)
-    ((readSweep (t.val + 1)).length + c) ((readSweep (t.val + 1)).length + rest') ?_ u y cursor' left
+    (cvsCost index t + c) ((readSweep (t.val + 1)).length + rest') ?_ u y cursor' left
     (ci_to_ch index payload pk t after u y cursor' inv1)
     (by rw [chs_code]; simpa only [level, List.append_assoc] using located1)
     (by rw [chs_code]; omega)
   · rw [chs_cost] at step2
-    rw [hashLen, Nat.add_assoc]
+    rw [levelCost, Nat.add_assoc]
     exact step2
   intro v z cursor'' inv2 located2 left' hleft'
   dsimp only
@@ -280,13 +295,13 @@ theorem levels_refines (tail : Code)
       LevelStart index payload pk n s x cursor →
       Riscv.CodeAt s s.pc (levelsCodeFrom n ++ tail) → (levelsCodeFrom n).length + rest' ≤ fuel →
       Riscv.Refines fuel s (runNodes' index payload (levelsFrom n) x cursor >>= K)
-        ((levelsCodeFrom n).length + c) := by
+        (levelsCost index n + c) := by
   intro m
   induction m with
   | zero =>
     intro n hn s x cursor fuel start located bound
     have h : ¬ n < 14 := by omega
-    rw [levelsFrom_ge n h, levelsCodeFrom_ge n h]
+    rw [levelsFrom_ge n h, levelsCost_ge index n h]
     rw [levelsCodeFrom_ge n h] at located bound
     unfold LevelStart at start
     rw [dif_neg h] at start
@@ -296,17 +311,17 @@ theorem levels_refines (tail : Code)
   | succ m ih =>
     intro n hn s x cursor fuel start located bound
     have h : n < 14 := by omega
-    rw [levelsFrom_lt n h, levelsCodeFrom_lt n h]
+    rw [levelsFrom_lt n h, levelsCost_lt index n h]
     rw [levelsCodeFrom_lt n h] at located bound
     unfold LevelStart at start
     rw [dif_pos h] at start
-    rw [runNodes'_append, bind_assoc, List.length_append, Nat.add_assoc]
+    rw [runNodes'_append, bind_assoc, Nat.add_assoc]
     rw [List.append_assoc] at located
     rw [List.length_append] at bound
     apply level_refines index payload pk ⟨n, h⟩ (levelsFrom (n + 1) ++ treeNodes)
       (levelsCodeFrom (n + 1) ++ tail)
       (fun r => runNodes' index payload (levelsFrom (n + 1)) r.1 r.2 >>= K)
-      ((levelsCodeFrom (n + 1)).length + c) ((levelsCodeFrom (n + 1)).length + rest') ?_
+      (levelsCost index (n + 1) + c) ((levelsCodeFrom (n + 1)).length + rest') ?_
       s x cursor fuel start located
       (by show (level n).length + ((levelsCodeFrom (n + 1)).length + rest') ≤ fuel; omega)
     intro u y cursor' inv located' left hleft
@@ -376,6 +391,9 @@ theorem chainSetup_srcInv (s : MachineState) (context : Direct.ExecutionContext 
 theorem srcs_length_code : (readSweep 0).length = ((List.finRange 63).flatMap
     fun k => if k.val < 36 then readChain 0 k.val else []).length := rfl
 
+/-- The cycles of the whole chain phase for a given index. -/
+def chainsCost : ℕ := chainSetup.length + (srcsCost index + levelsCost index 0)
+
 /-- The whole chain phase refines the reader over the chain nodes of `order`. -/
 theorem chains_refines (tail : Code)
     (K : graph.Assignment × ℕ → OracleComp (Spec paperParams) (Option Bool)) (c rest' : ℕ)
@@ -386,11 +404,11 @@ theorem chains_refines (tail : Code)
     (x : graph.Assignment) (fuel : ℕ)
     (located : Riscv.CodeAt s s.pc (chains ++ tail)) (bound : chains.length + rest' ≤ fuel) :
     Riscv.Refines fuel s (runNodes' index payload (srcs ++ levelsFrom 0) x 0 >>= K)
-      (chains.length + c) := by
+      (chainsCost index + c) := by
   have parts : chains = chainSetup ++ (readSweep 0 ++ (levelsCodeFrom 0 ++ [])) := by
     simp only [chains, chains_split, List.append_nil, List.append_assoc]
-  rw [parts] at located bound ⊢
-  simp only [List.append_assoc, List.length_append, List.length_nil, Nat.add_zero] at located bound ⊢
+  rw [parts] at located bound
+  simp only [List.append_assoc, List.length_append, List.length_nil, Nat.add_zero] at located bound
   set u := chainSetup.foldl execInstrBr s with hu
   have ready := chainSetup_ready s
   have uCode : Riscv.CodeAt u u.pc (readSweep 0 ++ (levelsCodeFrom 0 ++ tail)) := by
@@ -399,8 +417,8 @@ theorem chains_refines (tail : Code)
   have inv := chainSetup_srcInv index payload pk s context x
   rw [runNodes'_append, bind_assoc]
   rw [show fuel = chainSetup.length + (fuel - chainSetup.length) by rw [chainSetup_length] at bound ⊢; omega,
-    show chainSetup.length + ((readSweep 0).length + (levelsCodeFrom 0).length) + c =
-      chainSetup.length + ((readSweep 0).length + ((levelsCodeFrom 0).length + c)) by omega]
+    show chainsCost index + c = chainSetup.length + (srcsCost index + (levelsCost index 0 + c)) by
+      unfold chainsCost; omega]
   apply Riscv.Refines.linear _ located.append_left ready
   rw [← hu]
   have step := sweep_refines index payload (srcSeg index payload pk (levelsFrom 0 ++ treeNodes)) srcs
@@ -408,7 +426,7 @@ theorem chains_refines (tail : Code)
       obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
       exact src_refines index payload pk (levelsFrom 0 ++ treeNodes) k) (levelsCodeFrom 0 ++ tail)
     (fun r => runNodes' index payload (levelsFrom 0) r.1 r.2 >>= K)
-    ((levelsCodeFrom 0).length + c) ((levelsCodeFrom 0).length + rest') ?_ u x 0
+    (levelsCost index 0 + c) ((levelsCodeFrom 0).length + rest') ?_ u x 0
     (fuel - chainSetup.length) inv (by rw [srcs_code]; exact uCode)
     (by rw [srcs_code, chainSetup_length] at *; omega)
   · rw [srcs_cost] at step

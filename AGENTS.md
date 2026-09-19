@@ -20,7 +20,7 @@ formal/                      the Lean project (lake root)
   Submissions/DisclosureUpper/  legacy partial-disclosure upper reference
   Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
   Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
-  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 24053
+  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 19627
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
@@ -56,7 +56,7 @@ of the lower frameworks. All five public tracks are open.
 - **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
   every raw input. The score is a proved bound on the cycles of every accepting execution;
-  the checked construction costs 24053. Proofs live in `formal/Submissions/RiscvUpper/`; see
+  the checked construction costs 19627. Proofs live in `formal/Submissions/RiscvUpper/`; see
   `docs/riscv-upper.md`.
 
 The DAG classes share the 256-bit nonce, 127-bit security target, cuts, forward reconstruction

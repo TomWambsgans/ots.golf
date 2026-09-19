@@ -130,6 +130,57 @@ theorem steps (b : PureBlock) (s : MachineState)
       rw [guard_code_length]
       omega
 
+/-- The number of instructions the block executes from `s`: guards charge their branch and only
+the body actually taken. -/
+def cost : PureBlock → MachineState → ℕ
+  | .linear instructions, _ => instructions.length
+  | .seq first last, s => first.cost s + last.cost (first.eval s)
+  | .guard zero r body, s =>
+      1 + if passes zero r s then body.cost (branchState zero r body.code.length s) else 0
+
+theorem cost_le (b : PureBlock) (s : MachineState) : b.cost s ≤ b.code.length := by
+  induction b generalizing s with
+  | linear instructions => exact le_rfl
+  | seq first last ihFirst ihLast =>
+    simp only [cost, code, List.length_append]
+    exact Nat.add_le_add (ihFirst s) (ihLast _)
+  | guard zero r body ih =>
+    simp only [cost]
+    rw [guard_code_length]
+    split_ifs
+    · have := ih (branchState zero r body.code.length s); omega
+    · omega
+
+/-- Every block executes exactly `cost` instructions. -/
+theorem steps_exact (b : PureBlock) (s : MachineState)
+    (ready : b.Ready s) (located : Riscv.CodeAt s s.pc b.code) :
+    Riscv.PureSteps (b.cost s) s (b.eval s) := by
+  induction b generalizing s with
+  | linear instructions => exact Riscv.linear_steps s instructions located ready
+  | seq first last ihFirst ihLast =>
+    have rest : Riscv.CodeAt (first.eval s) (first.eval s).pc last.code := by
+      rw [eval_pc first s ready.1]
+      exact located.append_right.code_eq (eval_code first s)
+    exact (ihFirst s ready.1 located.append_left).trans (ihLast _ ready.2 rest)
+  | guard zero r body ih =>
+    have fetch : s.code s.pc = some ((PureBlock.guard zero r body).code.headD .ECALL) := by
+      cases zero <;> exact located.head
+    have admitted := branch_admitted zero r body ready.1
+    have transition := branch_transition zero r body s ready.1 located
+    dsimp only [eval, cost]
+    split_ifs with passed
+    · have tail : Riscv.CodeAt (branchState zero r body.code.length s)
+          (branchState zero r body.code.length s).pc body.code := by
+        change Riscv.CodeAt (branchState zero r body.code.length s)
+          (s.pc + if passes zero r s then 4 else _) body.code
+        rw [if_pos passed]
+        have htail : Riscv.CodeAt s (s.pc + 4) body.code := by
+          cases zero <;> exact located.tail
+        exact htail.code_eq (by rfl)
+      rw [Nat.add_comm]
+      exact Riscv.PureSteps.cons fetch admitted.1 admitted.2 transition (ih _ (ready.2 passed) tail)
+    · exact Riscv.PureSteps.cons fetch admitted.1 admitted.2 transition (Riscv.PureSteps.refl _)
+
 /-- Control addresses do not affect the data computation in these blocks. -/
 def DataEq (s t : MachineState) : Prop := s.regs = t.regs ∧ s.mem = t.mem
 
