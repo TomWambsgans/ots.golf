@@ -51,7 +51,7 @@ def paperParams : Params where
   pkBits := 128
   msgBits := 256
   securityBits := 127
-  signatureBits := 5376
+  signatureBits := 5504
   keygenCost := 1024
   signCost := 2 ^ 20
 
