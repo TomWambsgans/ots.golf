@@ -3,7 +3,7 @@
 
     tools/tune_lower_bound.py --idx 1 --claims 18
     tools/tune_lower_bound.py --method disclosure --origins 46 --claims 80,81
-    tools/tune_lower_bound.py --method words --claims 93,94
+    tools/tune_lower_bound.py --method words --claims 90,91
     tools/tune_lower_bound.py --method entropy --s-star 5313 --idx 1 --claims 24,25
 
 For a proposed bound c, the attack assumes C_i <= c-1 for all i. Reconstruction
@@ -18,8 +18,8 @@ rational arithmetic. The disclosure method counts bounded-origin traversal
 patterns and checks an averaged repetition attack. Its structural counting and
 probability hypotheses still require Lean proofs; a positive arithmetic margin
 is not a certificate. For the historical origin limit 46, its claim is 80. Whole-word mode derives
-41 origins from 5248 payload bits and uses freshness 99/100, certifying the
-arithmetic for claim 93. The numerical output alone is not a Lean certificate.
+42 origins from 5376 payload bits and uses freshness 99/100, certifying the
+arithmetic for claim 90. The numerical output alone is not a Lean certificate.
 
 The entropy method is conditional research: its proposed fresh-coordinate lemmas
 are false in the bare model, so positive numerical margins do not prove a bound.
@@ -36,6 +36,8 @@ from fractions import Fraction
 import math
 
 M, N, L = 2 ** 115, 2 ** 128, 2 ** 21
+PAYLOAD_BITS = 5376  # signatureBits 5504 minus the 128-bit nonce
+WORD_ORIGINS = PAYLOAD_BITS // 128
 EPS = 1 / 512
 
 
@@ -150,15 +152,15 @@ def main() -> int:
     ap.add_argument("--idx", type=int, default=1)
     ap.add_argument("--method", choices=("patterns", "disclosure", "words", "entropy"), default="patterns")
     ap.add_argument("--origins", type=int, default=46,
-                    help="maximum origins for disclosure mode (default: 46); words mode fixes 41")
+                    help="maximum origins for disclosure mode (default: 46); words mode fixes 42")
     ap.add_argument("--s-star", type=int, default=5313,
                     help="conditional entropy information budget (default: 5313)")
     ap.add_argument("--claims", default=None,
-                    help="claims to check (default: 18 for patterns, 80 for disclosure, 93 for words, 24,25 for entropy)")
+                    help="claims to check (default: 18 for patterns, 80 for disclosure, 90 for words, 24,25 for entropy)")
     ap.add_argument("--no-search", action="store_true", help="only report simple integer operating points")
     args = ap.parse_args()
     try:
-        defaults = {"patterns": "18", "disclosure": "80", "words": "93", "entropy": "24,25"}
+        defaults = {"patterns": "18", "disclosure": "80", "words": "90", "entropy": "24,25"}
         claims = list(map(int, (args.claims or defaults[args.method]).split(",")))
     except ValueError:
         ap.error("--claims must be comma-separated integers")
@@ -168,7 +170,7 @@ def main() -> int:
         print("EXACT DISCLOSURE-ATTACK ARITHMETIC; numerical checks are not certificates.")
         print("The traversal count and averaged attack hypotheses require separate Lean proofs.")
         for c in claims:
-            print_disclosure_point(c, 41 if args.method == "words" else args.origins,
+            print_disclosure_point(c, WORD_ORIGINS if args.method == "words" else args.origins,
                                    Fraction(99, 100) if args.method == "words" else Fraction(9, 10))
         return 0
     if args.idx < 1 or args.s_star <= 0 or any(c - args.idx - 2 < 2 for c in claims):

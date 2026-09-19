@@ -34,9 +34,9 @@ class NumericalToolTests(unittest.TestCase):
                 self.assertNotIn('Traceback', result.stderr)
 
     def test_whole_word_certificate_arithmetic_and_next_claim(self):
-        result = self.run_tool('tune_lower_bound.py', '--method', 'words', '--claims', '93,94')
+        result = self.run_tool('tune_lower_bound.py', '--method', 'words', '--claims', '90,91')
         self.assertEqual(result.returncode, 0, result.stderr)
-        positive, negative = result.stdout.split('c=94,')
+        positive, negative = result.stdout.split('c=91,')
         self.assertIn('certificate success >= 9801/280000: True', positive)
         self.assertIn('exact success > budget/2^127: True', positive)
         self.assertIn('exact success > budget/2^127: False', negative)
