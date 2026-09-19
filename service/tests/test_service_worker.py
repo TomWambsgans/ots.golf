@@ -291,6 +291,42 @@ class ServiceWorkerTests(unittest.TestCase):
         bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower","commit":"xyz","status":"verified"}]}\n-->'
         self.assertEqual(github.parse_verdicts(bad), [])
 
+    def test_resync_rebuilds_submissions_records_and_notes_from_github(self):
+        from app import github, resync
+        from app.db import pr_submission_id
+        block = github.verdict_block([{'track': 'lower', 'commit': 'a' * 40, 'status': 'verified', 'claim': 19,
+                                       'duration_s': 300.0, 'finished_at': '2026-09-10T10:00:00Z',
+                                       'contract': 'c0ffee', 'record': True}])
+        forged = github.verdict_block([{'track': 'lower', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
+        pulls = [
+            {'number': 7, 'state': 'closed', 'merged_at': '2026-09-11T08:00:00Z', 'created_at': '2026-09-09T00:00:00Z',
+             'user': {'login': 'alice', 'id': 42}, 'body': 'Averaging over classes.\nAssisted by: Model X',
+             'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}},
+            {'number': 8, 'state': 'open', 'merged_at': None, 'created_at': '2026-09-12T00:00:00Z',
+             'user': {'login': 'bob', 'id': 43}, 'body': '', 'head': {'sha': 'b' * 40, 'repo': None}},
+        ]
+        comments = {7: [{'id': 55, 'user': {'login': 'ots-bot'}, 'body': 'verified\n\n' + block},
+                        {'id': 56, 'user': {'login': 'mallory'}, 'body': forged}], 8: []}
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.resync.SessionLocal', self.sessions), \
+             patch('app.resync.github.list_pulls', return_value=pulls), \
+             patch('app.resync.github.list_comments', side_effect=lambda repo, n: comments[n]), \
+             patch('app.resync.github.read_file', return_value='## Idea\n\nAverage over classes.'), \
+             patch('app.main.handle_pull_request') as queue:
+            first = resync.resync()
+            second = resync.resync()
+        self.assertEqual(first, {'restored': 1, 'promoted': 1, 'queued': 1})
+        self.assertEqual(second['restored'], 0)
+        queue.assert_called_with('owner/repo', 8, 'b' * 40)
+        with self.sessions() as session:
+            sub = session.get(Submission, pr_submission_id('owner/repo', 7, 'a' * 40))
+            self.assertEqual((sub.claim, sub.status, sub.is_record, sub.user.login), (19, 'verified', True, 'alice'))
+            self.assertEqual(sub.record_at.strftime('%Y-%m-%d %H:%M'), '2026-09-11 08:00')
+            self.assertEqual(sub.assisted_by, 'Model X')
+            self.assertEqual(sub.notes, '## Idea\n\nAverage over classes.')
+            self.assertEqual(sub.detail_dict['github_comment_id'], 55)
+            self.assertIsNone(session.scalars(select(Submission).where(Submission.commit == 'd' * 40)).first())
+
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()
         sub.pr_url = 'https://github.com/owner/core/pull/7'

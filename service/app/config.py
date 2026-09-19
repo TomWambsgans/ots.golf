@@ -25,6 +25,10 @@ class Settings:
     github_token: str = os.environ.get("GITHUB_TOKEN", "")
     contract_repo: str = os.environ.get("OTS_CONTRACT_REPO", DEFAULT_CONTRACT_REPO)
     submissions_repo: str = os.environ.get("OTS_SUBMISSIONS_REPO", "")  # empty keeps webhook admission closed
+    # The account whose pull-request comments carry verdicts; by default the token's own login.
+    bot_login: str = os.environ.get("OTS_BOT_LOGIN", "")
+    # Rebuild missing submissions from GitHub when the website starts.
+    resync_on_start: bool = os.environ.get("OTS_RESYNC_ON_START", "1") == "1"
     queue_cap: int = int(os.environ.get("OTS_QUEUE_CAP", "20"))
     max_inflight_per_user: int = int(os.environ.get("OTS_MAX_INFLIGHT_PER_USER", "2"))
     database_url: str = ""

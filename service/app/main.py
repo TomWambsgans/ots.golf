@@ -33,8 +33,17 @@ async def lifespan(_app):
     if settings.environment == "production" and settings.role != "web":
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
-    task = None
+    task = resync_task = None
     if settings.github_token and settings.submissions_repo:
+        if settings.resync_on_start:
+            async def resync_once():
+                from .resync import resync
+                try:
+                    logging.getLogger(__name__).info("resync from GitHub: %s", await run_in_threadpool(resync))
+                except Exception:
+                    logging.getLogger(__name__).exception("resync from GitHub failed; run app.resync by hand")
+            resync_task = asyncio.create_task(resync_once())
+
         async def report_loop():
             from .worker import retry_reports
             while True:
@@ -47,10 +56,11 @@ async def lifespan(_app):
     try:
         yield
     finally:
-        if task is not None:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+        for running in (task, resync_task):
+            if running is not None and not running.done():
+                running.cancel()
+                with suppress(asyncio.CancelledError):
+                    await running
 
 
 app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None,

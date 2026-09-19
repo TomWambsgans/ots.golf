@@ -94,6 +94,55 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
     _check(r, f"status on {owner_repo}@{sha[:10]}")
 
 
+def _paged(path: str, params: dict | None = None, limit: int = 5000) -> list[dict]:
+    """Every item of a paginated GitHub list, up to `limit`."""
+    items: list[dict] = []
+    with httpx.Client(timeout=30) as client:
+        page = 1
+        while len(items) < limit:
+            r = client.get(f"{API}{path}", params={**(params or {}), "per_page": 100, "page": page},
+                           headers=_headers())
+            _check(r, f"list {path}")
+            batch = r.json()
+            if not isinstance(batch, list) or not batch:
+                break
+            items.extend(batch)
+            if len(batch) < 100:
+                break
+            page += 1
+    return items[:limit]
+
+
+def list_pulls(owner_repo: str) -> list[dict]:
+    """Every pull request of the repository, open and closed, oldest first."""
+    return _paged(f"/repos/{owner_repo}/pulls", {"state": "all", "sort": "created", "direction": "asc"})
+
+
+def list_comments(owner_repo: str, number: int) -> list[dict]:
+    return _paged(f"/repos/{owner_repo}/issues/{number}/comments")
+
+
+def token_login() -> str:
+    """The account the token acts as: the only author whose comments carry verdicts."""
+    with httpx.Client(timeout=30) as client:
+        r = client.get(f"{API}/user", headers=_headers())
+        _check(r, "token login")
+        return r.json()["login"]
+
+
+def read_file(owner_repo: str, path: str, commit: str, max_bytes: int = 64 * 1024) -> str | None:
+    """A file at a commit of the repository (pull-request heads included), or None if absent."""
+    if not SHA_RE.fullmatch(commit):
+        raise ValueError("not a commit id")
+    with httpx.Client(timeout=30) as client:
+        r = client.get(f"{API}/repos/{owner_repo}/contents/{path}", params={"ref": commit},
+                       headers={**_headers(), "Accept": "application/vnd.github.raw+json"})
+        if r.status_code == 404:
+            return None
+        _check(r, f"read {path}")
+        return r.content[:max_bytes].decode("utf-8", errors="replace")
+
+
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*?)\n-->", re.S)
 VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")

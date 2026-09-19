@@ -88,8 +88,9 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     return result, str(log_dst)
 
 
-def promote(session, sub: Submission) -> None:
-    """Only merged, verified heads (or an explicit local certificate) can become records."""
+def promote(session, sub: Submission, at=None) -> None:
+    """Only merged, verified heads (or an explicit local certificate) can become records. A rebuild
+    passes the merge time as `at`, so records keep their original dates."""
     if sub.status != "verified" or sub.claim is None or sub.is_record:
         return
     merge = sub.detail_dict.get("merge") or {}
@@ -109,7 +110,7 @@ def promote(session, sub: Submission) -> None:
             and (contract.improves(t["direction"], sub.claim, t["baseline"])
                  or (sub.baseline and sub.claim == t["baseline"]))):
         sub.is_record = True
-        sub.record_at = utcnow()
+        sub.record_at = at or utcnow()
 
 
 def verdict_entry(sub: Submission) -> dict:
