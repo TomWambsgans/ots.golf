@@ -51,26 +51,26 @@ budget is at least `c`. The attack forges on a fresh message; `AlgorithmScheme.S
 proved in the submission root, bridges the strong hypothesis to the weak experiment the proof
 analyses.
 
-Files:
+Files (proofs in the reference proof's `GenericLower` submission root):
 
 - Protected `Algorithm.lean`: arbitrary algorithm interface and lower statement. The challenge
   fixes the paper limits and failure allowance.
-- `formal/Submissions/GenericLower/WeakSecurity.lean`: the fresh-message experiment and the
+- `GenericLower/WeakSecurity.lean`: the fresh-message experiment and the
   strong-to-weak bridge.
-- `formal/Submissions/GenericLower/Costs.lean`: structural cost rules.
-- `formal/Submissions/GenericLower/ZeroQuery.lean`: independence of zero-cost verification from the cache.
-- `formal/Submissions/GenericLower/Proof.lean`: availability, public signature selection, fresh-message
+- `GenericLower/Costs.lean`: structural cost rules.
+- `GenericLower/ZeroQuery.lean`: independence of zero-cost verification from the cache.
+- `GenericLower/Proof.lean`: availability, public signature selection, fresh-message
   attack, experiment cost and success, and the numerical contradiction.
-- `formal/Submissions/GenericLower/Solution.lean`: official export; `claim.txt` contains 1.
+- `GenericLower/Solution.lean`: official export; `claim.txt` contains 1.
 
 The in-file axiom guard for `candidate` accepts exactly `propext`, `Classical.choice` and
 `Quot.sound`. The protected file contains the definitions, not the lower-bound proof; all proof
 code is in the ordinary submission root.
 
-Generic lower submission command:
+Generic lower submission command, from the core with a submissions checkout:
 
 ```sh
-python3 verifier/verify.py generic-lower --source .
+python3 verifier/verify.py generic-lower --source ../ots.golf-submissions
 ```
 
 The generic lower challenge pins the `2^-128` failure allowance. Its certificate applies the

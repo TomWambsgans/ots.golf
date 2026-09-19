@@ -1,16 +1,13 @@
 import OptimalOTS.Statement
 
 /-!
-# Generic oracle algorithms for one-time signatures
+# One-time signatures as oracle algorithms
 
-The interface for the generic lower, generic upper and RISC-V upper challenges. All parties
-share the bare random oracle and its compression cost. Deterministic computation and private
-randomness are free; verification is deterministic, so only key generation and signing may use
-private randomness.
-
-Public keys and messages have the lengths in `P`. Signatures have an injective bit-string encoding.
-`Admissible` collects the requirements other than security. All three challenges require signing
-failure at most `2⁻¹²⁸`.
+The model of the Generality 3/3 lower bound and of both upper bounds (compressions and RISC-V
+cycles). A scheme is three oracle programs that share the random oracle of `Statement.lean` and
+pay its compression costs; all other computation is free. Key generation and signing may use
+private randomness; verification may not. `Admissible` collects every requirement except
+security.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -23,7 +20,8 @@ namespace OptimalOTS
 def Deterministic (P : Params) {α : Type} (oa : OracleComp (Spec P) α) : Prop :=
   oa.IsQueryBound () (fun t _ => t.isRight = true) (fun _ u => u)
 
-/-- Three terminating oracle programs, with an injective signature encoding. -/
+/-- Key generation, signing and verification as oracle programs, with an injective signature
+encoding. Signing returns `none` when it fails. -/
 structure AlgorithmScheme (P : Params) where
   SecretKey : Type
   Signature : Type
@@ -54,9 +52,9 @@ def experiment (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec P) B
   let ok ← S.verify pk m₂ σ₂
   return ok && decide (σ₁.map (fun s => (m₁, s)) ≠ some (m₂, σ₂))
 
-/-- Strong unforgeability: success is strictly below `B / 2 ^ P.securityBits` for every
-pathwise budget `B` of the whole experiment: the adversary's queries, the honest key generation
-and signing, and the final verification. -/
+/-- Strong unforgeability: the attacker wins with probability strictly below
+`B / 2 ^ P.securityBits`, for every pathwise budget `B` of the whole experiment (the attacker's
+queries, honest key generation and signing, and the final verification). -/
 def Secure (S : AlgorithmScheme P) : Prop :=
   ∀ (A : S.Adversary) (B : ℕ), CostAtMost P (S.experiment A) B →
     probTrue P (S.experiment A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
@@ -65,7 +63,7 @@ def Secure (S : AlgorithmScheme P) : Prop :=
 def VerifyCostAtMost (S : AlgorithmScheme P) (c : ℕ) : Prop :=
   ∀ pk m σ, CostAtMost P (S.verify pk m σ) c
 
-/-- Verification is deterministic: it uses no private randomness on any input. -/
+/-- Verification uses no private randomness, on any input. -/
 def VerifyDeterministic (S : AlgorithmScheme P) : Prop :=
   ∀ pk m σ, Deterministic P (S.verify pk m σ)
 
@@ -76,17 +74,16 @@ def KeygenCostAtMost (S : AlgorithmScheme P) (b : ℕ) : Prop := CostAtMost P S.
 def SignCostAtMost (S : AlgorithmScheme P) (b : ℕ) : Prop :=
   ∀ sk m, CostAtMost P (S.sign sk m) b
 
-/-- Every signature in the signing program's support, for any key and message,
-encodes in at most `n` bits. -/
+/-- Every signature that signing can output encodes in at most `n` bits. -/
 def SignatureSizeAtMost (S : AlgorithmScheme P) (n : ℕ) : Prop :=
   ∀ sk m σ, some σ ∈ support (S.sign sk m) → (S.encodeSignature σ).length ≤ n
 
-/-- An oversized signature is always rejected, for every sequence of oracle answers. -/
+/-- A signature encoding longer than `n` bits is rejected on every oracle-answer path. -/
 def RejectsOversized (S : AlgorithmScheme P) (n : ℕ) : Prop :=
   ∀ pk m σ, n < (S.encodeSignature σ).length → true ∉ support (S.verify pk m σ)
 
-/-- The probability of returning an honest signature that verification rejects is zero.
-Messages may depend on the public key; signing failure is handled separately. -/
+/-- Perfect correctness: for every message chosen from the public key, an honest signature is
+rejected with probability zero. Signing failure is bounded separately. -/
 def Correct (S : AlgorithmScheme P) : Prop := ∀ message : PublicKey P → Message P,
   probTrue P (do
     let (pk, sk) ← S.keygen
@@ -96,15 +93,15 @@ def Correct (S : AlgorithmScheme P) : Prop := ∀ message : PublicKey P → Mess
     | none => return false
     | some s => return !(← S.verify pk m s)) = 0
 
-/-- Signing failure has probability at most `ε`, averaged over honest key generation and signing,
-for every public-key-dependent message choice. No adversarial oracle preprocessing is included. -/
+/-- For every message chosen from the public key, signing fails with probability at most `ε`,
+over honest key generation and signing. -/
 def SigningFailureAtMost (S : AlgorithmScheme P) (ε : ℝ≥0∞) : Prop :=
   ∀ message : PublicKey P → Message P,
   probTrue P (do
     let (pk, sk) ← S.keygen
     return (← S.sign sk (message pk)).isNone) ≤ ε
 
-/-- Generic signature-size and honest-party query-cost limits. -/
+/-- Signature size and honest-party cost limits. -/
 structure Limits where
   /-- Maximum encoded signature length, in bits. -/
   signatureBits : ℕ
@@ -113,14 +110,13 @@ structure Limits where
   /-- Maximum signing cost, in compressions. -/
   signCost : ℕ
 
-/-- The paper's total signature size and honest-party budgets; no nonce format is prescribed. -/
+/-- The competition's limits. The signature size includes any nonce. -/
 def paperLimits : Limits where
   signatureBits := 5376
   keygenCost := 1024
   signCost := 2 ^ 20
 
-/-- The requirements below, separate from security. The allowance `ε < 1` excludes schemes that
-always fail to sign. -/
+/-- Every requirement except security. `ε < 1` rules out schemes that never sign. -/
 structure Admissible (S : AlgorithmScheme P) (L : Limits) (ε : ℝ≥0∞) : Prop where
   failure_lt_one : ε < 1
   correct : S.Correct
@@ -133,8 +129,8 @@ structure Admissible (S : AlgorithmScheme P) (L : Limits) (ε : ℝ≥0∞) : Pr
 
 end AlgorithmScheme
 
-/-- Every pathwise verification budget for an admissible, secure algorithm is at least `c`.
-The budget must cover all public keys, messages, and signatures, including rejecting inputs. -/
+/-- Every admissible, secure scheme needs a verification budget of at least `c`: any `v` bounding
+the verification cost on every input (accepting or rejecting) satisfies `c ≤ v`. -/
 def AlgorithmVerificationLowerBound (P : Params) (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞)
     (c : ℕ) : Prop :=
   ∀ S : AlgorithmScheme P, S.Admissible L ε → S.Secure →

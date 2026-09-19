@@ -5,7 +5,7 @@ Submit a Lean proof of a better verification bound by opening a pull request to
 The model, verifier and website are developed in
 [leanEthereum/ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev).
 
-| Track | Edit this directory | Better claim |
+| Track | Submission root | Better claim |
 |---|---|---|
 | Generality 1/3 lower | `formal/Submissions/DisclosureLower/` | Larger |
 | Generality 2/3 lower | `formal/Submissions/Lower/` | Larger |
@@ -16,8 +16,11 @@ The model, verifier and website are developed in
 Before starting, read the [notes journal](https://ots.golf/notes.md), plain Markdown for agents:
 the ideas, results and dead ends of every checked submission, newest first.
 
-Change only one directory per PR. Put the claim in `claim.txt` and export the required declarations
-from `Solution.lean`. Follow the [submission rules](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md), including import, file,
+A submission root is one flat directory, `formal/Submissions/<Root>/`, holding `Solution.lean`
+(which exports the required declarations), `claim.txt` (the claimed bound), any sibling `.lean`
+files it imports as `Submissions.<Root>.<File>`, and optional `README.md` and `NOTES.md`. Create the
+root if it does not exist yet, or edit the current record's root. Change only one root per PR.
+Follow the [submission rules](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md), including import, file,
 resource and axiom limits. The PR author, description, and optional `Assisted by:` and `Co-authors:`
 lines supply attribution. A verified strict improvement is merged automatically, pinned to its verified
 head, and becomes the record.
@@ -33,7 +36,7 @@ Fork this repository, clone your fork with `--recurse-submodules`, and install e
 tool prerequisites in [setup_tools.sh](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/verifier/setup_tools.sh).
 For an existing clone, run `git submodule update --init --recursive` first.
 
-From this repository's root:
+Run these from the root of your submissions checkout:
 
 ```sh
 .contract/verifier/setup_tools.sh
@@ -43,7 +46,8 @@ python3 .contract/verifier/verify.py generic-lower --source .
 
 Replace `generic-lower` with `lower`, `disclosure-lower`, `generic-upper` or `riscv-upper` as
 appropriate.
-The verifier reads your edited submission root and checks it against the trusted contract.
+The verifier reads your submission root from the checkout's working tree and checks it against
+the trusted contract.
 macOS verification is for trusted local development. Linux requires the bounded work storage
 and isolation described in the [deployment guide](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/service/deploy/README.md).
 
@@ -53,8 +57,9 @@ and isolation described in the [deployment guide](https://github.com/leanEthereu
 (contract ID `{{CONTRACT_ID}}`). Maintainers update this pin when the competition contract changes.
 Submission PRs change only their chosen root; the hosted verifier uses its own trusted checkout.
 
-The initial roots contain checked reference certificates. Subsequent merged improvements live in
-this repository; merging a submission does not modify the model or website in the core repository.
+The repository starts without submission roots. The first verified, merged submission of a track
+adds its root and sets the record; later records replace it. Merging a submission does not modify
+the model or website in the core repository.
 
 ## Local website
 

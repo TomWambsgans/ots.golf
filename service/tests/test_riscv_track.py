@@ -24,7 +24,7 @@ class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
-        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=1628,
+        machine.update(slug='riscv-upper', title='RISC-V upper bound',
                        cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
         self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
@@ -118,8 +118,7 @@ class RiscvTrackTests(unittest.TestCase):
         rows = list(self.session.scalars(select(Submission).where(Submission.track == 'riscv-upper')))
         self.assertEqual(len(rows), 18)
         machine = min(rows, key=lambda r: r.claim)
-        self.assertEqual(machine.claim, contract.riscv_upper_track()['baseline'])
-        self.assertEqual(machine.detail_dict['improvement'], 0)
+        self.assertEqual(machine.claim, 1628)
         self.assertTrue(machine.is_record)
 
     def test_rules_state_every_execution_bound_and_total_spec_refinement_without_scores(self):

@@ -10,11 +10,12 @@ The public-key size is 128 bits, signatures fit in 5,376 bits, and security is 1
 contract's random-oracle experiment.
 
 This is [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev), the core repository for the
-model, verifier, website and reference certificates. Submit competition proof PRs to
-[ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions).
-That repository contains the five submission roots and a pinned core submodule for local checking.
+model, verifier and website. Submit competition proof PRs to
+[ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions), which holds the
+merged submission roots and a pinned core submodule for local checking. The core contains no proofs
+of any track.
 
-| Track | Slug | Admitted schemes | Checked claim |
+| Track | Slug | Admitted schemes | Reference proof |
 |---|---|---|---:|
 | Generality 1/3 lower | `disclosure-lower` | Whole-word DAGs using 128-bit secrets and constants, 256-bit hashes, fixed output halves and concatenation | 93 |
 | Generality 2/3 lower | `lower` | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
@@ -32,8 +33,9 @@ That repository contains the five submission roots and a pinned core submodule f
 - **RISC-V upper bound** constructs such a scheme with a fixed RV64IM verifier proved equal to the
   Lean verifier, costing at most the claim in cycles on every execution.
 
-The legacy DAG upper certificate remains a locally verifiable reference.
-[AGENTS.md](AGENTS.md) defines the exact requirements, exports and submission workflow.
+The reference proofs are submitted as ordinary pull requests to the submissions repository.
+The legacy DAG and whole-word upper tracks remain registered for local verification of their
+reference proofs. [AGENTS.md](AGENTS.md) defines the exact requirements, exports and submission workflow.
 
 ## Model
 
@@ -61,15 +63,16 @@ complete security experiment, including honest key generation, signing and final
 verifier/setup_tools.sh
 cd formal
 lake exe cache get
-lake build OptimalOTS Submissions
+lake build OptimalOTS
 lake env lean scripts/check-axioms.lean
 cd ..
-python3 verifier/verify.py disclosure-lower --source .
+python3 verifier/verify.py disclosure-lower --source ../ots.golf-submissions
 ```
 
-Use `generic-lower` or `lower` for the other lower certificates, `generic-upper` for the
-Upper bound construction, `riscv-upper` for the RISC-V implementation, and `upper` for the historical
-reference. macOS verification runs unsandboxed for trusted
+`--source` is a submissions checkout; the verifier takes only that track's root, and the contract
+and tooling come from this checkout. Use `generic-lower` or `lower` for the other lower tracks,
+`generic-upper` for the Upper bound, `riscv-upper` for the RISC-V implementation, and `upper` or
+`whole-words-upper` for the historical references. macOS verification runs unsandboxed for trusted
 local development. Hosted verification requires the Linux isolation described in
 [the deployment guide](service/deploy/README.md).
 
@@ -78,9 +81,6 @@ The local preview loads the committed [demo fixtures](service/demo/README.md) by
 including on a fresh clone with no database. See [service development](service/README.md) for
 checks and [deployment](service/deploy/README.md) for launch gates.
 
-To check a separate submissions checkout using this core's verifier, pass its path as `--source`,
-for example `python3 verifier/verify.py generic-lower --source ../ots.golf-submissions`.
-The verifier takes only that track's root; the contract and tooling come from this checkout.
 See [repository setup](docs/repositories.md) for preparing the submissions workspace.
 
 ## Find the contract and proofs
@@ -92,11 +92,9 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
   and [Generality 3/3 proof](docs/generic-lower.md).
 - [Upper bound proof](docs/generic-upper.md), [RISC-V track](docs/riscv-upper.md),
   [contract audit](docs/AUDIT.md) and the [documentation index](docs/README.md).
-- `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
-- `formal/Submissions/GenericUpper/`: the admitted Upper bound root.
-- `formal/Submissions/RiscvUpper/`: the admitted RISC-V upper bound root.
-- `formal/Submissions/Upper/`, `formal/Submissions/WholeWordsUpper/`: reference certificates
-  showing that secure DAG and whole-word schemes exist.
+- Submission roots (`formal/Submissions/<Root>/` in the submissions repository): `GenericLower`,
+  `Lower`, `DisclosureLower`, `GenericUpper` and `RiscvUpper`; the legacy `Upper` and
+  `WholeWordsUpper` references show that secure DAG and whole-word schemes exist.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 
 The competition and chart were inspired by [better.codes](https://better.codes) and

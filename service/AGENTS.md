@@ -2,17 +2,19 @@
 
 The user wants the invented Satoshi Nakamoto, Vitalik Buterin and Hal Finney submissions present
 on localhost by default. Preserve or restore those demo rows when updating the running local site.
-Do not replace the demo board with a baseline-only board unless the user explicitly requests it.
-`demo/README.md` owns the fixture policy: demo claims follow the current contract baselines
-through each row's `improvement`; never preserve stale absolute claims when a baseline changes.
-Show results as ordinary submissions with solver attribution, never as a special "baseline" in
-the website. Internal verifier thresholds still come from the contract.
+Do not replace the demo board with an empty board unless the user explicitly requests it.
+`demo/README.md` owns the fixture policy: fixtures store absolute claims, and every track's best
+demo record equals a claim proven in the reference proofs (older rows may be worse). When a
+reference proof changes, update that track's best demo claim. Show results as ordinary submissions
+with solver attribution. The contract holds no scores: with `OTS_PHONY=0` every board starts
+empty, shows "No record yet", and the first verified, merged submission becomes the record.
+The reference proofs live outside the core and reach the site as ordinary pull requests.
 
 Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
-`refresh-local.sh`: it adjusts existing demo claims and triggers the running server to reload.
+`refresh-local.sh`: it re-seeds the demo rows from the fixtures and triggers the running server to reload.
 Verify the rendered homepage after a commit; do not push or deploy as part of a local refresh.
-Always synchronize the site's admission status, baseline metadata, chart, leaderboards and rules
-whenever a proof or contract status changes. Refresh localhost and check the rendered pages as part
+Always synchronize the site's admission status, metadata, chart, leaderboards, rules and demo
+fixtures whenever a reference proof or contract status changes. Refresh localhost and check the rendered pages as part
 of the same change; do not wait for a separate request to update the website.
 
 `./run-local.sh` refreshes the demo board without replacing rows before starting the worker and web server; use this entry
@@ -20,14 +22,12 @@ point for local development. `OTS_PHONY=0` explicitly disables startup seeding.
 `seed_demo.py` refuses production mode and non-loopback site URLs even with `--force`, and
 refuses nonlocal databases by default. Never force it against production.
 
-If reseeding an already running site, wait for any active baseline verification to finish before
-running `.venv/bin/python seed_demo.py`: the seed replaces baseline database rows.
 For ordinary updates, `bash refresh-local.sh` preserves submission IDs and dates and leaves
 real submissions alone, so it is safe while the worker is running.
 
 The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
 plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
-`generic-lower`, with baseline 1 and signing failure at most `2^-128` for every public-key-dependent
+`generic-lower`, with signing failure at most `2^-128` for every public-key-dependent
 message selection, matching the upper track. Do not hardcode a separate generic
 foundation certificate or show lower admission as pending. If a future framework has no checked
 certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
@@ -39,7 +39,7 @@ Upper tracks are admitted through the top-level `upper_tracks` metadata, indepen
 three lower frameworks. `generic-upper` is “Upper bound”, measured in compressions. `riscv-upper`
 is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
 execution must terminate and refine the Lean oracle specification. Render the second card, chart,
-leaderboard and rules section only after its checked certificate is pinned and admitted. Its chart
+leaderboard and rules section only while the track is admitted in the metadata. Its chart
 has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. Reject public submissions to legacy DAG upper roots; retain their historical pages.
@@ -65,7 +65,7 @@ allowed and charged. Hash inputs have no fixed arity;
 charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 128-bit nonce.
 The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
 Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`DisclosureLower`, with
-the same baseline-relative demo offsets as DAG lower. Do not leave the old 46-origin rule on the site.
+demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.
 

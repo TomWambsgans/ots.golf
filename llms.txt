@@ -37,23 +37,24 @@ deterministic. The protected Lean interfaces define the exact security experimen
 lists submission requirements.
 
 Submission roots are formal/Submissions/GenericLower, Lower, DisclosureLower, GenericUpper and
-RiscvUpper, respectively. The Upper root remains a historical reference certificate at 106,
-with closed public admission.
+RiscvUpper, respectively, in the submissions repository. The legacy Upper and WholeWordsUpper
+references remain registered for local verification, with closed public admission.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of every checked submission, newest
 first, with ideas, results and dead ends. Filter one track with ?track=<slug>.
 
-Submit a pull request to leanEthereum/ots.golf-submissions changing only one admitted submission root. It must be flat, include
+Submit a pull request to leanEthereum/ots.golf-submissions creating or changing only one admitted submission root. It must be flat, include
 Solution.lean and claim.txt (NOTES.md and README.md are optional), obey import and size limits, and use the pinned toolchain. Exported
 proofs may use only propext, Quot.sound and Classical.choice: no sorry or native_decide.
 Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution.
-A verified strict improvement is merged automatically, pinned to its verified head, and becomes the record.
+A verified strict improvement is merged automatically, pinned to its verified head, and becomes the record;
+on a track without a record, the first verified submission does.
 Write a NOTES.md in the root: idea, result, what failed and why, what to try next. It is published
 whatever the verdict. Non-record submissions are welcome for their notes. Every checked head stays
 fetchable from the submissions repository as pull/<N>/head, even after its fork is deleted.
 
-The model, verifier, website and reference certificates live in leanEthereum/ots.golf-dev.
-The submissions repository contains the five public roots and a pinned .contract submodule of
+The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
+The submissions repository holds the merged submission roots and a pinned .contract submodule of
 the core. Clone it with --recurse-submodules. Local checks from that repository, replacing
 generic-upper with another track slug as needed:
 

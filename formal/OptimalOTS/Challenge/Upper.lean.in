@@ -1,11 +1,11 @@
 import OptimalOTS.Statement
 
-/-! Historical DAG upper reference, closed to new public submissions. Rendered with the
-reference claim; the scheme proves strong security and the verification cost. -/
+/-! Reference certificate, closed to public submissions: a secure DAG scheme, showing that the
+Generality 2/3 class is not empty. -/
 
 namespace OptimalOTS.Challenge.Upper
 
-/-- A graph-based one-time signature scheme with the parameters of the paper. -/
+/-- A DAG scheme with the competition's parameters. -/
 noncomputable def scheme : Scheme paperParams := sorry
 
 /-- Strong unforgeability in the shared random-oracle experiment. -/

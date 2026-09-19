@@ -15,10 +15,10 @@ uv sync --frozen
 Open `http://localhost:8000`. Startup refreshes the fictional [demo fixtures](demo/README.md),
 preserving their IDs and dates; each row carries a demo label. A fresh clone recreates the board
 without a database dump. Real submissions are left alone. Set `OTS_PHONY=0` to skip this refresh
-and show the reference baselines instead.
+and show real submissions only: a track without a merged record shows "No record yet".
 
 After every local commit, refresh localhost and check the rendered page. This checkout's
-`post-commit` hook runs `service/refresh-local.sh`, which refreshes demo claims and reloads the
+`post-commit` hook runs `service/refresh-local.sh`, which re-seeds the demo rows and reloads the
 web process, including its cached commit. Install the hook in another checkout with:
 
 ```sh
@@ -29,8 +29,8 @@ Run that command from the repository root. For a manual refresh, use
 `bash service/refresh-local.sh`. Restart `run-local.sh` after changing worker code: the worker does
 not hot-reload. The startup script removes GitHub credentials from the worker's environment.
 
-`seed_demo.py --remove` removes fictional rows. Plain `seed_demo.py` replaces them and removes
-local certificate initialization rows; use `--refresh` for routine updates. The script refuses
+`seed_demo.py --remove` removes fictional rows. Plain `seed_demo.py` replaces them; use `--refresh`
+for routine updates. The script refuses
 production mode and non-loopback site URLs, even with `--force`, and normally accepts only the
 default local database. Do not use fictional data in production.
 
@@ -41,13 +41,13 @@ The homepage has three lower frameworks, each with its own leaderboard, and two 
 the direction. Scores appear as attributed submissions; rules define the contract's requirements
 without scores. The RISC-V upper track has its own card, leaderboard and chart with an
 independent cycle axis, never combined with compression bounds. The legacy `upper`
-certificate and demos remain accessible under Historical DAG.
+demos remain accessible under Historical DAG.
 
 The database is a disposable cache: the website rebuilds it from GitHub at startup
 (`app.resync`), so an empty data directory comes back as before; see
 [deployment](deploy/README.md#rebuilding-the-server-from-nothing).
 
-Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
+Whenever the contract or an admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
 
 ## Admission and records
@@ -55,8 +55,10 @@ rules and documentation together, then refresh and inspect localhost.
 A public pull request to the submissions repository must change exactly one admitted submission root. The authenticated webhook
 checks the repository, files and current head; the worker verifies that exact commit on the trusted
 tree. A verified strict improvement is merged automatically by the web process, pinned to the
-verified head (GitHub refuses if the head moved), and becomes the record; `OTS_AUTO_MERGE=0` turns this
-off, leaving merges to maintainers. Merges received before verification are remembered.
+verified head (GitHub refuses if the head moved), and becomes the record; `OTS_AUTO_MERGE=0` turns
+this off, leaving merges to maintainers. A track has no record until its first verified, merged
+submission, which becomes the record whatever its claim. Merges received before verification are
+remembered. Record decisions ignore demo rows.
 The trusted core checkout remains independent of submission merges. Historical result reports
 retain the PR's repository and are never redirected to the same PR number in another repository.
 
@@ -65,9 +67,10 @@ retries delivery without repeating the proof. Attribution comes from the PR auth
 `Assisted by:` and `Co-authors:` lines, and the remaining description.
 
 For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
-use `.venv/bin/python -m app.queue lower`, substituting `generic-lower`, `disclosure-lower`,
-`generic-upper` or `riscv-upper` as needed. `--baseline` queues a certificate for verification and local initialization.
-The two legacy upper slugs also work for local reference checks. Only one worker may use a data
+use `.venv/bin/python -m app.queue lower --repo ../../ots.golf-submissions`, substituting
+`generic-lower`, `disclosure-lower`, `generic-upper` or `riscv-upper` as needed; `--repo` is a
+submissions checkout. Local jobs never become records. The two legacy upper slugs also work for
+local reference checks. Only one worker may use a data
 directory; lock files enforce this across processes on the same host.
 
 ## Configuration
@@ -86,7 +89,7 @@ directory; lock files enforce this across processes on the same host.
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
 | `OTS_AUTO_MERGE` | `1` | merge a verified record-breaking PR automatically; needs contents write |
-| `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows the reference baselines |
+| `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows real submissions only |
 | `OTS_RESYNC_ON_START` | `1` | rebuild missing submissions from GitHub when the website starts |
 | `OTS_BOT_LOGIN` | token's login | account whose PR comments carry verdicts |
 | `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
@@ -110,5 +113,6 @@ python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --
 Service tests use isolated databases. The optional browser check uses Firefox against the seeded
 localhost preview and exercises desktop/mobile layouts, both color schemes, keyboard controls,
 filters, tooltips, reduced motion and error pages. See [numerical tool setup](../tools/README.md)
-for NumPy and the repository runner; add `--official` to run all seven certificate pipelines.
+for NumPy and the repository runner; add `--official --submissions PATH` to verify every submission
+root in a submissions checkout.
 [Deployment](deploy/README.md) lists the remaining launch gates.

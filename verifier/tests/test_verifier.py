@@ -186,7 +186,7 @@ class VerifierTests(unittest.TestCase):
                 template = self.root / track["challenge_template"]
                 template.parent.mkdir(parents=True, exist_ok=True)
                 template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
-                rendered, _ = render(self.root, slug, track["baseline"])
+                rendered, _ = render(self.root, slug, 7)
                 self.assertIn("(1 / 2 ^ 128)", rendered.read_text())
 
     def test_invalid_utf8_source(self):

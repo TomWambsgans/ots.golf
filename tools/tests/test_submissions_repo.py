@@ -1,4 +1,4 @@
-"""The submissions workspace pins the core and exports only admitted proof roots."""
+"""The submissions workspace pins the core and starts without submission roots."""
 from __future__ import annotations
 
 import hashlib
@@ -27,11 +27,11 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         pin.parent.mkdir(parents=True)
         pin.write_text('fixture pin\n')
         (self.root / 'LICENSE').write_text('Fixture license\n')
-        for track in config['tracks']:
-            path = self.root / track['submission_root']
-            path.mkdir(parents=True)
-            (path / 'Solution.lean').write_text('def fixture := 1\n')
-            (path / 'claim.txt').write_text(str(track['baseline']) + '\n')
+        # A stray root in the core must never be exported.
+        stray = self.root / 'formal/Submissions/GenericUpper'
+        stray.mkdir(parents=True)
+        (stray / 'Solution.lean').write_text('def fixture := 1\n')
+        (stray / 'claim.txt').write_text('7\n')
         shutil.copytree(ROOT / 'tools/submissions_template', self.root / 'tools/submissions_template')
         git(self.root, 'add', '--all')
         git(self.root, 'commit', '-m', 'Fixture')
@@ -54,11 +54,9 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         names = set(git(destination, 'ls-files').splitlines())
         self.assertNotIn('service/app/main.py', names)
         self.assertNotIn('formal/OptimalOTS/Statement.lean', names)
-        self.assertNotIn('formal/Submissions/Upper/Solution.lean', names)
-        self.assertNotIn('formal/Submissions/DisclosureUpper/Solution.lean', names)
-        self.assertIn('formal/Submissions/GenericUpper/Solution.lean', names)
-        self.assertIn('formal/Submissions/RiscvUpper/Solution.lean', names)
-        self.assertIn('.github/PULL_REQUEST_TEMPLATE.md', names)
+        self.assertFalse(any(name.startswith('formal/') for name in names))
+        self.assertEqual(names, {'.contract', '.github/PULL_REQUEST_TEMPLATE.md', '.gitignore', '.gitmodules',
+                                 'AGENTS.md', 'LICENSE', 'README.md'})
         self.assertEqual((destination / 'LICENSE').read_text(), 'Fixture license\n')
         self.assertIn(commit, (destination / 'README.md').read_text())
         self.assertNotIn('{{CONTRACT_', (destination / 'README.md').read_text())

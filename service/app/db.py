@@ -10,7 +10,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, create_engine, event
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, create_engine, event, inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 from .config import settings
@@ -58,7 +58,6 @@ class Submission(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     is_record: Mapped[bool] = mapped_column(Boolean, default=False)
     record_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    baseline: Mapped[bool] = mapped_column(Boolean, default=False)
     assisted_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     co_authors: Mapped[str] = mapped_column(Text, default="[]")
@@ -179,6 +178,10 @@ def local_lock(name: str, *, blocking: bool = True):
 def init_db() -> None:
     with local_lock("schema"):
         Base.metadata.create_all(engine)
+        with engine.begin() as conn:
+            # Older caches carry a NOT NULL `baseline` column that new rows no longer fill.
+            if "baseline" in {c["name"] for c in inspect(conn).get_columns("submissions")}:
+                conn.exec_driver_sql("ALTER TABLE submissions DROP COLUMN baseline")
 
 
 def get_session():

@@ -1,13 +1,11 @@
 import OptimalOTS.Algorithm
 
-/-! Rendered by the verifier with the submission's claim. The generic lower contract fixes
-perfect correctness, signing failure at most `2⁻¹²⁸` for every public-key-dependent message
-choice, 127-bit strong unforgeability, and the paper size and resource limits. -/
+/-! Generality 3/3 lower bound: oracle-algorithm schemes (`Algorithm.lean`). -/
 
 namespace OptimalOTS.Challenge.GenericLower
 
-/-- Every pathwise verification budget of an admissible secure oracle algorithm is at least
-`{{CLAIM}}` compressions. -/
+/-- Every admissible (signing failure at most `2⁻¹²⁸`, the competition's limits), secure scheme
+needs a verification budget of at least `{{CLAIM}}` compressions. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) {{CLAIM}} := sorry
 

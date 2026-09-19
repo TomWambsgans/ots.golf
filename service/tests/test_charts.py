@@ -22,8 +22,9 @@ class ChartTests(unittest.TestCase):
 
     @staticmethod
     def series(claim=93, points=None):
+        points = points or [{'t': datetime(2025, 12, 30), 'claim': claim, 'login': 'solver', 'id': 'id'}]
         return {'slug': 'disclosure-lower', 'framework': 'disclosure', 'kind': 'lower',
-                'label': 'Generality 1/3 lower', 'baseline': claim, 'points': points or []}
+                'label': 'Generality 1/3 lower', 'status': 'certified', 'points': points}
 
     def test_attribution_cannot_escape_svg_or_json_script(self):
         stamp = datetime(2026, 1, 1)
@@ -45,6 +46,15 @@ class ChartTests(unittest.TestCase):
         ys = [float(t.get('y')) for t in svg.findall("./g/text[@class='label']")]
         self.assertEqual(len(set(ys)), 3)
         self.assertGreaterEqual(min(abs(a - b) for i, a in enumerate(ys) for b in ys[i + 1:]), 28)
+
+    def test_series_without_records_draws_nothing(self):
+        empty = dict(self.series(), points=[])
+        svg = ET.fromstring(record_chart([empty], datetime(2026, 1, 1))['svg'])
+        self.assertEqual(svg.findall('./g'), [])
+        self.assertIn('No records yet', [t.text for t in svg.findall('./text')])
+        svg = ET.fromstring(record_chart([empty, self.series()], datetime(2026, 1, 1))['svg'])
+        self.assertEqual(len(svg.findall('./g')), 1)
+        self.assertNotIn('No records yet', [t.text for t in svg.findall('./text')])
 
     def test_future_timestamp_is_inside_chart_axis(self):
         now = datetime(2026, 1, 1)

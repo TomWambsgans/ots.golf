@@ -2,9 +2,11 @@
 """Run local regression checks without network access or changing the running site.
 
     python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
+    python3 tools/check_repo.py --official --submissions ../ots.golf-submissions
 
-Requires the service environment and NumPy for the research-tool tests. --official runs all
-configured certificate pipelines after building Lean. Linux sandbox acceptance and the browser check
+Requires the service environment and NumPy for the research-tool tests. --official builds Lean and
+runs the official pipeline for every track whose submission root exists in the --submissions
+checkout. Linux sandbox acceptance and the browser check
 are separate commands: verifier/check_linux_sandbox.py and service/browser_check.py.
 """
 from __future__ import annotations
@@ -24,9 +26,13 @@ def main() -> int:
     parser.add_argument('--numerics-python', default=sys.executable)
     parser.add_argument('--node', help='Node.js executable for JavaScript syntax checks (otherwise found on PATH)')
     parser.add_argument('--formal', action='store_true', help='build Lean and audit all protected model declarations')
-    parser.add_argument('--official', action='store_true', help='also run every configured official certificate pipeline')
+    parser.add_argument('--official', action='store_true',
+                        help='also verify every submission root present in the --submissions checkout')
+    parser.add_argument('--submissions', type=Path, help='submissions checkout verified by --official')
     parser.add_argument('--paper', action='store_true', help='compile the DAG paper with latexmk')
     args = parser.parse_args()
+    if args.official and not args.submissions:
+        parser.error('--official needs --submissions PATH, a checkout of the submissions repository')
     service_python = shutil.which(args.service_python)
     numerics_python = shutil.which(args.numerics_python)
     node = shutil.which(args.node or 'node')
@@ -52,15 +58,20 @@ def main() -> int:
             for script in sorted((ROOT / parent).glob('*.sh')):
                 check(str(script.relative_to(ROOT)), ['bash', '-n', str(script)])
         if args.formal or args.official:
-            check('Lean library and submissions', ['lake', 'build', 'OptimalOTS', 'Submissions'], ROOT / 'formal')
+            check('Lean library', ['lake', 'build', 'OptimalOTS'], ROOT / 'formal')
             check('protected model axioms', ['lake', 'env', 'lean', 'scripts/check-axioms.lean'], ROOT / 'formal')
             check('RISC-V machine boundaries', ['lake', 'env', 'lean', 'scripts/check-riscv.lean'], ROOT / 'formal')
         if args.official:
             import json
             cfg = json.loads((ROOT / 'challenges.json').read_text())
-            for track in cfg['tracks']:
-                check(f"official certificate {track['slug']}",
-                      [sys.executable, 'verifier/verify.py', track['slug'], '--source', str(ROOT)])
+            source = args.submissions.resolve()
+            present = [t for t in cfg['tracks'] if (source / t['submission_root'] / 'Solution.lean').is_file()]
+            if not present:
+                print(f'No submission roots found in {source}', file=sys.stderr)
+                return 1
+            for track in present:
+                check(f"official pipeline {track['slug']}",
+                      [sys.executable, 'verifier/verify.py', track['slug'], '--source', str(source)])
         if args.paper:
             check('paper', ['latexmk', '-pdf', '-interaction=nonstopmode', '-halt-on-error',
                             'looking-for-optimal-OTS.tex'], ROOT / 'paper')

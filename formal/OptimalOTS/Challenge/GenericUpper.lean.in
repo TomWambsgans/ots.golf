@@ -1,14 +1,14 @@
 import OptimalOTS.Algorithm
 
-/-! A generic upper submission supplies arbitrary oracle programs and proves their
-admissibility, 127-bit strong unforgeability, and worst-case verification cost. -/
+/-! Upper bound in compressions: an oracle-algorithm scheme (`Algorithm.lean`). -/
 
 namespace OptimalOTS.Challenge.GenericUpper
 
 /-- The submitted key-generation, signing, and verification algorithms. -/
 noncomputable def scheme : AlgorithmScheme paperParams := sorry
 
-/-- Perfect correctness, signing failure at most `2⁻¹²⁸`, and the paper's size and cost limits. -/
+/-- Correctness, deterministic verification, signing failure at most `2⁻¹²⁸`, and the
+competition's size and cost limits. -/
 theorem admissible :
     scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := sorry
 

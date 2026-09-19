@@ -77,19 +77,18 @@ services stopped.
 
 Run these with the public webhook disconnected and the production configuration in place:
 
-1. As the verifier user, run the isolation probe, then every certificate:
+1. As the verifier user, run the isolation probe, then every reference proof. The core holds no
+   proofs: `/srv/ots/submissions-check` is a separate checkout of a submissions repository holding
+   each track's reference root (before launch, the maintainer's fork), never the trusted checkout.
 
    ```sh
    sudo -u ots -H bash -c 'set -a; . /etc/ots/public.env; set +a
      export PATH="$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin"
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
-     python3 verifier/verify.py generic-lower --source . &&
-     python3 verifier/verify.py lower --source . &&
-     python3 verifier/verify.py disclosure-lower --source . &&
-     python3 verifier/verify.py upper --source . &&
-     python3 verifier/verify.py generic-upper --source . &&
-     python3 verifier/verify.py riscv-upper --source .'
+     for t in generic-lower lower disclosure-lower upper whole-words-upper generic-upper riscv-upper; do
+       python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
+     done'
    ```
 
    The probe must pass actual environment, `/proc`, filesystem, network, process-memory and signal
@@ -116,10 +115,10 @@ Run these with the public webhook disconnected and the production configuration 
 
 3. Nothing needs to be seeded by hand. At every start the website prepares the board: with
    `OTS_PHONY=1` (the current setting, chosen for the pre-launch site) it replaces the invented
-   rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it creates each public
-   track's reference baseline from `challenges.json` when missing. The step 1 verifier runs are
-   the evidence behind those baselines. The legacy upper roots are reference certificates, not
-   public upper leaderboards; the public upper tracks are `generic-upper` and `riscv-upper`.
+   rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it adds nothing, and every
+   board starts empty until the first verified, merged submission of its track becomes the record.
+   The legacy upper tracks are local references, not public upper leaderboards; the public upper
+   tracks are `generic-upper` and `riscv-upper`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
@@ -138,7 +137,7 @@ Run these with the public webhook disconnected and the production configuration 
 
 A successful local proof check establishes none of the following; each must pass on the intended host:
 
-1. The isolation probe and every configured official certificate, run under the deployed
+1. The isolation probe and every reference proof from a submissions checkout, run under the deployed
    identities, including memory exhaustion, timeout and a full work volume, with complete process
    cleanup, the website and database still available, and refusal when isolation is unavailable.
 2. Web credentials unreadable to the verifier identity, the effective systemd restrictions,
@@ -174,8 +173,8 @@ attribution, head commits, merges), each checked head's code and `NOTES.md` unde
 by the installer, and the webhook needs its secret to stay the same.
 
 To rebuild: run `setup-server.sh` on a fresh host, restore `secrets.env`, repeat the acceptance
-checks, and start both services. At startup the website prepares the board (phony rows or reference
-baselines, see step 3 above) and runs `app.resync`, which restores every checked head from GitHub,
+checks, and start both services. At startup the website prepares the board (phony rows or nothing, see
+step 3 above) and runs `app.resync`, which restores every checked head from GitHub,
 replays the merges in merge order so records keep their dates, and queues any open head without a
 verdict. Submission IDs are derived from the pull request and commit, so every page link survives.
 Only old verifier transcripts are lost; rerun the verifier on the checked head to regenerate one.

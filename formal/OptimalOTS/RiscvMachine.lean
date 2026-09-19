@@ -4,12 +4,13 @@ import RiscvZkvm.Rv64
 /-!
 # The competition's RISC-V machine
 
-A subset of RV64IM, with the pinned `riscv-zkvm` semantics. Each ordinary instruction,
-including HALT, costs one cycle. HASH costs `blockCost paperParams` on its exact
-bit-string input. These are the only system calls: the verifier is deterministic given the
-oracle's answers. The machine is Harvard-style: the image's code is an instruction list in its
-own code space and data memory is separate, so self-modifying code is not expressible. Code and
-initial data are finite, fixed parts of the image.
+A subset of RV64IM with the pinned `riscv-zkvm` semantics and two system calls, selected by
+`t0`: HALT (`t0 = 0`) ends the run and rejects if `a0 = 0`, accepts if `a0 = 1`; HASH
+(`t0 = 1`) queries the competition's random oracle. Each instruction, including HALT, costs one
+cycle; HASH costs `blockCost paperParams` of its input length. Having no other system call, the
+machine is deterministic given the oracle's answers. It is Harvard-style: the code is an
+instruction list in its own address space, separate from data memory, so a program cannot
+modify its code.
 -/
 
 -- The oracle boundary and counted execution follow Derek Sorensen's `xmss-verify-asm` design.
@@ -20,7 +21,7 @@ open RiscvZkvm.Rv64 OracleComp
 
 abbrev Byte := BitVec 8
 
-/-- The first instruction, constant data, public key, message, and signature buffer. -/
+-- Memory layout: code, constant data, public key, message, signature and the initial stack top.
 def codeBase : Word := 0x1000
 def dataBase : Word := 0x200000
 def publicKeyBase : Word := 0x400000
@@ -28,11 +29,11 @@ def messageBase : Word := 0x400010
 def signatureBase : Word := 0x400030
 def stackTop : Word := 0x1000000
 
-/-- Call number in `t0`: HALT=0, HASH=1. -/
+/-- The HASH call number in `t0`; HALT is 0. -/
 def hashCall : Word := 1
 
-/-- Only actual instructions of the pinned RV64IM subset; pseudo-instructions must be expanded.
-The low bit of a branch or jump immediate is zero in the instruction encoding. -/
+/-- Admitted instructions: the pinned RV64IM subset without pseudo-instructions, CSR access or
+EBREAK. Branch and jump offsets must be even, as their encoding requires. -/
 def admittedInstruction : Instr → Bool
   | .LI _ _ | .MV _ _ | .NOP | .CSRS _ _ | .EBREAK => false
   | .BEQ _ _ n | .BNE _ _ n | .BLT _ _ n | .BGE _ _ n
@@ -91,13 +92,13 @@ def writeHash (s : MachineState) (answer : BitVec 256) : MachineState :=
     [answer.extractLsb' 0 64, answer.extractLsb' 64 64,
      answer.extractLsb' 128 64, answer.extractLsb' 192 64]).setPC (s.pc + 4)
 
-/-- `none` is a trap or exhausted proof fuel; successful execution returns decision and cost. -/
+/-- A completed run gives the decision and its cycle count; `none` is a trap or exhausted fuel. -/
 abbrev Outcome := Option (Bool × ℕ)
 
 def addCycles (n : ℕ) : Outcome → Outcome := Option.map fun result => (result.1, n + result.2)
 
-/-- Execute at most `fuel` instructions. Fuel is a termination witness, distinct from the score.
-Every hash uses the competition's existing oracle, with its actual input bit length. -/
+/-- Execute at most `fuel` instructions. Fuel only witnesses termination; the score is the cycle
+count. HASH queries the competition's oracle on its exact input. -/
 def execute : ℕ → MachineState → OracleComp (Spec paperParams) Outcome
   | 0, _ => pure none
   | fuel + 1, s =>

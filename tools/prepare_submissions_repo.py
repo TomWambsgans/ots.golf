@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Prepare a local submissions repository pinned to this committed core checkout.
+"""Prepare an empty local submissions repository pinned to this committed core checkout.
 
     python3 tools/prepare_submissions_repo.py /path/to/ots.golf-submissions
 
-Creates a new directory, stages its initial contents, and configures its GitHub remote.
+Creates a new directory, stages its initial contents (README, AGENTS, pull-request template and the
+`.contract` submodule; no submission roots), and configures its GitHub remote.
 Uses a local clone for the contract submodule; it never pushes or contacts GitHub.
 """
 from __future__ import annotations
@@ -54,12 +55,6 @@ def prepare(root: Path, destination: Path) -> dict:
     git(destination, "remote", "add", "origin", SUBMISSIONS_URL)
     if git(root, "ls-tree", "--name-only", commit, "--", "LICENSE") == "LICENSE":
         (destination / "LICENSE").write_bytes(blob(root, commit, "LICENSE"))
-    # Copy only the public submission roots, from the same commit as the contract pin.
-    for track in tracks:
-        for name in tracked_files(root, commit, track["submission_root"]):
-            path = destination / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(blob(root, commit, name))
     for name in tracked_files(root, commit, TEMPLATE):
         path = destination / Path(name).relative_to(TEMPLATE)
         path.parent.mkdir(parents=True, exist_ok=True)

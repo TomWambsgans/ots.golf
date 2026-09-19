@@ -100,13 +100,13 @@ def best_record(session, sub: Submission) -> Submission | None:
 
 
 def beats_record(session, sub: Submission) -> bool:
-    """Whether this verified claim strictly improves the track's current record and its baseline."""
+    """Whether this verified claim strictly improves the track's current record; the first verified
+    claim of a track without a record does."""
     t = contract.track(sub.track)
     if t is None or sub.claim is None:
         return False
     best = best_record(session, sub)
-    return (contract.improves(t["direction"], sub.claim, best.claim if best else None)
-            and contract.improves(t["direction"], sub.claim, t["baseline"]))
+    return contract.improves(t["direction"], sub.claim, best.claim if best else None)
 
 
 def merge_if_record(sub_id: str) -> bool:
@@ -147,23 +147,19 @@ def merge_if_record(sub_id: str) -> bool:
 
 
 def promote(session, sub: Submission, at=None) -> None:
-    """Only merged, verified heads (or an explicit local certificate) can become records. A rebuild
-    passes the merge time as `at`, so records keep their original dates."""
+    """Only merged, verified heads can become records; the first one of a track always does. A
+    rebuild passes the merge time as `at`, so records keep their original dates."""
     if sub.status != "verified" or sub.claim is None or sub.is_record:
         return
     merge = sub.detail_dict.get("merge") or {}
-    if not sub.baseline and not (
+    if not (
         merge.get("head") == sub.commit and merge.get("number") == sub.pr_number
         and settings.submissions_repo
         and (sub.pr_repository or "").lower() == settings.submissions_repo.lower()
         and merge.get("repository", "").lower() == settings.submissions_repo.lower()
     ):
         return
-    t = contract.track(sub.track)
-    best = best_record(session, sub)
-    if (contract.improves(t["direction"], sub.claim, best.claim if best else None)
-            and (contract.improves(t["direction"], sub.claim, t["baseline"])
-                 or (sub.baseline and sub.claim == t["baseline"]))):
+    if beats_record(session, sub):
         sub.is_record = True
         sub.record_at = at or utcnow()
 

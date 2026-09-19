@@ -58,7 +58,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIsNone(records.interval(self.session, "disclosure")["upper"])
         self.assertEqual(contract.framework_tracks('generic')['lower']['slug'], 'generic-lower')
         self.assertEqual(contract.generic_upper_track()['slug'], 'generic-upper')
-        self.assertEqual(records.interval(self.session, "generic")["lower"]["baseline"], 1)
+        self.assertIsNone(records.interval(self.session, "generic")["lower"]["record_claim"])
         self.assertEqual(contract.framework("generic")["status"], "active")
 
     def chart(self, html):
@@ -97,17 +97,10 @@ class FrameworkTests(unittest.TestCase):
         response = self.client.get("/?framework=generic")
         self.assertEqual(response.status_code, 200)
         svg = self.chart_svg(response.text)
-        lower = svg.findall("./g[@data-kind='lower']")
-        self.assertEqual({s.get('data-series') for s in lower}, {'generic-lower', 'lower', 'disclosure-lower'})
-        generic = svg.find("./g[@data-series='generic-lower']")
-        self.assertEqual(generic.get('data-status'), 'certified')
-        self.assertEqual(''.join(generic.find("text[@class='label']").itertext()), 'Lower bound 3/3 · 1')
-        self.assertEqual(generic.findall('.//circle'), [])
+        # No record yet: no series and no reference line, only the empty state.
+        self.assertEqual(svg.findall("./g"), [])
+        self.assertIn('No records yet', [t.text for t in svg.findall('./text')])
         self.assertEqual(self.chart(response.text), [])
-        axis_y = float(svg.find("./line[@class='axis']").get('y1'))
-        bound_y = float(re.search(r'M[\d.]+,([\d.]+)', generic.find('path').get('d')).group(1))
-        self.assertLess(bound_y, axis_y)
-        self.assertIn('verified bound', generic.find('path/title').text)
         self.assertIn('<p>Any oracle algorithm.</p>', response.text)
         self.assertIn('<table class="lb-table" data-track="generic-lower">', response.text)
         self.assertIn('0 records, 0 solvers', response.text)
@@ -124,7 +117,6 @@ class FrameworkTests(unittest.TestCase):
         sub = self.session.scalar(select(Submission).where(Submission.track == 'generic-lower'))
         self.assertEqual((sub.user.login, sub.claim, sub.is_record), ('vitalik-buterin', 1, True))
         self.assertTrue(sub.detail_dict['demo'])
-        self.assertFalse(sub.baseline)
         identity = (sub.id, sub.created_at, sub.record_at)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         self.assertEqual((sub.id, sub.created_at, sub.record_at), identity)
@@ -189,9 +181,7 @@ class FrameworkTests(unittest.TestCase):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
         self.session.commit()
         html = self.client.get('/').text
-        generic = self.chart_svg(html).find("./g[@data-series='generic-upper']")
-        self.assertEqual(''.join(generic.find("text[@class='label']").itertext()), 'Upper bound · 106')
-        self.assertEqual(generic.findall('.//circle'), [])
+        self.assertIsNone(self.chart_svg(html).find("./g[@data-series='generic-upper']"))
         self.assertIsNone(records.current_record(self.session, 'generic-upper'))
 
     def test_missing_generic_upper_metadata_does_not_seed_or_admit(self):
@@ -253,15 +243,18 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual((sub.created_at, sub.record_at, sub.commit), before[sub.id])
             self.assertIn('fixture_id', sub.detail_dict)
 
-    def test_baselines_render_without_records(self):
+    def test_tracks_without_records_show_no_record_yet(self):
         html = self.client.get('/').text
-        svg = self.chart_svg(html)
-        for track in [t for t in contract.tracks() if t['kind'] == 'lower' or t['slug'] == 'generic-upper']:
-            slug, baseline = track['slug'], track['baseline']
-            group = svg.find(f"./g[@data-series='{slug}']")
-            self.assertEqual(group.get('data-status'), 'certified')
-            self.assertTrue(str(baseline) in group.find('path/title').text)
+        self.assertEqual(self.chart_svg(html).findall('./g'), [])
+        # Three lower cards, the upper card, and the four boards.
+        self.assertEqual(html.count('No record yet'), 8)
+        self.assertEqual(html.count('Submit a proof ↗'), 3)
+        self.assertEqual(html.count('Submit a construction ↗'), 1)
+        self.assertNotIn('class="board-big"', html)
         self.assertFalse('Local demo leaderboard' in html)
+        seed_demo.add_rows(self.session, seed_demo.ROWS)
+        self.session.commit()
+        self.assertNotIn('No record yet', self.client.get('/').text)
 
     def test_rules_explain_models_without_leaderboard_scores(self):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
@@ -280,7 +273,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.add(real_user)
         self.session.flush()
         real = Submission(track="lower", user_id=real_user.id, claim=18, status="verified",
-                          source_repo="local", commit="a" * 40, baseline=True, finished_at=utcnow())
+                          source_repo="local", commit="a" * 40, finished_at=utcnow())
         self.session.add(real)
         self.session.commit()
         old = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.track)
@@ -291,17 +284,17 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(seed_demo.refresh(self.session), 30)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
+        fixture_claims = {r["id"]: r["claim"] for r in seed_demo.FIXTURES["submissions"]}
         self.assertEqual(len(now), sum(bool(contract.track(r[0])) for r in seed_demo.ROWS) + 1)
         generic = [s for s in now if s.track == "generic-lower"]
         self.assertEqual(len(generic), 1)
         self.assertEqual((generic[0].claim, generic[0].user.login), (1, 'vitalik-buterin'))
         self.assertEqual(self.session.get(Submission, real.id).claim, 18)
-        self.assertTrue(self.session.get(Submission, real.id).baseline)
         for sub in now:
             if sub.id in old:
                 self.assertEqual((sub.created_at, sub.finished_at, sub.record_at, sub.commit, sub.track), old[sub.id])
             if sub.detail_dict.get("demo"):
-                self.assertEqual(sub.claim, seed_demo.demo_claim(sub.track, sub.detail_dict["improvement"]))
+                self.assertEqual(sub.claim, fixture_claims[sub.detail_dict["fixture_id"]])
 
     def test_disclosure_submission_links_to_its_framework(self):
         seed_demo.add_rows(self.session, [next(r for r in seed_demo.ROWS if r[0] == 'disclosure-lower')])
@@ -324,22 +317,21 @@ class FrameworkTests(unittest.TestCase):
         self.assertNotIn('Any oracle algorithm', html)
         self.assertIn('Upper bound · compressions</a>', html)
 
-    def test_whole_word_demo_migration_keeps_identifiers_dates_and_other_tracks(self):
-        old_config = copy.deepcopy(contract.load())
-        next(t for t in old_config['tracks'] if t['slug'] == 'disclosure-lower')['baseline'] = 80
-        with patch.object(contract, 'load', return_value=old_config):
-            seed_demo.add_rows(self.session, seed_demo.ROWS)
-            self.session.commit()
+    def test_refresh_resets_stale_demo_claims_and_keeps_identifiers_dates_and_other_tracks(self):
+        seed_demo.add_rows(self.session, seed_demo.ROWS)
+        self.session.commit()
+        fixture_claims = {r["id"]: r["claim"] for r in seed_demo.FIXTURES["submissions"]}
+        for sub in self.session.scalars(select(Submission).where(Submission.track == 'disclosure-lower')):
+            sub.claim -= 13
+        self.session.commit()
         old = {s.id: (s.claim, s.created_at, s.finished_at, s.record_at, s.commit)
                for s in self.session.scalars(select(Submission))}
-        seed_demo.refresh(self.session)
+        self.assertEqual(seed_demo.refresh(self.session),
+                         sum(r[0] == 'disclosure-lower' for r in seed_demo.ROWS))
         for sub in self.session.scalars(select(Submission)):
             self.assertIn(sub.id, old)
             self.assertEqual((sub.created_at, sub.finished_at, sub.record_at, sub.commit), old[sub.id][1:])
-            if sub.track == 'disclosure-lower':
-                self.assertEqual(sub.claim, contract.track(sub.track)['baseline'] + sub.detail_dict['improvement'])
-            else:
-                self.assertEqual(sub.claim, old[sub.id][0])
+            self.assertEqual(sub.claim, fixture_claims[sub.detail_dict['fixture_id']])
         self.assertEqual(seed_demo.refresh(self.session), 0)
 
     def test_fictional_submissions_carry_no_demo_label_and_hide_their_commit(self):

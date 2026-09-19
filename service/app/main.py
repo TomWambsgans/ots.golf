@@ -65,17 +65,15 @@ async def lifespan(_app):
 
 
 def prepare_board() -> None:
-    """Everything the board shows without GitHub, recreated at every start: the invented demo rows
-    (OTS_PHONY=1, for now) or the reference baselines of the public tracks."""
+    """With OTS_PHONY=1 (for now), recreate the invented demo rows at every start. Otherwise the
+    board shows only real submissions, and a track without a merged record has none."""
+    if not settings.phony:
+        return
     log = logging.getLogger(__name__)
     try:
-        if settings.phony:
-            import seed_demo
-            with local_lock("results"), SessionLocal() as session:
-                log.info("phony board: removed %s, added %s demo submissions", *seed_demo.reseed(session))
-        else:
-            from .resync import ensure_baselines
-            log.info("reference baselines added: %s", ensure_baselines())
+        import seed_demo
+        with local_lock("results"), SessionLocal() as session:
+            log.info("phony board: removed %s, added %s demo submissions", *seed_demo.reseed(session))
     except Exception:
         log.exception("preparing the board failed; the site starts anyway")
 
@@ -350,7 +348,6 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
         board = model["boards"].get("lower")
         series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
                        "framework": model["slug"], "kind": "lower", "label": f'Lower bound {model["title"].split()[-1]}',
-                       "baseline": board["cfg"]["baseline"] if board else None,
                        "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
     upper_config = contract.generic_upper_track()
@@ -358,10 +355,10 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     riscv_config = contract.riscv_upper_track()
     riscv = records.board(session, riscv_config) if riscv_config else None
     riscv_series = [{"slug": "riscv-upper", "framework": "generic", "kind": "upper",
-                     "label": "RISC-V upper bound", "baseline": riscv_config["baseline"],
+                     "label": "RISC-V upper bound",
                      "status": "certified", "points": riscv["curve"]}] if riscv else []
     series.insert(0, {"slug": "generic-upper", "framework": "generic", "kind": "upper",
-                   "label": "Upper bound", "baseline": upper_config["baseline"] if upper_config else None,
+                   "label": "Upper bound",
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
                   generic_upper=upper, riscv_upper=riscv, latest=records.latest_records(session, limit=60),
@@ -436,7 +433,7 @@ def llms():
     return text + f"""
 ## Where the state is
 
-The model, verifier and reference certificates are maintained in {settings.contract_url}.
+The model and verifier are maintained in {settings.contract_url}.
 Proof pull requests and merged record submissions belong in {settings.submissions_url}.
 The verifier checks only the submitted root against its trusted core checkout. A verified
 improvement is merged automatically in the submissions repository, pinned to its verified head, and

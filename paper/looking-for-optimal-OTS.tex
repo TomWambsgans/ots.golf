@@ -345,7 +345,7 @@ The explicitly tweaked forest scheme satisfies strong security~\eqref{eq:securit
 where any such execution has $B\ge912$.
 \end{theorem}
 
-The theorem is kernel-checked in \texttt{formal/Submissions/Upper/}. Its exported declarations are \texttt{scheme}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.Upper}.
+The theorem is kernel-checked in the \texttt{Upper} submission root. Its exported declarations are \texttt{scheme}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.Upper}.
 
 The only axioms in their closure are \texttt{propext}, \texttt{Quot.sound}, and \texttt{Classical.choice}. Budgets above $2^{127}$ satisfy the security inequality trivially because its right-hand side exceeds one.
 
@@ -431,7 +431,7 @@ The official verifier accepted the lower certificate with claim 18. Its exported
 \texttt{OptimalOTS.Challenge.Lower.candidate}\\
 \texttt{VerificationLowerBound paperParams 18}.
 \end{center}
-The main modules in \texttt{formal/Submissions/Lower/} are:
+The main modules of the \texttt{Lower} submission root are:
 \begin{center}
 \begin{tabular}{ll}
 \texttt{Patterns.lean} & finite pattern count and large classes;\\

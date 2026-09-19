@@ -14,13 +14,8 @@ public-key bits. All parties share one random oracle on bit strings, without imp
 or domain separation. Uniform sampling and deterministic computation are free; every hash query
 is charged for its complete input, including repeated queries.
 
-For parameters `P`, the two DAG cost statements are:
-
-* Upper bound: a scheme `S` satisfies `S.Secure` and `∀ i, S.verifyCost i ≤ c`.
-* Lower bound: every `S` satisfying `S.Secure` has an index `i` with `c ≤ S.verifyCost i`.
-
-The sections below define parameters, oracle semantics, graphs, schemes, security and the lower
-bound. `paperParams` fixes the competition's numerical parameters.
+An upper bound `c` is a scheme `S` with `S.Secure` and `∀ i, S.verifyCost i ≤ c`; a lower bound
+`c` is `VerificationLowerBound P c`. `paperParams` fixes the competition's parameters.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -33,15 +28,14 @@ namespace OptimalOTS
 
 /-! ## 1. Parameters -/
 
-/-- Lengths, resource limits and security target. Lengths are measured in bits; query costs in
-compressions. `paperParams` fixes their values. -/
+/-- Lengths (in bits), resource limits (in compressions) and the security level. -/
 structure Params where
   /-- Output length of the random oracle. -/
   hashBits : ℕ
   /-- Input bits per compression block. For positive `blockBits`, hashing `k` bits costs
   `max 1 ⌈k / blockBits⌉`. -/
   blockBits : ℕ
-  /-- Public-key length: the low bits of the root hash at `paperParams`. -/
+  /-- Public-key length; the public key is the low `pkBits` bits of the root value. -/
   pkBits : ℕ
   /-- Length of messages. -/
   msgBits : ℕ
@@ -57,8 +51,7 @@ structure Params where
   numSets : ℕ
   /-- Maximal number of nonces tried by the signer. -/
   trialLimit : ℕ
-  /-- Security requires forgery probability `< B / 2 ^ securityBits` for every pathwise
-  budget `B` covering the entire experiment, including the honest parties. -/
+  /-- Security level; see `Scheme.Secure`. -/
   securityBits : ℕ
 
 /-! ## 2. The random oracle and the cost of a query -/
@@ -366,7 +359,7 @@ least `c` compressions. -/
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 
-/-- The parameters of the paper. -/
+/-- The competition's parameters. -/
 def paperParams : Params where
   hashBits := 256
   blockBits := 512

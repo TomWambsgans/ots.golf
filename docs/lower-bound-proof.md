@@ -9,7 +9,8 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 ```
 
-`Submissions/Lower/Solution.lean` now proves `VerificationLowerBound paperParams 18`.
+The reference proof, a `Lower` submission root in the submissions repository, proves
+`VerificationLowerBound paperParams 18` in `Lower/Solution.lean`.
 The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
 and `Quot.sound`. The final official verifier run accepted claim 18 in 117.5 seconds. The earlier bound of 2
 was officially verified before the replacement was developed.
@@ -42,6 +43,8 @@ All numerical comparisons in Lean use exact arithmetic. The pattern-count argume
 
 ## File map
 
+Files of the `Lower` root:
+
 | File | Role |
 | --- | --- |
 | `WeakSecurity.lean` | The weak experiment and the proof that strong security implies weak security |
@@ -72,10 +75,10 @@ it cannot validate the false mathematical transfer lemmas.
 
 ## Verification
 
+From the core, with a submissions checkout holding the `Lower` root:
+
 ```sh
-cd formal && lake build OptimalOTS Submissions
+cd formal && lake build OptimalOTS
 cd .. && python3 verifier/pin_contract.py check
-python3 verifier/check_submission.py lower
-python3 verifier/verify.py lower --source .
-python3 verifier/verify.py upper --source .
+python3 verifier/verify.py lower --source ../ots.golf-submissions
 ```

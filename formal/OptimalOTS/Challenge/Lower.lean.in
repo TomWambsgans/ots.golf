@@ -1,12 +1,11 @@
 import OptimalOTS.Statement
 
-/-! Rendered by the verifier with the submission's claim. The unrestricted DAG lower bound in
-the bare-oracle contract of `Statement.lean`. -/
+/-! Generality 2/3 lower bound: DAG schemes (`Statement.lean`). -/
 
 namespace OptimalOTS.Challenge.Lower
 
-/-- Every secure DAG scheme with the paper parameters has a signature index whose verification
-costs at least `{{CLAIM}}` compressions. -/
+/-- Every secure DAG scheme has a signature index whose verification costs at least `{{CLAIM}}`
+compressions. -/
 theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.Lower

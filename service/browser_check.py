@@ -156,8 +156,17 @@ def firefox_session(binary: str, port: int, *, reduced_motion: bool = True):
                     process.wait(timeout=10)
 
 
+def demo_best(config: dict, slug: str) -> int:
+    """The best demo record of a track: the claim its seeded board shows."""
+    fixtures = json.loads((ROOT / 'service/demo/submissions.json').read_text())['submissions']
+    track = next(t for t in config['tracks'] if t['slug'] == slug)
+    claims = [r['claim'] for r in fixtures if r['track'] == slug and r['is_record']]
+    return max(claims) if track['direction'] == '+' else min(claims)
+
+
 def assert_rules_have_no_scores(text: str, config: dict) -> None:
-    claims = {int(track['baseline']) for track in config['tracks']}
+    claims = {demo_best(config, track['slug']) for track in config['tracks']
+              if track['slug'] != 'whole-words-upper'}
     # Every current claim is checked in score-bearing prose. Small numbers also occur
     # legitimately in fractions, section numbers and fixed contract parameters.
     for claim in claims:
@@ -184,7 +193,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return [...document.querySelectorAll("header.top nav a")].map(a => a.textContent.trim()).join(",") === "Rules";')
     assert js('return !document.querySelector(".board-track[data-track=lower]").innerText.includes("Admission pending");')
     assert js('return !document.querySelector("main").innerText.includes("Lower submissions open");')
-    generic_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'generic-lower')
+    generic_claim = demo_best(config, 'generic-lower')
     expected_label = json.dumps(f"Generality 3/3 lower {generic_claim}")
     assert js('return document.querySelector(".chart-series[data-series=generic-lower]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=generic-lower] .label").textContent === ' + expected_label + ';')
     assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && !document.body.textContent.includes("demo");'), 'This check requires the seeded local preview (service/run-local.sh).'
@@ -193,7 +202,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
     assert js('return !document.querySelector(".board-track[data-track=upper]").hidden && document.querySelector(".board-track[data-track=lower]").hidden && location.hash === "#upper";')
     assert js('return document.querySelector(".lower-switch").hidden;')
-    upper_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'generic-upper')
+    upper_claim = demo_best(config, 'generic-upper')
     upper_scores = js('return [...document.querySelectorAll(".lb-table[data-track=generic-upper] .lb-row")].map(r => Number(r.dataset.score));')
     assert upper_scores == [upper_claim - 1, upper_claim], upper_scores
     js('document.querySelector(".lb-table[data-track=generic-upper] .sort-btn[data-key=score]").click(); return true;')
@@ -213,7 +222,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     (output / 'home-desktop.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
     assert js(f'return document.querySelectorAll(".chart-series[data-kind=upper]").length === {2 if riscv_enabled else 1} && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "generic-upper" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
     if riscv_enabled:
-        riscv_claim = next(t['baseline'] for t in config['tracks'] if t['slug'] == 'riscv-upper')
+        riscv_claim = demo_best(config, 'riscv-upper')
         assert min(js('return [...document.querySelectorAll(".lb-table[data-track=riscv-upper] .lb-row")].map(r => Number(r.dataset.score));')) == riscv_claim
         assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("riscv-chart-points").textContent).every(p => p.unit === "cycles");')
         assert js('return document.querySelector(".riscv-dashboard").hidden && !document.querySelector(".chart-panel[data-chart=compressions]").hidden;')

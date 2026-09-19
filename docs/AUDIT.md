@@ -1,7 +1,8 @@
 # Audit of the bare-oracle contract
 
 Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
-semantics, and the submission certificates. The lower bounds are generic **1**, unrestricted DAG
+semantics, and the reference proofs (submission roots kept in the submissions repository). The
+lower bounds are generic **1**, unrestricted DAG
 **18**, and whole-word DAG **93**. Generic upper has a complete **106** certificate, including
 perfect correctness, deterministic verification and signing failure at most `2^-128`; RISC-V upper
 has a **1628**-cycle certificate. The two historical upper references remain **106**. This
@@ -76,15 +77,15 @@ same programs and exact security experiment as the historical DAG construction. 
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
 the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
-function of the public key. All new proofs reside in the independent `GenericUpper` submission
-root; the original `Upper` root is unchanged. See [the proof map](generic-upper.md).
+function of the public key. Its proofs form an independent `GenericUpper` submission
+root; the legacy `Upper` root is separate. See [the proof map](generic-upper.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
 words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
 Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
 The resulting certificate proves 93, using the same weak-security experiment.
-There is no checked whole-word upper construction.
+The `whole-words-upper` reference certificate is a checked whole-word upper construction at 106.
 
 `formal/scripts/check-axioms.lean` imports every protected model module, rejects declared axioms
 throughout those modules, and audits the declarations (`contractDecls`) fixing the meaning of all

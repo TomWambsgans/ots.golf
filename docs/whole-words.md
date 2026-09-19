@@ -58,15 +58,17 @@ OptimalOTS.Challenge.DisclosureLower.candidate :
   WholeWordVerificationLowerBound paperParams 93
 ```
 
+The proof is the reference proof's `DisclosureLower` submission root.
 `WholeWordOrigins.lean` derives the origin bound. `DisclosurePatterns.lean` and
 `OrderedCounting.lean` prove the combinatorial bound. The `Averaged*` modules establish the
 exact attack probabilities and cost contradiction. `Solution.lean` assembles the theorem and
 checks that its only axioms are `propext`, `Classical.choice`, and `Quot.sound`.
 
 Exact numerical check: `python3 tools/tune_lower_bound.py --method words --claims 93,94`.
-Official pipeline: `python3 verifier/verify.py disclosure-lower --source .`.
+Official pipeline, from the core with a submissions checkout:
+`python3 verifier/verify.py disclosure-lower --source ../ots.golf-submissions`.
 
 Constant words matter for the class to be non-empty: without them no hash input can carry a
 domain-separation tweak, and a revealed value hashed alone admits cheap second preimages. With
 them, the 106-cost forest uses 128-bit tweak words in place of its 16-bit tweaks; the
-`whole-words-upper` reference certificate proves such a scheme secure.
+`whole-words-upper` reference proof (a `WholeWordsUpper` root) proves such a scheme secure.

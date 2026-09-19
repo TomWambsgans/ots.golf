@@ -1,14 +1,12 @@
 """Rules describe the contract independently of leaderboard and candidate claims."""
 from __future__ import annotations
 
-import copy
 import re
 import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from app import contract
 from app.config import settings
 from app.main import app
 
@@ -26,11 +24,7 @@ class RulesTests(unittest.TestCase):
         return re.search(r'<main\b[^>]*>(.*?)</main>', response.text, re.S).group(1)
 
     def test_rules_do_not_publish_scores_or_candidate_history(self):
-        config = copy.deepcopy(contract.load())
-        for track in config['tracks']:
-            track['baseline'] = 987654
-        with patch.object(contract, 'load', return_value=config):
-            html = self.rules_body()
+        html = self.rules_body()
         self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|106|987654|876543|765432)\b')
         self.assertNotIn('Certified lower baselines', html)
         self.assertNotIn('Current candidate', html)

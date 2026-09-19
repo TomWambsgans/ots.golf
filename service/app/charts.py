@@ -26,9 +26,10 @@ def _time_ticks(t0: datetime, t1: datetime, n: int = 5) -> list[datetime]:
 
 def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions",
                  chart_id: str = "record-chart", title: str = "Verification bounds across three frameworks") -> dict:
-    """Each series carries its own framework, kind, baseline (None if pending) and records."""
-    numeric = [s for s in series if s["baseline"] is not None]
-    pending = [s for s in series if s["baseline"] is None]
+    """Each series carries its own framework, kind, status and records. A series without records
+    draws nothing; a pending one (no certificate interface) gets a lane outside the numeric axis."""
+    numeric = [s for s in series if s.get("status") != "pending" and s["points"]]
+    pending = [s for s in series if s.get("status") == "pending"]
     bottom_margin = 100 if pending else 45
     all_t = [p["t"] for s in numeric for p in s["points"]]
     t1 = max([now, *all_t])
@@ -37,7 +38,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
         t0 = t1 - timedelta(days=1)
     t0 -= (t1 - t0) * 0.04
     tick_fmt = "%b %d %H:%M" if t1 - t0 < timedelta(days=3) else "%b %d"
-    claims = [s["baseline"] for s in numeric] + [p["claim"] for s in numeric for p in s["points"]]
+    claims = [p["claim"] for s in numeric for p in s["points"]]
     y_lo, y_hi = max(min(claims, default=0) - 6, 0), max(claims, default=100) + 6
     y_lo, y_hi = int(y_lo // 5) * 5, int(-(-y_hi // 5)) * 5
 
@@ -66,8 +67,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
     out.append(f'<text class="tick" x="4" y="{MT - 14}">{escape(unit)}</text>')
 
     # Keep endpoint labels distinct even when different series have equal costs.
-    ends = sorted(((sy(s["points"][-1]["claim"] if s["points"] else s["baseline"]), s["slug"])
-                   for s in numeric))
+    ends = sorted((sy(s["points"][-1]["claim"]), s["slug"]) for s in numeric)
     label_y = {}
     prev = MT - 28
     for y, slug in ends:
@@ -80,19 +80,16 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
     for s in numeric:
         slug, label = escape(s["slug"]), escape(s["label"])
         cls = f'f-{s["framework"]} {s["kind"]}'
-        pts, baseline = s["points"], s["baseline"]
+        pts = s["points"]
         status = s.get("status", "certified")
         out.append(f'<g class="chart-series {cls}" data-series="{slug}" data-kind="{s["kind"]}" data-status="{status}">')
-        last_claim = pts[-1]["claim"] if pts else baseline
-        if pts:
-            # Record history begins with its first submission, with no invented earlier step.
-            d = f'M{sx(pts[0]["t"]):.1f},{sy(pts[0]["claim"]):.1f}'
-            for p in pts[1:]:
-                d += f' H{sx(p["t"]):.1f} V{sy(p["claim"]):.1f}'
-            d += f' H{sx(t1):.1f}'
-            out.append(f'<path class="line" d="{d}"/>')
-        else:
-            out.append(f'<path class="line reference" d="M{ML},{sy(baseline):.1f} H{sx(t1):.1f}"><title>{label}: {baseline} · verified bound</title></path>')
+        last_claim = pts[-1]["claim"]
+        # Record history begins with its first submission, with no invented earlier step.
+        d = f'M{sx(pts[0]["t"]):.1f},{sy(pts[0]["claim"]):.1f}'
+        for p in pts[1:]:
+            d += f' H{sx(p["t"]):.1f} V{sy(p["claim"]):.1f}'
+        d += f' H{sx(t1):.1f}'
+        out.append(f'<path class="line" d="{d}"/>')
         for p in pts:
             x, y = sx(p["t"]), sy(p["claim"])
             point = {"x": round(x, 1), "y": round(y, 1), "track": s["label"], "framework": s["framework"],
@@ -120,6 +117,9 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
                    f'<path class="line" d="M{ML},{y} H{W - MR}"/>'
                    f'<text class="label" x="{W - MR + 23}" y="{y + 4}">{escape(s["label"])}: pending</text>'
                    f'<text class="tick" x="{ML}" y="{y - 10}">No certified bound · outside the numeric axis</text></g>')
+    if not numeric:
+        out.append(f'<text class="tick empty-chart" x="{(ML + W - MR) / 2:.1f}" y="{(MT + H - bottom_margin) / 2:.1f}" '
+                   'text-anchor="middle">No records yet</text>')
     out.append(f'<line class="crosshair" x1="0" x2="0" y1="{MT}" y2="{H - bottom_margin}" visibility="hidden"/>')
     out.append('</svg>')
     return {"svg": '\n'.join(out), "points": json.dumps(points).replace('<', '\\u003c'), "series": series}

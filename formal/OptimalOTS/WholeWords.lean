@@ -10,9 +10,9 @@ reorder or group values, including the empty list. Every value therefore consist
 128-bit words. There are no other deterministic operations. Disclosure reveals a node's
 complete value.
 
-The underlying DAG cuts, nonce/index algorithms, oracle, costs, size limits and security
-experiment are unchanged. In particular inputs have no fixed arity, and longer inputs
-pay their full compression cost. This is a syntactic restriction, not a provenance budget.
+Everything else (cuts, signing, verification, the oracle, costs, size limits and security) is
+the DAG model of `Statement.lean`; in particular a hash input of any length pays its full
+compression cost.
 -/
 
 namespace OptimalOTS
@@ -32,7 +32,8 @@ def Graph.WholeWords {P : Params} (G : Graph P) : Prop :=
       (∃ p, ∃ high : Bool, (G.kind p).IsHash ∧ ps = {p} ∧ G.len v = 128 ∧
         ∀ x, f x = ofBits (G.len v) ((toBits (x p)).drop (if high then 128 else 0)))
 
-/-- A lower bound for every secure whole-word DAG scheme. -/
+/-- Every secure whole-word DAG scheme has a signature index whose verification costs at least
+`c` compressions. -/
 def WholeWordVerificationLowerBound (P : Params) (c : ℕ) : Prop :=
   ∀ S : Scheme P, S.graph.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
 

@@ -51,12 +51,12 @@ class ServiceWorkerTests(unittest.TestCase):
         self.engine.dispose()
         self.temp.cleanup()
 
-    def submission(self, *, claim=19, status='verified', baseline=False, record=False, pr=7):
+    def submission(self, *, claim=19, status='verified', record=False, pr=7):
         with self.sessions() as session:
             sub = Submission(user_id=self.user_id, track='lower', claim=claim, status=status,
                              commit='a' * 40, source_repo='https://github.com/author/repo.git',
                              pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}' if pr else None,
-                             baseline=baseline, is_record=record,
+                             is_record=record,
                              record_at=utcnow() if record else None)
             session.add(sub)
             session.commit()
@@ -185,20 +185,22 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertFalse(session.get(Submission, sub.id).is_record)
             self.assertIsNone(records.current_record(session, 'lower'))
 
-    def test_explicit_local_certificate_can_initialize_record(self):
-        sub = self.submission(claim=18, baseline=True, pr=None)
+    def test_first_merged_submission_of_an_empty_track_becomes_the_record(self):
+        from app import contract
+        self.assertTrue(contract.improves('+', 0, None))
+        self.assertTrue(contract.improves('-', 10 ** 6, None))
         with self.sessions() as session:
-            checked = session.get(Submission, sub.id)
-            worker.promote(session, checked)
-            session.commit()
-            self.assertTrue(checked.is_record)
+            self.assertIsNone(records.track_state(session, contract.track('lower'))['record_claim'])
+        sub = self.submission(claim=0)
+        self.assertTrue(self.merge(sub)['promoted'])
         bad = self.submission(claim=None, record=True)
         with self.sessions() as session:
             self.assertEqual(records.current_record(session, 'lower').id, sub.id)
+            self.assertEqual(records.track_state(session, contract.track('lower'))['record_claim'], 0)
             self.assertNotIn(bad.id, [s.id for s in records.frontier(session, 'lower')])
 
-    def test_local_certificate_cannot_lower_the_contract_record(self):
-        sub = self.submission(claim=0, baseline=True, pr=None)
+    def test_local_job_never_becomes_a_record(self):
+        sub = self.submission(claim=18, pr=None)
         with self.sessions() as session:
             checked = session.get(Submission, sub.id)
             worker.promote(session, checked)
@@ -355,30 +357,17 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(sub.detail_dict['github_comment_id'], 55)
             self.assertIsNone(session.scalars(select(Submission).where(Submission.commit == 'd' * 40)).first())
 
-    def test_reference_baselines_are_recreated_once_per_public_track(self):
-        from app import contract, resync
-        with patch('app.resync.SessionLocal', self.sessions):
-            added = resync.ensure_baselines()
-            self.assertEqual(resync.ensure_baselines(), 0)
-        tracks = resync.public_tracks()
-        self.assertEqual(added, len(tracks))
-        with self.sessions() as session:
-            for t in tracks:
-                rows = list(session.scalars(select(Submission).where(Submission.track == t['slug'],
-                                                                     Submission.baseline.is_(True))))
-                self.assertEqual(len(rows), 1)
-                self.assertEqual((rows[0].claim, rows[0].status, rows[0].is_record), (t['baseline'], 'verified', True))
-                self.assertEqual(rows[0].user.login, 'ots.golf')
-        self.assertTrue(contract.trusted_commit())
-
-    def test_startup_reseeds_the_phony_board_or_the_baselines(self):
+    def test_startup_reseeds_the_phony_board_only_in_phony_mode(self):
         with patch.object(settings, 'phony', True), patch('app.main.SessionLocal', self.sessions), \
              patch('seed_demo.reseed', return_value=(0, 3)) as reseed:
             main.prepare_board()
         reseed.assert_called_once()
-        with patch.object(settings, 'phony', False), patch('app.resync.ensure_baselines', return_value=5) as ensure:
+        with patch.object(settings, 'phony', False), patch('app.main.SessionLocal', self.sessions), \
+             patch('seed_demo.reseed') as reseed:
             main.prepare_board()
-        ensure.assert_called_once()
+        reseed.assert_not_called()
+        with self.sessions() as session:
+            self.assertEqual(session.scalars(select(Submission)).all(), [])
 
     def deliver(self, sub, merge_result):
         with self.sessions() as session:

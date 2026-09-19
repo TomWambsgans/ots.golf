@@ -1,6 +1,6 @@
 # The upper-bound proof: architecture
 
-The upper-track baseline (`formal/Submissions/Upper/`) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
+The legacy upper reference proof (the `Upper` submission root, in the submissions repository) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
 21 group digests, 7 subtree digests, one root) with
 
 ```
@@ -88,4 +88,4 @@ assume `N ≤ 2^127`.
 
 ## Files
 
-See the table in `formal/Submissions/Upper/README.md`; the module names are `Submissions.Upper.<File>`.
+See the table in the root's `Upper/README.md`; the module names are `Submissions.Upper.<File>`.

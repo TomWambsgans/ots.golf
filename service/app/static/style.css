@@ -235,7 +235,6 @@ table.params th:first-child { width: 44%; }
 .chart-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .record-chart .chart-series .line, .record-chart .chart-series .connector { stroke: var(--framework-color); }
 .record-chart .chart-series .connector { fill: none; stroke-width: 1; opacity: .6; }
-.record-chart .chart-series .line.reference { stroke-dasharray: 3 5; opacity: .85; }
 .record-chart .chart-series.upper .line { stroke-dasharray: none; }
 .record-chart .chart-series .mark { fill: var(--framework-color); }
 .record-chart .chart-series .label { font-size: 12px; font-weight: 500; }
@@ -283,6 +282,8 @@ table.params th:first-child { width: 44%; }
 .upper-score .muted { grid-column: 1 / -1; text-align: right; }
 .upper-score > span:last-child { color: var(--ink-2); }
 .upper-score strong { font-size: 34px; font-weight: 600; line-height: 1.2; }
+.no-record { color: var(--muted); font-size: 15px; font-weight: 400; }
+.upper-score > .no-record { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 15px; }
 .generic-upper-board { padding-top: 24px; }
 .generic-upper-board h3 { margin: 0; }
 .f-generic.upper { --framework-color: var(--series-2); }
@@ -293,6 +294,6 @@ table.params th:first-child { width: 44%; }
   .bound-group { padding: 12px 12px 14px; border-radius: 14px; }
   .generic-upper-card { grid-template-columns: 1fr; gap: 8px; padding: 12px 14px; }
   .upper-score { justify-content: start; }
-  .upper-score .muted { text-align: left; }
+  .upper-score .muted, .upper-score > .no-record { text-align: left; }
 }
 

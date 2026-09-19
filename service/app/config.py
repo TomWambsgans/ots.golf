@@ -30,7 +30,8 @@ class Settings:
     # The account whose pull-request comments carry verdicts; by default the token's own login.
     bot_login: str = os.environ.get("OTS_BOT_LOGIN", "")
     # Show the invented demo submissions (re-seeded from service/demo/submissions.json at every start)
-    # instead of the reference baselines. On for now; turn off with OTS_PHONY=0 at launch.
+    # on top of real submissions. On for now; turn off with OTS_PHONY=0 at launch, when every board
+    # starts empty.
     phony: bool = os.environ.get("OTS_PHONY", "1") == "1"
     # Rebuild missing submissions from GitHub when the website starts.
     resync_on_start: bool = os.environ.get("OTS_RESYNC_ON_START", "1") == "1"

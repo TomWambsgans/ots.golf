@@ -39,9 +39,9 @@ def solver_count(session: Session, slug: str) -> int:
 def track_state(session: Session, t: dict) -> dict:
     rec = current_record(session, t["slug"])
     return {
-        "slug": t["slug"], "title": t["title"], "direction": t["direction"], "baseline": t["baseline"],
+        "slug": t["slug"], "title": t["title"], "direction": t["direction"],
         "cost_unit": contract.cost_unit(t),
-        "record_claim": rec.claim if rec else t["baseline"],
+        "record_claim": rec.claim if rec else None,
         "record_verified": rec is not None,
         "record_demo": bool(rec and rec.detail_dict.get("demo")),
         "record_submission_id": rec.id if rec else None,

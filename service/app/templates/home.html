@@ -22,7 +22,7 @@
       <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a></p>
       {% else %}<p><a href="/rules#play">Submit a construction ↗</a></p>{% endif %}
     </div>
-    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
+    {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost</span>{% if generic_upper.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span>{% endif %}</div>{% endif %}
   </article>
   {% if riscv_upper %}
   <article class="generic-upper-card riscv-upper-card" aria-labelledby="riscv-upper-title">
@@ -32,7 +32,7 @@
       <p>By <a href="/submissions/{{ riscv_upper.state.record_submission_id }}">{{ riscv_upper.state.record_setter }}</a></p>
       {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
     </div>
-    <div class="upper-score"><span class="muted">Verification cost</span><strong>{{ riscv_upper.state.record_claim }}</strong><span>cycles</span></div>
+    <div class="upper-score"><span class="muted">Verification cost</span>{% if riscv_upper.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ riscv_upper.state.record_claim }}</strong><span>cycles</span>{% endif %}</div>
   </article>
   {% endif %}
   </div>
@@ -52,7 +52,7 @@
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Verification cost</dt>
-        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% endif %}</dd></div>
+        <dd>{% if model.boards.get('lower') and model.boards.lower.state.record_claim is none %}<span class="no-record">No record yet</span>{% elif model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards and model.boards.lower.state.record_submission_id %}
       <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a></p>
@@ -148,7 +148,8 @@
         <div class="framework-board-head">
           <div><h3 id="{{ model.slug }}-{{ kind }}-title" class="visually-hidden">{{ model.title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
-          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
+          {% if b and b.state.record_claim is none %}<div class="board-current"><p class="no-record">No record yet</p></div>
+          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% endif %}
         </div>
         {% if b %}
@@ -183,7 +184,8 @@
         <div class="framework-board-head">
           <div><h3 id="{{ upper_id }}" class="visually-hidden">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
-          {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
+          {% if b and b.state.record_claim is none %}<div class="board-current"><p class="no-record">No record yet</p></div>
+          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
           {% endif %}
         </div>
         {% if b %}

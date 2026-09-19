@@ -13,19 +13,14 @@ the hosted verifier's checks.
 formal/                      the Lean project (lake root)
   OptimalOTS/Statement.lean  the contract: Scheme, Secure, verifyCost, paperParams
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
-  Submissions/Lower/         Generality 2/3 lower root; checked claim 18
-  Submissions/Upper/         legacy upper reference: a forest of 63 chains, claim 106
-  Submissions/DisclosureLower/  Generality 1/3 lower root; checked claim 93
-  Submissions/WholeWordsUpper/  whole-word reference: the forest with 128-bit tweak words, claim 106
-  Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
-  Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
-  Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 1628
+  Submissions/<Root>/        a submission root; lives in the submissions repository, never here
 verifier/                    checks, contract pin, comparator configs, verify.py
 challenges.json              tracks, limits, protected files
 ```
 
 Protected files (listed in `challenges.json`, pinned in `verifier/protected.sha256`) come from
-the trusted contract. A submission consists of one submission root's contents.
+the trusted contract. A submission consists of one submission root's contents. The core holds no
+proofs of any track; reference proofs are ordinary submissions.
 
 ## Frameworks
 
@@ -43,30 +38,30 @@ All five public tracks are open.
   `Algorithm.lean` defines the protected interface and statement. The lower challenge fixes
   perfect correctness, deterministic verification, signing failure at most `2^-128` for every
   public-key-dependent message choice, the paper size and resource limits, and 127-bit strong
-  unforgeability. Proofs live in `formal/Submissions/GenericLower/`; see `docs/generic-lower.md`.
+  unforgeability. The reference proof is a `GenericLower` root; see `docs/generic-lower.md`.
 - **Upper bound** (`generic-upper`): arbitrary oracle programs, with a verified construction at
   106 compressions. The challenge fixes perfect correctness, deterministic verification, signing
   failure at most `2^-128` for every public-key-dependent message choice, the paper size and
-  resource limits, and 127-bit strong unforgeability. Proofs live in
-  `formal/Submissions/GenericUpper/`; see `docs/generic-upper.md`.
+  resource limits, and 127-bit strong unforgeability. The reference proof is a `GenericUpper`
+  root; see `docs/generic-upper.md`.
 - **RISC-V upper bound** (`riscv-upper`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
   every raw input. The score is a proved bound on the cycles of every execution, accepting or
-  rejecting; the checked construction costs 1628. Proofs live in
-  `formal/Submissions/RiscvUpper/`; see `docs/riscv-upper.md`.
+  rejecting; the reference construction costs 1628. Its proof is a `RiscvUpper` root; see
+  `docs/riscv-upper.md`.
 
 The DAG classes share the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. See `docs/whole-words.md` for the definition and proof.
 
-The legacy `upper` root is retained as a reference certificate at 106: it witnesses that secure
-DAG schemes exist. Its pinned exports and local verifier command remain available; public
-admission is closed.
+The legacy `upper` and `whole-words-upper` tracks stay registered: their reference proofs at 106
+witness that secure DAG and whole-word schemes exist. Their pinned exports and local verifier
+command remain available; public admission is closed.
 
 ## Oracle model
 
 The contract has one random oracle on bit strings (`Query := Σ k, BitVec k`). Equal input strings
 receive the same answer across all uses. A scheme may put a tweak in its input and pays for those bits;
-the upper baseline uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
+the reference upper construction uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
 least one. The 384-bit message-and-nonce index costs one compression.
 
 The verified unrestricted DAG lower bound is 18, proved for every secure scheme by counting
@@ -183,35 +178,35 @@ The whole-word lower direction and record rules are the same as for the DAG lowe
 
 ## Check locally before submitting
 
+From the root of a submissions checkout, whose `.contract` submodule is this core:
+
 ```sh
-verifier/setup_tools.sh                        # once
-cd formal && lake exe cache get && lake build OptimalOTS Submissions  # once
-cd ..
-python3 verifier/check_submission.py lower     # policy checks
-python3 verifier/verify.py lower --source .    # the full pipeline
+.contract/verifier/setup_tools.sh                                        # once
+(cd .contract/formal && lake exe cache get && lake build OptimalOTS)     # once
+python3 .contract/verifier/verify.py lower --source .                    # the full pipeline
 ```
 
 Replace `lower` by `disclosure-lower` or `generic-lower` for the other lower tracks, or by
-`generic-upper` or `riscv-upper` for the upper tracks. The command for `upper`
-still verifies the preserved reference certificate locally.
+`generic-upper` or `riscv-upper` for the upper tracks; `upper` and `whole-words-upper` verify the
+legacy references locally. From a core checkout, pass the submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
-Linux); the `lake build` line fetches Mathlib and builds VCVio, the contract and the certificates. `check_submission.py` runs the policy
-checks: flat root, imports, sizes, claim. `verify.py` copies the trusted tree, lays your submission
-root over it, attaches a fresh clone of the warm `.lake`, renders the stub, and runs comparator
-under the contract's limits on Linux. Linux requires the isolated, bounded work storage and sandbox
+Linux); the `lake build` line fetches Mathlib and builds VCVio and the contract. `verify.py` first
+runs the policy checks of `check_submission.py` (flat root, imports, sizes, claim), then copies the
+trusted tree, lays your submission root over it, attaches a fresh clone of the warm `.lake`,
+renders the stub, and runs comparator under the contract's limits on Linux. Linux requires the isolated, bounded work storage and sandbox
 in `service/deploy/README.md`; unsupported hosts fail closed. macOS runs unsandboxed for trusted
 development only: its proof result does not certify production isolation or resource enforcement.
 
 ## Submitting
 
-The core repository is `leanEthereum/ots.golf-dev`: model, verifier, website and reference certificates.
-Competition PRs go to `leanEthereum/ots.golf-submissions`, which contains the five admitted roots
+The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
+Competition PRs go to `leanEthereum/ots.golf-submissions`, which holds the merged submission roots
 and a `.contract` submodule pinned to the core for local checking. From that repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.
 
-There is one way in: a pull request against the submissions repository that changes only your admitted
-track's submission root. The verifier fetches the head commit, keeps only that root, verifies it on
+There is one way in: a pull request against the submissions repository that creates or changes only your
+admitted track's submission root. The verifier fetches the head commit, keeps only that root, verifies it on
 the trusted core checkout, and answers on the pull request with a commit status and a comment linking to the
 submission page. Pushing to the pull request re-queues its new head.
 
@@ -236,8 +231,8 @@ even after its fork is deleted; the submission page gives the exact `git fetch` 
 A verified claim that strictly beats the record is merged automatically in the submissions
 repository, pinned to the verified head, and the merge is the promotion. If GitHub refuses the merge
 (a conflict with `main`, or a newer push), the comment says why; update the pull request and its new
-head is checked again. The submissions repository's roots hold the merged records; the core
-retains its reference certificates. Other verified submissions appear on their solver's page, and
+head is checked again. The first verified, merged submission of a track sets its first record. The
+submissions repository's roots hold the merged records. Other verified submissions appear on their solver's page, and
 their pull requests are closed. Submission merges never update the trusted core checkout. See `docs/repositories.md` for workspace preparation and configuration.
 
 ## Maintaining the website
@@ -246,8 +241,8 @@ Define objects by their structure, permitted operations and exact requirements. 
 precise and concise. Use exclusions when they state a necessary mathematical or operational constraint;
 omit lists of contrasting examples and repeated caveats.
 
-Whenever a proof, certified baseline or admission status changes, update the metadata, website,
-rules and documentation in the same change. Keep lower and upper admission independent. Rules
+Whenever the contract or an admission status changes, update the metadata, website, rules and
+documentation in the same change. Keep lower and upper admission independent. Rules
 describe requirements without current scores.
 
 Run `tools/check_repo.py` for repository checks and `service/browser_check.py` for the seeded local

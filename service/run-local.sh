@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # The website re-seeds the invented demo board at every start while OTS_PHONY=1 (the default);
-# OTS_PHONY=0 shows the reference baselines instead. Nothing else needs to exist beforehand.
+# OTS_PHONY=0 shows real submissions only. Nothing else needs to exist beforehand.
 env -u GITHUB_TOKEN -u GITHUB_WEBHOOK_SECRET OTS_ROLE=worker .venv/bin/python -m app.worker &
 worker=$!
 trap 'kill "$worker" 2>/dev/null || true; wait "$worker" 2>/dev/null || true' EXIT

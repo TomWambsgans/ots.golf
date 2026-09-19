@@ -1,14 +1,15 @@
 import OptimalOTS.Riscv
 
-/-! An OTS specification and an equivalent RV64IM verifier, ranked by its worst-case cycles. -/
+/-! Upper bound in RISC-V cycles: an OTS and a machine image implementing its verifier
+(`Riscv.lean`). -/
 
 namespace OptimalOTS.Challenge.RiscvUpper
 
-/-- The OTS algorithms, fixed machine image, and termination witness. -/
+/-- The OTS, the machine image and the termination witness. -/
 noncomputable def submission : Riscv.Submission := sorry
 
-/-- Correctness, signing availability, resource limits, 127-bit strong security, exact machine
-refinement on every input, and at most `{{CLAIM}}` cycles on every execution. -/
+/-- Admissibility and strong security of the OTS, exact implementation of its verifier by the
+image, and at most `{{CLAIM}}` cycles on every execution. -/
 theorem certificate : submission.Certificate {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.RiscvUpper

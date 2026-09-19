@@ -1,14 +1,14 @@
 import OptimalOTS.WholeWords
 
-/-! Whole-word upper reference: a secure scheme in the Generality 1/3 class, witnessing that its
-lower bound is not vacuous. Rendered with the reference claim. -/
+/-! Reference certificate, closed to public submissions: a secure whole-word DAG scheme, showing
+that the Generality 1/3 class is not empty. -/
 
 namespace OptimalOTS.Challenge.WholeWordsUpper
 
-/-- A graph-based one-time signature scheme with the parameters of the paper. -/
+/-- A DAG scheme with the competition's parameters. -/
 noncomputable def scheme : Scheme paperParams := sorry
 
-/-- Every node computes whole 128-bit words. -/
+/-- The scheme is in the whole-word class. -/
 theorem wholeWords : scheme.graph.WholeWords := sorry
 
 /-- Strong unforgeability in the shared random-oracle experiment. -/

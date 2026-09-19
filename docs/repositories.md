@@ -2,8 +2,8 @@
 
 | Repository | Contents and role |
 |---|---|
-| [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev) | Trusted Lean model, challenge stubs, verifier, website, tooling and reference certificates |
-| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | The five public submission roots, proof PRs and merged records |
+| [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev) | Trusted Lean model, challenge stubs, verifier, website and tooling; no track proofs |
+| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | Proof PRs and the submission roots of merged records |
 
 The local workspace contains both repositories:
 
@@ -20,13 +20,13 @@ automatically. They belong to the website in the core repository; checked proof 
 belong to `ots.golf-submissions`.
 
 The submissions workspace has a `.contract` submodule pinned to a core commit for local proof
-checking. Its PRs change one admitted root. The hosted verifier reads that root from the PR's exact
+checking. Its PRs create or change one admitted root. The hosted verifier reads that root from the PR's exact
 head, using its own core checkout for every protected file and verification tool.
 
 Verification results are reported to the PR in the submissions repository. An improvement becomes
-a record only when GitHub confirms that the verified head was merged there. The core's reference
-certificates remain independently checked starting points; merging a proof never changes the model,
-website, or trusted checkout. Repository identity is retained in each PR URL, so moving intake does
+a record only when GitHub confirms that the verified head was merged there; on a track without a
+record, the first such submission becomes it. Merging a proof never changes the model, website, or
+trusted checkout. Repository identity is retained in each PR URL, so moving intake does
 not send old result comments or merge events to an unrelated PR with the same number.
 
 ## Prepare the submissions repository
@@ -37,9 +37,9 @@ Commit and check the core changes, then run:
 python3 tools/prepare_submissions_repo.py .build/ots.golf-submissions
 ```
 
-The destination must be new. The command creates a local Git repository, copies only the
-admitted roots listed in the core metadata, adds the pinned core submodule, and stages the initial README, agent instructions
-and submission PR template. Its `origin` points to `leanEthereum/ots.golf-submissions`.
+The destination must be new. The command creates a local Git repository without submission roots,
+adds the pinned core submodule, and stages the initial README, agent instructions and submission
+PR template. The reference proofs then arrive as ordinary pull requests, one per track. Its `origin` points to `leanEthereum/ots.golf-submissions`.
 It uses the local core checkout and does not contact GitHub or push anything.
 
 Review and commit the prepared files. Publish the pinned core commit before publishing this
@@ -47,8 +47,7 @@ repository, so contributors can obtain the submodule. Contributors fork the subm
 clone with `--recurse-submodules`, and follow its README for tool setup and local verification.
 
 To update an existing competition contract, first deploy the reviewed core and then update the
-submodule pin in a maintainer PR. Keep the workspace's checked reference or record roots compatible
-with that contract. The preparation command never overwrites an existing repository or its records.
+submodule pin in a maintainer PR. Keep the merged record roots compatible with that contract. The preparation command never overwrites an existing repository or its records.
 
 ## Service configuration
 
