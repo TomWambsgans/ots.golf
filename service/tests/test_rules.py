@@ -55,7 +55,7 @@ class RulesTests(unittest.TestCase):
         self.assertNotIn('<strong>Pending:</strong>', html)
         self.assertIn('with probability at most <strong>2<sup>−128</sup></strong>', html)
         self.assertIn('verification accepts with probability one', html)
-        self.assertIn('even one chosen\n      from the public key', html)
+        self.assertIn('for any message.</p>', html)
         self.assertIn('formal/Submissions/GenericUpper/', html)
         self.assertIn('formal/Submissions/GenericLower/', html)
         self.assertNotIn('Their submission roots are closed.', html)
