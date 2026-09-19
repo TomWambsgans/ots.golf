@@ -69,10 +69,9 @@
     <div class="more prose" id="generic-algorithms">
       <p>A scheme consists of three terminating oracle programs: key generation, signing and
       verification. They may use private randomness. Whenever honest signing
-      returns a signature, verification accepts with probability one. For every message chosen as
-      a function of the public key, signing failure is at most <strong>2<sup>−128</sup></strong>
-      {% if riscv_upper_track %}for every algorithm track{% else %}in both tracks{% endif %}. This probability averages over
-      honest key generation and signing, starting from a fresh oracle.</p>
+      returns a signature, verification accepts with probability one. Signing may fail, but only
+      with probability at most <strong>2<sup>−128</sup></strong>, for any message, even one chosen
+      from the public key.</p>
       <p>Signature encodings must be lossless.
       Every possible signer output fits in 5,504 bits; oversized signatures are always rejected.
       Key-generation and signing budgets cover every execution path, with signing bounded for
