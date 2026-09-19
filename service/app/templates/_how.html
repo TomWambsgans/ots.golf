@@ -2,17 +2,14 @@
 <details id="hash">
   <summary><h2>What are the hash and cost rules?</h2></summary>
   <div class="more prose">
-    <p>All parties share one random oracle on bit strings. Each distinct input gets an independent
-    uniform 256-bit answer, shared across all uses. Hashing is the only cryptographic primitive.</p>
-    <p id="cost">A hash query costs one <strong>compression</strong> per started 512-bit input block,
-    with a minimum of one. Every call is charged, including repeated queries. Input lengths include
-    explicit parameters and tweaks. Deterministic computation and randomness are free in the
-    compression model. Compression bounds cover every execution path.{% if riscv_upper_track %}
-    The RISC-V implementation track also charges instructions, with its cycle bound covering
-    accepting executions.{% endif %}</p>
-    <p>As Justin Drake observed, a block-based implementation can pad a per-key public parameter
-    to a full block, absorb it once, and reuse the resulting hash state. This makes the parameter
-    a shared setup cost. The model therefore charges each query for its explicit input bits.</p>
+    <p>All parties share one random oracle: every distinct bit string gets an independent uniform
+    256-bit answer. Hashing is the only cryptographic primitive.</p>
+    <p id="cost">A hash call costs one <strong>compression</strong> per started 512-bit block of its
+    input, tweaks included, and at least one. Every call is charged, even a repeated one. Everything
+    else is free.{% if riscv_upper_track %} The RISC-V track additionally counts instructions.{% endif %}</p>
+    <p><em>A per-key public parameter, useful for multi-user security, costs nothing: as Justin Drake
+    observed, a block-based hash can pad the parameter to a full block, absorb it once and cache the
+    internal state, so every later call starts from that state for free.</em></p>
   </div>
 </details>
 <details id="security">
