@@ -15,11 +15,13 @@
 <details id="security">
   <summary><h2>What does 127-bit security mean here?</h2></summary>
   <div class="more prose">
-    <p>The attacker sees the public key, may query the oracle, requests one chosen-message
-    signature, then attempts a forgery. For every budget <code>B</code> covering the whole
-    experiment on every run, success must be strictly below <code>B / 2<sup>127</sup></code>.
-    Include key generation, signing, the attacker's queries and final verification.</p>
-    <p>Every track uses <strong>strong unforgeability</strong>: any accepted pair different from
-    the signed pair counts, and if signing fails, any accepted pair counts.</p>
+    <p>The attacker sees the public key, queries the oracle at will, receives one signature on a
+    message of its choice, and then outputs a forgery. If the whole experiment (key generation,
+    signing, the attacker's queries and the final verification) never makes more than
+    <code>B</code> compressions, the attacker must win with probability below
+    <code>B / 2<sup>127</sup></code>.</p>
+    <p>Winning means <strong>strong unforgeability</strong>: the forgery is any accepted
+    message-signature pair other than the one the signer produced. If signing failed, any accepted
+    pair wins.</p>
   </div>
 </details>
