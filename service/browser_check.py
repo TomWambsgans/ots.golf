@@ -172,7 +172,7 @@ def assert_rules_have_no_scores(text: str, config: dict) -> None:
         number = rf'(?<![\w,/]){claim}(?![\w,/])'
         assert not re.search(rf'(?:score|record|candidate|bound)\s+(?:(?:of|is|:|=)\s*)?{number}\b|'
                              rf'{number}\s+compressions?\b', text, re.I), f'Rules publish score {claim}'
-    legitimate = {0, 1, 2, 3, 4, 21, 41, 127, 128, 256, 512, 1024, 5248, 5376}
+    legitimate = {0, 1, 2, 3, 4, 21, 41, 42, 127, 128, 256, 512, 1024, 5248, 5376, 5504}
     for claim in claims - legitimate:
         assert not re.search(rf'\b{claim}\b', text), f'Rules publish score {claim}'
 

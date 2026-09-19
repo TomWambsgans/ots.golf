@@ -61,7 +61,7 @@ that open the requested section. Whole words uses independent
 concatenation of whole-word sequences. Concatenations can reorder, repeat or be empty; no other
 deterministic operations, smaller fragments or encodings are admitted. Hashing an empty input is
 allowed and charged. Hash inputs have no fixed arity;
-charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 128-bit nonce.
+charge their complete length. A 5,376-bit payload fits at most 42 words, plus the 128-bit nonce.
 The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
 Whole-word lower uses the slug/root `lower-generality-1`/`LowerGenerality1`, with
 demo rows like DAG lower. Do not leave the old 46-origin rule on the site.

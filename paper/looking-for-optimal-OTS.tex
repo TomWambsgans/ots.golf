@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5376 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 106. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
+We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5504 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 106. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
 \end{abstract}
 
 \setcounter{tocdepth}{2}
@@ -64,7 +64,7 @@ Key generation samples the sources and evaluates all nodes. If $I_g$ is the inpu
 
 The scheme specifies $M=2^{115}$ disclosure sets $A_i$. Each excludes $r$ and meets every source-to-root path. The values disclosed at $A_i$, in node order, occupy
 \[
-\ell_i=\sum_{v\in A_i}b_v\le5248
+\ell_i=\sum_{v\in A_i}b_v\le5376
 \]
 bits. Sets may coincide. Reconstruction walks backward from the root, stopping at disclosed nodes, and evaluates all other visited nodes in topological order. Let $E_i$ be its hash nodes. Both $E_i$ and its cost are fixed by the graph and the index. The cut condition ensures that no undisclosed source is evaluated. Honest reconstruction repeats the corresponding key-generation queries and returns the honest root, irrespective of query collisions.
 
@@ -76,7 +76,7 @@ For 256-bit messages and 128-bit nonces, set
 \]
 This query costs one compression. Signing samples fresh nonces without replacement until the index is below $M$, returning the nonce and the values at that disclosure set; it gives up after $L=2^{20}$ trials. Verification queries the same index, checks the revealed length, reconstructs the root, and compares its low 128 bits with the public key. Thus
 \[
-|\sigma|=128+\ell_i\le5376,\qquad
+|\sigma|=128+\ell_i\le5504,\qquad
 C_i=1+\sum_{g\in E_i}c_g.
 \]
 In this model the index query is not automatically independent of key generation. Section~\ref{sec:fresh} proves the independence needed by the attack, directly from fresh cache entries.

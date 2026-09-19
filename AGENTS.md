@@ -32,8 +32,8 @@ All five public tracks are open.
   uniform 128-bit words; hashes return 256 bits. Each deterministic node is a fixed public 128-bit
   word, selects a fixed low or high half directly from a hash output, or concatenates an ordered
   list of complete earlier values. Concatenations may repeat, reorder, group or be empty.
-  Disclosures reveal complete node values. This syntax and the 5248-bit payload budget imply at
-  most 41 disclosed hash origins.
+  Disclosures reveal complete node values. This syntax and the 5376-bit payload budget imply at
+  most 42 disclosed hash origins.
 - **Generality 2/3** (`lower-generality-2`): fixed DAGs with arbitrary deterministic functions and
   disclosure cuts.
 - **Generality 3/3** (`lower-generality-3`): arbitrary oracle programs. `OracleAlgorithm.lean`
@@ -108,7 +108,7 @@ theorem OptimalOTS.Challenge.UpperCompressions.cost : scheme.VerifyCostAtMost <c
 
 `scheme` is a definition hole: any term of the stated type is admissible, and the theorems pin it
 down. Admissibility includes perfect correctness, deterministic verification, signing failure at
-most `2^-128`, an injective signature encoding of at most 5376 bits, rejection of oversized
+most `2^-128`, an injective signature encoding of at most 5504 bits, rejection of oversized
 signatures, and pathwise limits of 1024 key-generation compressions and `2^20` signing
 compressions. Availability is averaged over honest key generation and signing from a fresh oracle,
 for every message chosen as a function of the public key. Verification cost covers every input and
