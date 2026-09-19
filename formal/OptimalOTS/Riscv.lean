@@ -5,8 +5,8 @@ import OptimalOTS.RiscvMachine
 # RISC-V upper submissions
 
 The signature is its transmitted bit string. The implementation proof identifies the
-machine's complete oracle computation with the supplied Lean verifier, preserving queries,
-randomness, and their compression costs. Every execution terminates; only accepting
+machine's complete oracle computation with the supplied Lean verifier, preserving queries
+and their compression costs. Every execution terminates; only accepting
 executions are ranked by cycles. No sampled benchmark is an admission requirement.
 -/
 

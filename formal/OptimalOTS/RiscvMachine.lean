@@ -6,8 +6,8 @@ import RiscvZkvm.Rv64
 
 RV64IM instructions use the pinned `riscv-zkvm` semantics. Each ordinary instruction,
 including HALT, costs one cycle. HASH costs `blockCost paperParams` on its exact
-bit-string input. RANDOM supplies a fresh uniform 64-bit word for one cycle.
-These are the only system calls. Code and initial data are finite, fixed parts of the image.
+bit-string input. These are the only system calls: the verifier is deterministic given the
+oracle's answers. Code and initial data are finite, fixed parts of the image.
 
 The oracle boundary and counted execution follow Derek Sorensen's `xmss-verify-asm`
 design (003facc). This module uses the upstream machine dependency directly.
@@ -27,9 +27,8 @@ def messageBase : Word := 0x400010
 def signatureBase : Word := 0x400030
 def stackTop : Word := 0x1000000
 
-/-- Call number in `t0`: HALT=0, HASH=1, RANDOM=2. -/
+/-- Call number in `t0`: HALT=0, HASH=1. -/
 def hashCall : Word := 1
-def randomCall : Word := 2
 
 /-- Only actual instructions of the pinned RV64IM subset; pseudo-instructions must be expanded.
 The low bit of a branch or jump immediate is zero in the instruction encoding. -/
@@ -116,9 +115,6 @@ def execute : ℕ → MachineState → OracleComp (Spec paperParams) Outcome
             let answer ← hash paperParams input.2
             addCycles (blockCost paperParams input.1) <$> execute fuel (writeHash s answer)
           else pure none
-        else if s.getReg .x5 = randomCall then do
-          let word ← sampleBits paperParams 64
-          addCycles 1 <$> execute fuel ((s.setReg .x10 word).setPC (s.pc + 4))
         else pure none
       | _ => match step s with
         | none => pure none

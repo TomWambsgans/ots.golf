@@ -452,3 +452,23 @@ data. The decoder files (`DecoderArithmetic`, `DecoderProof`, `DecoderCost`, `Ta
 tests and 75 service tests pass; the baseline and protected pin were regenerated (contract id
 `445712c7c5c3732ca3e6b3dcab9a07d8e9a04e383d2c825576ca8a513a3b67f5`), and the fixture history keeps
 the same displayed cycle counts. Nothing was pushed or deployed.
+
+## Deterministic verification (2026-09-18)
+
+Verification is now deterministic by rule. `OptimalOTS.Deterministic P oa` says that every query of
+an oracle program, on every path, goes to the hash oracle; `AlgorithmScheme.VerifyDeterministic`
+applies it to `verify` on every input, and `Admissible` gained the field `verifyDeterministic`. The
+RISC-V machine lost its RANDOM system call (`RiscvMachine.execute` handles HALT and HASH only, so a
+run is determined by the oracle's answers), and the RISC-V cost invariant lost its random step. The
+upper roots prove the new requirement in `Deterministic.lean` (bind, map, hash and fold lemmas, then
+`Graph.deterministic_reconstruct` and the scheme's `verifyDeterministic`); the wire adapter forwards
+it. Key generation and signing keep their private randomness. The lower-bound statements assume
+`Admissible`, so they now range over schemes with deterministic verification, the intended class.
+The rules say so in one sentence, and the RISC-V paragraph no longer mentions random choices.
+
+Every submission root builds (`lake build` of each `Submissions.<Root>.Solution`; the default target
+covers only the contract), the two upper certificates still use only `propext`, `Classical.choice`
+and `Quot.sound`, the official verifier accepted `riscv-upper` at 5513 in 282.0 seconds and
+`generic-upper` at 106 in 138.7 seconds on macOS, 61 verifier tests and 75 service tests pass, and
+the protected pin was regenerated (contract id
+`27f6f6075e03a41926be719725ed06703142cca150da380503c0364518661d03`). Nothing was pushed or deployed.

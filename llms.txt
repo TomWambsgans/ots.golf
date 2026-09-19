@@ -24,7 +24,7 @@ are averaged over honest key generation and signing for every public-key-depende
 The RISC-V certificate additionally proves that the fixed machine image's complete oracle computation
 equals the Lean verifier on every public key, message and raw signature, that every execution
 terminates, and that accepting executions take at most 5513 cycles. Ordinary instructions,
-RANDOM and HALT cost one cycle; HASH costs max(1, ceil(bits/512)) on the shared oracle. Rejecting
+HALT costs one cycle; HASH costs max(1, ceil(bits/512)) on the shared oracle. Rejecting
 executions are unscored.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share

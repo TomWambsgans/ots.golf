@@ -10,7 +10,6 @@ open RiscvZkvm.Rv64 OracleComp
 structure CostInvariant (I : MachineState → Prop) (limit : ℕ) : Prop where
   hashCost : ∀ s, I s → blockCost paperParams (s.getReg .x11).toNat ≤ limit
   hashStep : ∀ s, I s → ∀ answer, I (writeHash s answer)
-  randomStep : ∀ s, I s → ∀ word, I ((s.setReg .x10 word).setPC (s.pc + 4))
   ordinaryStep : ∀ s, I s → s.code s.pc ≠ some .ECALL →
     ∀ next, step s = some next → I next
 
@@ -78,12 +77,7 @@ theorem execute_cost_of_invariant {I : MachineState → Prop} {limit : ℕ}
                 exact advance _ _ (invariant.hashCost s hs) (invariant.hashStep s hs answer) accepted
               · simp at accepted
             · simp only [if_neg hashCall] at accepted
-              split_ifs at accepted with random
-              · rw [support_bind] at accepted
-                simp only [Set.mem_iUnion] at accepted
-                obtain ⟨word, _, accepted⟩ := accepted
-                exact advance 1 _ positive (invariant.randomStep s hs word) accepted
-              · simp at accepted
+              simp at accepted
         · rw [execute_regular fuel s i fetch admitted system] at accepted
           cases next : step s with
           | none => simp [next] at accepted

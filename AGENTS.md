@@ -152,7 +152,7 @@ The certificate proves the Upper bound admissibility and 127-bit strong security
 refinement of its Lean verifier by the machine's complete oracle computation on every public key,
 message and raw signature bit string, and at most `<claim>` cycles on every accepting
 execution. Refinement excludes traps and fuel exhaustion, so every execution terminates, including
-rejections, which have no cycle bound. Ordinary instructions, RANDOM and HALT cost one cycle; HASH
+rejections, which have no cycle bound. Ordinary instructions and HALT cost one cycle; HASH
 costs `max(1, ⌈bits / 512⌉)` on its exact input and uses the competition's single oracle. The
 machine, loader and system calls are fixed in `formal/OptimalOTS/RiscvMachine.lean`. A record
 needs claim ≤ record − 1.

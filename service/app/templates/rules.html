@@ -68,7 +68,8 @@
     <summary><h2>Upper bound and Generality 3/3 lower bound: any algorithm</h2></summary>
     <div class="more prose" id="generic-algorithms">
       <p>A scheme consists of three terminating oracle programs: key generation, signing and
-      verification. They may use private randomness. Whenever honest signing
+      verification. Key generation and signing may use private randomness; verification is
+      deterministic. Whenever honest signing
       returns a signature, verification accepts with probability one. Signing may fail, but only
       with probability at most <strong>2<sup>−128</sup></strong>, for any message, even one chosen
       from the public key.</p>
@@ -89,8 +90,7 @@
       computation and decision for every public key, message and raw signature bit string.
       Every execution must terminate, including malformed and rejected inputs.</p>
       <p>The claim bounds <strong>cycles on every accepting execution</strong>, for every
-      input, oracle answer and random choice. Each ordinary instruction, randomness call and halt
-      costs one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
+      input and oracle answer. Each ordinary instruction and the halt cost one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
       an <code>n</code>-bit input, with no additional instruction charge. It uses the same random
       oracle as the OTS security experiment. Smaller certified bounds are better.</p>
     </div>

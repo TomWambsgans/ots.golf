@@ -2,6 +2,7 @@ import Submissions.RiscvUpper.Resources
 import Submissions.RiscvUpper.Main
 import Submissions.RiscvUpper.Correctness
 import Submissions.RiscvUpper.Availability
+import Submissions.RiscvUpper.Deterministic
 
 /-!
 # The verified forest under the generic algorithm interface
@@ -64,6 +65,7 @@ theorem signing_failure : scheme.SigningFailureAtMost (1 / 2 ^ 128) :=
 theorem admissible : scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) where
   failure_lt_one := by norm_num
   correct := correct
+  verifyDeterministic := GScheme.verifyDeterministic Forest.forestScheme
   signingFailure := signing_failure
   signatureSize := signature_size
   rejectsOversized := rejects_oversized

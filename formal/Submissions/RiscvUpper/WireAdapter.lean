@@ -114,6 +114,7 @@ theorem admissible (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞) (h : S.Admissi
     (scheme S decode).Admissible L ε where
   failure_lt_one := h.failure_lt_one
   correct := correct S decode inverse h.correct
+  verifyDeterministic := fun pk m bits => h.verifyDeterministic pk m (decode bits)
   signingFailure := signingFailure S decode ε h.signingFailure
   signatureSize := signatureSize S decode L.signatureBits h.signatureSize
   rejectsOversized := rejectsOversized S decode canonical L.signatureBits h.rejectsOversized
