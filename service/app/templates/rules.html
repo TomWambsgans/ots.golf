@@ -8,7 +8,8 @@
     <summary><h2>What is a one-time signature?</h2></summary>
     <div class="more prose">
       <p>A <a href="https://en.wikipedia.org/wiki/Hash-based_cryptography#One-time_signature_schemes">one-time
-      signature</a> (OTS) uses a key pair to sign one message securely. For examples, see
+      signature</a> (OTS) uses a key pair to sign one message securely. This competition is about
+      hash-based OTS, whose security rests on a hash function alone. For examples, see
       <a href="https://en.wikipedia.org/wiki/Lamport_signature#Example">Lamport signatures</a>, which
       reveal selected secrets, and <a href="https://www.rfc-editor.org/rfc/rfc8391.html#section-3.1">Winternitz
       signatures (WOTS+)</a>, which use hash chains.</p>
@@ -20,11 +21,8 @@
     <summary><h2>What are we optimizing?</h2></summary>
     <div class="more prose">
       <span id="legacy-certificates"></span>
-      <p>A one-time signature scheme has public-key and signature sizes, a security level, and
-      costs for key generation, signing and verification, measured in
-      <a href="#hash">hash compressions</a>. We fix the following requirements and ask how cheap
-      verification can be in the worst case{% if riscv_upper_track %}: in compressions for any
-      algorithm, or in cycles for a RISC-V implementation{% endif %}.</p>
+      <p>We fix a budget for the public-key size, signature size, security, key generation and
+      signing, and try to minimize the verification cost:</p>
       <table class="params" id="params">
         <caption class="visually-hidden">Fixed requirements and the verification objective</caption>
         <thead><tr><th scope="col">Parameter</th><th scope="col">Requirement</th></tr></thead>
