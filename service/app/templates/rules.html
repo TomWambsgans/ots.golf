@@ -93,13 +93,6 @@
       costs one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
       an <code>n</code>-bit input, with no additional instruction charge. It uses the same random
       oracle as the OTS security experiment. Smaller certified bounds are better.</p>
-      <p>The pinned <a href="{{ source }}formal/OptimalOTS/RiscvMachine.lean">machine and ABI</a>
-      specify the admitted instructions, memory and loading rules. Buffers store least-significant
-      bytes and bits first; the loader supplies the raw public key, message and signature.
-      <code>HASH</code> reads the input pointer and bit length from <code>a0</code> and <code>a1</code>,
-      then writes 256 output bits at the aligned pointer in <code>a2</code>.
-      The image contains at most 262,144 instructions and 1 MiB of initial data.
-      These cycles measure the specified machine, independently of processor hardware.</p>
     </div>
   </details>
   {% endif %}
