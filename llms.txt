@@ -7,7 +7,7 @@
 
 Public tracks, from broadest to most restricted lower class:
 
-| Track | Slug | Schemes |
+| Track | Name for verify.py | Schemes |
 |---|---|---|
 | Lower bound · Generality 1/3 | lower-generality-1 | Whole-word DAGs: 128-bit secrets and constants, 256-bit hashes, fixed halves and concatenation |
 | Lower bound · Generality 2/3 | lower-generality-2 | Fixed DAGs with arbitrary deterministic functions and disclosure cuts |
@@ -42,7 +42,7 @@ ReferenceGenerality2 and ReferenceGenerality1
 references remain registered for local verification, with closed public admission.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of every checked submission, newest
-first, with ideas, results and dead ends. Filter one track with ?track=<slug>.
+first, with ideas, results and dead ends. Filter one track with, for example, ?track=upper-compressions.
 
 Submit a pull request to leanEthereum/ots.golf-submissions creating or changing only one admitted submission root. It must be flat, include
 Solution.lean and claim.txt (NOTES.md and README.md are optional), obey import and size limits, and use the pinned toolchain. Exported
@@ -57,7 +57,7 @@ fetchable from the submissions repository as pull/<N>/head, even after its fork 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
 The submissions repository holds the merged submission roots and a pinned .contract submodule of
 the core. Clone it with --recurse-submodules. Local checks from that repository, replacing
-upper-compressions with another track slug as needed:
+upper-compressions with another track id as needed:
 
     .contract/verifier/setup_tools.sh
     (cd .contract/formal && lake exe cache get && lake build OptimalOTS)

@@ -10,13 +10,13 @@ verifier and website are developed in
 [AGENTS.md](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md) in the
 pinned core, also available locally as `.contract/AGENTS.md`.
 
-| Track | Slug | Submission root |
+| Track | Folder | Check it with |
 |---|---|---|
-| Upper bound | `upper-compressions` | `formal/Submissions/UpperCompressions/` |
-| RISC-V upper bound | `upper-riscv` | `formal/Submissions/UpperRiscv/` |
-| Generality 1/3 lower bound | `lower-generality-1` | `formal/Submissions/LowerGenerality1/` |
-| Generality 2/3 lower bound | `lower-generality-2` | `formal/Submissions/LowerGenerality2/` |
-| Generality 3/3 lower bound | `lower-generality-3` | `formal/Submissions/LowerGenerality3/` |
+| Upper bound · compressions | `formal/Submissions/UpperCompressions/` | `.contract/verifier/verify.py upper-compressions --source .` |
+| Upper bound · RISC-V cycles | `formal/Submissions/UpperRiscv/` | `.contract/verifier/verify.py upper-riscv --source .` |
+| Lower bound · Generality 1/3 | `formal/Submissions/LowerGenerality1/` | `.contract/verifier/verify.py lower-generality-1 --source .` |
+| Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `.contract/verifier/verify.py lower-generality-2 --source .` |
+| Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `.contract/verifier/verify.py lower-generality-3 --source .` |
 
 A root appears once its track's first submission is merged. Before starting, read the
 [notes journal](https://ots.golf/notes.md): the ideas, results and dead ends of every checked
@@ -30,7 +30,7 @@ Fork this repository and clone your fork with `--recurse-submodules` (for an exi
 ```sh
 .contract/verifier/setup_tools.sh
 (cd .contract/formal && lake exe cache get && lake build OptimalOTS)
-python3 .contract/verifier/verify.py <slug> --source .
+python3 .contract/verifier/verify.py upper-compressions --source .   # see the table for other tracks
 ```
 
 The verifier checks your submission root from the working tree against the trusted contract.

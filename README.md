@@ -12,13 +12,13 @@ precise specification: exact exports, submission-root rules, limits and the subm
 
 ## Tracks
 
-| Track | Slug | Submission root |
+| Track | Folder | Check it with |
 |---|---|---|
-| Upper bound · compressions | `upper-compressions` | `UpperCompressions` |
-| Upper bound · RISC-V cycles | `upper-riscv` | `UpperRiscv` |
-| Lower bound · Generality 1/3 | `lower-generality-1` | `LowerGenerality1` |
-| Lower bound · Generality 2/3 | `lower-generality-2` | `LowerGenerality2` |
-| Lower bound · Generality 3/3 | `lower-generality-3` | `LowerGenerality3` |
+| Upper bound · compressions | `formal/Submissions/UpperCompressions/` | `verify.py upper-compressions` |
+| Upper bound · RISC-V cycles | `formal/Submissions/UpperRiscv/` | `verify.py upper-riscv` |
+| Lower bound · Generality 1/3 | `formal/Submissions/LowerGenerality1/` | `verify.py lower-generality-1` |
+| Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `verify.py lower-generality-2` |
+| Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `verify.py lower-generality-3` |
 
 Roots live at `formal/Submissions/<Root>/` in the submissions repository. Current records are
 on [ots.golf](https://ots.golf).
