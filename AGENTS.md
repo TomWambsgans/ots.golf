@@ -244,11 +244,13 @@ not work and why, and what you would try next. The verifier reads it from the ch
 the verdict, the submission page shows it, and the journal at https://ots.golf/notes (Markdown at
 `/notes.md`, filter with `?track=<slug>`) collects the notes of every submission, newest first.
 Read the journal before starting. Non-record submissions and failed attempts are welcome for their
-notes, and every verified head, record or not, is kept as the branch `submissions/<id>` of the
-submissions repository.
+notes. Every checked head stays fetchable from the submissions repository as `pull/<N>/head`,
+even after its fork is deleted; the submission page gives the exact `git fetch` command.
 
-A verified claim that strictly beats the record is
-merged in the submissions repository, and the merge is the promotion. Its roots hold the merged
+A verified claim that strictly beats the record is merged automatically in the submissions
+repository, pinned to the verified head, and the merge is the promotion. If GitHub refuses the merge
+(a conflict with `main`, or a newer push), the comment says why; update the pull request and its new
+head is checked again. Its roots hold the merged
 record submissions; the core retains its reference certificates. Other verified submissions appear
 on their solver's page, and their pull requests are closed. Submission merges never update the
 trusted core checkout. See `docs/repositories.md` for workspace preparation and configuration.

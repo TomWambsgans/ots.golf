@@ -24,7 +24,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
-from .db import SessionLocal, Submission, User, get_session, init_db, local_lock, schedule_report, utcnow
+from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
+                 schedule_report, stable_id, utcnow)
 
 APP_DIR = Path(__file__).resolve().parent
 @asynccontextmanager
@@ -32,8 +33,18 @@ async def lifespan(_app):
     if settings.environment == "production" and settings.role != "web":
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
-    task = None
+    await run_in_threadpool(prepare_board)
+    task = resync_task = None
     if settings.github_token and settings.submissions_repo:
+        if settings.resync_on_start:
+            async def resync_once():
+                from .resync import resync
+                try:
+                    logging.getLogger(__name__).info("resync from GitHub: %s", await run_in_threadpool(resync))
+                except Exception:
+                    logging.getLogger(__name__).exception("resync from GitHub failed; run app.resync by hand")
+            resync_task = asyncio.create_task(resync_once())
+
         async def report_loop():
             from .worker import retry_reports
             while True:
@@ -46,10 +57,27 @@ async def lifespan(_app):
     try:
         yield
     finally:
-        if task is not None:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+        for running in (task, resync_task):
+            if running is not None and not running.done():
+                running.cancel()
+                with suppress(asyncio.CancelledError):
+                    await running
+
+
+def prepare_board() -> None:
+    """Everything the board shows without GitHub, recreated at every start: the invented demo rows
+    (OTS_PHONY=1, for now) or the reference baselines of the public tracks."""
+    log = logging.getLogger(__name__)
+    try:
+        if settings.phony:
+            import seed_demo
+            with local_lock("results"), SessionLocal() as session:
+                log.info("phony board: removed %s, added %s demo submissions", *seed_demo.reseed(session))
+        else:
+            from .resync import ensure_baselines
+            log.info("reference baselines added: %s", ensure_baselines())
+    except Exception:
+        log.exception("preparing the board failed; the site starts anyway")
 
 
 app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None,
@@ -175,10 +203,23 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
                                                                           "policy_rejected", "timeout")))).first()
     if dup:
         raise HTTPException(409, f"this commit is already submitted: {dup.id}")
-    sub = Submission(track=track, user_id=user.id, source_repo=repo, commit=commit,
-                     description=(description or "").strip() or None, co_authors=json.dumps(co_authors),
-                     assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
-    session.add(sub)
+    fields = dict(track=track, user_id=user.id, source_repo=repo, commit=commit,
+                  description=(description or "").strip() or None, co_authors=json.dumps(co_authors),
+                  assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
+    probe = Submission(**fields)
+    sid = (pr_submission_id(probe.pr_repository, pr_number, commit) if probe.pr_repository
+           else stable_id("local", track, repo, commit))
+    sub = session.get(Submission, sid)
+    if sub is None:
+        sub = Submission(id=sid, **fields)
+        session.add(sub)
+    else:   # the same head after an infrastructure failure: check it again under the same id
+        for key, value in fields.items():
+            setattr(sub, key, value)
+        sub.status, sub.claim, sub.is_record, sub.record_at = "pending", None, False, None
+        sub.started_at = sub.finished_at = sub.duration_s = None
+        sub.created_at = utcnow()
+        sub.detail = json.dumps({k: v for k, v in sub.detail_dict.items() if k in ("github_comment_id", "merge")})
     schedule_report(session, sub)
     session.commit()
     return sub
@@ -405,13 +446,14 @@ def llms():
 The model, verifier and reference certificates are maintained in {settings.contract_url}.
 Proof pull requests and merged record submissions belong in {settings.submissions_url}.
 The verifier checks only the submitted root against its trusted core checkout. A verified
-improvement becomes a record after its exact head is confirmed merged in the submissions repository.
+improvement is merged automatically in the submissions repository, pinned to its verified head, and
+becomes the record.
 The verdict is posted there as a commit status and a comment linking to
 {base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
 
 ## Notes from other solvers
 
 Read {base}/notes.md before starting: the `NOTES.md` of every checked submission, newest first,
-including non-records and rejected attempts, with links to each archived head
-(`submissions/<id>` branches of {settings.submissions_url}). Filter one track with `?track=<slug>`.
+including non-records and rejected attempts, with a link to each checked head (fetchable from
+{settings.submissions_url} as `pull/<N>/head`). Filter one track with `?track=<slug>`.
 """

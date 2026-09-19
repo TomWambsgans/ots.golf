@@ -35,7 +35,8 @@ class ServiceWorkerTests(unittest.TestCase):
                         patch.object(settings, 'submissions_repo', 'owner/repo'),
                         patch.object(settings, 'github_token', ''),
                         patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions),
-                        patch('app.worker.github.archive_head')]
+                        patch('app.worker.github.merge_pr', return_value=(False, 'not in tests')),
+                        patch.object(settings, 'auto_merge', False)]
         for p in self.patches:
             p.start()
         with self.sessions() as session:
@@ -161,7 +162,7 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(session.get(Submission, sub.id).notes, result['notes'])
             main.app.dependency_overrides[main.get_session] = lambda: session
             try:
-                with TestClient(main.app) as client:
+                with patch('app.main.prepare_board'), TestClient(main.app) as client:
                     page = client.get(f'/submissions/{sub.id}').text
             finally:
                 main.app.dependency_overrides.clear()
@@ -223,7 +224,7 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             schedule_report(session, session.get(Submission, sub.id))
             session.commit()
-        def report(_sub):
+        def report(_sub, _history=None):
             self.merge(sub)
             return 123
         with patch.object(settings, 'github_token', 'test'), patch('app.worker.report', side_effect=report):
@@ -246,41 +247,161 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(update.call_args.args[:2], ('owner/repo', 123))
             post.assert_not_called()
 
-    def test_verified_head_is_archived_and_linked(self):
-        sub = self.submission()
+    def test_pr_submission_ids_are_stable_and_failed_heads_requeue_under_the_same_id(self):
+        pr = {'state': 'open', 'user': {'login': 'alice', 'id': 42},
+              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('generic-lower', [])):
+            first = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+        from app.db import pr_submission_id
+        self.assertEqual(first['id'], pr_submission_id('owner/repo', 9, 'b' * 40))
+        with self.sessions() as session:
+            sub = session.get(Submission, first['id'])
+            sub.status = 'failed'
+            session.commit()
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('generic-lower', [])):
+            again = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+        self.assertEqual(again['id'], first['id'])
+        with self.sessions() as session:
+            self.assertEqual(session.get(Submission, first['id']).status, 'pending')
+            self.assertEqual(len(list(session.scalars(select(Submission)))), 1)
+
+    def test_comment_records_every_verdict_of_the_pull_request(self):
+        first = self.submission(claim=21)
+        with self.sessions() as session:
+            second = Submission(user_id=self.user_id, track='lower', claim=None, status='rejected',
+                                commit='c' * 40, source_repo='https://github.com/author/repo.git',
+                                pr_number=7, pr_url='https://github.com/owner/repo/pull/7')
+            session.add(second)
+            schedule_report(session, second)
+            session.commit()
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
+             patch('app.worker.github.post_comment', return_value=9) as post:
+            worker.deliver_report(second.id)
+        body = post.call_args.args[2]
+        from app import github
+        verdicts = github.parse_verdicts(body)
+        self.assertEqual([(v['commit'], v['status'], v['claim']) for v in verdicts],
+                         [('a' * 40, 'verified', 21), ('c' * 40, 'rejected', None)])
+        self.assertNotIn('--', body.split('<!-- ots-result')[1].split('-->')[0])
+
+    def test_malformed_or_forged_verdict_blocks_are_ignored(self):
+        from app import github
+        self.assertEqual(github.parse_verdicts('no block'), [])
+        self.assertEqual(github.parse_verdicts('<!-- ots-result\n{bad json\n-->'), [])
+        bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower","commit":"xyz","status":"verified"}]}\n-->'
+        self.assertEqual(github.parse_verdicts(bad), [])
+
+    def test_resync_rebuilds_submissions_records_and_notes_from_github(self):
+        from app import github, resync
+        from app.db import pr_submission_id
+        block = github.verdict_block([{'track': 'lower', 'commit': 'a' * 40, 'status': 'verified', 'claim': 19,
+                                       'duration_s': 300.0, 'finished_at': '2026-09-10T10:00:00Z',
+                                       'contract': 'c0ffee', 'record': True}])
+        forged = github.verdict_block([{'track': 'lower', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
+        pulls = [
+            {'number': 7, 'state': 'closed', 'merged_at': '2026-09-11T08:00:00Z', 'created_at': '2026-09-09T00:00:00Z',
+             'user': {'login': 'alice', 'id': 42}, 'body': 'Averaging over classes.\nAssisted by: Model X',
+             'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}},
+            {'number': 8, 'state': 'open', 'merged_at': None, 'created_at': '2026-09-12T00:00:00Z',
+             'user': {'login': 'bob', 'id': 43}, 'body': '', 'head': {'sha': 'b' * 40, 'repo': None}},
+        ]
+        comments = {7: [{'id': 55, 'user': {'login': 'ots-bot'}, 'body': 'verified\n\n' + block},
+                        {'id': 56, 'user': {'login': 'mallory'}, 'body': forged}], 8: []}
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.resync.SessionLocal', self.sessions), \
+             patch('app.resync.github.list_pulls', return_value=pulls), \
+             patch('app.resync.github.list_comments', side_effect=lambda repo, n: comments[n]), \
+             patch('app.resync.github.read_file', return_value='## Idea\n\nAverage over classes.'), \
+             patch('app.main.handle_pull_request') as queue:
+            first = resync.resync()
+            second = resync.resync()
+        self.assertEqual(first, {'restored': 1, 'promoted': 1, 'queued': 1})
+        self.assertEqual(second['restored'], 0)
+        queue.assert_called_with('owner/repo', 8, 'b' * 40)
+        with self.sessions() as session:
+            sub = session.get(Submission, pr_submission_id('owner/repo', 7, 'a' * 40))
+            self.assertEqual((sub.claim, sub.status, sub.is_record, sub.user.login), (19, 'verified', True, 'alice'))
+            self.assertEqual(sub.record_at.strftime('%Y-%m-%d %H:%M'), '2026-09-11 08:00')
+            self.assertEqual(sub.assisted_by, 'Model X')
+            self.assertEqual(sub.notes, '## Idea\n\nAverage over classes.')
+            self.assertEqual(sub.detail_dict['github_comment_id'], 55)
+            self.assertIsNone(session.scalars(select(Submission).where(Submission.commit == 'd' * 40)).first())
+
+    def test_reference_baselines_are_recreated_once_per_public_track(self):
+        from app import contract, resync
+        with patch('app.resync.SessionLocal', self.sessions):
+            added = resync.ensure_baselines()
+            self.assertEqual(resync.ensure_baselines(), 0)
+        tracks = resync.public_tracks()
+        self.assertEqual(added, len(tracks))
+        with self.sessions() as session:
+            for t in tracks:
+                rows = list(session.scalars(select(Submission).where(Submission.track == t['slug'],
+                                                                     Submission.baseline.is_(True))))
+                self.assertEqual(len(rows), 1)
+                self.assertEqual((rows[0].claim, rows[0].status, rows[0].is_record), (t['baseline'], 'verified', True))
+                self.assertEqual(rows[0].user.login, 'ots.golf')
+        self.assertTrue(contract.trusted_commit())
+
+    def test_startup_reseeds_the_phony_board_or_the_baselines(self):
+        with patch.object(settings, 'phony', True), patch('app.main.SessionLocal', self.sessions), \
+             patch('seed_demo.reseed', return_value=(0, 3)) as reseed:
+            main.prepare_board()
+        reseed.assert_called_once()
+        with patch.object(settings, 'phony', False), patch('app.resync.ensure_baselines', return_value=5) as ensure:
+            main.prepare_board()
+        ensure.assert_called_once()
+
+    def deliver(self, sub, merge_result):
         with self.sessions() as session:
             schedule_report(session, session.get(Submission, sub.id))
             session.commit()
-        with patch.object(settings, 'github_token', 'test'), \
-             patch('app.worker.github.archive_head') as archive, patch('app.worker.github.post_status'), \
-             patch('app.worker.github.post_comment', return_value=321):
-            worker.deliver_report(sub.id)
-        archive.assert_called_once_with('owner/repo', f'submissions/{sub.id}', 'a' * 40)
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
+             patch('app.worker.github.post_comment', return_value=11), \
+             patch('app.worker.github.merge_pr', return_value=merge_result) as merge:
+            if 'auto_merge_off' in self._testMethodName:
+                worker.deliver_report(sub.id)
+            else:
+                with patch.object(settings, 'auto_merge', True):
+                    worker.deliver_report(sub.id)
+        return merge
+
+    def test_verified_record_is_merged_automatically_and_promoted(self):
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_called_once()
+        self.assertEqual(merge.call_args.args[:3], ('owner/repo', 7, 'a' * 40))
         with self.sessions() as session:
             stored = session.get(Submission, sub.id)
-            self.assertEqual(stored.detail_dict['archive_branch'], f'submissions/{sub.id}')
-            self.assertEqual(stored.archive_url, f'https://github.com/owner/repo/tree/submissions/{sub.id}')
+            self.assertTrue(stored.is_record)
+            self.assertTrue(stored.detail_dict['merge']['automatic'])
+            self.assertIsNotNone(session.get(GithubReport, sub.id))   # the comment is updated to "new record"
 
-    def test_rejected_head_is_not_archived(self):
-        sub = self.submission(status='rejected', claim=None)
-        with patch('app.worker.github.archive_head') as archive, patch('app.worker.github.post_status'), \
-             patch('app.worker.github.post_comment', return_value=1):
-            worker.report(sub)
-        archive.assert_not_called()
+    def test_non_record_is_never_merged(self):
+        self.submission(claim=25, record=True, pr=5)
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_not_called()
+        with self.sessions() as session:
+            self.assertFalse(session.get(Submission, sub.id).is_record)
 
-    def test_failed_archive_is_retried_with_the_report(self):
-        sub = self.submission()
+    def test_refused_merge_is_explained_on_the_pull_request(self):
+        sub = self.submission(claim=19)
+        self.deliver(sub, (False, 'Pull Request is not mergeable'))
         with self.sessions() as session:
-            schedule_report(session, session.get(Submission, sub.id))
-            session.commit()
-        with patch.object(settings, 'github_token', 'test'), \
-             patch('app.worker.github.archive_head', side_effect=RuntimeError('no contents permission')), \
-             patch('app.worker.github.post_status') as status, patch('app.worker.github.post_comment', return_value=5):
-            worker.deliver_report(sub.id)
-        status.assert_called_once()
-        with self.sessions() as session:
-            self.assertEqual(session.get(GithubReport, sub.id).attempts, 1)
-            self.assertNotIn('archive_branch', session.get(Submission, sub.id).detail_dict)
+            stored = session.get(Submission, sub.id)
+            self.assertFalse(stored.is_record)
+            self.assertEqual(stored.detail_dict['merge_blocked'], 'Pull Request is not mergeable')
+        with patch('app.worker.github.post_status'), patch('app.worker.github.update_comment') as update:
+            worker.report(stored)
+        self.assertIn('GitHub refused the automatic merge', update.call_args.args[2])
+
+    def test_auto_merge_off_never_merges(self):
+        sub = self.submission(claim=19)
+        merge = self.deliver(sub, (True, ''))
+        merge.assert_not_called()
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()

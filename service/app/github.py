@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import re
 
 import httpx
@@ -93,20 +94,106 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
     _check(r, f"status on {owner_repo}@{sha[:10]}")
 
 
-def archive_head(owner_repo: str, branch: str, sha: str) -> None:
-    """Point `refs/heads/<branch>` of the submissions repository at a checked pull-request head, so the
-    exact code stays public after its fork is gone. Creating an existing, identical ref is a no-op."""
-    if not SHA_RE.fullmatch(sha):
+def _paged(path: str, params: dict | None = None, limit: int = 5000) -> list[dict]:
+    """Every item of a paginated GitHub list, up to `limit`."""
+    items: list[dict] = []
+    with httpx.Client(timeout=30) as client:
+        page = 1
+        while len(items) < limit:
+            r = client.get(f"{API}{path}", params={**(params or {}), "per_page": 100, "page": page},
+                           headers=_headers())
+            _check(r, f"list {path}")
+            batch = r.json()
+            if not isinstance(batch, list) or not batch:
+                break
+            items.extend(batch)
+            if len(batch) < 100:
+                break
+            page += 1
+    return items[:limit]
+
+
+def list_pulls(owner_repo: str) -> list[dict]:
+    """Every pull request of the repository, open and closed, oldest first."""
+    return _paged(f"/repos/{owner_repo}/pulls", {"state": "all", "sort": "created", "direction": "asc"})
+
+
+def list_comments(owner_repo: str, number: int) -> list[dict]:
+    return _paged(f"/repos/{owner_repo}/issues/{number}/comments")
+
+
+def token_login() -> str:
+    """The account the token acts as: the only author whose comments carry verdicts."""
+    with httpx.Client(timeout=30) as client:
+        r = client.get(f"{API}/user", headers=_headers())
+        _check(r, "token login")
+        return r.json()["login"]
+
+
+def read_file(owner_repo: str, path: str, commit: str, max_bytes: int = 64 * 1024) -> str | None:
+    """A file at a commit of the repository (pull-request heads included), or None if absent."""
+    if not SHA_RE.fullmatch(commit):
         raise ValueError("not a commit id")
     with httpx.Client(timeout=30) as client:
-        r = client.post(f"{API}/repos/{owner_repo}/git/refs", headers=_headers(),
-                        json={"ref": f"refs/heads/{branch}", "sha": sha})
-        if r.status_code == 422:
-            existing = client.get(f"{API}/repos/{owner_repo}/git/ref/heads/{branch}", headers=_headers())
-            _check(existing, f"archive {branch}")
-            if existing.json().get("object", {}).get("sha") == sha:
-                return
-        _check(r, f"archive {branch}")
+        r = client.get(f"{API}/repos/{owner_repo}/contents/{path}", params={"ref": commit},
+                       headers={**_headers(), "Accept": "application/vnd.github.raw+json"})
+        if r.status_code == 404:
+            return None
+        _check(r, f"read {path}")
+        return r.content[:max_bytes].decode("utf-8", errors="replace")
+
+
+def merge_pr(owner_repo: str, number: int, sha: str, title: str) -> tuple[bool, str]:
+    """Merge a pull request, but only if its head is still exactly `sha`. Returns whether it merged,
+    and GitHub's reason when it did not (a conflict, a newer push, a closed pull request)."""
+    if not SHA_RE.fullmatch(sha):
+        raise ValueError("not a commit id")
+    with httpx.Client(timeout=60) as client:
+        r = client.put(f"{API}/repos/{owner_repo}/pulls/{number}/merge", headers=_headers(),
+                       json={"sha": sha, "merge_method": "merge", "commit_title": title})
+    if r.status_code == 200 and r.json().get("merged"):
+        return True, ""
+    if r.status_code in (405, 409, 422):
+        return False, str(r.json().get("message") or f"HTTP {r.status_code}")[:300]
+    _check(r, f"merge #{number}")
+    return False, f"HTTP {r.status_code}"
+
+
+VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
+VERDICT_RE = re.compile(r"<!-- ots-result\n(.*?)\n-->", re.S)
+VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")
+
+
+def verdict_block(entries: list[dict]) -> str:
+    """Every verdict of a pull request, machine-readable, hidden in the bot's comment. The comment is
+    the durable copy: the server's database can be rebuilt from it."""
+    clean = [{k: e.get(k) for k in VERDICT_KEYS} for e in entries]
+    text = json.dumps({"version": 1, "results": clean}, separators=(",", ":"), sort_keys=True)
+    text = text.replace("--", "-\\u002d")          # an HTML comment cannot contain "--"
+    return VERDICT_OPEN + "\n" + text + "\n" + VERDICT_CLOSE
+
+
+def parse_verdicts(body: str) -> list[dict]:
+    """The verdicts recorded in a bot comment, validated field by field; anything malformed is dropped."""
+    match = VERDICT_RE.search(body or "")
+    if not match:
+        return []
+    try:
+        data = json.loads(match[1])
+    except ValueError:
+        return []
+    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("results"), list):
+        return []
+    out = []
+    for e in data["results"]:
+        if not (isinstance(e, dict) and isinstance(e.get("track"), str) and isinstance(e.get("commit"), str)
+                and SHA_RE.fullmatch(e["commit"]) and isinstance(e.get("status"), str)):
+            continue
+        claim = e.get("claim")
+        if claim is not None and (type(claim) is not int or claim < 0):
+            continue
+        out.append({k: e.get(k) for k in VERDICT_KEYS})
+    return out
 
 
 def post_comment(owner_repo: str, number: int, body: str) -> int | None:

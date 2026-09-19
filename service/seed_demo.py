@@ -23,7 +23,7 @@ from urllib.parse import quote, urlsplit
 from sqlalchemy import select
 
 from app import contract
-from app.db import Base, Submission, User, engine, SessionLocal, utcnow
+from app.db import Base, Submission, User, engine, SessionLocal, stable_id, utcnow
 
 DEMO = {"demo": True}
 NOW = utcnow().replace(microsecond=0)
@@ -128,7 +128,8 @@ def add_rows(session, rows) -> int:
         claim = demo_claim(track, improvement)
         t = NOW - timedelta(hours=hours_ago)
         commit = hashlib.sha1(f"{track}{login}{claim}{hours_ago}".encode()).hexdigest()
-        sub = Submission(track=track, user_id=users[login].id, claim=claim if status == "verified" else None,
+        sub = Submission(id=stable_id("demo", FIXTURE_IDS[(track, login, hours_ago)]),
+                         track=track, user_id=users[login].id, claim=claim if status == "verified" else None,
                          source_repo=f"https://github.com/{login}/ots.golf", commit=commit, status=status,
                          is_record=is_record, record_at=t if is_record else None, baseline=False,
                          assisted_by=assisted, co_authors=json.dumps(coauthors),
@@ -156,6 +157,12 @@ def add(session) -> int:
     count = add_rows(session, ROWS)
     session.commit()
     return count
+
+
+def reseed(session) -> tuple[int, int]:
+    """Replace the invented rows with the fixture file's, keeping real submissions."""
+    removed = remove(session)
+    return removed, add(session)
 
 
 def main() -> None:

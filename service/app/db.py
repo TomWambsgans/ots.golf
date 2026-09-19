@@ -1,6 +1,8 @@
 """Database: users and submissions, in SQLite (WAL) under the data directory."""
 from __future__ import annotations
 
+import hashlib
+
 import json
 import fcntl
 import re
@@ -17,6 +19,16 @@ from .config import settings
 def utcnow() -> datetime:
     """Naive UTC, which is what every backend stores faithfully."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def stable_id(*parts: str) -> str:
+    """A submission id that depends only on what was submitted, so every page link survives
+    rebuilding the database from GitHub."""
+    return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()[:32]
+
+
+def pr_submission_id(pr_repository: str, pr_number: int, commit: str) -> str:
+    return stable_id("pr", pr_repository.lower(), str(pr_number), commit.lower())
 
 
 class Base(DeclarativeBase):
@@ -84,12 +96,19 @@ class Submission(Base):
 
     @property
     def archive_url(self) -> str | None:
-        """The public branch keeping this verified head, once it has been archived."""
-        branch = self.detail_dict.get("archive_branch")
-        if not isinstance(branch, str) or not self.pr_url:
+        """The checked commit inside the submissions repository. GitHub keeps every pull-request head
+        there (`refs/pull/<N>/head`), so the code and its notes stay public after the fork is gone."""
+        if not self.pr_repository:
             return None
-        repo = self.pr_url.split("/pull/")[0]
-        return f"{repo}/tree/{branch}"
+        return f"https://github.com/{self.pr_repository}/tree/{self.commit}"
+
+    @property
+    def fetch_command(self) -> str | None:
+        """How to get the exact checked code with git."""
+        if not self.pr_repository:
+            return None
+        return (f"git fetch https://github.com/{self.pr_repository}.git pull/{self.pr_number}/head"
+                f" && git checkout {self.commit}")
 
     @property
     def commit_url(self) -> str | None:

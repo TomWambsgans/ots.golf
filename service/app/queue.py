@@ -13,7 +13,7 @@ import subprocess
 from . import contract
 from .auth import get_or_create_user
 from .config import settings
-from .db import SessionLocal, Submission, init_db
+from .db import SessionLocal, Submission, init_db, stable_id
 
 
 def main() -> int:
@@ -39,8 +39,12 @@ def main() -> int:
         desc = a.description or (f"Baseline of the {t['title'].lower()} track: the paper's "
                                  f"{'proof' if t['direction'] == '+' else 'scheme'} as shipped in the contract repository."
                                  if a.baseline else None)
-        sub = Submission(track=a.track, user_id=user.id, source_repo=a.repo, commit=sha, baseline=a.baseline,
-                         description=desc)
+        sid = stable_id("local", a.track, a.repo, sha)
+        if session.get(Submission, sid) is not None:
+            print(f"already queued as {sid}")
+            return 0
+        sub = Submission(id=sid, track=a.track, user_id=user.id, source_repo=a.repo, commit=sha,
+                         baseline=a.baseline, description=desc)
         session.add(sub)
         session.commit()
         print(f"queued {sub.id} for {a.track}: {a.repo}@{sha[:10]}")

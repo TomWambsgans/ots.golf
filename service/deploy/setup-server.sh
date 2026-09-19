@@ -63,6 +63,7 @@ OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
 OTS_WORK_DIR=/srv/ots-work
 TMPDIR=/srv/ots-work
+OTS_PHONY=1
 ENV
 [[ -f /etc/ots/secrets.env ]] || ( umask 077; cat > /etc/ots/secrets.env <<ENV
 GITHUB_WEBHOOK_SECRET=$(openssl rand -hex 32)

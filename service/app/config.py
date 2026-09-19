@@ -25,8 +25,15 @@ class Settings:
     github_token: str = os.environ.get("GITHUB_TOKEN", "")
     contract_repo: str = os.environ.get("OTS_CONTRACT_REPO", DEFAULT_CONTRACT_REPO)
     submissions_repo: str = os.environ.get("OTS_SUBMISSIONS_REPO", "")  # empty keeps webhook admission closed
-    # Push every verified pull-request head to `submissions/<id>` in the submissions repository.
-    archive_submissions: bool = os.environ.get("OTS_ARCHIVE_SUBMISSIONS", "1") == "1"
+    # Merge a verified pull request automatically when it beats the record (needs contents write).
+    auto_merge: bool = os.environ.get("OTS_AUTO_MERGE", "1") == "1"
+    # The account whose pull-request comments carry verdicts; by default the token's own login.
+    bot_login: str = os.environ.get("OTS_BOT_LOGIN", "")
+    # Show the invented demo submissions (re-seeded from service/demo/submissions.json at every start)
+    # instead of the reference baselines. On for now; turn off with OTS_PHONY=0 at launch.
+    phony: bool = os.environ.get("OTS_PHONY", os.environ.get("OTS_DEMO_DATA", "1")) == "1"
+    # Rebuild missing submissions from GitHub when the website starts.
+    resync_on_start: bool = os.environ.get("OTS_RESYNC_ON_START", "1") == "1"
     queue_cap: int = int(os.environ.get("OTS_QUEUE_CAP", "20"))
     max_inflight_per_user: int = int(os.environ.get("OTS_MAX_INFLIGHT_PER_USER", "2"))
     database_url: str = ""
