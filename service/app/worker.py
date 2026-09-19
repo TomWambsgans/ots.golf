@@ -112,8 +112,14 @@ def promote(session, sub: Submission) -> None:
         sub.record_at = utcnow()
 
 
+def archive_branch(sub: Submission) -> str:
+    """The public branch that keeps a verified head, record or not."""
+    return f"submissions/{sub.id}"
+
+
 def report(sub: Submission) -> int | None:
-    """Publish a verdict; retain the comment ID so later updates edit the same comment."""
+    """Publish a verdict; retain the comment ID so later updates edit the same comment. A verified
+    head is also archived to its own branch of the submissions repository."""
     repo = sub.pr_repository
     if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
         raise ValueError("the submission does not belong to the configured submissions repository")
@@ -132,15 +138,21 @@ def report(sub: Submission) -> int | None:
         body = f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
     github.post_status(repo, sub.commit, state, what, url)
     comment_id = sub.detail_dict.get("github_comment_id")
+    posted = None
     if type(comment_id) is int:
         try:
             github.update_comment(repo, comment_id, body)
-            return comment_id
+            posted = comment_id
         except github.httpx.HTTPStatusError as exc:
             if exc.response.status_code != 404:
                 raise
             # A maintainer may have deleted the earlier comment. Recreate it on the same PR.
-    return github.post_comment(repo, sub.pr_number, body)
+    if posted is None:
+        posted = github.post_comment(repo, sub.pr_number, body)
+    # The verdict is out first; an archive failure only makes the (idempotent) report retry.
+    if sub.status == "verified" and settings.archive_submissions:
+        github.archive_head(repo, archive_branch(sub), sub.commit)
+    return posted
 
 
 def deliver_report(sub_id: str) -> None:
@@ -165,9 +177,13 @@ def deliver_report(sub_id: str) -> None:
         current = session.get(Submission, sub_id)
         if pending is None or current is None:
             return
-        if comment_id is not None:
+        if comment_id is not None or (error is None and current.status == "verified"):
             detail = current.detail_dict
-            detail["github_comment_id"] = comment_id
+            if comment_id is not None:
+                detail["github_comment_id"] = comment_id
+            if error is None and sub.status == "verified" and current.commit == sub.commit \
+                    and settings.archive_submissions:
+                detail["archive_branch"] = archive_branch(current)
             current.detail = json.dumps(detail)
         if pending.version == version:
             if error is None:

@@ -83,6 +83,15 @@ class Submission(Base):
         return value if isinstance(value, str) and value.strip() else None
 
     @property
+    def archive_url(self) -> str | None:
+        """The public branch keeping this verified head, once it has been archived."""
+        branch = self.detail_dict.get("archive_branch")
+        if not isinstance(branch, str) or not self.pr_url:
+            return None
+        repo = self.pr_url.split("/pull/")[0]
+        return f"{repo}/tree/{branch}"
+
+    @property
     def commit_url(self) -> str | None:
         if self.source_repo.startswith("https://github.com/"):
             return f"{self.source_repo.removesuffix('.git')}/commit/{self.commit}"
