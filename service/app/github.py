@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import re
 
 import httpx
@@ -91,6 +92,43 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
                         json={"state": state, "description": description[:140], "target_url": target_url,
                               "context": "ots.golf/verifier"})
     _check(r, f"status on {owner_repo}@{sha[:10]}")
+
+
+VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
+VERDICT_RE = re.compile(r"<!-- ots-result\n(.*?)\n-->", re.S)
+VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")
+
+
+def verdict_block(entries: list[dict]) -> str:
+    """Every verdict of a pull request, machine-readable, hidden in the bot's comment. The comment is
+    the durable copy: the server's database can be rebuilt from it."""
+    clean = [{k: e.get(k) for k in VERDICT_KEYS} for e in entries]
+    text = json.dumps({"version": 1, "results": clean}, separators=(",", ":"), sort_keys=True)
+    text = text.replace("--", "-\\u002d")          # an HTML comment cannot contain "--"
+    return VERDICT_OPEN + "\n" + text + "\n" + VERDICT_CLOSE
+
+
+def parse_verdicts(body: str) -> list[dict]:
+    """The verdicts recorded in a bot comment, validated field by field; anything malformed is dropped."""
+    match = VERDICT_RE.search(body or "")
+    if not match:
+        return []
+    try:
+        data = json.loads(match[1])
+    except ValueError:
+        return []
+    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("results"), list):
+        return []
+    out = []
+    for e in data["results"]:
+        if not (isinstance(e, dict) and isinstance(e.get("track"), str) and isinstance(e.get("commit"), str)
+                and SHA_RE.fullmatch(e["commit"]) and isinstance(e.get("status"), str)):
+            continue
+        claim = e.get("claim")
+        if claim is not None and (type(claim) is not int or claim < 0):
+            continue
+        out.append({k: e.get(k) for k in VERDICT_KEYS})
+    return out
 
 
 def post_comment(owner_repo: str, number: int, body: str) -> int | None:

@@ -222,7 +222,7 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             schedule_report(session, session.get(Submission, sub.id))
             session.commit()
-        def report(_sub):
+        def report(_sub, _history=None):
             self.merge(sub)
             return 123
         with patch.object(settings, 'github_token', 'test'), patch('app.worker.report', side_effect=report):
@@ -264,6 +264,32 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             self.assertEqual(session.get(Submission, first['id']).status, 'pending')
             self.assertEqual(len(list(session.scalars(select(Submission)))), 1)
+
+    def test_comment_records_every_verdict_of_the_pull_request(self):
+        first = self.submission(claim=21)
+        with self.sessions() as session:
+            second = Submission(user_id=self.user_id, track='lower', claim=None, status='rejected',
+                                commit='c' * 40, source_repo='https://github.com/author/repo.git',
+                                pr_number=7, pr_url='https://github.com/owner/repo/pull/7')
+            session.add(second)
+            schedule_report(session, second)
+            session.commit()
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
+             patch('app.worker.github.post_comment', return_value=9) as post:
+            worker.deliver_report(second.id)
+        body = post.call_args.args[2]
+        from app import github
+        verdicts = github.parse_verdicts(body)
+        self.assertEqual([(v['commit'], v['status'], v['claim']) for v in verdicts],
+                         [('a' * 40, 'verified', 21), ('c' * 40, 'rejected', None)])
+        self.assertNotIn('--', body.split('<!-- ots-result')[1].split('-->')[0])
+
+    def test_malformed_or_forged_verdict_blocks_are_ignored(self):
+        from app import github
+        self.assertEqual(github.parse_verdicts('no block'), [])
+        self.assertEqual(github.parse_verdicts('<!-- ots-result\n{bad json\n-->'), [])
+        bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower","commit":"xyz","status":"verified"}]}\n-->'
+        self.assertEqual(github.parse_verdicts(bad), [])
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()

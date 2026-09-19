@@ -112,7 +112,15 @@ def promote(session, sub: Submission) -> None:
         sub.record_at = utcnow()
 
 
-def report(sub: Submission) -> int | None:
+def verdict_entry(sub: Submission) -> dict:
+    """What a rebuild needs to restore one checked head."""
+    return {"track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
+            "duration_s": sub.duration_s,
+            "finished_at": sub.finished_at.strftime("%Y-%m-%dT%H:%M:%SZ") if sub.finished_at else None,
+            "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record)}
+
+
+def report(sub: Submission, history: list[dict] | None = None) -> int | None:
     """Publish a verdict; retain the comment ID so later updates edit the same comment."""
     repo = sub.pr_repository
     if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
@@ -130,6 +138,9 @@ def report(sub: Submission) -> int | None:
         state = "error" if sub.status == "failed" else "failure"
         quoted = failure[:600].replace("```", "'''")
         body = f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
+    finished = [e for e in (history or [verdict_entry(sub)]) if e["status"] not in {"pending", "verifying"}]
+    if finished:
+        body += "\n\n" + github.verdict_block(finished)
     github.post_status(repo, sub.commit, state, what, url)
     comment_id = sub.detail_dict.get("github_comment_id")
     if type(comment_id) is int:
@@ -154,9 +165,12 @@ def deliver_report(sub_id: str) -> None:
         if (sub.pr_repository or "").lower() != settings.submissions_repo.lower():
             return
         version = pending.version
+        history = [verdict_entry(s) for s in session.scalars(
+            select(Submission).where(func.lower(Submission.pr_url) == (sub.pr_url or "").lower())
+            .order_by(Submission.created_at))]
     error, comment_id = None, None
     try:
-        comment_id = report(sub)
+        comment_id = report(sub, history)
     except Exception as exc:  # network failure is retried independently of expensive verification
         error = exc
         _log(f"GitHub report for {sub_id} failed: {type(exc).__name__}; queued for retry")
@@ -221,7 +235,8 @@ def process(sub_id: str) -> None:
             msg = result.get("reason") or "; ".join(result.get("errors", [])) or result.get("tail", "")[-600:]
             failure = {"code": sub.status, "message": msg}
         detail = sub.detail_dict  # preserve merge-before-verification and the durable comment identity
-        detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"))
+        detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"),
+                      contract=contract.contract_id())
         notes = result.get("notes")
         if isinstance(notes, str) and notes.strip():
             detail["notes"] = notes[:64 * 1024]
