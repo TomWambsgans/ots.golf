@@ -6,7 +6,6 @@ namespace OptimalOTS.Challenge.LowerGenerality1
 
 /-- Every secure whole-word DAG scheme has a signature index whose verification costs at least
 `{{CLAIM}}` compressions. -/
-theorem candidate :
-    WholeWordVerificationLowerBound paperParams paperDagFormat {{CLAIM}} := sorry
+theorem candidate : LowerBoundGenerality1 {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.LowerGenerality1

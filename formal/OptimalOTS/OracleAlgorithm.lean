@@ -5,46 +5,38 @@ import OptimalOTS.Model
 
 The model of the Generality 3/3 lower bound and of both upper bounds (compressions and RISC-V
 cycles). A scheme is three oracle programs that share the random oracle of `Model.lean` and
-pay its compression costs; all other computation is free. Key generation and signing may use
-private randomness; verification may not. `Admissible` collects every requirement except
-security.
+pay its compression costs; all other computation is free. Signatures are bit strings. Key
+generation and signing may use private randomness; verification may not. `Admissible` collects
+every requirement except security.
 -/
 
 open OracleSpec OracleComp ENNReal
 noncomputable section
 open scoped Classical
 
-namespace OptimalOTS
+namespace OptimalOTS.OracleAlgorithm
 
-/-- `oa` uses no private randomness: on every path, every query goes to the hash oracle. -/
-def Deterministic (P : Params) {α : Type} (oa : OracleComp (Spec P) α) : Prop :=
-  oa.IsQueryBound () (fun t _ => t.isRight = true) (fun _ u => u)
+/-- Signatures are plain bit strings. -/
+abbrev Signature := List Bool
 
-/-- Key generation, signing and verification as oracle programs, with an injective signature
-encoding. Signing returns `none` when it fails. -/
-structure AlgorithmScheme (P : Params) where
+/-- Key generation, signing and verification as oracle programs. Signing returns `none` when it
+fails. -/
+structure Scheme where
   SecretKey : Type
-  Signature : Type
-  encodeSignature : Signature → List Bool
-  encodeSignature_injective : Function.Injective encodeSignature
-  keygen : OracleComp (Spec P) (PublicKey P × SecretKey)
-  sign : SecretKey → Message P → OracleComp (Spec P) (Option Signature)
-  verify : PublicKey P → Message P → Signature → OracleComp (Spec P) Bool
-
-namespace AlgorithmScheme
-
-variable {P : Params}
+  keygen : OracleComp Spec (PublicKey × SecretKey)
+  sign : SecretKey → Message → OracleComp Spec (Option Signature)
+  verify : PublicKey → Message → Signature → OracleComp Spec Bool
 
 /-- A one-signature attacker: choose a message after seeing the public key, then forge.
 Both stages may query the shared oracle and use private randomness. -/
-structure Adversary (S : AlgorithmScheme P) where
+structure Adversary where
   State : Type
-  choose : PublicKey P → OracleComp (Spec P) (Message P × State)
-  forge : State → Option S.Signature → OracleComp (Spec P) (Message P × S.Signature)
+  choose : PublicKey → OracleComp Spec (Message × State)
+  forge : State → Option Signature → OracleComp Spec (Message × Signature)
 
 /-- The attacker wins on an accepted message-signature pair other than the signed pair.
 If signing fails, any accepted pair wins. All parties share one oracle throughout. -/
-def experiment (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec P) Bool := do
+def experiment (S : Scheme) (A : Adversary) : OracleComp Spec Bool := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
   let σ₁ ← S.sign sk m₁
@@ -52,40 +44,41 @@ def experiment (S : AlgorithmScheme P) (A : S.Adversary) : OracleComp (Spec P) B
   let ok ← S.verify pk m₂ σ₂
   return ok && decide (σ₁.map (fun s => (m₁, s)) ≠ some (m₂, σ₂))
 
+namespace Scheme
+
+variable (S : Scheme)
+
 /-- Strong unforgeability: the attacker wins with probability strictly below
-`B / 2 ^ P.securityBits`, for every pathwise budget `B` of the whole experiment (the attacker's
+`B / 2 ^ securityBits`, for every pathwise budget `B` of the whole experiment (the attacker's
 queries, honest key generation and signing, and the final verification). -/
-def Secure (S : AlgorithmScheme P) : Prop :=
-  ∀ (A : S.Adversary) (B : ℕ), CostAtMost P (S.experiment A) B →
-    probTrue P (S.experiment A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
+def Secure : Prop :=
+  ∀ (A : Adversary) (B : ℕ), CostAtMost (experiment S A) B →
+    probTrue (experiment S A) < (B : ℝ≥0∞) / 2 ^ securityBits
 
 /-- Verification costs at most `c` on every input and every oracle-answer path, including rejects. -/
-def VerifyCostAtMost (S : AlgorithmScheme P) (c : ℕ) : Prop :=
-  ∀ pk m σ, CostAtMost P (S.verify pk m σ) c
+def VerifyCostAtMost (c : ℕ) : Prop := ∀ pk m σ, CostAtMost (S.verify pk m σ) c
 
 /-- Verification uses no private randomness, on any input. -/
-def VerifyDeterministic (S : AlgorithmScheme P) : Prop :=
-  ∀ pk m σ, Deterministic P (S.verify pk m σ)
+def VerifyDeterministic : Prop := ∀ pk m σ, Deterministic (S.verify pk m σ)
 
 /-- Key generation costs at most `b` on every oracle-answer path. -/
-def KeygenCostAtMost (S : AlgorithmScheme P) (b : ℕ) : Prop := CostAtMost P S.keygen b
+def KeygenCostAtMost (b : ℕ) : Prop := CostAtMost S.keygen b
 
 /-- Signing costs at most `b` for every secret key, message, and oracle-answer path. -/
-def SignCostAtMost (S : AlgorithmScheme P) (b : ℕ) : Prop :=
-  ∀ sk m, CostAtMost P (S.sign sk m) b
+def SignCostAtMost (b : ℕ) : Prop := ∀ sk m, CostAtMost (S.sign sk m) b
 
-/-- Every signature that signing can output encodes in at most `n` bits. -/
-def SignatureSizeAtMost (S : AlgorithmScheme P) (n : ℕ) : Prop :=
-  ∀ sk m σ, some σ ∈ support (S.sign sk m) → (S.encodeSignature σ).length ≤ n
+/-- Every signature that signing can output has at most `n` bits. -/
+def SignatureSizeAtMost (n : ℕ) : Prop :=
+  ∀ sk m σ, some σ ∈ support (S.sign sk m) → σ.length ≤ n
 
-/-- A signature encoding longer than `n` bits is rejected on every oracle-answer path. -/
-def RejectsOversized (S : AlgorithmScheme P) (n : ℕ) : Prop :=
-  ∀ pk m σ, n < (S.encodeSignature σ).length → true ∉ support (S.verify pk m σ)
+/-- Verification rejects every bit string longer than `n`, on every oracle-answer path. -/
+def RejectsOversized (n : ℕ) : Prop :=
+  ∀ pk m σ, n < σ.length → true ∉ support (S.verify pk m σ)
 
 /-- Perfect correctness: for every message chosen from the public key, an honest signature is
 rejected with probability zero. Signing failure is bounded separately. -/
-def Correct (S : AlgorithmScheme P) : Prop := ∀ message : PublicKey P → Message P,
-  probTrue P (do
+def Correct : Prop := ∀ message : PublicKey → Message,
+  probTrue (do
     let (pk, sk) ← S.keygen
     let m := message pk
     let σ ← S.sign sk m
@@ -95,30 +88,34 @@ def Correct (S : AlgorithmScheme P) : Prop := ∀ message : PublicKey P → Mess
 
 /-- For every message chosen from the public key, signing fails with probability at most `ε`,
 over honest key generation and signing. -/
-def SigningFailureAtMost (S : AlgorithmScheme P) (ε : ℝ≥0∞) : Prop :=
-  ∀ message : PublicKey P → Message P,
-  probTrue P (do
+def SigningFailureAtMost (ε : ℝ≥0∞) : Prop :=
+  ∀ message : PublicKey → Message,
+  probTrue (do
     let (pk, sk) ← S.keygen
     return (← S.sign sk (message pk)).isNone) ≤ ε
 
-/-- Every requirement except security, with the budgets of `P`; the signature size includes any
-nonce. `ε < 1` rules out schemes that never sign. -/
-structure Admissible (S : AlgorithmScheme P) (ε : ℝ≥0∞) : Prop where
-  failure_lt_one : ε < 1
+/-- Every requirement except security, with the competition's constants. -/
+structure Admissible : Prop where
   correct : S.Correct
   verifyDeterministic : S.VerifyDeterministic
-  signingFailure : S.SigningFailureAtMost ε
-  signatureSize : S.SignatureSizeAtMost P.signatureBits
-  rejectsOversized : S.RejectsOversized P.signatureBits
-  keygenCost : S.KeygenCostAtMost P.keygenCost
-  signCost : S.SignCostAtMost P.signCost
+  signingFailure : S.SigningFailureAtMost (1 / 2 ^ signingFailureBits)
+  signatureSize : S.SignatureSizeAtMost maxSignatureBits
+  rejectsOversized : S.RejectsOversized maxSignatureBits
+  keygenCost : S.KeygenCostAtMost keygenBudget
+  signCost : S.SignCostAtMost signBudget
 
-end AlgorithmScheme
+end Scheme
 
-/-- Every admissible, secure scheme needs a verification budget of at least `c`: any `v` bounding
-the verification cost on every input (accepting or rejecting) satisfies `c ≤ v`. -/
-def AlgorithmVerificationLowerBound (P : Params) (ε : ℝ≥0∞) (c : ℕ) : Prop :=
-  ∀ S : AlgorithmScheme P, S.Admissible ε → S.Secure →
-    ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
+end OptimalOTS.OracleAlgorithm
+
+namespace OptimalOTS
+
+open OracleAlgorithm
+
+/-- Generality 3/3: every admissible, secure scheme needs a verification budget of at least `c`:
+any `v` bounding the verification cost on every input (accepting or rejecting) satisfies
+`c ≤ v`. -/
+def LowerBoundGenerality3 (c : ℕ) : Prop :=
+  ∀ S : Scheme, S.Admissible → S.Secure → ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
 
 end OptimalOTS

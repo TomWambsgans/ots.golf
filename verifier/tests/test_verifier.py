@@ -142,9 +142,7 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(claim, 105)
         source = rendered.read_text()
         self.assertIn("scheme.VerifyCostAtMost 105", source)
-        self.assertIn("scheme.Admissible (1 / 2 ^ 128)", source)
-        self.assertEqual(track["signing_failure_allowance"],
-                         {"numerator": 1, "denominator": 2**128})
+        self.assertIn("theorem admissible : scheme.Admissible := sorry", source)
         comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
         prefix = "OptimalOTS.Challenge.UpperCompressions."
         self.assertEqual(set(comparator["theorem_names"]),
@@ -175,19 +173,20 @@ class VerifierTests(unittest.TestCase):
         for rel in (track["challenge_template"], track["comparator_config"]):
             self.assertIn(rel, self.cfg["protected"])
 
-    def test_algorithm_tracks_share_the_fixed_signing_failure_allowance(self):
-        riscv = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv")
-        self.assertEqual(riscv["signing_failure_allowance"], {"numerator": 1, "denominator": 2**128})
-        for slug in ("lower-generality-3", "upper-compressions"):
+    def test_signing_failure_bound_is_a_contract_constant(self):
+        model = (VERIFIER.parent / "formal/OptimalOTS/Model.lean").read_text()
+        self.assertIn("def signingFailureBits : ℕ := 128", model)
+        algorithm = (VERIFIER.parent / "formal/OptimalOTS/OracleAlgorithm.lean").read_text()
+        self.assertIn("S.SigningFailureAtMost (1 / 2 ^ signingFailureBits)", algorithm)
+        for slug in ("lower-generality-3", "upper-compressions", "upper-riscv"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
-                self.assertEqual(track["signing_failure_allowance"],
-                                 {"numerator": 1, "denominator": 2**128})
+                self.assertNotIn("signing_failure_allowance", track)
                 template = self.root / track["challenge_template"]
                 template.parent.mkdir(parents=True, exist_ok=True)
                 template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
                 rendered, _ = render(self.root, slug, 7)
-                self.assertIn("(1 / 2 ^ 128)", rendered.read_text())
+                self.assertNotIn("2 ^ 128", rendered.read_text())
 
     def test_invalid_utf8_source(self):
         (self.sub / "Solution.lean").write_bytes(b"\xff")

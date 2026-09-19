@@ -103,11 +103,7 @@
         "OptimalOTS.Model",
         "OptimalOTS.Dag",
         "OptimalOTS.OracleAlgorithm"
-      ],
-      "signing_failure_allowance": {
-        "numerator": 1,
-        "denominator": 340282366920938463463374607431768211456
-      }
+      ]
     },
     {
       "slug": "upper-compressions",
@@ -128,11 +124,7 @@
         "OptimalOTS.Model",
         "OptimalOTS.Dag",
         "OptimalOTS.OracleAlgorithm"
-      ],
-      "signing_failure_allowance": {
-        "numerator": 1,
-        "denominator": 340282366920938463463374607431768211456
-      }
+      ]
     },
     {
       "slug": "upper-riscv",
@@ -156,11 +148,7 @@
         "OptimalOTS.OracleAlgorithm",
         "OptimalOTS.RiscvMachine",
         "OptimalOTS.Riscv"
-      ],
-      "signing_failure_allowance": {
-        "numerator": 1,
-        "denominator": 340282366920938463463374607431768211456
-      }
+      ]
     }
   ],
   "upper_tracks": [
