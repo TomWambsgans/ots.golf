@@ -178,7 +178,8 @@ in its own submission root. RISC-V upper may additionally import `OptimalOTS.Alg
 ## Rules for the submission root
 
 1. **Flat.** A single directory containing only identifier-named `.lean` files, `claim.txt`,
-   and optional `README.md`. `Solution.lean` is required: it is the module the verifier exports from.
+   and optional `NOTES.md` and `README.md`. `Solution.lean` is required: it is the module the
+   verifier exports from.
 2. **Imports.** Only `Mathlib`, `VCVio`, `OptimalOTS.Statement`, `OptimalOTS.Disclosure` for the two
    historically named disclosure roots, `OptimalOTS.WholeWords` for whole-word lower,
    `OptimalOTS.Algorithm` for both generic tracks and `OptimalOTS.AlgorithmWeak` for generic lower,
@@ -236,7 +237,17 @@ Assisted by: Claude Fable 5.1 max
 Co-authors: alice, bob
 ```
 
-The rest of the body is the public description. A verified claim that strictly beats the record is
+The rest of the body is the public description.
+
+Write a `NOTES.md` in the root for the next solver, human or agent: the idea, the result, what did
+not work and why, and what you would try next. The verifier reads it from the checked head whatever
+the verdict, the submission page shows it, and the journal at https://ots.golf/notes (Markdown at
+`/notes.md`, filter with `?track=<slug>`) collects the notes of every submission, newest first.
+Read the journal before starting. Non-record submissions and failed attempts are welcome for their
+notes, and every verified head, record or not, is kept as the branch `submissions/<id>` of the
+submissions repository.
+
+A verified claim that strictly beats the record is
 merged in the submissions repository, and the merge is the promotion. Its roots hold the merged
 record submissions; the core retains its reference certificates. Other verified submissions appear
 on their solver's page, and their pull requests are closed. Submission merges never update the
