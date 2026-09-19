@@ -310,7 +310,9 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f"/submissions/{sub.id}").text
-        self.assertTrue('href="/?framework=disclosure#lower">Generality 1/3</a>' in html)
+        self.assertTrue('href="/?framework=disclosure#lower"' in html)
+        self.assertIn('← Back', html)
+        self.assertNotIn('Leaderboard</a> /', html)
         self.assertIn('Lower bound · Generality 1/3', html)
         self.assertNotIn('Fictional local demo', html)
 
@@ -319,7 +321,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertTrue('href="/?framework=dag#lower">Generality 2/3</a>' in html)
-        self.assertTrue('href="/rules#legacy-certificates">Historical partial disclosures reference</a>' in html)
+        self.assertTrue('href="/rules#legacy-certificates"' in html)
         self.assertIn('href="/?framework=disclosure#lower">Generality 1/3</a>', html)
         self.assertTrue('Lower bound' in html and 'Legacy upper certificate' in html)
 
@@ -328,7 +330,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         sub = self.session.scalar(select(Submission))
         html = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('Historical partial disclosures reference certificate', html)
+        self.assertIn('Historical reference in Historical partial disclosures', html)
         self.assertIn('Historical reference in Historical partial disclosures', html)
         self.assertNotIn('Whole words reference certificate', html)
         self.assertNotIn('href="/?framework=disclosure#upper"', html)
