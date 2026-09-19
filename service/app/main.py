@@ -402,13 +402,6 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     return render(request, "solver.html", solver=solver, subs=subs)
 
 
-@app.get("/notes", response_class=HTMLResponse)
-def notes_page(request: Request, track: str | None = None, session: Session = Depends(get_session)):
-    if track is not None and contract.track(track) is None:
-        raise HTTPException(404)
-    return render(request, "notes.html", entries=records.journal(session, track), track=track)
-
-
 @app.get("/notes.md", response_class=PlainTextResponse)
 def notes_markdown(track: str | None = None, session: Session = Depends(get_session)):
     """The same journal as plain Markdown, for agents: read it before starting."""
