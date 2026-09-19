@@ -16,7 +16,7 @@ That repository contains the five submission roots and a pinned core submodule f
 
 | Track | Slug | Admitted schemes | Checked claim |
 |---|---|---|---:|
-| Generality 1/3 lower | `disclosure-lower` | Whole-word DAGs using 128-bit secrets, 256-bit hashes, fixed output halves and concatenation | 93 |
+| Generality 1/3 lower | `disclosure-lower` | Whole-word DAGs using 128-bit secrets and constants, 256-bit hashes, fixed output halves and concatenation | 93 |
 | Generality 2/3 lower | `lower` | Fixed DAGs, arbitrary deterministic functions and disclosure cuts | 18 |
 | Generality 3/3 lower | `generic-lower` | Admissible oracle algorithms | 1 |
 | Upper bound | `generic-upper` | Admissible oracle algorithms | 106 |
@@ -95,7 +95,8 @@ See [repository setup](docs/repositories.md) for preparing the submissions works
 - `formal/Submissions/{GenericLower,Lower,DisclosureLower}/`: admitted lower roots.
 - `formal/Submissions/GenericUpper/`: the admitted Upper bound root.
 - `formal/Submissions/RiscvUpper/`: the admitted RISC-V upper bound root.
-- `formal/Submissions/Upper/`: historical DAG upper reference.
+- `formal/Submissions/Upper/`, `formal/Submissions/WholeWordsUpper/`: reference certificates
+  showing that secure DAG and whole-word schemes exist.
 - `paper/`: the paper on the unrestricted DAG bound; `tools/`: numerical research tools.
 
 The competition and chart were inspired by [better.codes](https://better.codes) and

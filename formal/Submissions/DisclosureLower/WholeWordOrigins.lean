@@ -6,7 +6,7 @@ import Submissions.DisclosureLower.DisclosurePatterns
 
 Every distinct origin requires at least one complete 128-bit word. A hash contributes
 one origin and has 256 bits; either permitted half contributes that same single origin
-and has 128 bits. Concatenation takes unions of origins while adding all input lengths,
+and has 128 bits. A fixed public 128-bit word has no parents and hence no origins. Concatenation takes unions of origins while adding all input lengths,
 including repeated inputs. Thus a 5248-bit payload has at most 41 distinct origins.
 -/
 
@@ -79,7 +79,9 @@ theorem card_hashOrigins_mul128_le (hwhole : G.WholeWords) (v : Fin G.size) :
       simp only [hk] at hv
       rw [WholeWordOrigins.origins_nonHash G hn]
       simp only [hk, NodeKind.parents]
-      rcases hv with ⟨ws, hps, hlen, _⟩ | ⟨p, high, hhash, hps, hlen, _⟩
+      rcases hv with ⟨hps, _⟩ | ⟨ws, hps, hlen, _⟩ | ⟨p, high, hhash, hps, hlen, _⟩
+      · rw [hps, Finset.biUnion_empty, Finset.card_empty, Nat.mul_zero]
+        exact Nat.zero_le _
       · calc
           128 * (ps.biUnion G.hashOrigins).card ≤
               128 * ∑ p ∈ ps, (G.hashOrigins p).card :=

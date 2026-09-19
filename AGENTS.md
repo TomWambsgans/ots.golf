@@ -16,6 +16,7 @@ formal/                      the Lean project (lake root)
   Submissions/Lower/         Generality 2/3 lower root; checked claim 18
   Submissions/Upper/         legacy upper reference: a forest of 63 chains, claim 106
   Submissions/DisclosureLower/  Generality 1/3 lower root; checked claim 93
+  Submissions/WholeWordsUpper/  whole-word reference: the forest with 128-bit tweak words, claim 106
   Submissions/GenericLower/     Generality 3/3 lower root; checked claim 1
   Submissions/GenericUpper/     Upper bound root; verified forest, claim 106
   Submissions/RiscvUpper/       RISC-V upper bound root; verified RV64IM verifier, claim 1628
@@ -32,8 +33,8 @@ All five public tracks are open.
 
 - **Generality 1/3** (`disclosure-lower`, retained slug): whole-word DAGs with a certified lower
   bound of 93. Secret sources are independent uniform 128-bit words; hashes return 256 bits.
-  Each deterministic node selects a fixed low or high half directly from a hash output, or
-  concatenates an ordered list of complete earlier values. Concatenations may repeat, reorder,
+  Each deterministic node is a fixed public 128-bit word, selects a fixed low or high half directly
+  from a hash output, or concatenates an ordered list of complete earlier values. Concatenations may repeat, reorder,
   group or be empty. Disclosures reveal complete node values. This syntax and the 5248-bit payload
   budget imply at most 41 disclosed hash origins.
 - **Generality 2/3** (`lower`): fixed DAGs with arbitrary deterministic functions and disclosure

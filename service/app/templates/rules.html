@@ -11,8 +11,8 @@
       signature</a> (OTS) uses a key pair to sign one message securely. This competition is about
       hash-based OTS, whose security rests on a hash function alone. For examples, see
       <a href="https://en.wikipedia.org/wiki/Lamport_signature#Example">Lamport signatures</a>, which
-      reveal selected secrets, and <a href="https://www.rfc-editor.org/rfc/rfc8391.html#section-3.1">Winternitz
-      signatures (WOTS+)</a>, which use hash chains.</p>
+      reveal selected secrets, and <a href="https://eprint.iacr.org/2025/055">target-sum Winternitz
+      signatures</a>, which use hash chains.</p>
       {% include "_rules_wots_diagram.html" %}
     </div>
   </details>
@@ -54,7 +54,7 @@
       problem, we define three classes of increasing generality, each with its own record.</p>
       <ul>
         <li><a href="#whole-words"><strong>Generality 1/3.</strong></a> DAGs built from whole 128-bit
-        words, hashes, hash halves and concatenation.</li>
+        words: secrets, fixed public words, hashes, hash halves and concatenation.</li>
         <li><a href="#graph"><strong>Generality 2/3.</strong></a> A DAG with arbitrary functions.</li>
         <li><a href="#generic-algorithms"><strong>Generality 3/3.</strong></a> Any oracle algorithm.</li>
       </ul>
@@ -128,9 +128,9 @@
       <p>This class keeps the <a href="#graph">DAG model of Generality 2/3</a> (key generation,
       cuts, signing and verification are unchanged) and restricts what the nodes may compute to
       <strong>whole 128-bit words</strong>. Each source is one uniform word, and each hash returns
-      256 bits. A deterministic node may do only two things: take the fixed low or high half of a
-      hash output, or concatenate complete earlier values, in any order, with repetitions or
-      grouping, possibly none. As before, a value may feed several nodes.</p>
+      256 bits. A deterministic node may do only three things: output a fixed public word, take the
+      fixed low or high half of a hash output, or concatenate complete earlier values, in any order,
+      with repetitions or grouping, possibly none. As before, a value may feed several nodes.</p>
     </div>
   </details>
 

@@ -8,8 +8,8 @@ tracks, both for generic algorithms: compressions and RISC-V cycles.
 ## Exact restriction
 
 Secret sources are independent uniform 128-bit words. Hashing returns 256 bits. Each deterministic
-node either selects a fixed low or high 128-bit half directly from a hash output, or concatenates
-an ordered list of complete earlier values. Concatenations may repeat, reorder, group or be empty.
+node is a fixed public 128-bit word (a node without parents), selects a fixed low or high 128-bit
+half directly from a hash output, or concatenates an ordered list of complete earlier values. Concatenations may repeat, reorder, group or be empty.
 
 Every node carries a sequence of whole words; a signature discloses complete node values. All
 original DAG cut, root reconstruction, nonce/index, size and resource requirements remain:
@@ -23,7 +23,7 @@ The permitted syntax and existing payload size imply the origin bound proved bel
 ## Proof on paper
 
 An origin is the first hash reached while tracing a value backwards through deterministic nodes.
-A secret source has no origins. A 256-bit hash has one origin; either 128-bit half has that same
+A secret source or a constant word has no origins. A 256-bit hash has one origin; either 128-bit half has that same
 origin. Concatenation unions origins and adds bit lengths. By induction along the graph,
 128 times a value's number of distinct origins is at most its length. Taking the union across
 all disclosed values preserves this inequality. The 5248-bit payload therefore has at most
@@ -66,5 +66,7 @@ checks that its only axioms are `propext`, `Classical.choice`, and `Quot.sound`.
 Exact numerical check: `python3 tools/tune_lower_bound.py --method words --claims 93,94`.
 Official pipeline: `python3 verifier/verify.py disclosure-lower --source .`.
 
-The 106-cost forest uses 16-bit tweaks, which whole-word syntax forbids, so it is not an upper
-construction in this restricted class.
+Constant words matter for the class to be non-empty: without them no hash input can carry a
+domain-separation tweak, and a revealed value hashed alone admits cheap second preimages. With
+them, the 106-cost forest uses 128-bit tweak words in place of its 16-bit tweaks; the
+`whole-words-upper` reference certificate proves such a scheme secure.

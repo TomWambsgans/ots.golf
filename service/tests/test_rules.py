@@ -47,7 +47,7 @@ class RulesTests(unittest.TestCase):
         self.assertIn('<h3>Upper bounds</h3>', html)
         self.assertIn('<h3 id="model">Lower bounds</h3>', html)
         self.assertIn('whole 128-bit words', html)
-        self.assertIn('A deterministic node may do only two things:', html)
+        self.assertIn('A deterministic node may do only three things: output a fixed public word,', html)
         self.assertNotIn('hash origins', html)
         self.assertNotIn('Reed–Solomon', html)
         self.assertIn('Submit an upper-bound construction, or a lower-bound proof', html)
@@ -69,7 +69,7 @@ class RulesTests(unittest.TestCase):
                             html, re.S).group(0)
         self.assertIn('256 bits', section)
         self.assertIn('whole 128-bit words', section)
-        self.assertIn('fixed low or high half of a\n      hash output', section)
+        self.assertIn('fixed low or high half of a hash output', section)
         self.assertIn('keeps the <a href="#graph">DAG model of Generality 2/3</a>', section)
 
     def test_rules_separate_proof_prs_from_core_sources(self):

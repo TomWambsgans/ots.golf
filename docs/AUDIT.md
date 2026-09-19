@@ -79,8 +79,8 @@ inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message 
 function of the public key. All new proofs reside in the independent `GenericUpper` submission
 root; the original `Upper` root is unchanged. See [the proof map](generic-upper.md).
 
-`WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, 256-bit hashes,
-fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
+`WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
+words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
 Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
 The resulting certificate proves 93, using the same weak-security experiment.

@@ -55,13 +55,13 @@ Keep all key admissibility, cost, security and submission requirements available
 use titled sections that are all collapsed on a fresh visit, beginning with “What is a one-time
 signature?”. Teach the concepts before the exact requirements, and keep diagrams inside the
 relevant sections. Combine overlapping topics and keep introductory explanations brief, linking
-to reliable background reading (such as Wikipedia for Lamport and the RFC for WOTS+) instead of
+to reliable background reading (such as Wikipedia for Lamport and ePrint 2025/055 for target-sum Winternitz) instead of
 repeating tutorials. Keep competition-specific requirements on the page. Preserve direct links
 that open the requested section. Whole words uses independent
-128-bit sources, 256-bit hash outputs with two selectable halves, and concatenation of whole-word
-sequences. Concatenations can reorder, repeat or be empty; no other deterministic operations,
-smaller fragments or encodings are admitted. Literal constant words cannot be introduced by a
-deterministic node; hashing an empty input is allowed and charged. Hash inputs have no fixed arity;
+128-bit sources, fixed public 128-bit words, 256-bit hash outputs with two selectable halves, and
+concatenation of whole-word sequences. Concatenations can reorder, repeat or be empty; no other
+deterministic operations, smaller fragments or encodings are admitted. Hashing an empty input is
+allowed and charged. Hash inputs have no fixed arity;
 charge their complete length. A 5,248-bit payload fits at most 41 words, plus the 128-bit nonce.
 The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
 Whole-word lower keeps the compatibility slug/root `disclosure-lower`/`DisclosureLower`, with
@@ -98,7 +98,7 @@ the three lower cards and draw its chart line solid. Explain in the rules that a
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
 budgets, with worst-case verification cost as the quantity to minimize. Present the upper tracks and lower direction,
 then the three lower classes; do not invent percentages for their degree of generality. Keep the
-WOTS+ illustration as a list of chains from secret to public endpoint: the message is encoded as
+target-sum Winternitz illustration as a list of chains from secret to public endpoint: the message is encoded as
 digits with a fixed sum, one per chain, the signature reveals the value each digit selects, and
 the verifier hashes forward to the endpoint. Do not restore
 the removed background-reading disclaimer or historical-certificate paragraph in the rules.

@@ -12,3 +12,4 @@ verifier/.tools/
 # Local Python bytecode and isolated research environments
 __pycache__/
 .venv-tools/
+formal/OptimalOTS/Challenge/WholeWordsUpper.lean
