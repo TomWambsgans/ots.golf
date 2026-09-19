@@ -9,7 +9,8 @@
   //
   // Verification is drawn as current: it leaves every revealed value at once and runs along the
   // edges the verifier hashes, all at one constant speed. A chain bead lights when the current
-  // reaches it; a group, subtree or the root lights when the last of its inputs arrives. When the
+  // reaches it; a group, subtree or the root lights when the last of its inputs arrives, and only
+  // then does the current leave it (until then it holds a faint steady glow). When the
   // root (the pupil) is reached, the eye blinks, and a fresh signature is lit while it is closed.
   var svg = document.querySelector('svg.scheme-art');
   if (!svg) return;
@@ -52,6 +53,7 @@
     var cl = el.classList;
     if (!cl.contains(c)) { cl.remove('revealed', 'recomputed', 'untouched'); cl.add(c); }
     cl.toggle('wait', !!wait && c === 'recomputed');
+    cl.remove('fed');
   }
   function light(cut, wait) {
     els.forEach(function (el) {
@@ -244,8 +246,8 @@
       e = c.events[c.next++];
       if (e.kind === 'gold') pulse(clock, e.x, e.y, e.r + .5, e.r + 8, 1100, 1.4, true);
       else if (e.kind === 'bead') { e.el.classList.remove('wait'); pulse(clock, e.x, e.y, e.r, e.r + 4.5, 650, 1); }
-      else if (e.kind === 'touch') pulse(clock, e.x, e.y, e.r, e.r + 4, 500, .8);
-      else { e.el.classList.remove('wait'); pulse(clock, e.x, e.y, e.r, e.r + 10, 900, 1.6); }
+      else if (e.kind === 'touch') { e.el.classList.add('fed'); pulse(clock, e.x, e.y, e.r, e.r + 4, 500, .8); }
+      else { e.el.classList.remove('wait', 'fed'); pulse(clock, e.x, e.y, e.r, e.r + 10, 900, 1.6); }
     }
     // the current along each edge: a lit trace behind, a glowing tail and a spark at the head
     for (i = 0; i < c.edges.length; i++) {

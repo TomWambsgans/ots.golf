@@ -181,6 +181,8 @@ pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 /* before the verifier's current reaches them, recomputed values wait, faint and hollow */
 .scheme-art .e.recomputed.wait { stroke-opacity: .2; }
 .scheme-art .n.recomputed.wait { fill: var(--art-bead); fill-opacity: .8; stroke-opacity: .6; }
+/* a hash whose first inputs have arrived holds a faint steady glow until the last one does */
+.scheme-art .n.recomputed.wait.fed { stroke: var(--art-current); stroke-opacity: .95; stroke-width: 1.6; }
 .scheme-art .pupil-boundary { fill: none; stroke: var(--art-pupil); stroke-width: 1.4; stroke-opacity: .55; }
 /* the verifier's current, drawn without filters: a wide faint glow, a thin bright core, a spark */
 .scheme-art .current line { fill: none; stroke-linecap: round; }
