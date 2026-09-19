@@ -29,7 +29,7 @@
         <tbody>
           <tr><th scope="row">Public key</th><td>128 bits</td></tr>
           <tr><th scope="row">Message</th><td>256 bits</td></tr>
-          <tr><th scope="row">Signature</th><td>At most 5,504 bits</td></tr>
+          <tr><th scope="row">Signature</th><td>At most 5,376 bits</td></tr>
           <tr><th scope="row">Key generation</th><td>At most 1,024 compressions</td></tr>
           <tr><th scope="row">Signing</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Security</th><td>127 bits</td></tr>
@@ -72,7 +72,7 @@
       returns a signature, verification accepts with probability one. Signing may fail, but only
       with probability at most <strong>2<sup>−128</sup></strong>, for any message.</p>
       <p>Signature encodings must be lossless.
-      Every possible signer output fits in 5,504 bits.
+      Every possible signer output fits in 5,376 bits.
       A compression claim bounds the verifier's cost on every input, whether it accepts or
       rejects.{% if riscv_upper_track %} The RISC-V score counts cycles on accepting runs only, as
       specified below.{% endif %}</p>
@@ -112,7 +112,7 @@
         <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts,
         possibly repeated. Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
         it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>20</sup></code> uniformly
-        sampled 256-bit nonces without replacement, stopping at the first valid index or failing.</li>
+        sampled 128-bit nonces without replacement, stopping at the first valid index or failing.</li>
         <li><strong>Reveal.</strong> Send the nonce and the cut's node values in node order,
         with at most 5,248 payload bits.</li>
         <li><strong>Verify.</strong> Reject invalid indices or wrong payload lengths; otherwise

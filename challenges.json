@@ -190,7 +190,7 @@
       "framework": "generic",
       "kind": "upper",
       "direction": "-",
-      "baseline": 1632,
+      "baseline": 1628,
       "cost_unit": "cycles",
       "submission_root": "formal/Submissions/RiscvUpper",
       "module_prefix": "Submissions.RiscvUpper",

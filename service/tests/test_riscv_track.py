@@ -24,7 +24,7 @@ class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
-        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=1632,
+        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=1628,
                        cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
         self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
@@ -56,17 +56,17 @@ class RiscvTrackTests(unittest.TestCase):
         compression = self.points(html, 'chart-points')
         machine = self.points(html, 'riscv-chart-points')
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
-        self.assertFalse(any(p['claim'] == 1632 for p in compression))
+        self.assertFalse(any(p['claim'] == 1628 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(2070, 'satoshi-nakamoto', 'cycles'), (2050, 'hal-finney', 'cycles'),
-                          (2030, 'satoshi-nakamoto', 'cycles'), (2010, 'vitalik-buterin', 'cycles'),
-                          (1990, 'hal-finney', 'cycles'), (1970, 'hal-finney', 'cycles'),
-                          (1960, 'satoshi-nakamoto', 'cycles'), (1940, 'vitalik-buterin', 'cycles'),
-                          (1930, 'vitalik-buterin', 'cycles'), (1920, 'hal-finney', 'cycles'),
-                          (1910, 'satoshi-nakamoto', 'cycles'), (1900, 'hal-finney', 'cycles'),
-                          (1890, 'vitalik-buterin', 'cycles'), (1880, 'hal-finney', 'cycles'),
-                          (1870, 'vitalik-buterin', 'cycles'), (1860, 'vitalik-buterin', 'cycles'),
-                          (1632, 'satoshi-nakamoto', 'cycles')])
+                         [(2066, 'satoshi-nakamoto', 'cycles'), (2046, 'hal-finney', 'cycles'),
+                          (2026, 'satoshi-nakamoto', 'cycles'), (2006, 'vitalik-buterin', 'cycles'),
+                          (1986, 'hal-finney', 'cycles'), (1966, 'hal-finney', 'cycles'),
+                          (1956, 'satoshi-nakamoto', 'cycles'), (1936, 'vitalik-buterin', 'cycles'),
+                          (1926, 'vitalik-buterin', 'cycles'), (1916, 'hal-finney', 'cycles'),
+                          (1906, 'satoshi-nakamoto', 'cycles'), (1896, 'hal-finney', 'cycles'),
+                          (1886, 'vitalik-buterin', 'cycles'), (1876, 'hal-finney', 'cycles'),
+                          (1866, 'vitalik-buterin', 'cycles'), (1856, 'vitalik-buterin', 'cycles'),
+                          (1628, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
@@ -83,7 +83,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('1632 cycles', detail)
+        self.assertIn('1628 cycles', detail)
         self.assertIn('Upper bound · RISC-V cycles', detail)
         self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
@@ -129,7 +129,7 @@ class RiscvTrackTests(unittest.TestCase):
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)
-        self.assertNotIn('1632', html)
+        self.assertNotIn('1628', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
         self.assertIn('formal/Submissions/RiscvUpper/', html)
         self.assertIn('<code>riscv-upper</code>', html)
