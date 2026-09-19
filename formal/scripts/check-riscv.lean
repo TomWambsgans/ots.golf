@@ -7,6 +7,9 @@ open OptimalOTS OptimalOTS.Riscv RiscvZkvm.Rv64 OracleComp
 
 namespace RiscvChecks
 
+-- Unfolding the named constants (`blockBits`, `hashBits`) nests deeper than the default limit.
+set_option maxRecDepth 10000
+
 def state (code : List Instr) : MachineState :=
   { regs := fun _ => 0, mem := fun _ => 0, pc := codeBase,
     code := loadProgram codeBase code }
@@ -37,9 +40,9 @@ example : hashArgumentsValid ((hashState 0).setReg .x12 (dataBase + 1)) = false 
 example : (hashInput (hashState 0)).1 = 0 := by rfl
 example : (hashInput (hashState 9)).1 = 9 := by rfl
 example : hashInput ((hashState 9).setMem dataBase 0x0105) = ⟨9, (261 : BitVec 9)⟩ := by decide
-example : blockCost paperParams 0 = 1 := by decide
-example : blockCost paperParams 512 = 1 := by decide
-example : blockCost paperParams 513 = 2 := by decide
+example : blockCost 0 = 1 := by decide
+example : blockCost 512 = 1 := by decide
+example : blockCost 513 = 2 := by decide
 
 -- An overlapping output buffer stores the answer in four little-endian doublewords.
 example : (writeHash (hashState 9) (0x0201 : BitVec 256)).getByte dataBase = 1 := by decide
@@ -47,7 +50,7 @@ example : (writeHash (hashState 9) (0x0201 : BitVec 256)).getByte (dataBase + 1)
 
 -- The hash syscall is the exact bare-oracle query, charged on its bit length.
 example : execute 2 (hashState 513) = (do
-    let answer ← hash paperParams (hashInput (hashState 513)).2
+    let answer ← hash (hashInput (hashState 513)).2
     addCycles 2 <$> execute 1 (writeHash (hashState 513) answer)) := by rfl
 
 def hashThenAccept (bits : ℕ) : MachineState :=
@@ -55,9 +58,9 @@ def hashThenAccept (bits : ℕ) : MachineState :=
       [.ECALL, .ADDI .x5 .x0 0, .ADDI .x10 .x0 1, .ECALL]) }
 
 example : execute 4 (hashThenAccept 513) = (do
-    let _ ← hash paperParams (hashInput (hashThenAccept 513)).2
+    let _ ← hash (hashInput (hashThenAccept 513)).2
     pure (some (true, 5))) := by
-  change (hash paperParams (hashInput (hashThenAccept 513)).2 >>= fun answer =>
+  change (hash (hashInput (hashThenAccept 513)).2 >>= fun answer =>
     addCycles 2 <$> execute 3 (writeHash (hashThenAccept 513) answer)) = _
   apply bind_congr
   intro answer
@@ -72,14 +75,14 @@ def repeatedEmptyHash : MachineState :=
 
 -- Repeated identical queries still appear twice, and each costs one compression.
 example : execute 5 repeatedEmptyHash = (do
-    let _ ← hash paperParams (0 : BitVec 0)
-    let _ ← hash paperParams (0 : BitVec 0)
+    let _ ← hash (0 : BitVec 0)
+    let _ ← hash (0 : BitVec 0)
     pure (some (true, 5))) := by
-  change (hash paperParams (0 : BitVec 0) >>= fun answer =>
+  change (hash (0 : BitVec 0) >>= fun answer =>
     addCycles 1 <$> execute 4 (writeHash repeatedEmptyHash answer)) = _
   apply bind_congr
   intro answer
-  have zero_cost : blockCost paperParams 0 = 1 := by decide
+  have zero_cost : blockCost 0 = 1 := by decide
   simp [execute, writeHash, repeatedEmptyHash, hashState, state, admittedInstruction,
     loadProgram, step, execInstrBr, signExtend12, MachineState.getReg, MachineState.setReg,
     MachineState.setPC, MachineState.writeWords, MachineState.setMem,
@@ -98,7 +101,7 @@ namespace OptimalOTS.Riscv
 
 /-- Refinement requires termination on every input and every oracle-answer path. -/
 theorem Submission.no_fault (S : Submission) (h : S.Implements)
-    (pk : PublicKey paperParams) (m : Message paperParams) (signature : List Bool) :
+    (pk : PublicKey) (m : Message) (signature : List Bool) :
     none ∉ support (S.run pk m signature) := by
   intro fault
   have mapped : none ∈ support (Option.map Prod.fst <$> S.run pk m signature) := by
@@ -109,7 +112,7 @@ theorem Submission.no_fault (S : Submission) (h : S.Implements)
   cases impossible
 
 /-- The OTS using the actual machine verifier, with faults interpreted as rejection. -/
-def Submission.implementedScheme (S : Submission) : AlgorithmScheme paperParams :=
+def Submission.implementedScheme (S : Submission) : OracleAlgorithm.Scheme :=
   { S.scheme with verify := fun pk m signature =>
       (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature }
 
@@ -117,13 +120,13 @@ def Submission.implementedScheme (S : Submission) : AlgorithmScheme paperParams 
 theorem Submission.implementedScheme_eq (S : Submission) (h : S.Implements) :
     S.implementedScheme = S.scheme := by
   have hv : (fun pk m signature =>
-      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature) = S.verify := by
+      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature) =
+        S.scheme.verify := by
     funext pk m signature
-    have he := congrArg (fun computation : OracleComp (Spec paperParams) (Option Bool) =>
+    have he := congrArg (fun computation : OracleComp Spec (Option Bool) =>
       (fun result => result.getD false) <$> computation) (h.2 pk m signature)
     simpa [Functor.map_map, Function.comp_def] using he
-  unfold Submission.implementedScheme Submission.scheme
-  dsimp only
+  unfold Submission.implementedScheme
   rw [hv]
 
 /-- The 127-bit proof applies to the implemented verifier with its actual hash-query costs. -/
@@ -133,8 +136,7 @@ theorem Submission.implemented_secure (S : Submission) (h : S.Implements)
 
 /-- Correctness, signing availability, and the size and resource limits also transfer. -/
 theorem Submission.implemented_admissible (S : Submission) (h : S.Implements)
-    (admissible : S.scheme.Admissible (1 / 2 ^ 128)) :
-    S.implementedScheme.Admissible (1 / 2 ^ 128) := by
+    (admissible : S.scheme.Admissible) : S.implementedScheme.Admissible := by
   rwa [S.implementedScheme_eq h]
 
 end OptimalOTS.Riscv
