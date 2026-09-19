@@ -3,7 +3,7 @@
 Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
 semantics, the internal lower-bound witnesses kept in this core (`formal/Witnesses/`), and the
 reference proofs (submission roots kept in the submissions repository). The lower bounds are
-generic **1**, unrestricted DAG **18**, and whole-word DAG **93**. Generic upper has a complete
+generic **1**, unrestricted DAG **18**, and whole-word DAG **90**. Generic upper has a complete
 **106** certificate, including perfect correctness, deterministic verification and signing failure
 at most `2^-128`; RISC-V upper has a **1628**-cycle certificate. Both witnesses are secure schemes
 at **106**. This
@@ -84,8 +84,8 @@ root; the internal Generality 2/3 witness proves the same forest separately. See
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
 words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
-Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
-The resulting certificate proves 93, using the same weak-security experiment.
+Cuts disclose complete values. The 5,376-bit payload budget implies the 42-origin property.
+The resulting certificate proves 90, using the same weak-security experiment.
 The internal Generality 1/3 witness (`formal/Witnesses/Generality1/`) is a checked secure whole-word
 construction at 106, so the class is non-empty.
 

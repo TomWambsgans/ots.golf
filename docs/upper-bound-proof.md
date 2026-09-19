@@ -28,7 +28,7 @@ tweaks would lose its 127 bits to a multi-target attack. `Scheme.Secure` demands
 The first version of the paper defined `D = {cuts of cost 105}` and claimed every such cut has at most 41 nodes.
 This is false: cutting all 63 chains gives cost-105 cuts with 63 nodes.  The stated count
 43124494150885380367098178978085896 is the number of cost-105 cuts with **at most 41 nodes**.
-The paper now defines `D := {cuts : cost = 105 ∧ |A| ≤ 41}` (so the 5248-bit budget holds), and in fact only
+The paper now defines `D := {cuts : cost = 105 ∧ |A| ≤ 41}` (so its reveals stay within 5248 bits), and in fact only
 the three most common shapes (97.5% of `D`, still > 2^115):
 
 | e revealed | g revealed | active chains | chain cost | nodes | count |

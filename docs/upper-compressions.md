@@ -36,7 +36,7 @@ The challenge substitutes a submission's claim for 106. `Admissible` requires:
 - Deterministic verification: the verifier uses no private randomness on any input.
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
-- Signatures of at most 5,376 encoded bits, and rejection of oversized signatures.
+- Signatures of at most 5,504 encoded bits, and rejection of oversized signatures.
 - At most 1,024 key-generation compressions and `2²⁰` signing compressions on every path.
 
 Public keys are 128 bits and messages are 256 bits. The separate security theorem gives

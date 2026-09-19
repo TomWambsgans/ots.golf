@@ -11,7 +11,7 @@ a fixed assembly image, and an input-dependent fuel bound witnessing termination
 `Submission.Certificate C` requires:
 
 - Perfect correctness, deterministic verification, signing failure at most `2^-128`, public keys
-  of 128 bits, messages of 256 bits, signatures of at most 5376 bits, key generation of at most
+  of 128 bits, messages of 256 bits, signatures of at most 5504 bits, key generation of at most
   1024 compressions and signing of at most `2^20` compressions.
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
@@ -52,9 +52,9 @@ code and data, and sets these registers:
 | `a0` | 128-bit public key at `0x400000` |
 | `a1` | 256-bit message at `0x400010` |
 | `a2` | Signature at `0x400030` |
-| `a3` | Signature bit length, capped at 5377 |
+| `a3` | Signature bit length, capped at 5505 |
 
-The first 5376 signature bits are loaded; the length sentinel distinguishes oversized inputs.
+The first 5504 signature bits are loaded; the length sentinel distinguishes oversized inputs.
 A signature is the 128-bit nonce followed by the payload, so the payload starts at `0x400040`.
 The image contains at most 262144 instructions and 1 MiB of fixed data, loaded at `0x200000`.
 Code is immutable. Parsing, arithmetic, copying and comparison run inside the machine.

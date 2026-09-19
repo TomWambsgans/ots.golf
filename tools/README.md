@@ -15,7 +15,7 @@ preparation script. Numerical results are exploration only: every claim requires
 `tune_lower_bound.py` uses exact integers and fractions:
 
 ```sh
-python3 tools/tune_lower_bound.py --method words --claims 93,94     # whole-word attack
+python3 tools/tune_lower_bound.py --method words --claims 90,91     # whole-word attack
 python3 tools/tune_lower_bound.py --method patterns --claims 18     # unrestricted DAG certificate
 python3 tools/tune_lower_bound.py --method disclosure --claims 80   # historical bounded-origin estimate
 ```

@@ -46,7 +46,7 @@ def forestScheme : Scheme paperParams paperDagFormat where
     exact (no_hidden_source_iff (setsName i)).mpr (isCut_of_mem_family (setsName_mem i)).covers
   reveal_le := by
     intro i
-    show graph.revealBits (fins (setsName i)) ≤ 5248
+    show graph.revealBits (fins (setsName i)) ≤ 5376
     rw [revealBits_eq, Finset.sum_const_nat fun n hn => (isCut_of_mem_family (setsName_mem i)).values n hn]
     have := card_le_of_mem_family (setsName_mem i)
     omega
