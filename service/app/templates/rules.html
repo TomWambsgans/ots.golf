@@ -100,12 +100,13 @@
   <details id="dag-model">
     <summary><h2 id="graph">Lower bound · Generality 2/3: DAGs</h2></summary>
     <div class="more prose">
-      <p>The scheme fixes a public directed acyclic graph (DAG), its value lengths and its node
-      functions. Sources are independent uniform bit strings; deterministic nodes apply arbitrary
-      functions to their declared parents; hash nodes hash one parent's entire value. Parents
-      precede children, and each value may feed multiple nodes. Key generation evaluates every
-      node once and stores all values.
-      The public key is the low 128 bits of the root hash.</p>
+      <p>The scheme is described by a public directed acyclic graph (DAG). Each node holds one
+      value, a bit string of fixed length, and comes in one of three kinds: a <strong>source</strong>
+      holds a fresh uniform random string, a <strong>deterministic node</strong> holds any fixed
+      function of its parents' values, and a <strong>hash node</strong> holds the hash of its single
+      parent's value. Parents come before children, and a value may feed several nodes. Key
+      generation draws the sources, evaluates every node once and stores all the values; the
+      public key is the low 128 bits of the root hash.</p>
       <p>A signature reveals a <strong>cut</strong>: stored values meeting every source-to-root path,
       excluding the root. Verification follows all declared parent edges backwards to the cut,
       then evaluates required nodes forwards, once each.</p>
