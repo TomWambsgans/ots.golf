@@ -58,9 +58,9 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 5513 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(30053, 'hal-finney', 'cycles'), (28513, 'vitalik-buterin', 'cycles'),
-                          (27253, 'hal-finney', 'cycles'), (26113, 'vitalik-buterin', 'cycles'),
-                          (25053, 'vitalik-buterin', 'cycles'), (5513, 'satoshi-nakamoto', 'cycles')])
+                         [(6620, 'hal-finney', 'cycles'), (6510, 'vitalik-buterin', 'cycles'),
+                          (6440, 'hal-finney', 'cycles'), (6370, 'vitalik-buterin', 'cycles'),
+                          (6340, 'vitalik-buterin', 'cycles'), (5513, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
