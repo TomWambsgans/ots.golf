@@ -169,11 +169,11 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse('data-track="disclosure-upper"' in html)
         points = [p for p in self.chart(html) if p['kind'] == 'upper']
         self.assertEqual([(p['claim'], p['login']) for p in points],
-                         [(512, 'leslie-lamport'), (431, 'hal-finney'), (372, 'ralph-merkle'),
-                          (318, 'vitalik-buterin'), (274, 'satoshi-nakamoto'), (236, 'leslie-lamport'),
-                          (204, 'hal-finney'), (180, 'ralph-merkle'), (160, 'vitalik-buterin'),
-                          (144, 'satoshi-nakamoto'), (131, 'hal-finney'), (121, 'leslie-lamport'),
-                          (114, 'ralph-merkle'), (109, 'vitalik-buterin'), (106, 'satoshi-nakamoto')])
+                         [(130, 'leslie-lamport'), (127, 'hal-finney'), (124, 'ralph-merkle'),
+                          (121, 'vitalik-buterin'), (119, 'satoshi-nakamoto'), (117, 'leslie-lamport'),
+                          (115, 'hal-finney'), (114, 'ralph-merkle'), (112, 'vitalik-buterin'),
+                          (111, 'satoshi-nakamoto'), (110, 'hal-finney'), (109, 'leslie-lamport'),
+                          (108, 'ralph-merkle'), (107, 'vitalik-buterin'), (106, 'satoshi-nakamoto')])
         for point in points:
             sub = self.session.get(Submission, point['id'])
             self.assertEqual(sub.track, 'generic-upper')
