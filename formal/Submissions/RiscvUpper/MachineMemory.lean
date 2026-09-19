@@ -38,21 +38,6 @@ theorem memBits_of_mem_eq {n : ℕ} {s t : MachineState} {base : Word} {v : BitV
   intro i hi
   simpa only [MachineState.getByte, MachineState.getMem, h] using hm i hi
 
-@[simp] theorem memBits_setReg {n : ℕ} {s : MachineState} {base : Word} {v : BitVec n}
-    (r : Reg) (w : Word) : MemBits (s.setReg r w) base v ↔ MemBits s base v := by
-  cases r <;> rfl
-
-@[simp] theorem memBits_setPC {n : ℕ} {s : MachineState} {base : Word} {v : BitVec n}
-    (pc : Word) : MemBits (s.setPC pc) base v ↔ MemBits s base v := Iff.rfl
-
-/-- A doubleword store preserves vectors whose containing doublewords are disjoint. -/
-theorem memBits_setMem {n : ℕ} {s : MachineState} {base addr : Word} {v : BitVec n}
-    (w : Word) (hm : MemBits s base v)
-    (hne : ∀ i, i < n → alignToDword (base + BitVec.ofNat 64 (i / 8)) ≠ addr) :
-    MemBits (s.setMem addr w) base v := by
-  intro i hi
-  simpa only [MachineState.getByte, MachineState.getMem_setMem_ne (hne i hi)] using hm i hi
-
 /-- The high vector follows the low vector at the next byte boundary. -/
 theorem memBits_append {m n : ℕ} {s : MachineState} {base : Word}
     {lo : BitVec m} {hi : BitVec n} (aligned : m % 8 = 0)
@@ -305,5 +290,20 @@ theorem getMem_writeBytesAsWords (s : MachineState) (base : Word)
       congr 3
       omega
 termination_by bytes.length
+
+/-- A wordwise memory frame also preserves the represented bit vector. -/
+theorem memBits_of_word_frame {width : ℕ} (s t : MachineState) (base : Word)
+    (value : BitVec width) (represented : MemBits s base value)
+    (frame : ∀ i, i < width → t.getMem (alignToDword (base + BitVec.ofNat 64 (i / 8))) =
+      s.getMem (alignToDword (base + BitVec.ofNat 64 (i / 8)))) : MemBits t base value := by
+  intro i hi
+  simp only [MachineState.getByte, frame i hi]
+  exact represented i hi
+
+/-- Width casts do not alter represented bits. -/
+theorem memBits_cast {a b : ℕ} (s : MachineState) (base : Word) (v : BitVec a) (equal : a = b) :
+    MemBits s base (v.cast equal) ↔ MemBits s base v := by
+  subst equal
+  rfl
 
 end OptimalOTS.RiscvUpperProgram

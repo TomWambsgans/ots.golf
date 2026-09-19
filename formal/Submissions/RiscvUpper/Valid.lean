@@ -180,9 +180,4 @@ theorem numValid_ge : 2 ^ 115 ≤ numValid paperParams := by
   rw [numValid, card_validSet, comp_32_target]
   norm_num
 
-theorem numValid_pos : 0 < numValid paperParams := lt_of_lt_of_le (by norm_num) numValid_ge
-
-theorem numValid_ne_zero : (numValid paperParams : ENNReal) ≠ 0 :=
-  Nat.cast_ne_zero.mpr numValid_pos.ne'
-
 end OptimalOTS

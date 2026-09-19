@@ -32,9 +32,6 @@ theorem costAtMost_query_bind_iff (P : Params) {α : Type} (t : (Spec P).Domain)
   unfold CostAtMost
   rw [isQueryBound_query_bind_iff]
 
-theorem costAtMost_pure' (P : Params) {α : Type} (x : α) (b : ℕ) :
-    CostAtMost P (pure x : OracleComp (Spec P) α) b := trivial
-
 theorem sum_inv_card_mul {n : ℕ} (a : ℝ≥0∞) :
     ∑ _x : BitVec n, (Fintype.card (BitVec n) : ℝ≥0∞)⁻¹ * a = a := by
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← mul_assoc,

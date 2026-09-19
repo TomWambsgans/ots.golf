@@ -124,16 +124,6 @@ theorem initialState_signature_word (image : Riscv.Image) (pk : PublicKey paperP
       norm_num [Riscv.bytesOfBits, BitVec.toNat_add] at hb ⊢
       omega
 
-/-- Workspace addresses above all input buffers start at zero. -/
-theorem initialState_workspace_zero (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) (hdata : image.data.length ≤ 1048576)
-    (addr : Word) (ha : 4195024 ≤ addr.toNat) :
-    (Riscv.initialState image pk m bits).getMem addr = 0 := by
-  rw [initialState_getMem, getMem_load_outside, loaderMessage_zero _ _ _ hdata]
-  all_goals
-    norm_num [Riscv.bytesOfBits]
-    omega
-
 /-- Consecutive aligned words determine exactly the vector read by HASH. -/
 theorem memBits_of_words {n : ℕ} (s : MachineState) (base : Word) (v : BitVec n)
     (ha : alignToDword base = base)
@@ -169,13 +159,6 @@ theorem initialState_publicKey (image : Riscv.Image) (pk : PublicKey paperParams
   apply memBits_of_words _ _ _ (by decide +kernel)
   intro j hj
   exact initialState_publicKey_word image pk m bits j hj
-
-theorem initialState_message (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) :
-    MemBits (Riscv.initialState image pk m bits) Riscv.messageBase m := by
-  apply memBits_of_words _ _ _ (by decide +kernel)
-  intro j hj
-  exact initialState_message_word image pk m bits j hj
 
 /-- Decoding and taking a fully contained slice commute. -/
 theorem ofBits_extract {n start len : ℕ} (bits : List Bool) (contained : start + len ≤ n) :
@@ -220,32 +203,5 @@ theorem ofBits_drop_take (bits : List Bool) {cap start len : ℕ}
   simp only [ofBits, BitVec.getLsbD_ofNat, hi, decide_true, Bool.true_and,
     testBit_foldr_bits, List.getD_eq_getElem?_getD, List.getElem?_drop,
     List.getElem?_take, hcap, ↓reduceIte]
-
-/-- The nonce is the first 128 raw signature bits, padded with zeros when absent. -/
-theorem initialState_nonce (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) (hdata : image.data.length ≤ 1048576) :
-    MemBits (Riscv.initialState image pk m bits) Riscv.signatureBase
-      (ofBits 128 (bits.take 128)) := by
-  have h := memBits_extract (start := 0) (len := 128)
-    (initialState_signature image pk m bits hdata) (by decide) (by decide)
-  rw [ofBits_extract _ (by decide), ofBits_drop_take _ (by decide)] at h
-  have heq : ofBits 128 (bits.take 128) = ofBits 128 bits := by
-    simpa only [List.drop_zero] using
-      ofBits_drop_take bits (cap := 128) (start := 0) (len := 128) (by decide)
-  rw [heq]
-  simpa only [Nat.zero_div, BitVec.add_zero, List.drop_zero] using h
-
-/-- The 41 possible disclosure slots are the raw 128-bit chunks following the nonce. -/
-theorem initialState_payload (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) (hdata : image.data.length ≤ 1048576)
-    (slot : ℕ) (hslot : slot < 41) :
-    MemBits (Riscv.initialState image pk m bits)
-      (Riscv.signatureBase + BitVec.ofNat 64 (16 + 16 * slot))
-      (ofBits 128 (bits.drop (128 + 128 * slot))) := by
-  have h := memBits_extract (start := 128 + 128 * slot) (len := 128)
-    (initialState_signature image pk m bits hdata) (by omega) (by omega)
-  rw [ofBits_extract _ (by omega), ofBits_drop_take _ (by omega)] at h
-  have hoff : (128 + 128 * slot) / 8 = 16 + 16 * slot := by omega
-  simpa only [hoff] using h
 
 end OptimalOTS.RiscvUpperProgram

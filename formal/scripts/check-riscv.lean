@@ -1,6 +1,7 @@
 import OptimalOTS.Riscv
 
-/-! Kernel-checked boundary tests for the virtual machine, not OTS certificates. -/
+/-! Kernel-checked boundary tests for the virtual machine and derived facts about the RISC-V
+contract, not OTS certificates. -/
 
 open OptimalOTS OptimalOTS.Riscv RiscvZkvm.Rv64 OracleComp
 
@@ -86,7 +87,72 @@ example : execute 5 repeatedEmptyHash = (do
     isValidOutputRange, isValidDwordAccess, MEM_START, MEM_END, INPUT_MEM_START,
     INPUT_MEM_END, RAM_MEM_START, RAM_MEM_END, zero_cost, ofBits]
 
--- Invalid return codes and fuel exhaustion are not interpreted as successful refinement.
-example : (none : Outcome) ≠ some (false, 0) := by decide
+-- A program that never halts exhausts any fuel, and exhausted fuel is a fault, not a verdict.
+example : execute 3 (state [.JAL .x0 0]) = pure none := by rfl
 
 end RiscvChecks
+
+/-! Derived facts about the contract, checked here rather than in the protected files. -/
+
+namespace OptimalOTS.Riscv
+
+/-- Refinement requires termination on every input and every oracle-answer path. -/
+theorem Submission.no_fault (S : Submission) (h : S.Implements)
+    (pk : PublicKey paperParams) (m : Message paperParams) (signature : List Bool) :
+    none ∉ support (S.run pk m signature) := by
+  intro fault
+  have mapped : none ∈ support (Option.map Prod.fst <$> S.run pk m signature) := by
+    rw [support_map]
+    exact ⟨none, fault, rfl⟩
+  rw [h.2 pk m signature, support_map] at mapped
+  obtain ⟨b, _, impossible⟩ := mapped
+  cases impossible
+
+/-- The OTS using the actual machine verifier, with faults interpreted as rejection. -/
+def Submission.implementedScheme (S : Submission) : AlgorithmScheme paperParams :=
+  { S.scheme with verify := fun pk m signature =>
+      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature }
+
+/-- Refinement identifies the entire implemented OTS with its proved specification. -/
+theorem Submission.implementedScheme_eq (S : Submission) (h : S.Implements) :
+    S.implementedScheme = S.scheme := by
+  have hv : (fun pk m signature =>
+      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature) = S.verify := by
+    funext pk m signature
+    have he := congrArg (fun computation : OracleComp (Spec paperParams) (Option Bool) =>
+      (fun result => result.getD false) <$> computation) (h.2 pk m signature)
+    simpa [Functor.map_map, Function.comp_def] using he
+  unfold Submission.implementedScheme Submission.scheme
+  dsimp only
+  rw [hv]
+
+/-- The 127-bit proof applies to the implemented verifier with its actual hash-query costs. -/
+theorem Submission.implemented_secure (S : Submission) (h : S.Implements)
+    (secure : S.scheme.Secure) : S.implementedScheme.Secure := by
+  rwa [S.implementedScheme_eq h]
+
+/-- Correctness, signing availability, and the size and resource limits also transfer. -/
+theorem Submission.implemented_admissible (S : Submission) (h : S.Implements)
+    (admissible : S.scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)) :
+    S.implementedScheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := by
+  rwa [S.implementedScheme_eq h]
+
+end OptimalOTS.Riscv
+
+/--
+info: 'OptimalOTS.Riscv.Submission.implemented_admissible' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms OptimalOTS.Riscv.Submission.implemented_admissible
+
+/--
+info: 'OptimalOTS.Riscv.Submission.implemented_secure' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms OptimalOTS.Riscv.Submission.implemented_secure
+
+/--
+info: 'OptimalOTS.Riscv.Submission.no_fault' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms OptimalOTS.Riscv.Submission.no_fault

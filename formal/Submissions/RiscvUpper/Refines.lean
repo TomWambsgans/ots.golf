@@ -1,4 +1,4 @@
-import Submissions.RiscvUpper.StructuredPure
+import Submissions.RiscvUpper.AssemblyMacros
 
 /-!
 # Refinement with exact cycle accounting
@@ -66,29 +66,6 @@ theorem Refines.linear {s : MachineState} (code : List Instr)
     (h : Refines fuel (code.foldl execInstrBr s) q c) :
     Refines (code.length + fuel) s q (code.length + c) :=
   Refines.steps (linear_steps s code located ready) h
-
-/-- A structured block costs at most its code length, whatever branches it takes. -/
-theorem Refines.block (b : RiscvUpperProgram.PureBlock) (s : MachineState) (ready : b.Ready s)
-    (located : CodeAt s s.pc b.code) (rest fuel : ℕ)
-    (q : OracleComp (Spec paperParams) (Option Bool)) (c : ℕ)
-    (bound : b.code.length + rest ≤ fuel)
-    (continuation : ∀ left, rest ≤ left → Refines left (b.eval s) q c) :
-    Refines fuel s q (b.code.length + c) := by
-  obtain ⟨used, hused, execution⟩ := b.steps s ready located
-  have h := Refines.steps execution (continuation (fuel - used) (by omega))
-  rw [Nat.add_sub_of_le (by omega : used ≤ fuel)] at h
-  exact h.mono (by omega)
-
-/-- A structured block costs exactly the instructions it executes. -/
-theorem Refines.block_exact (b : RiscvUpperProgram.PureBlock) (s : MachineState) (ready : b.Ready s)
-    (located : CodeAt s s.pc b.code) (rest fuel : ℕ)
-    (q : OracleComp (Spec paperParams) (Option Bool)) (c : ℕ)
-    (bound : b.code.length + rest ≤ fuel)
-    (continuation : ∀ left, rest ≤ left → Refines left (b.eval s) q c) :
-    Refines fuel s q (b.cost s + c) := by
-  have le := b.cost_le s
-  have h := Refines.steps (b.steps_exact s ready located) (continuation (fuel - b.cost s) (by omega))
-  rwa [Nat.add_sub_of_le (by omega : b.cost s ≤ fuel)] at h
 
 theorem execute_hash (fuel : ℕ) (s : MachineState)
     (fetch : s.code s.pc = some .ECALL) (call : s.getReg .x5 = hashCall)

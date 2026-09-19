@@ -1,7 +1,7 @@
 import Submissions.RiscvUpper.IndexChecks
-import Submissions.RiscvUpper.NodeProgram
+import Submissions.RiscvUpper.ForestVerifier
 
-/-! Input buffers and node slots survive the index query and the nibble checks. -/
+/-! Input buffers survive the index query and the nibble checks. -/
 
 namespace OptimalOTS.RiscvUpperProgram
 
@@ -39,30 +39,6 @@ theorem indexHash_frame (image : Riscv.Image) (pk : PublicKey paperParams)
     have h := congrArg BitVec.toNat heq
     simp only [BitVec.toNat_add, BitVec.toNat_ofNat] at h
     norm_num only [scratchBase, Nat.reduceAdd, Nat.reducePow] at h outside
-    omega
-
-/-- Node workspaces start at zero after the index HASH. -/
-theorem indexHash_nodes_zero (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
-    (hdata : image.data.length ≤ 1048576) (n : Forest.Name) :
-    MemBits (Riscv.writeHash (indexInputState image pk m bits) answer)
-      (BitVec.ofNat 64 (Direct.slotAddress n)) (0 : BitVec n.len) := by
-  have hn : n.len ≤ 912 := by cases n <;> simp [Forest.Name.len]
-  have bounds := Direct.slotAddress_bounds n
-  have aligned : alignToDword (BitVec.ofNat 64 (Direct.slotAddress n)) =
-      BitVec.ofNat 64 (Direct.slotAddress n) := by
-    apply (aligned_iff _).mpr
-    have h := Direct.slotAddress_aligned n
-    simp only [BitVec.toNat_ofNat]
-    omega
-  apply memBits_of_words _ _ _ aligned
-  intro j hj
-  rw [indexHash_frame, initialState_workspace_zero _ _ _ _ hdata]
-  · exact (BitVec.extractLsb'_zero (w := n.len) (start := 64 * j) (len := 64)).symm
-  all_goals
-    simp only [BitVec.toNat_add, BitVec.toNat_ofNat]
-    try right
-    try unfold scratchBase
     omega
 
 /-- The nibble checks preserve a represented vector outside the position array. -/

@@ -1,5 +1,5 @@
 import Submissions.RiscvUpper.Refines
-import Submissions.RiscvUpper.IndexExecution
+import Submissions.RiscvUpper.IndexChecks
 
 /-! The index query and wire-format checks, with exact cycle accounting. -/
 

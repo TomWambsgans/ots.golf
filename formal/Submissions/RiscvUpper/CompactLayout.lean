@@ -7,11 +7,6 @@ namespace OptimalOTS.RiscvUpperProgram.Compact
 
 open RiscvZkvm.Rv64
 
-theorem chainsBase_eq : chainsBase = 0x601000 := rfl
-theorem groupsBase_eq : groupsBase = 0x602000 := rfl
-theorem subtreesBase_eq : subtreesBase = 0x603000 := rfl
-theorem scratchBase_eq : scratchBase = 0x604000 := rfl
-
 /-- Every doubleword of every chain slot is accessible. -/
 theorem chain_access (k j : ℕ) (hk : k < 36) (hj : j < 4) :
     isValidDwordAccess (BitVec.ofNat 64 chainsBase + BitVec.ofNat 64 (chainSlot k + 8 * j)) =
@@ -65,19 +60,11 @@ theorem scratch_output_range_114 : isValidOutputRange (BitVec.ofNat 64 scratchBa
 def FrameInputs (s t : MachineState) : Prop :=
   ∀ addr : Word, addr.toNat < chainsBase → t.getMem addr = s.getMem addr
 
-theorem FrameInputs.refl (s : MachineState) : FrameInputs s s := fun _ _ => rfl
-
-theorem FrameInputs.trans {s t u : MachineState} (h : FrameInputs s t) (h' : FrameInputs t u) :
-    FrameInputs s u := fun addr bound => (h' addr bound).trans (h addr bound)
-
-theorem FrameInputs.setPC {s : MachineState} (pc : Word) : FrameInputs s (s.setPC pc) :=
-  fun _ _ => rfl
-
 /-- The reconstruction context survives any writes at or above the chain array. -/
-theorem _root_.OptimalOTS.RiscvUpperProgram.Direct.ExecutionContext.frameInputs {s t : MachineState} {index : Idx paperParams}
+theorem _root_.OptimalOTS.RiscvUpperProgram.ExecutionContext.frameInputs {s t : MachineState} {index : Idx paperParams}
     {payload : List Bool} {pk : PublicKey paperParams}
-    (context : Direct.ExecutionContext s index payload pk) (frame : FrameInputs s t)
-    (base : t.getReg .x8 = s.getReg .x8) : Direct.ExecutionContext t index payload pk := by
+    (context : ExecutionContext s index payload pk) (frame : FrameInputs s t)
+    (base : t.getReg .x8 = s.getReg .x8) : ExecutionContext t index payload pk := by
   refine ⟨base.trans context.positionBase, ?_, ?_, ?_⟩
   · intro k hk
     rw [base, frame]

@@ -4,14 +4,15 @@ import RiscvZkvm.Rv64
 /-!
 # The competition's RISC-V machine
 
-RV64IM instructions use the pinned `riscv-zkvm` semantics. Each ordinary instruction,
+A subset of RV64IM, with the pinned `riscv-zkvm` semantics. Each ordinary instruction,
 including HALT, costs one cycle. HASH costs `blockCost paperParams` on its exact
 bit-string input. These are the only system calls: the verifier is deterministic given the
-oracle's answers. Code and initial data are finite, fixed parts of the image.
-
-The oracle boundary and counted execution follow Derek Sorensen's `xmss-verify-asm`
-design (003facc). This module uses the upstream machine dependency directly.
+oracle's answers. The machine is Harvard-style: the image's code is an instruction list in its
+own code space and data memory is separate, so self-modifying code is not expressible. Code and
+initial data are finite, fixed parts of the image.
 -/
+
+-- The oracle boundary and counted execution follow Derek Sorensen's `xmss-verify-asm` design.
 
 namespace OptimalOTS.Riscv
 

@@ -25,12 +25,6 @@ attribute [local irreducible] AlgorithmScheme.Secure AlgorithmScheme.VerifyCostA
 
 def scheme : AlgorithmScheme paperParams := Forest.forestScheme.toAlgorithm
 
-theorem experiment_eq (A : scheme.Adversary) :
-    scheme.experiment A =
-      GScheme.experiment Forest.forestScheme
-        (AlgorithmAdapter.toDAGAdversary Forest.forestScheme A) :=
-  AlgorithmAdapter.experiment_eq Forest.forestScheme A
-
 theorem secure : scheme.Secure :=
   (AlgorithmAdapter.secure_iff Forest.forestScheme).2 Forest.forestScheme_secure
 

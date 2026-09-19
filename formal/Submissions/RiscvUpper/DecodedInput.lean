@@ -1,6 +1,4 @@
-import Submissions.RiscvUpper.InitialStorage
-import Submissions.RiscvUpper.IndexChecks
-import Submissions.RiscvUpper.NodeProgramProof
+import Submissions.RiscvUpper.ExecutionContext
 
 /-! The checked state establishes the memory representation used by reconstruction. -/
 
@@ -34,16 +32,11 @@ theorem decodedInput_base (image : Riscv.Image) (pk : PublicKey paperParams)
     (decodedInput image pk m bits answer).getReg .x8 = BitVec.ofNat 64 positionsBase :=
   checkedIndexState_base _
 
-theorem decodedInput_rank (image : Riscv.Image) (pk : PublicKey paperParams)
-    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256) :
-    rankOf (decodedInput image pk m bits answer) = (answer.setWidth 128).toNat :=
-  checkedIndexState_hash_rank image pk m bits answer
-
 /-- The stored positions are exactly the layout's chain positions for the accepted index. -/
 theorem decodedInput_positions (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
     (hi : Accepted (answer.setWidth 128).toNat) :
-    Direct.PositionMemory (decodedInput image pk m bits answer)
+    PositionMemory (decodedInput image pk m bits answer)
       (Forest.fixedPositions (acceptedIdx answer hi)) := by
   intro k hk
   rw [decodedInput_base]
@@ -81,20 +74,15 @@ theorem decodedInput_payload (image : Riscv.Image) (pk : PublicKey paperParams)
   apply checked_memBits _ _ _ (by decide) (by decide) (by decide)
   exact indexHash_payload image pk m bits answer hdata
 
-theorem decodedInput_nodes (image : Riscv.Image) (pk : PublicKey paperParams)
+/-- The checked raw inputs establish the reconstruction context. -/
+theorem decodedInput_context (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (answer : BitVec 256)
-    (hdata : image.data.length ≤ 1048576) :
-    Direct.NodeStorage (decodedInput image pk m bits answer) (fun _ => 0) := by
-  intro n
-  have hn := Direct.node_length_bound n
-  have bounds := Direct.slotAddress_bounds n
-  have aligned := (aligned_iff _).mp (Direct.slot_aligned n)
-  have zero := indexHash_nodes_zero image pk m bits answer hdata n
-  have final := checked_memBits _ _ _ aligned
-    (by simp only [BitVec.toNat_ofNat]; omega)
-    (by right; simp only [BitVec.toNat_ofNat]; unfold positionsBase; omega) zero
-  change MemBits (decodedInput image pk m bits answer) _ (0 : BitVec (Forest.graph.len n.fin))
-  rw [Forest.graph_len_fin]
-  exact final
+    (hdata : image.data.length ≤ 1048576) (hi : Accepted (answer.setWidth 128).toNat) :
+    ExecutionContext (decodedInput image pk m bits answer)
+      (acceptedIdx answer hi) (bits.drop 128) pk :=
+  ⟨decodedInput_base image pk m bits answer,
+    decodedInput_positions image pk m bits answer hi,
+    decodedInput_payload image pk m bits answer hdata,
+    decodedInput_publicKey image pk m bits answer⟩
 
 end OptimalOTS.RiscvUpperProgram

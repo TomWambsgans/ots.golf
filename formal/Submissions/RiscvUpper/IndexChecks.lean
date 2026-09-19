@@ -14,7 +14,6 @@ namespace OptimalOTS.RiscvUpperProgram
 
 open RiscvZkvm.Rv64
 
-set_option maxRecDepth 100000
 
 /-! ## The index and its nibbles -/
 
@@ -147,19 +146,8 @@ theorem position_offset (k : ℕ) (hk : k < 36) :
   rw [signExtend12_nonnegative _ (by omega)]
   rfl
 
-end OptimalOTS.RiscvUpperProgram
-
-namespace OptimalOTS.RiscvUpperProgram
-
-open RiscvZkvm.Rv64
-
-set_option maxRecDepth 100000
 
 /-! ## One sweep step -/
-
-theorem nibbleStep_length (k : ℕ) : (nibbleStep k).length = if k % 16 = 0 then 6 else 7 := by
-  unfold nibbleStep
-  split_ifs <;> rfl
 
 /-- The registers and memory after one nibble step. -/
 theorem nibbleStep_effect (t : MachineState) (k : ℕ) :
@@ -316,17 +304,8 @@ theorem sweep_effect (s : MachineState) (i : ℕ) (hi : i = rankOf s)
     refine ⟨Swept.step s _ i n (by omega) hi x7 x8 x24 swept, ?_⟩
     exact ready.append (nibbleStep_ready _ n (by omega) (by rw [swept.x8, x8]))
 
-end OptimalOTS.RiscvUpperProgram
-
-namespace OptimalOTS.RiscvUpperProgram
-
-open RiscvZkvm.Rv64
-
-set_option maxRecDepth 100000
 
 /-! ## Setup -/
-
-theorem nibbleSetup_length : nibbleSetup.length = 9 := by decide +kernel
 
 theorem nibbleSetup_ready (s : MachineState) (scratch : s.getReg .x19 = BitVec.ofNat 64 scratchBase) :
     Riscv.LinearReady s nibbleSetup := by
@@ -391,8 +370,6 @@ theorem setupState_regs (s : MachineState) :
     rfl
 
 /-! ## Finish -/
-
-theorem nibbleFinish_length : nibbleFinish.length = 7 := rfl
 
 theorem finish_addr_32 : BitVec.ofNat 64 positionsBase + signExtend12 256 = positionAddr 32 := by decide
 theorem finish_addr_33 : BitVec.ofNat 64 positionsBase + signExtend12 264 = positionAddr 33 := by decide
@@ -536,19 +513,8 @@ theorem nibbleChecks_effect (s : MachineState) :
     exact congrFun mem a
   · rw [fcode, swept.code, code]
 
-end OptimalOTS.RiscvUpperProgram
-
-namespace OptimalOTS.RiscvUpperProgram
-
-open RiscvZkvm.Rv64
-
-set_option maxRecDepth 100000
 
 /-! ## The checked state -/
-
-theorem indexAndChecks_split : indexAndChecks = indexPrefix ++ [.ECALL] ++ indexChecks := rfl
-
-theorem indexChecks_length : indexChecks.length = 249 := by decide +kernel
 
 theorem indexAndChecks_length : indexAndChecks.length = 273 := by decide +kernel
 
@@ -563,6 +529,7 @@ def checkedIndexState (s : MachineState) : MachineState :=
 theorem indexLengthCheck_ready (s : MachineState) : Riscv.LinearReady s indexLengthCheck := by
   simp [indexLengthCheck, constant, Riscv.LinearReady, Riscv.linearInstruction, Riscv.memoryReady]
 
+set_option maxRecDepth 100000 in
 theorem indexLengthCheck_test (s : MachineState) :
     (indexLengthCheck.foldl execInstrBr s).getReg .x26 = 5376 ^^^ s.getReg .x13 := rfl
 
@@ -670,5 +637,9 @@ theorem indexOf_hash (image : Riscv.Image) (pk : PublicKey paperParams)
     indexOf (Riscv.writeHash (indexInputState image pk m bits) answer) =
       (answer.setWidth 128).toNat := by
   rw [← checkedIndexState_hash_rank image pk m bits answer, checkedIndexState_rank]
+
+/-- The complete initial query and wire-format checks: prefix, HASH, checks. -/
+theorem indexAndChecks_parts : indexAndChecks = indexPrefix ++ .ECALL :: indexChecks := by
+  simp only [indexAndChecks, List.append_assoc, List.singleton_append]
 
 end OptimalOTS.RiscvUpperProgram

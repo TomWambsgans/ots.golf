@@ -35,7 +35,7 @@ theorem reveal_positive (i : Idx paperParams) :
   rw [Forest.revealBits_eq]
   have present : Forest.Name.ev 5 ∈ Forest.setsName i := by
     change Forest.Name.ev 5 ∈ Forest.cutOf (Forest.fixedChoice i)
-    rw [Forest.ev_mem_cutOf_iff']
+    rw [Forest.ev_mem_cutOf_iff]
     change 5 ∈ Forest.fixedE
     decide
   have bound := Finset.single_le_sum (s := Forest.setsName i)

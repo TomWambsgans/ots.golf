@@ -83,14 +83,6 @@ theorem copy128_words (s : MachineState) (src dst : Reg) (srcOff dstOff : ℕ)
       signExtend12_nonnegative _ (by omega : dstOff < 2048),
       signExtend12_nonnegative _ (by omega : srcOff < 2048)] <;> simp [hne]
 
-/-- The copy macro advances by its four ordinary instructions. -/
-theorem copy128_pc (s : MachineState) (src dst : Reg) (srcOff dstOff : ℕ) :
-    ((copy128 src srcOff dst dstOff).foldl execInstrBr s).pc = s.pc + 16 := by
-  simp only [copy128, List.foldl_cons, List.foldl_nil, execInstrBr,
-    MachineState.setPC]
-  simp only [BitVec.add_assoc]
-  rfl
-
 /-- The first aligned memory word can be recovered from a represented vector. -/
 theorem getMem_of_memBits {n : ℕ} {s : MachineState} {base : Word} {v : BitVec n}
     (hn : 64 ≤ n) (ha : alignToDword base = base) (hm : MemBits s base v) :

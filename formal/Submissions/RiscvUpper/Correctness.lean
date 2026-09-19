@@ -1,4 +1,4 @@
-import Submissions.RiscvUpper.CorrectKeygen
+import Submissions.RiscvUpper.KeygenSupport
 import Submissions.RiscvUpper.Reconstruct
 import Submissions.RiscvUpper.SignIdx
 import Submissions.RiscvUpper.Adapter

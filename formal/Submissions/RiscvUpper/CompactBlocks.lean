@@ -1,5 +1,5 @@
 import Submissions.RiscvUpper.CompactLayout
-import Submissions.RiscvUpper.NodeRefinement
+import Submissions.RiscvUpper.TagStore
 import Submissions.RiscvUpper.Refines
 
 /-!
@@ -32,16 +32,6 @@ theorem aligned_offset (base : Word) (aligned : base.toNat % 8 = 0) (off : ℕ) 
 
 theorem getReg_x0 (t : MachineState) : t.getReg .x0 = 0 := rfl
 
-theorem ofNat_eq_iff (a b : ℕ) (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
-    BitVec.ofNat 64 a = BitVec.ofNat 64 b ↔ a = b := by
-  constructor
-  · intro h
-    have := congrArg BitVec.toNat h
-    simp only [BitVec.toNat_ofNat] at this
-    rwa [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
-  · intro h
-    rw [h]
-
 /-! ## Appending in a buffer at `x18 + off` -/
 
 /-- The tag store after a complete word prefix leaves that prefix unchanged and supplies the
@@ -53,7 +43,7 @@ theorem tag_append {width : ℕ} (s : MachineState) (off : ℕ) (value : BitVec 
     (baseAligned : (s.getReg .x18).toNat % 8 = 0)
     (small : (s.getReg .x18).toNat + 2048 < 2 ^ 64)
     (represented : MemBits s (s.getReg .x18 + BitVec.ofNat 64 off) value) :
-    MemBits ((Direct.writeTag tag (off + width / 8)).foldl execInstrBr s)
+    MemBits ((writeTag tag (off + width / 8)).foldl execInstrBr s)
       (s.getReg .x18 + BitVec.ofNat 64 off) (tag ++ value) := by
   have base : (s.getReg .x18 + BitVec.ofNat 64 off).toNat = (s.getReg .x18).toNat + off := by
     simp only [BitVec.toNat_add, BitVec.toNat_ofNat]
@@ -63,14 +53,14 @@ theorem tag_append {width : ℕ} (s : MachineState) (off : ℕ) (value : BitVec 
     rw [BitVec.ofNat_add, BitVec.add_assoc]
   have alignedBase : (s.getReg .x18 + BitVec.ofNat 64 off).toNat % 8 = 0 := by rw [base]; omega
   apply memBits_append (by omega)
-  · apply Direct.memBits_of_word_frame s _ _ value represented
+  · apply memBits_of_word_frame s _ _ value represented
     intro i hi
-    apply Direct.writeTag_frame _ _ _ _ (by omega) literal
+    apply writeTag_frame _ _ _ _ (by omega) literal
     rw [tagAddr, aligned_bit_word _ alignedBase i (by rw [base]; omega),
       aligned_offset _ alignedBase _ (by omega) (by rw [base]; omega)]
     exact add_offset_ne _ (by omega) (by omega) (by omega)
   · rw [← tagAddr]
-    exact Direct.writeTag_memBits s tag _ (by omega) literal
+    exact writeTag_memBits s tag _ (by omega) literal
       (aligned_offset _ baseAligned _ (by omega) (by omega))
 
 /-- Copying a 128-bit word after a complete word prefix implements concatenation. -/
@@ -94,7 +84,7 @@ theorem copy_append {width : ℕ} (s : MachineState) (src : Reg) (srcOff off : �
     rw [BitVec.ofNat_add, BitVec.add_assoc]
   have alignedBase : (s.getReg .x18 + BitVec.ofNat 64 off).toNat % 8 = 0 := by rw [base]; omega
   apply memBits_append (by omega)
-  · apply Direct.memBits_of_word_frame s _ _ lo preceding
+  · apply memBits_of_word_frame s _ _ lo preceding
     intro i hi
     rw [copy128_getMem _ _ _ _ _ hs (by decide) (by decide)]
     simp only [signExtend12_nonnegative _ (by omega : off + width / 8 + 8 < 2048),
@@ -139,11 +129,6 @@ structure ChainRegs (s : MachineState) : Prop where
   base : s.getReg .x18 = BitVec.ofNat 64 chainsBase
   call : s.getReg .x5 = Riscv.hashCall
   length : s.getReg .x11 = 144
-
-/-- Small positions compare as naturals. -/
-theorem ult_small (a b : ℕ) (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
-    BitVec.ult (BitVec.ofNat 64 a) (BitVec.ofNat 64 b) = decide (a < b) := by
-  simp only [BitVec.ult, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb]
 
 theorem chain_half_access (k : ℕ) (hk : k < 36) :
     isValidHalfwordAccess (BitVec.ofNat 64 chainsBase + BitVec.ofNat 64 (chainSlot k + 16)) = true := by

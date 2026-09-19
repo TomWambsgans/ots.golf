@@ -2,17 +2,18 @@ import Submissions.RiscvUpper.Tree
 import Submissions.RiscvUpper.Count
 
 /-!
-# The disclosure sets of the concrete scheme
+# Disclosure sets of the forest
 
 A disclosure set is described by a *choice* `(E, G, t)`: the revealed subtree digests `E`, the
 revealed group digests `G` (under evaluated subtrees), and for every chain `k` the position
 `t k ∈ {0, …, 14}` of the revealed chain value (`0` reveals the source `z_k`, `p ≥ 1` reveals
 `c_{k,p} = cv k (p-1)`); only *active* chains (under evaluated groups and subtrees) reveal a
-value, and inactive chains have `t k = 14` so that the choice is determined by the set.
+value, and inactive chains have `t k = 14` so that the choice is determined by the set
+(`cutOf_injective_of_normal`).
 
-The three shapes `(|E|, |G|, chain cost)` `(2, 3, 86)`, `(1, 7, 86)`, `(2, 4, 87)` all give cuts of
-reconstruction cost `105` with at most `41` revealed values, and there are more than `2 ^ 115` of
-them (`card_family`).
+`cutOf c` is a cut whenever `G` lies under unevaluated subtrees (`isCut_cutOf_of_subset`), and
+its reconstruction cost is fixed by the total chain cost of the positions
+(`cost_cutOf_of_positions`). `FixedChoice.lean` instantiates this with the nibble layout.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -64,40 +65,9 @@ theorem mem_positions (S : Finset (Fin 63)) (s : ℕ) (t : Fin 63 → Fin 15) :
 /-- A choice of disclosure set. -/
 abbrev Choice := Finset (Fin 7) × Finset (Fin 21) × (Fin 63 → Fin 15)
 
-/-- The choices of a shape. -/
-@[irreducible] def shape (a b s : ℕ) : Finset Choice :=
-  ((Finset.powersetCard a (Finset.univ : Finset (Fin 7))).sigma fun E =>
-    (Finset.powersetCard b (allowed E)).sigma fun G => positions (active E G) s).image
-      fun x => (x.1, x.2.1, x.2.2)
-
 /-- The disclosure set of a choice. -/
 def cutOf (c : Choice) : Finset Name :=
   c.1.image ev ∪ c.2.1.image gv ∪ (active c.1 c.2.1).image fun k => chainNode k (c.2.2 k)
-
-/-- The three shapes. -/
-@[irreducible] def shapes : Finset Choice := shape 2 3 86 ∪ shape 1 7 86 ∪ shape 2 4 87
-
-theorem mem_shapes_iff (c : Choice) :
-    c ∈ shapes ↔ c ∈ shape 2 3 86 ∨ c ∈ shape 1 7 86 ∨ c ∈ shape 2 4 87 := by
-  unfold shapes
-  simp [Finset.mem_union]
-
-/-- The family of disclosure sets. -/
-@[irreducible] def family : Finset (Finset Name) := shapes.image cutOf
-
-theorem mem_shape_iff (a b s : ℕ) (c : Choice) :
-    c ∈ shape a b s ↔ c.1.card = a ∧ c.2.1 ⊆ allowed c.1 ∧ c.2.1.card = b ∧
-      c.2.2 ∈ positions (active c.1 c.2.1) s := by
-  unfold shape
-  rw [Finset.mem_image]
-  constructor
-  · rintro ⟨⟨E, G, t⟩, hx, rfl⟩
-    rw [Finset.mem_sigma, Finset.mem_sigma, Finset.mem_powersetCard, Finset.mem_powersetCard] at hx
-    exact ⟨hx.1.2, hx.2.1.1, hx.2.1.2, hx.2.2⟩
-  · rintro ⟨h1, h2, h3, h4⟩
-    refine ⟨⟨c.1, c.2.1, c.2.2⟩, ?_, rfl⟩
-    rw [Finset.mem_sigma, Finset.mem_sigma, Finset.mem_powersetCard, Finset.mem_powersetCard]
-    exact ⟨⟨Finset.subset_univ _, h1⟩, ⟨h2, h3⟩, h4⟩
 
 /-! ### Cardinalities of the index sets -/
 
@@ -178,69 +148,6 @@ theorem card_active (E : Finset (Fin 7)) (G : Finset (Fin 21)) (hG : G ⊆ allow
     Finset.card_sdiff_of_subset hG, card_allowed, Finset.card_univ, Fintype.card_fin]
   omega
 
-theorem card_positions (S : Finset (Fin 63)) (s : ℕ) : (positions S s).card = comp S.card s := by
-  rw [← card_comp]
-  refine Finset.card_nbij' (fun t i => Fin.rev (t (S.equivFin.symm i)))
-    (fun c k => if h : k ∈ S then Fin.rev (c (S.equivFin ⟨k, h⟩)) else 14) ?_ ?_ ?_ ?_
-  · intro t ht
-    rw [Finset.mem_coe, mem_positions] at ht
-    rw [Finset.mem_coe, Finset.mem_filter]
-    refine ⟨Finset.mem_univ _, ?_⟩
-    rw [← ht.2, ← Finset.sum_coe_sort S, ← Equiv.sum_comp S.equivFin.symm]
-    refine Finset.sum_congr rfl fun i _ => ?_
-    rw [Fin.val_rev]
-    omega
-  · intro c hc
-    rw [Finset.mem_coe, Finset.mem_filter] at hc
-    rw [Finset.mem_coe, mem_positions]
-    refine ⟨fun k hk => dif_neg hk, ?_⟩
-    rw [← hc.2, ← Finset.sum_coe_sort S, ← Equiv.sum_comp S.equivFin (fun i => (c i).val)]
-    refine Finset.sum_congr rfl fun x _ => ?_
-    dsimp only
-    rw [dif_pos x.2]
-    simp only [Fin.val_rev, Subtype.coe_eta]
-    omega
-  · intro t ht
-    rw [Finset.mem_coe, mem_positions] at ht
-    funext k
-    dsimp only
-    by_cases hk : k ∈ S
-    · simp only [dif_pos hk, Equiv.symm_apply_apply, Fin.rev_rev]
-    · rw [dif_neg hk, ht.1 k hk]
-  · intro c _
-    funext i
-    dsimp only
-    have h := (S.equivFin.symm i).2
-    simp only [dif_pos h, Subtype.coe_eta, Equiv.apply_symm_apply, Fin.rev_rev]
-
-theorem choice_mk_injective :
-    Function.Injective fun x : (_ : Finset (Fin 7)) × (_ : Finset (Fin 21)) × (Fin 63 → Fin 15) =>
-      ((x.1, x.2.1, x.2.2) : Choice) := by
-  rintro ⟨E, G, t⟩ ⟨E', G', t'⟩ h
-  simp only [Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl⟩ := h
-  rfl
-
-theorem card_shape (a b s : ℕ) :
-    (shape a b s).card = Nat.choose 7 a * Nat.choose (21 - 3 * a) b * comp (3 * (21 - 3 * a - b)) s := by
-  unfold shape
-  rw [Finset.card_image_of_injective _ choice_mk_injective, Finset.card_sigma]
-  have h2 : ∀ E ∈ Finset.powersetCard a (Finset.univ : Finset (Fin 7)),
-      ((Finset.powersetCard b (allowed E)).sigma fun G => positions (active E G) s).card =
-        Nat.choose (21 - 3 * a) b * comp (3 * (21 - 3 * a - b)) s := by
-    intro E hE
-    rw [Finset.mem_powersetCard] at hE
-    rw [Finset.card_sigma]
-    have h1 : ∀ G ∈ Finset.powersetCard b (allowed E),
-        (positions (active E G) s).card = comp (3 * (21 - 3 * a - b)) s := by
-      intro G hG
-      rw [Finset.mem_powersetCard] at hG
-      rw [card_positions, card_active E G hG.1, hG.2, hE.2]
-    rw [Finset.sum_congr rfl h1, Finset.sum_const, Finset.card_powersetCard, card_allowed, hE.2,
-      smul_eq_mul]
-  rw [Finset.sum_congr rfl h2, Finset.sum_const, Finset.card_powersetCard, Finset.card_univ,
-    Fintype.card_fin, smul_eq_mul, mul_assoc]
-
 /-! ### Membership in a disclosure set -/
 
 theorem chainNode_eq_src_iff (k k' : Fin 63) (p : Fin 15) :
@@ -284,7 +191,7 @@ theorem mem_cutOf_iff (c : Choice) (n : Name) :
   unfold cutOf
   simp only [Finset.mem_union, Finset.mem_image, or_assoc]
 
-theorem ev_mem_cutOf_iff' (c : Choice) (l : Fin 7) : ev l ∈ cutOf c ↔ l ∈ c.1 := by
+theorem ev_mem_cutOf_iff (c : Choice) (l : Fin 7) : ev l ∈ cutOf c ↔ l ∈ c.1 := by
   rw [mem_cutOf_iff]
   constructor
   · rintro (⟨l', hl', h⟩ | ⟨j, _, h⟩ | ⟨k, _, h⟩)
@@ -295,7 +202,7 @@ theorem ev_mem_cutOf_iff' (c : Choice) (l : Fin 7) : ev l ∈ cutOf c ↔ l ∈ 
   · intro h
     exact Or.inl ⟨l, h, rfl⟩
 
-theorem gv_mem_cutOf_iff' (c : Choice) (j : Fin 21) : gv j ∈ cutOf c ↔ j ∈ c.2.1 := by
+theorem gv_mem_cutOf_iff (c : Choice) (j : Fin 21) : gv j ∈ cutOf c ↔ j ∈ c.2.1 := by
   rw [mem_cutOf_iff]
   constructor
   · rintro (⟨l, _, h⟩ | ⟨j', hj', h⟩ | ⟨k, _, h⟩)
@@ -306,7 +213,7 @@ theorem gv_mem_cutOf_iff' (c : Choice) (j : Fin 21) : gv j ∈ cutOf c ↔ j ∈
   · intro h
     exact Or.inr (Or.inl ⟨j, h, rfl⟩)
 
-theorem src_mem_cutOf_iff' (c : Choice) (k : Fin 63) :
+theorem src_mem_cutOf_iff (c : Choice) (k : Fin 63) :
     src k ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ c.2.2 k = 0 := by
   rw [mem_cutOf_iff]
   constructor
@@ -319,7 +226,7 @@ theorem src_mem_cutOf_iff' (c : Choice) (k : Fin 63) :
   · rintro ⟨hk, h⟩
     exact Or.inr (Or.inr ⟨k, hk, (chainNode_eq_src_iff _ _ _).mpr ⟨rfl, h⟩⟩)
 
-theorem cv_mem_cutOf_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
+theorem cv_mem_cutOf_iff (c : Choice) (k : Fin 63) (t : Fin 14) :
     cv k t ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val = t.val + 1 := by
   rw [mem_cutOf_iff]
   constructor
@@ -340,7 +247,7 @@ theorem not_mem_cutOf_of_len {c : Choice} {n : Name} (hn : n.len ≠ 128) : n �
   · exact hn rfl
   · exact hn (chainNode_len _ _)
 
-theorem mem_cutOf_len' {c : Choice} {n : Name} (hn : n ∈ cutOf c) : n.len = 128 := by
+theorem mem_cutOf_len {c : Choice} {n : Name} (hn : n ∈ cutOf c) : n.len = 128 := by
   by_contra h
   exact not_mem_cutOf_of_len h hn
 
@@ -368,26 +275,7 @@ theorem rc_not_mem_cutOf (c : Choice) : rc ∉ cutOf c :=
 theorem rh_not_mem_cutOf (c : Choice) : rh ∉ cutOf c :=
   not_mem_cutOf_of_len (by simp [Name.len])
 
-/-! ### The choices of `shapes` -/
-
-theorem exists_of_mem_shapes {c : Choice} (hc : c ∈ shapes) :
-    ∃ a b s : ℕ, ((a = 2 ∧ b = 3 ∧ s = 86) ∨ (a = 1 ∧ b = 7 ∧ s = 86) ∨ (a = 2 ∧ b = 4 ∧ s = 87)) ∧
-      c.1.card = a ∧ c.2.1 ⊆ allowed c.1 ∧ c.2.1.card = b ∧
-      c.2.2 ∈ positions (active c.1 c.2.1) s := by
-  rw [mem_shapes_iff] at hc
-  rcases hc with hc | hc | hc <;> rw [mem_shape_iff] at hc
-  · exact ⟨2, 3, 86, Or.inl ⟨rfl, rfl, rfl⟩, hc⟩
-  · exact ⟨1, 7, 86, Or.inr (Or.inl ⟨rfl, rfl, rfl⟩), hc⟩
-  · exact ⟨2, 4, 87, Or.inr (Or.inr ⟨rfl, rfl, rfl⟩), hc⟩
-
-theorem subset_allowed_of_mem_shapes {c : Choice} (hc : c ∈ shapes) : c.2.1 ⊆ allowed c.1 := by
-  obtain ⟨_, _, _, -, -, h, -, -⟩ := exists_of_mem_shapes hc
-  exact h
-
-theorem pos_of_mem_shapes {c : Choice} (hc : c ∈ shapes) :
-    ∀ k ∉ active c.1 c.2.1, c.2.2 k = 14 := by
-  obtain ⟨_, _, _, -, -, -, -, h⟩ := exists_of_mem_shapes hc
-  exact ((mem_positions _ _ _).mp h).1
+/-! ### Injectivity -/
 
 /-- The choice is determined by its disclosure set. -/
 theorem cutOf_injective_of_normal {c c' : Choice}
@@ -396,10 +284,10 @@ theorem cutOf_injective_of_normal {c c' : Choice}
     (h : cutOf c = cutOf c') : c = c' := by
   have hE : c.1 = c'.1 := by
     ext l
-    rw [← ev_mem_cutOf_iff' c l, ← ev_mem_cutOf_iff' c' l, h]
+    rw [← ev_mem_cutOf_iff c l, ← ev_mem_cutOf_iff c' l, h]
   have hG : c.2.1 = c'.2.1 := by
     ext j
-    rw [← gv_mem_cutOf_iff' c j, ← gv_mem_cutOf_iff' c' j, h]
+    rw [← gv_mem_cutOf_iff c j, ← gv_mem_cutOf_iff c' j, h]
   have ht : c.2.2 = c'.2.2 := by
     funext k
     by_cases hk : k ∈ active c.1 c.2.1
@@ -408,51 +296,16 @@ theorem cutOf_injective_of_normal {c c' : Choice}
         exact Or.inr (Or.inr ⟨k, hk, rfl⟩)
       unfold chainNode at hmem
       split_ifs at hmem with h0
-      · rw [src_mem_cutOf_iff'] at hmem
+      · rw [src_mem_cutOf_iff] at hmem
         rw [hmem.2]
         exact Fin.ext h0
-      · rw [cv_mem_cutOf_iff'] at hmem
+      · rw [cv_mem_cutOf_iff] at hmem
         apply Fin.ext
         rw [hmem.2]
         dsimp only
         omega
     · rw [hc k hk, hc' k (by rwa [← hE, ← hG])]
   exact Prod.ext hE (Prod.ext hG ht)
-
-theorem cutOf_injective : Set.InjOn cutOf shapes := by
-  intro c hc c' hc' h
-  exact cutOf_injective_of_normal (pos_of_mem_shapes hc) (pos_of_mem_shapes hc') h
-
-theorem card_family : 2 ^ 115 ≤ family.card := by
-  unfold family
-  rw [Finset.card_image_of_injOn cutOf_injective]
-  unfold shapes
-  have d1 : Disjoint (shape 2 3 86) (shape 1 7 86) := by
-    rw [Finset.disjoint_left]
-    intro c h1 h2
-    rw [mem_shape_iff] at h1 h2
-    omega
-  have d2 : Disjoint (shape 2 3 86) (shape 2 4 87) := by
-    rw [Finset.disjoint_left]
-    intro c h1 h2
-    rw [mem_shape_iff] at h1 h2
-    omega
-  have d3 : Disjoint (shape 1 7 86) (shape 2 4 87) := by
-    rw [Finset.disjoint_left]
-    intro c h1 h2
-    rw [mem_shape_iff] at h1 h2
-    omega
-  rw [Finset.card_union_of_disjoint (Finset.disjoint_union_left.mpr ⟨d2, d3⟩),
-    Finset.card_union_of_disjoint d1, card_shape, card_shape, card_shape]
-  have c1 : 21 * 455 = Nat.choose 7 2 * Nat.choose (21 - 3 * 2) 3 := by decide
-  have c2 : 7 * 31824 = Nat.choose 7 1 * Nat.choose (21 - 3 * 1) 7 := by decide
-  have c3 : 21 * 1365 = Nat.choose 7 2 * Nat.choose (21 - 3 * 2) 4 := by decide
-  have e1 : comp 36 86 = comp (3 * (21 - 3 * 2 - 3)) 86 := congrArg (fun x => comp x 86) (by norm_num)
-  have e2 : comp 33 86 = comp (3 * (21 - 3 * 1 - 7)) 86 := congrArg (fun x => comp x 86) (by norm_num)
-  have e3 : comp 33 87 = comp (3 * (21 - 3 * 2 - 4)) 87 := congrArg (fun x => comp x 87) (by norm_num)
-  refine le_trans shapes_ge (le_of_eq ?_)
-  exact congrArg₂ (· + ·) (congrArg₂ (· + ·) (congrArg₂ (· * ·) c1 e1) (congrArg₂ (· * ·) c2 e2))
-    (congrArg₂ (· * ·) c3 e3)
 
 /-! ### Evaluated nodes -/
 
@@ -468,50 +321,50 @@ theorem evaluated_of_child {A : Finset Name} {n p : Name} (hp : child n = some p
     (he : Evaluated A p) : Evaluated A n :=
   ⟨hn, forall_above_of_child hp he⟩
 
-theorem evaluated_rh' (c : Choice) : Evaluated (cutOf c) rh :=
+theorem evaluated_rh (c : Choice) : Evaluated (cutOf c) rh :=
   ⟨rh_not_mem_cutOf c, fun m hm => absurd hm (not_above_rh m)⟩
 
-theorem evaluated_rc' (c : Choice) : Evaluated (cutOf c) rc :=
-  evaluated_of_child rfl (rc_not_mem_cutOf c) (evaluated_rh' c)
+theorem evaluated_rc (c : Choice) : Evaluated (cutOf c) rc :=
+  evaluated_of_child rfl (rc_not_mem_cutOf c) (evaluated_rh c)
 
-theorem evaluated_eh_iff' (c : Choice) (l : Fin 7) : Evaluated (cutOf c) (eh l) ↔ l ∉ c.1 := by
+theorem evaluated_eh_iff (c : Choice) (l : Fin 7) : Evaluated (cutOf c) (eh l) ↔ l ∉ c.1 := by
   constructor
   · intro h
-    rw [← ev_mem_cutOf_iff' c l]
+    rw [← ev_mem_cutOf_iff c l]
     exact h.2 (ev l) (Above.child rfl)
   · intro hl
     refine evaluated_of_child rfl (eh_not_mem_cutOf c l) ?_
-    refine evaluated_of_child rfl ?_ (evaluated_rc' c)
-    rw [ev_mem_cutOf_iff']
+    refine evaluated_of_child rfl ?_ (evaluated_rc c)
+    rw [ev_mem_cutOf_iff]
     exact hl
 
-theorem evaluated_gh_iff' (c : Choice) (j : Fin 21) :
+theorem evaluated_gh_iff (c : Choice) (j : Fin 21) :
     Evaluated (cutOf c) (gh j) ↔ subtreeOf j ∉ c.1 ∧ j ∉ c.2.1 := by
   constructor
   · intro h
     refine ⟨?_, ?_⟩
-    · rw [← ev_mem_cutOf_iff' c]
+    · rw [← ev_mem_cutOf_iff c]
       refine h.2 (ev (subtreeOf j)) ((above_iff_mem_ancSet _ _).mpr ?_)
       simp [ancSet, subtreeOf]
-    · rw [← gv_mem_cutOf_iff' c j]
+    · rw [← gv_mem_cutOf_iff c j]
       exact h.2 (gv j) (Above.child rfl)
   · rintro ⟨h1, h2⟩
     refine evaluated_of_child rfl (gh_not_mem_cutOf c j) ?_
     refine evaluated_of_child rfl ?_ ?_
-    · rw [gv_mem_cutOf_iff']
+    · rw [gv_mem_cutOf_iff]
       exact h2
     · refine evaluated_of_child rfl (ec_not_mem_cutOf c _) ?_
-      rw [evaluated_eh_iff']
+      rw [evaluated_eh_iff]
       exact h1
 
-theorem evaluated_ch_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
+theorem evaluated_ch_iff (c : Choice) (k : Fin 63) (t : Fin 14) :
     Evaluated (cutOf c) (ch k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val := by
   unfold Evaluated
   simp only [above_iff_mem_ancSet, ancSet, Finset.forall_mem_union, Finset.forall_mem_image,
     Finset.mem_filter, Finset.mem_univ, true_and, Finset.forall_mem_insert, Finset.mem_singleton,
-    forall_eq, ci_not_mem_cutOf, ch_not_mem_cutOf, cv_mem_cutOf_iff', gc_not_mem_cutOf,
+    forall_eq, ci_not_mem_cutOf, ch_not_mem_cutOf, cv_mem_cutOf_iff, gc_not_mem_cutOf,
     gh_not_mem_cutOf,
-    gv_mem_cutOf_iff', ec_not_mem_cutOf, eh_not_mem_cutOf, ev_mem_cutOf_iff', rc_not_mem_cutOf,
+    gv_mem_cutOf_iff, ec_not_mem_cutOf, eh_not_mem_cutOf, ev_mem_cutOf_iff, rc_not_mem_cutOf,
     rh_not_mem_cutOf, not_false_eq_true, true_and, and_true, implies_true, mem_active_iff,
     subtreeOfChain, groupOfChain]
   constructor
@@ -527,9 +380,9 @@ theorem evaluated_ch_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
     omega
 
 /-- The input of a chain hash is evaluated exactly when the chain hash is. -/
-theorem evaluated_ci_iff' (c : Choice) (k : Fin 63) (t : Fin 14) :
+theorem evaluated_ci_iff (c : Choice) (k : Fin 63) (t : Fin 14) :
     Evaluated (cutOf c) (ci k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val := by
-  rw [← evaluated_ch_iff']
+  rw [← evaluated_ch_iff]
   constructor
   · intro h
     exact ⟨ch_not_mem_cutOf c k t, fun m hm => h.2 m (Above.step rfl hm)⟩
@@ -548,14 +401,14 @@ theorem child_cv_of_eq (k : Fin 63) (t : Fin 14) (ht : t.val = 13) :
   rfl
 
 theorem isCut_cutOf_of_subset {c : Choice} (hG : c.2.1 ⊆ allowed c.1) : IsCut (cutOf c) where
-  values _ hn := mem_cutOf_len' hn
+  values _ hn := mem_cutOf_len hn
   antichain := by
     intro n hn
     rw [mem_cutOf_iff] at hn
     rcases hn with ⟨l, hl, rfl⟩ | ⟨j, hj, rfl⟩ | ⟨k, hk, rfl⟩
-    · exact forall_above_of_child rfl (evaluated_rc' c)
+    · exact forall_above_of_child rfl (evaluated_rc c)
     · refine forall_above_of_child rfl (evaluated_of_child rfl (ec_not_mem_cutOf c _)
-        ((evaluated_eh_iff' c _).mpr ?_))
+        ((evaluated_eh_iff c _).mpr ?_))
       have := hG hj
       simp only [allowed, Finset.mem_filter, Finset.mem_univ, true_and] at this
       exact this
@@ -563,51 +416,35 @@ theorem isCut_cutOf_of_subset {c : Choice} (hG : c.2.1 ⊆ allowed c.1) : IsCut 
       unfold chainNode
       split_ifs with h0
       · exact forall_above_of_child rfl
-          ((evaluated_ci_iff' c k 0).mpr ⟨hk, by rw [h0]; exact Nat.zero_le _⟩)
+          ((evaluated_ci_iff c k 0).mpr ⟨hk, by rw [h0]; exact Nat.zero_le _⟩)
       · by_cases h13 : (c.2.2 k).val = 14
         · refine forall_above_of_child (child_cv_of_eq k _ (by dsimp only; omega))
-            (evaluated_of_child rfl (gc_not_mem_cutOf c _) ((evaluated_gh_iff' c _).mpr ?_))
+            (evaluated_of_child rfl (gc_not_mem_cutOf c _) ((evaluated_gh_iff c _).mpr ?_))
           rw [← subtreeOfChain_eq]
           exact hk'
         · have hlt := (c.2.2 k).isLt
           refine forall_above_of_child (child_cv_of_lt k _ (by dsimp only; omega))
-            ((evaluated_ci_iff' c k _).mpr ⟨hk, ?_⟩)
+            ((evaluated_ci_iff c k _).mpr ⟨hk, ?_⟩)
           dsimp only
           omega
   covers := by
     intro k
     by_cases hk : k ∈ active c.1 c.2.1
     · by_cases h0 : (c.2.2 k).val = 0
-      · exact Or.inl ((src_mem_cutOf_iff' c k).mpr ⟨hk, Fin.ext h0⟩)
+      · exact Or.inl ((src_mem_cutOf_iff c k).mpr ⟨hk, Fin.ext h0⟩)
       · have hlt := (c.2.2 k).isLt
         refine Or.inr ⟨cv k ⟨(c.2.2 k).val - 1, by omega⟩,
-          (cv_mem_cutOf_iff' c k _).mpr ⟨hk, by dsimp only; omega⟩, ?_⟩
+          (cv_mem_cutOf_iff c k _).mpr ⟨hk, by dsimp only; omega⟩, ?_⟩
         rw [above_iff_mem_ancSet]
         simp [ancSet]
     · rw [mem_active_iff, not_and_or, not_not, not_not] at hk
       rcases hk with hk | hk
-      · refine Or.inr ⟨ev (subtreeOfChain k), (ev_mem_cutOf_iff' c _).mpr hk, ?_⟩
+      · refine Or.inr ⟨ev (subtreeOfChain k), (ev_mem_cutOf_iff c _).mpr hk, ?_⟩
         rw [above_iff_mem_ancSet]
         simp [ancSet, subtreeOfChain]
-      · refine Or.inr ⟨gv (groupOfChain k), (gv_mem_cutOf_iff' c _).mpr hk, ?_⟩
+      · refine Or.inr ⟨gv (groupOfChain k), (gv_mem_cutOf_iff c _).mpr hk, ?_⟩
         rw [above_iff_mem_ancSet]
         simp [ancSet, groupOfChain]
-
-theorem isCut_cutOf' {c : Choice} (hc : c ∈ shapes) : IsCut (cutOf c) :=
-  isCut_cutOf_of_subset (subset_allowed_of_mem_shapes hc)
-
-theorem card_cutOf_le' {c : Choice} (hc : c ∈ shapes) : (cutOf c).card ≤ 41 := by
-  obtain ⟨a, b, s, habs, ha, hG, hb, -⟩ := exists_of_mem_shapes hc
-  have h1 := Finset.card_union_le (c.1.image ev ∪ c.2.1.image gv)
-    ((active c.1 c.2.1).image fun k => chainNode k (c.2.2 k))
-  have h2 := Finset.card_union_le (c.1.image ev) (c.2.1.image gv)
-  have h3 : (c.1.image ev).card ≤ c.1.card := Finset.card_image_le
-  have h4 : (c.2.1.image gv).card ≤ c.2.1.card := Finset.card_image_le
-  have h5 : ((active c.1 c.2.1).image fun k => chainNode k (c.2.2 k)).card ≤
-      (active c.1 c.2.1).card := Finset.card_image_le
-  rw [card_active c.1 c.2.1 hG, ha, hb] at h5
-  unfold cutOf
-  rcases habs with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ <;> omega
 
 theorem sum_fin14_ge (v : ℕ) : ∑ t : Fin 14, (if v ≤ t.val then 1 else 0) = 14 - v := by
   rw [Fin.sum_univ_eq_sum_range (fun t => if v ≤ t then 1 else 0) 14, ← Finset.card_filter]
@@ -626,21 +463,21 @@ theorem cost_cutOf_of_positions {c : Choice} {s : ℕ}
   have ha : c.1.card = a := rfl
   have hb : c.2.1.card = b := rfl
   have h_eh : ∑ l, (if Evaluated (cutOf c) (eh l) then 1 else 0) = 7 - a := by
-    simp only [evaluated_eh_iff']
+    simp only [evaluated_eh_iff]
     rw [← Finset.card_filter]
     have : (Finset.univ.filter fun l => l ∉ c.1) = c.1ᶜ := by
       ext l
       simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_compl]
     rw [this, Finset.card_compl, Fintype.card_fin, ha]
   have h_gh : ∑ j, (if Evaluated (cutOf c) (gh j) then 1 else 0) = 21 - 3 * a - b := by
-    simp only [evaluated_gh_iff']
+    simp only [evaluated_gh_iff]
     rw [← Finset.card_filter]
     have : (Finset.univ.filter fun j => subtreeOf j ∉ c.1 ∧ j ∉ c.2.1) = allowed c.1 \ c.2.1 := by
       ext j
       simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_sdiff, allowed]
     rw [this, Finset.card_sdiff_of_subset hG, card_allowed, ha, hb]
   have h_ch : ∑ k, ∑ t, (if Evaluated (cutOf c) (ch k t) then 1 else 0) = s := by
-    simp only [evaluated_ch_iff']
+    simp only [evaluated_ch_iff]
     have hin : ∀ k, ∑ t : Fin 14, (if k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val then 1 else 0) =
         if k ∈ active c.1 c.2.1 then 14 - (c.2.2 k).val else 0 := by
       intro k
@@ -653,95 +490,7 @@ theorem cost_cutOf_of_positions {c : Choice} {s : ℕ}
     exact ((mem_positions _ _ _).mp ht).2
   rw [evaluatedSet, Finset.sum_filter, Name.sum_eq]
   simp only [Name.cost, ite_self, Finset.sum_const_zero, zero_add, add_zero]
-  rw [if_pos (evaluated_rh' c), h_ch, h_gh, h_eh]
-
-theorem cost_cutOf' {c : Choice} (hc : c ∈ shapes) :
-    ∑ n ∈ evaluatedSet (cutOf c), n.cost = 105 := by
-  obtain ⟨a, b, s, habs, ha, hG, hb, ht⟩ := exists_of_mem_shapes hc
-  rw [cost_cutOf_of_positions hG ht, ha, hb]
-  rcases habs with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ <;> norm_num
-
-/-! ## Membership in a disclosure set -/
-
-section props
-
-variable {c : Choice} (hc : c ∈ shapes)
-include hc
-
--- the statements below take `hc` for uniformity; some proofs do not need it
-set_option linter.unusedSectionVars false
-
-theorem ev_mem_cutOf_iff (l : Fin 7) : ev l ∈ cutOf c ↔ l ∈ c.1 :=
-  ev_mem_cutOf_iff' c l
-
-theorem gv_mem_cutOf_iff (j : Fin 21) : gv j ∈ cutOf c ↔ j ∈ c.2.1 :=
-  gv_mem_cutOf_iff' c j
-
-theorem src_mem_cutOf_iff (k : Fin 63) : src k ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ c.2.2 k = 0 :=
-  src_mem_cutOf_iff' c k
-
-theorem cv_mem_cutOf_iff (k : Fin 63) (t : Fin 14) :
-    cv k t ∈ cutOf c ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val = t.val + 1 :=
-  cv_mem_cutOf_iff' c k t
-
-theorem mem_cutOf_len (n : Name) (hn : n ∈ cutOf c) : n.len = 128 :=
-  mem_cutOf_len' hn
-
-/-- Which hash nodes are evaluated. -/
-theorem evaluated_rh : Evaluated (cutOf c) rh :=
-  evaluated_rh' c
-
-theorem evaluated_eh_iff (l : Fin 7) : Evaluated (cutOf c) (eh l) ↔ l ∉ c.1 :=
-  evaluated_eh_iff' c l
-
-theorem evaluated_gh_iff (j : Fin 21) :
-    Evaluated (cutOf c) (gh j) ↔ subtreeOf j ∉ c.1 ∧ j ∉ c.2.1 :=
-  evaluated_gh_iff' c j
-
-theorem evaluated_ch_iff (k : Fin 63) (t : Fin 14) :
-    Evaluated (cutOf c) (ch k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
-  evaluated_ch_iff' c k t
-
-theorem evaluated_ci_iff (k : Fin 63) (t : Fin 14) :
-    Evaluated (cutOf c) (ci k t) ↔ k ∈ active c.1 c.2.1 ∧ (c.2.2 k).val ≤ t.val :=
-  evaluated_ci_iff' c k t
-
-theorem isCut_cutOf : IsCut (cutOf c) :=
-  isCut_cutOf' hc
-
-theorem card_cutOf_le : (cutOf c).card ≤ 41 :=
-  card_cutOf_le' hc
-
-theorem cost_cutOf : ∑ n ∈ evaluatedSet (cutOf c), n.cost = 105 :=
-  cost_cutOf' hc
-
-end props
-
-theorem mem_family_iff (A : Finset Name) : A ∈ family ↔ ∃ c ∈ shapes, cutOf c = A := by
-  unfold family
-  exact Finset.mem_image
-
-theorem isCut_of_mem_family {A : Finset Name} (h : A ∈ family) : IsCut A := by
-  unfold family at h
-  rw [Finset.mem_image] at h
-  obtain ⟨c, hc, hA⟩ := h
-  rw [← hA]
-  exact isCut_cutOf hc
-
-theorem card_le_of_mem_family {A : Finset Name} (h : A ∈ family) : A.card ≤ 41 := by
-  unfold family at h
-  rw [Finset.mem_image] at h
-  obtain ⟨c, hc, hA⟩ := h
-  rw [← hA]
-  exact card_cutOf_le hc
-
-theorem cost_of_mem_family {A : Finset Name} (h : A ∈ family) :
-    ∑ n ∈ evaluatedSet A, n.cost = 105 := by
-  unfold family at h
-  rw [Finset.mem_image] at h
-  obtain ⟨c, hc, hA⟩ := h
-  rw [← hA]
-  exact cost_cutOf hc
+  rw [if_pos (evaluated_rh c), h_ch, h_gh, h_eh]
 
 end Forest
 

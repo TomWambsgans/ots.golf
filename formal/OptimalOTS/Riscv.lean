@@ -6,8 +6,8 @@ import OptimalOTS.RiscvMachine
 
 The signature is its transmitted bit string. The implementation proof identifies the
 machine's complete oracle computation with the supplied Lean verifier, preserving queries
-and their compression costs. Every execution terminates; only accepting
-executions are ranked by cycles. No sampled benchmark is an admission requirement.
+and their compression costs. `Implements` requires every execution to terminate, and every
+execution, accepting or rejecting, is ranked by cycles.
 -/
 
 namespace OptimalOTS.Riscv
@@ -44,56 +44,15 @@ def Submission.Implements (S : Submission) : Prop :=
   S.image.Valid ∧ ∀ pk m signature,
     Option.map Prod.fst <$> S.run pk m signature = some <$> S.verify pk m signature
 
-/-- Refinement requires termination on every input and every oracle-answer path. -/
-theorem Submission.no_fault (S : Submission) (h : S.Implements)
-    (pk : PublicKey paperParams) (m : Message paperParams) (signature : List Bool) :
-    none ∉ support (S.run pk m signature) := by
-  intro fault
-  have mapped : none ∈ support (Option.map Prod.fst <$> S.run pk m signature) := by
-    rw [support_map]
-    exact ⟨none, fault, rfl⟩
-  rw [h.2 pk m signature, support_map] at mapped
-  obtain ⟨b, _, impossible⟩ := mapped
-  cases impossible
-
-/-- A universal bound on accepting runs only. Rejecting runs may take any finite cost. -/
-def Submission.AcceptCostAtMost (S : Submission) (c : ℕ) : Prop :=
-  ∀ pk m signature cycles, some (true, cycles) ∈ support (S.run pk m signature) → cycles ≤ c
-
-/-- The OTS using the actual machine verifier, with faults interpreted as rejection. -/
-def Submission.implementedScheme (S : Submission) : AlgorithmScheme paperParams :=
-  { S.scheme with verify := fun pk m signature =>
-      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature }
-
-/-- Refinement identifies the entire implemented OTS with its proved specification. -/
-theorem Submission.implementedScheme_eq (S : Submission) (h : S.Implements) :
-    S.implementedScheme = S.scheme := by
-  have hv : (fun pk m signature =>
-      (fun result => (result.map Prod.fst).getD false) <$> S.run pk m signature) = S.verify := by
-    funext pk m signature
-    have he := congrArg (fun computation : OracleComp (Spec paperParams) (Option Bool) =>
-      (fun result => result.getD false) <$> computation) (h.2 pk m signature)
-    simpa [Functor.map_map, Function.comp_def] using he
-  unfold Submission.implementedScheme Submission.scheme
-  dsimp only
-  rw [hv]
-
-/-- The 127-bit proof applies to the implemented verifier with its actual hash-query costs. -/
-theorem Submission.implemented_secure (S : Submission) (h : S.Implements)
-    (secure : S.scheme.Secure) : S.implementedScheme.Secure := by
-  rwa [S.implementedScheme_eq h]
-
-/-- Correctness, signing availability, and the size and resource limits also transfer. -/
-theorem Submission.implemented_admissible (S : Submission) (h : S.Implements)
-    (admissible : S.scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)) :
-    S.implementedScheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := by
-  rwa [S.implementedScheme_eq h]
+/-- Every execution, accepting or rejecting, costs at most `c` cycles. -/
+def Submission.CostAtMost (S : Submission) (c : ℕ) : Prop :=
+  ∀ pk m signature b cycles, some (b, cycles) ∈ support (S.run pk m signature) → cycles ≤ c
 
 /-- All requirements for one scored RISC-V submission, with the fixed competition budgets. -/
 structure Submission.Certificate (S : Submission) (c : ℕ) : Prop where
   admissible : S.scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
   secure : S.scheme.Secure
   implements : S.Implements
-  cost : S.AcceptCostAtMost c
+  cost : S.CostAtMost c
 
 end OptimalOTS.Riscv

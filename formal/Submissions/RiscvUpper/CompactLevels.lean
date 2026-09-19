@@ -12,8 +12,6 @@ namespace OptimalOTS.RiscvUpperProgram.Compact
 
 open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier OracleComp
 
-set_option maxRecDepth 100000
-set_option maxHeartbeats 2000000
 set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
 attribute [local irreducible] Forest.fixedPositions Forest.fixedDigits
@@ -243,7 +241,7 @@ theorem chains_refines (tail : Code)
     (continuation : ∀ (u : MachineState) (y : graph.Assignment) (cursor' : ℕ),
       ChainsDone index payload pk u y cursor' → Riscv.CodeAt u u.pc tail →
       ∀ left, rest' ≤ left → Riscv.Refines left u (K (y, cursor')) c)
-    (s : MachineState) (context : Direct.ExecutionContext s index payload pk)
+    (s : MachineState) (context : ExecutionContext s index payload pk)
     (aligned : s.pc.toNat % 4 = 0) (x : graph.Assignment) (fuel : ℕ)
     (located : Riscv.CodeAt s s.pc (chains ++ tail)) (bound : chains.length + rest' ≤ fuel) :
     Riscv.Refines fuel s (runNodes' index payload (chainsFrom 0) x 0 >>= K)
@@ -302,5 +300,35 @@ theorem chains_refines (tail : Code)
       exact memBits_of_mem_eq vMem (invV.done k hk (by omega))
   · rw [wPc]
     exact locatedV.append_right.code_eq wCodeEq
+
+/-! ## Cost of the chain phase
+
+The chain phase costs the same for every accepted index: each active chain runs its prologue
+once and hashes `14 - position` times, and the positions of an accepted index sum to a constant. -/
+
+theorem active_filter : (Finset.univ.filter fun k : Fin 63 => k.val < 36) = active fixedE fixedG := by
+  ext k
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and, fixed_active]
+
+/-- The hash steps over the active chains: `Σ (14 - p_k) = target = 166`. -/
+theorem positions_sum :
+    ∑ k ∈ (Finset.univ.filter fun k : Fin 63 => k.val < 36), (14 - pos index k) = target := by
+  rw [active_filter]
+  exact fixedPositions_sum index
+
+/-- The 36 prologues and 166 hash steps cost 966 cycles on every accepted index. -/
+theorem costFrom_zero : costFrom index 0 = 966 := by
+  rw [costFrom_eq index 63 0 rfl]
+  simp only [Nat.zero_le, true_and]
+  rw [← Finset.sum_filter, Finset.sum_add_distrib, Finset.sum_const, ← Finset.mul_sum,
+    positions_sum, smul_eq_mul]
+  have hcard : (Finset.univ.filter fun k : Fin 63 => k.val < 36).card = 36 := by decide
+  rw [hcard]
+  rfl
+
+/-- The chain phase costs at most 973 cycles on every accepted index (in fact exactly 973). -/
+theorem chainsCost_le : chainsCost index ≤ 973 := by
+  unfold chainsCost
+  rw [chainSetup_length, costFrom_zero, chainsEnd_length]
 
 end OptimalOTS.RiscvUpperProgram.Compact

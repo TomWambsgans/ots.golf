@@ -6,7 +6,6 @@ namespace OptimalOTS.RiscvUpperProgram
 
 open RiscvZkvm.Rv64
 
-set_option maxRecDepth 100000
 
 def indexInputState (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) : MachineState :=
@@ -41,6 +40,7 @@ theorem indexInput_word (image : Riscv.Image) (pk : PublicKey paperParams)
           (Riscv.messageBase + BitVec.ofNat 64 (8 * (j.val - 2))) := by
   fin_cases j <;> rfl
 
+set_option maxRecDepth 100000 in
 /-- The prepared HASH input is exactly the specification's message/nonce concatenation. -/
 theorem indexInput_memBits (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) (hdata : image.data.length ≤ 1048576) :
@@ -75,9 +75,6 @@ theorem indexInput_hashValid (image : Riscv.Image) (pk : PublicKey paperParams)
   unfold Riscv.hashArgumentsValid
   rw [hr.2.1, hr.2.2.1, hr.2.2.2.1]
   decide +kernel
-
-theorem indexPrefix_at_start : indexPrefix ++ [.ECALL] <+: indexAndChecks :=
-  ⟨indexChecks, rfl⟩
 
 theorem indexInput_pc (image : Riscv.Image) (pk : PublicKey paperParams)
     (m : Message paperParams) (bits : List Bool) :

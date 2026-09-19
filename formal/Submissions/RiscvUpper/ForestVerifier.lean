@@ -17,7 +17,6 @@ open Forest Forest.Name
 
 set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
-set_option maxRecDepth 4000
 attribute [local irreducible] Forest.setsName Forest.fixedChoice Forest.fixedPositions Forest.fixedDigits
 
 /-- The nodes of chain `k`, in topological order. -/
@@ -207,18 +206,18 @@ theorem disclosed_eq (i : Idx paperParams) (n : Name) :
   rw [Forest.setsName]
   cases n with
   | src k =>
-    rw [src_mem_cutOf_iff']
+    rw [src_mem_cutOf_iff]
     simp only [disclosed, decide_eq_true_eq, fixedChoice, fixed_active, Fin.ext_iff, Fin.val_zero]
   | cv k t =>
-    rw [cv_mem_cutOf_iff']
+    rw [cv_mem_cutOf_iff]
     simp only [disclosed, decide_eq_true_eq, fixedChoice, fixed_active]
   | gv j =>
-    rw [gv_mem_cutOf_iff']
+    rw [gv_mem_cutOf_iff]
     simp only [disclosed, decide_eq_true_eq, fixedChoice, fixedG, Finset.mem_insert,
       Finset.mem_singleton, Fin.ext_iff]
     omega
   | ev l =>
-    rw [ev_mem_cutOf_iff']
+    rw [ev_mem_cutOf_iff]
     simp only [disclosed, decide_eq_true_eq, fixedChoice, fixedE, Finset.mem_insert,
       Finset.mem_singleton, Fin.ext_iff]
     omega
@@ -242,17 +241,17 @@ theorem evaluated_eq (i : Idx paperParams) (n : Name) :
   have chain (k : Fin 63) (t : Fin 14) :
       Evaluated (cutOf (fixedChoice i)) (ch k t) ↔
         k.val < 36 ∧ (fixedPositions i k).val ≤ t.val := by
-    rw [evaluated_ch_iff']
+    rw [evaluated_ch_iff]
     simp only [fixedChoice, fixed_active]
   have group (j : Fin 21) :
       Evaluated (cutOf (fixedChoice i)) (gh j) ↔ j.val < 12 := by
-    rw [evaluated_gh_iff']
+    rw [evaluated_gh_iff]
     simp only [fixedChoice, fixedE, fixedG, subtreeOf, Finset.mem_insert,
       Finset.mem_singleton, Fin.ext_iff]
     omega
   have subtree (l : Fin 7) :
       Evaluated (cutOf (fixedChoice i)) (eh l) ↔ l.val < 5 := by
-    rw [evaluated_eh_iff']
+    rw [evaluated_eh_iff]
     simp only [fixedChoice, fixedE, Finset.mem_insert, Finset.mem_singleton, Fin.ext_iff]
     omega
   cases n with
@@ -263,7 +262,7 @@ theorem evaluated_eq (i : Idx paperParams) (n : Name) :
     · exact h.1 hk
     · exact h.2 m ha hm
   | ci k t =>
-    rw [evaluated_ci_iff']
+    rw [evaluated_ci_iff]
     simp only [evaluated, decide_eq_true_eq, fixedChoice, fixed_active]
   | ch k t => exact by simpa only [evaluated, decide_eq_true_eq] using (chain k t).symm
   | cv k t =>
@@ -288,7 +287,7 @@ theorem evaluated_eq (i : Idx paperParams) (n : Name) :
     simp only [evaluated, decide_eq_true_eq]
     rw [← subtree l]
     exact ⟨evaluated_child rfl, evaluated_of_child rfl (eh_not_mem_cutOf _ _)⟩
-  | rc => exact iff_of_true rfl (evaluated_rc' _)
-  | rh => exact iff_of_true rfl (evaluated_rh' _)
+  | rc => exact iff_of_true rfl (evaluated_rc _)
+  | rh => exact iff_of_true rfl (evaluated_rh _)
 
 end OptimalOTS.RiscvUpperForest.ForestVerifier

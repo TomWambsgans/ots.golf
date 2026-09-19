@@ -67,15 +67,6 @@ theorem point_eq_some_iff (x : G.Assignment) (v : Fin G.size) (q : Query) :
     · rintro ⟨p', hp', hl', rfl, rfl⟩
       rfl
 
-/-- The point of a non-hash node is `none`. -/
-theorem point_eq_none_of_not_isHash (x : G.Assignment) (v : Fin G.size)
-    (h : ¬ (G.kind v).IsHash) : G.point x v = none := by
-  unfold point
-  rcases hk : G.kind v with _ | ⟨ps, hps, f, hf⟩ | ⟨p, hp, hl⟩
-  · rfl
-  · rfl
-  · rw [hk] at h; exact absurd trivial h
-
 /-- The points of the assignment `x` carry the tags of their hash nodes. -/
 def TagOK (T : G.Tagging) (x : G.Assignment) : Prop :=
   ∀ v q, G.point x v = some q → T.tag q = some v
@@ -160,25 +151,10 @@ theorem tagOK_evalRec (T : G.Tagging) (ξ : G.Rec) : G.TagOK T (G.evalRec ξ) :=
   rw [hval]
   exact htag _
 
-/-- Points of different hash nodes differ, in the assignments of any two records. -/
-theorem point_evalRec_inj (T : G.Tagging) (ξ ξ' : G.Rec) {v v' : Fin G.size} {q : Query}
-    (h : G.point (G.evalRec ξ) v = some q) (h' : G.point (G.evalRec ξ') v' = some q) : v = v' :=
-  G.point_inj T (G.tagOK_evalRec T ξ) (G.tagOK_evalRec T ξ') h h'
-
 theorem keygenCache_apply_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) (w : BitVec P.hashBits) :
     G.keygenCache ξ q = some w ↔ ∃ v, G.point (G.evalRec ξ) v = some q ∧ ξ.2 v = w := by
   rw [keygenCache_eq, G.foldl_cacheStep_eq_some_iff T (G.tagOK_evalRec T ξ)]
   simp [List.mem_finRange]
-
-theorem keygenCache_isSome_iff (T : G.Tagging) (ξ : G.Rec) (q : Query) :
-    (G.keygenCache ξ q).isSome ↔ ∃ v, G.point (G.evalRec ξ) v = some q := by
-  rw [Option.isSome_iff_exists]
-  constructor
-  · rintro ⟨w, hw⟩
-    obtain ⟨v, hv, -⟩ := (G.keygenCache_apply_iff T ξ q w).1 hw
-    exact ⟨v, hv⟩
-  · rintro ⟨v, hv⟩
-    exact ⟨ξ.2 v, (G.keygenCache_apply_iff T ξ q _).2 ⟨v, hv, rfl⟩⟩
 
 /-! ## Node-kind case lemmas -/
 
@@ -222,11 +198,6 @@ theorem evalNode_of_kind_eq_det (x : G.Assignment) {v : Fin G.size} {ps hps f hf
     (hk : G.kind v = .det ps hps f hf) (s : OracleComp (Spec P) (BitVec (G.len v))) :
     G.evalNode x v s = pure (f x) := by
   simp [evalNode, hk]
-
-theorem nodeCost_of_kind_eq_hash {v p : Fin G.size} {hp : p < v}
-    {hl : G.len v = P.hashBits} (hk : G.kind v = .hash p hp hl) :
-    G.nodeCost v = blockCost P (G.len p) := by
-  simp [nodeCost, hk]
 
 theorem nodeCost_of_kind_eq_source {v : Fin G.size} (hk : G.kind v = .source) :
     G.nodeCost v = 0 := by

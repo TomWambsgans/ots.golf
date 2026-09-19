@@ -20,9 +20,6 @@ def constant (rd : Reg) (n : ℕ) : Code :=
   if n < 2048 then [.ADDI rd .x0 (BitVec.ofNat 12 n)] else
     [.LUI rd (BitVec.ofNat 20 ((n + 2048) / 4096)), .ADDI rd rd (BitVec.ofNat 12 n)]
 
-def whenZero (r : Reg) (body : Code) : Code :=
-  .BNE r .x0 (BitVec.ofNat 13 (4 * (body.length + 1))) :: body
-
 def whenNonzero (r : Reg) (body : Code) : Code :=
   .BEQ r .x0 (BitVec.ofNat 13 (4 * (body.length + 1))) :: body
 
@@ -39,10 +36,9 @@ def copy128 (src : Reg) (srcOff : ℕ) (dst : Reg) (dstOff : ℕ) : Code :=
   [.LD .x26 src (BitVec.ofNat 12 srcOff), .LD .x27 src (BitVec.ofNat 12 (srcOff + 8)),
    .SD dst .x26 (BitVec.ofNat 12 dstOff), .SD dst .x27 (BitVec.ofNat 12 (dstOff + 8))]
 
-/-- Hash the scratch input into the 32-byte scratch output at offset 128. -/
-def hashScratch (bits : ℕ) : Code :=
-  [.ADDI .x10 .x19 0] ++ constant .x11 bits ++
-  [.ADDI .x12 .x19 128, .ADDI .x5 .x0 1, .ECALL]
+/-- Store a 16-bit tag at byte offset `offset` from `x18`. -/
+def writeTag (tag : BitVec 16) (offset : ℕ) : Code :=
+  constant .x26 tag.toNat ++ [.SH .x18 .x26 (BitVec.ofNat 12 offset)]
 
 /-- The prefix ends immediately before the index HASH call. -/
 def indexPrefix : Code :=

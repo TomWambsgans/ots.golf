@@ -324,8 +324,6 @@ theorem hits_charge_B' {Ac : Finset Name} (hAc : IsCut Ac) (dt : Data) {T : Fins
 
 /-! ### The encoding term -/
 
-theorem numSets_ne_zero_pot : (numValid paperParams : ℝ≥0∞) ≠ 0 := numValid_ne_zero
-
 theorem encTerm_cacheQuery_of_ne_enc (c : Cache paperParams) {q : Query}
     (hq : ∀ u : EncInput paperParams, q ≠ encQuery paperParams u) (u : BitVec paperParams.hashBits) :
     encTerm (c.cacheQuery q u) = encTerm c := by

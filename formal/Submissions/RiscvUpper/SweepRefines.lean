@@ -1,5 +1,5 @@
 import Submissions.RiscvUpper.Refines
-import Submissions.RiscvUpper.CursorBudget
+import Submissions.RiscvUpper.ForestVerifierProof
 
 /-!
 # Node sweeps with cycle accounting

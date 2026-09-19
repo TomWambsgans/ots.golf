@@ -50,17 +50,6 @@ def forestScheme : GScheme paperParams where
     rw [graph_keygenCost]
     norm_num
 
-theorem forestScheme_graph : forestScheme.graph = graph := rfl
-
-theorem forestScheme_sets (i : Idx paperParams) : forestScheme.sets i = fins (setsName i) :=
-  rfl
-
-theorem forestScheme_sets_injective : Function.Injective forestScheme.sets := by
-  intro i j h
-  apply setsName_injective
-  have := congrArg names h
-  simpa only [forestScheme_sets, names_fins] using this
-
 theorem isCut_setsName (i : Idx paperParams) : IsCut (setsName i) :=
   fixedCut_isCut i
 

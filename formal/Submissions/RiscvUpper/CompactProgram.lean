@@ -1,4 +1,5 @@
-import Submissions.RiscvUpper.NodeProgram
+import Submissions.RiscvUpper.Program
+import Submissions.RiscvUpper.ForestVerifier
 
 /-!
 # Compact RV64IM forest verifier
@@ -21,7 +22,7 @@ def subtreeSlot (l : ℕ) : ℕ := 32 * l
 /-- Hash step `t` of chain `k`: write the tag of `ch k t` after the slot's value and hash the
 144-bit input in place. -/
 def chainStep (k t : ℕ) : Code :=
-  Direct.writeTag (BitVec.ofNat 16 (43 * k + 2 + 3 * t)) (chainSlot k + 16) ++ [.ECALL]
+  writeTag (BitVec.ofNat 16 (43 * k + 2 + 3 * t)) (chainSlot k + 16) ++ [.ECALL]
 
 /-- The fourteen steps of chain `k`; the prologue jumps to the step of the disclosed position. -/
 def chainTable (k : ℕ) : Code := (List.range 14).flatMap (chainStep k)
@@ -50,7 +51,7 @@ def chains : Code := chainSetup ++ (List.range 36).flatMap chainBlock ++ chainsE
 /-- Three 128-bit values and a tag, last child lowest, in the scratch buffer at `x18`. -/
 def tripleInput (src : Reg) (a b c tag : ℕ) : Code :=
   copy128 src c .x18 0 ++ copy128 src b .x18 16 ++ copy128 src a .x18 32 ++
-  Direct.writeTag (BitVec.ofNat 16 tag) 48
+  writeTag (BitVec.ofNat 16 tag) 48
 
 def groupBlock (j : ℕ) : Code :=
   tripleInput .x19 (chainSlot (3 * j)) (chainSlot (3 * j + 1)) (chainSlot (3 * j + 2)) (2730 + j) ++
@@ -87,7 +88,7 @@ def subtrees : Code := subtreeHashes ++ subtreeReads
 /-- The 912-bit root input: subtree `l` at byte `16 * (6 - l)`, then the tag. -/
 def root : Code :=
   (List.finRange 7).reverse.flatMap (fun l => copy128 .x21 (subtreeSlot l.val) .x18 (16 * (6 - l.val))) ++
-  Direct.writeTag (BitVec.ofNat 16 2794) 112 ++
+  writeTag (BitVec.ofNat 16 2794) 112 ++
   [.ADDI .x10 .x18 0, .ADDI .x11 .x0 912, .ADDI .x12 .x18 128, .ECALL]
 
 /-- Compare the root answer's low 128 bits with the public key and halt. -/

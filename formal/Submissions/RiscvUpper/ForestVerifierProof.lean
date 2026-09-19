@@ -170,6 +170,14 @@ theorem directVerify_eq (pk : PublicKey paperParams) (m : Message paperParams) (
     simp only [hlen, directReconstruct_eq]
   · rw [dif_neg hi, dif_neg hi]
 
+/-- The sequential disclosure cursor advances by one word exactly at disclosed nodes. -/
+theorem consumedBits_word (i : Idx paperParams) (n : Name) :
+    consumedBits i n = if disclosed (fixedPositions i) n then 128 else 0 := by
+  unfold consumedBits
+  split_ifs with hd
+  · exact (fixedCut_isCut i).values n (by simpa only [setsName] using (disclosed_eq i n).mp hd)
+  · rfl
+
 /--
 info: 'OptimalOTS.RiscvUpperForest.ForestVerifier.directVerify_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/

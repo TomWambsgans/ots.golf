@@ -1,6 +1,5 @@
 import Submissions.RiscvUpper.CompactBlocks
 import Submissions.RiscvUpper.SweepRefines
-import Submissions.RiscvUpper.NodeValueProof
 
 /-!
 # One chain of the compact image
@@ -16,8 +15,6 @@ namespace OptimalOTS.RiscvUpperProgram.Compact
 
 open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier OracleComp
 
-set_option maxRecDepth 100000
-set_option maxHeartbeats 2000000
 set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
 attribute [local irreducible] Forest.fixedPositions Forest.fixedDigits
@@ -28,9 +25,9 @@ abbrev pos (k : Fin 63) : ℕ := (fixedPositions index k).val
 
 /-- Machine facts at the end of the chain phase, handed to the tree phase. -/
 structure ChainCtx (s : MachineState) (cursor : ℕ) (rem : List Name) : Prop where
-  context : Direct.ExecutionContext s index payload pk
+  context : ExecutionContext s index payload pk
   regs : ChainRegs s
-  atCursor : Direct.CursorAt s cursor
+  atCursor : CursorAt s cursor
   aligned : cursor % 128 = 0
   budget : cursor + (rem.map (consumedBits index)).sum ≤ 5248
 
@@ -52,7 +49,7 @@ theorem Holds.frame {s t : MachineState} {k k' : Fin 63} (hk : k.val < 36) (hk' 
     (frame : ∀ addr, (∀ j, j < 4 → addr ≠ slotAddr k + BitVec.ofNat 64 (8 * j)) →
       t.getMem addr = s.getMem addr)
     (held : Holds s k' v) : Holds t k' v := by
-  apply Direct.memBits_of_word_frame s t _ v held
+  apply memBits_of_word_frame s t _ v held
   intro i hi
   apply frame
   intro j hj
@@ -147,13 +144,6 @@ theorem fin_ne_of_ne {m n : Name} (h : m ≠ n) : m.fin ≠ n.fin :=
 theorem cv_len_le (k : Fin 63) (t : Fin 14) : graph.len (cv k t).fin ≤ 256 := by
   rw [graph_len_fin]; norm_num [Name.len]
 
-theorem ch_len_le (k : Fin 63) (t : Fin 14) : graph.len (ch k t).fin ≤ 256 := by
-  rw [graph_len_fin]; norm_num [Name.len]
-
-theorem prev_len_le (k : Fin 63) (t : Fin 14) : graph.len (prev k t).fin ≤ 256 := by
-  unfold prev
-  split_ifs <;> rw [graph_len_fin] <;> norm_num [Name.len]
-
 theorem ci_len (k : Fin 63) (t : Fin 14) : graph.len (ci k t).fin = 144 := graph_len_fin (ci k t)
 
 /-- A represented graph value yields its low 128 bits. -/
@@ -161,7 +151,7 @@ theorem Holds.trunc {s : MachineState} {k : Fin 63} {n : Name} {x : graph.Assign
     (held : Holds s k (x n.fin)) : Holds s k (Forest.trunc (x n.fin)) := by
   have bound : 0 + 128 ≤ graph.len n.fin := by
     rw [graph_len_fin]
-    exact Direct.node_length_positive n
+    exact node_length_positive n
   have h := memBits_extract (start := 0) (len := 128) held (by decide) bound
   have he : (x n.fin).extractLsb' 0 128 = Forest.trunc (x n.fin) := by
     apply BitVec.eq_of_getLsbD_eq
@@ -253,7 +243,7 @@ theorem chainTag_toNat (k t : ℕ) (hk : k < 36) (ht : t < 14) :
 theorem chainStep_eq (k t : ℕ) (hk : k < 36) (ht : t < 14) :
     chainStep k t = [.ADDI .x26 .x0 (BitVec.ofNat 12 (43 * k + 2 + 3 * t)),
       .SH .x18 .x26 (BitVec.ofNat 12 (chainSlot k + 16)), .ECALL] := by
-  simp only [chainStep, Direct.writeTag, chainTag_toNat k t hk ht,
+  simp only [chainStep, writeTag, chainTag_toNat k t hk ht,
     constant_small .x26 (43 * k + 2 + 3 * t) (by omega)]
   rfl
 
@@ -445,13 +435,13 @@ theorem prologueLinear_ready (a : MachineState) (k : ℕ) (hk : k < 36)
       MachineState.getReg_setReg_ne _ .x10 .x8 _ (by decide),
       copy128_reg a .x9 .x18 .x8 _ _ (by decide) (by decide)]
     rw [signExtend12_nonnegative _ (by omega), positions]
-    exact Direct.position_access ⟨k, by omega⟩
+    exact position_access ⟨k, by omega⟩
 
 /-! ## Invariants within a chain -/
 
 /-- Machine facts holding throughout chain `k`'s block after its prologue. -/
 structure StepInv (s : MachineState) (x : graph.Assignment) (k : Fin 63) : Prop where
-  context : Direct.ExecutionContext s index payload pk
+  context : ExecutionContext s index payload pk
   regs : ChainRegs s
   cursorReg : s.getReg .x9 = Riscv.signatureBase + 16
   pointer : s.getReg .x10 = slotAddr k
@@ -478,12 +468,6 @@ theorem prev_eq_valueNode (k : Fin 63) (t : Fin 14) : prev k t = valueNode k t.v
 theorem valueNode_len (k : Fin 63) (t : ℕ) (ht : t ≤ 14) : graph.len (valueNode k t).fin = 128 := by
   unfold valueNode
   split_ifs <;> first | exact graph_len_fin _ | omega
-
-theorem valueNode_ne_ci (k k' : Fin 63) (t : ℕ) (ht : t ≤ 14) (t' : Fin 14) : valueNode k t ≠ ci k' t' := by
-  unfold valueNode; split_ifs <;> simp
-
-theorem valueNode_ne_ch (k k' : Fin 63) (t : ℕ) (ht : t ≤ 14) (t' : Fin 14) : valueNode k t ≠ ch k' t' := by
-  unfold valueNode; split_ifs <;> simp
 
 /-! ## One hash step -/
 
@@ -523,11 +507,9 @@ theorem tripleUpdate_other (x : graph.Assignment) (k : Fin 63) (t : Fin 14) (y :
   rw [Function.update_of_ne (fin_ne_of_ne h3), Function.update_of_ne (fin_ne_of_ne h2),
     Function.update_of_ne (fin_ne_of_ne h1)]
 
-theorem tw_ch (k : Fin 63) (t : Fin 14) : tw (ch k t) = BitVec.ofNat 16 (43 * k.val + 2 + 3 * t.val) := rfl
-
 theorem writeTag_ready (n : MachineState) (k : Fin 63) (hk : k.val < 36) (tag : BitVec 16)
     (base : n.getReg .x18 = BitVec.ofNat 64 chainsBase) :
-    Riscv.LinearReady n (Direct.writeTag tag (chainSlot k + 16)) := by
+    Riscv.LinearReady n (writeTag tag (chainSlot k + 16)) := by
   apply (constant_ready _ _ _).append
   refine ⟨rfl, ?_, trivial⟩
   change isValidHalfwordAccess (_ + signExtend12 (BitVec.ofNat 12 (chainSlot k + 16))) = true
@@ -536,10 +518,10 @@ theorem writeTag_ready (n : MachineState) (k : Fin 63) (hk : k.val < 36) (tag : 
   exact chain_half_access k hk
 
 theorem chainStep_parts (k : Fin 63) (t : Fin 14) :
-    chainStep k t = Direct.writeTag (tw (ch k t)) (chainSlot k + 16) ++ [.ECALL] := rfl
+    chainStep k t = writeTag (tw (ch k t)) (chainSlot k + 16) ++ [.ECALL] := rfl
 
 theorem writeTag_length_small (k : Fin 63) (hk : k.val < 36) (t : Fin 14) :
-    (Direct.writeTag (tw (ch k t)) (chainSlot k + 16)).length = 2 := by
+    (writeTag (tw (ch k t)) (chainSlot k + 16)).length = 2 := by
   have := chainStep_length k t hk t.isLt
   rw [chainStep_parts, List.length_append] at this
   simpa using this
@@ -560,20 +542,20 @@ theorem step_refines (k : Fin 63) (hk : k.val < 36) (t : Fin 14) (ht : pos index
   have tagLen := writeTag_length_small k hk t
   rw [chainStep_parts, List.append_assoc] at located
   have ready := writeTag_ready s k hk (tw (ch k t)) inv.regs.base
-  set w := (Direct.writeTag (tw (ch k t)) (chainSlot k + 16)).foldl execInstrBr s with hw
+  set w := (writeTag (tw (ch k t)) (chainSlot k + 16)).foldl execInstrBr s with hw
   have wPc : w.pc = s.pc + BitVec.ofNat 64 8 := by
     rw [hw, Riscv.linear_fold_pc s _ ready, tagLen]
   have wCode : Riscv.CodeAt w w.pc ([Instr.ECALL] ++ tail) := by
-    rw [wPc, show (8 : ℕ) = 4 * (Direct.writeTag (tw (ch k t)) (chainSlot k + 16)).length by
+    rw [wPc, show (8 : ℕ) = 4 * (writeTag (tw (ch k t)) (chainSlot k + 16)).length by
       rw [tagLen]]
     exact located.append_right.code_eq (Riscv.fold_code s _)
   have wCodeEq : w.code = s.code := Riscv.fold_code s _
   have wRegs : ∀ r, r ≠ .x26 → w.getReg r = s.getReg r := fun r h => by
-    rw [hw]; exact Direct.writeTag_register _ _ _ r h
+    rw [hw]; exact writeTag_register _ _ _ r h
   have wMem : w.mem = (s.setHalfword (s.getReg .x18 + BitVec.ofNat 64 (chainSlot k + 16))
       (tw (ch k t))).mem := by
     rw [hw]
-    exact Direct.writeTag_memory s _ _ (by unfold chainSlot; omega) (Direct.nodeTag_literal (ch k t))
+    exact writeTag_memory s _ _ (by unfold chainSlot; omega) (nodeTag_literal (ch k t))
   have wFetch : w.code w.pc = some .ECALL := wCode.head
   have wCall : w.getReg .x5 = Riscv.hashCall := by rw [wRegs .x5 (by decide)]; exact inv.regs.call
   have wLen : w.getReg .x11 = 144 := by rw [wRegs .x11 (by decide)]; exact inv.regs.length
@@ -592,13 +574,13 @@ theorem step_refines (k : Fin 63) (hk : k.val < 36) (t : Fin 14) (ht : pos index
     rw [inv.regs.base]
     exact held.trunc
   have appended := tag_append s (chainSlot k) (Forest.trunc (x (prev k t).fin)) (tw (ch k t))
-    (by decide) (by decide) (Direct.nodeTag_literal (ch k t)) (by unfold chainSlot; omega)
+    (by decide) (by decide) (nodeTag_literal (ch k t)) (by unfold chainSlot; omega)
     (by unfold chainSlot; omega) (by rw [inv.regs.base]; decide) (by rw [inv.regs.base]; decide) heldS
   have wInput : Riscv.hashInput w = ⟨graph.len (ci k t).fin,
       (tw (ch k t) ++ Forest.trunc (x (prev k t).fin)).cast (graph_len_fin (ci k t)).symm⟩ := by
     apply hashInput_of_memBits wSlot
     · rw [wLen, ci_len]; rfl
-    · apply (Direct.memBits_cast _ _ _ _).mpr
+    · apply (memBits_cast _ _ _ _).mpr
       rw [hw]
       have h := appended
       rw [inv.regs.base] at h
@@ -606,9 +588,9 @@ theorem step_refines (k : Fin 63) (hk : k.val < 36) (t : Fin 14) (ht : pos index
   have blocks : blockCost paperParams (graph.len (ci k t).fin) = 1 := by
     rw [ci_len]; decide
   -- compose: tag store, hash, continuation
-  rw [show fuel = (Direct.writeTag (tw (ch k t)) (chainSlot k + 16)).length + ((fuel - 3) + 1) by
+  rw [show fuel = (writeTag (tw (ch k t)) (chainSlot k + 16)).length + ((fuel - 3) + 1) by
       rw [tagLen]; omega,
-    show 3 + c = (Direct.writeTag (tw (ch k t)) (chainSlot k + 16)).length + (1 + c) by
+    show 3 + c = (writeTag (tw (ch k t)) (chainSlot k + 16)).length + (1 + c) by
       rw [tagLen]; omega]
   apply Riscv.Refines.linear _ located.append_left ready
   rw [← hw]
@@ -640,14 +622,14 @@ theorem step_refines (k : Fin 63) (hk : k.val < 36) (t : Fin 14) (ht : pos index
     rw [show (4 : Word) = BitVec.ofNat 64 4 from rfl, pcAdd]
   have vCode : v.code = s.code := by rw [hv, writeHash_code, wCodeEq]
   have vLocated : Riscv.CodeAt v v.pc tail := by
-    rw [vPc, show (12 : ℕ) = 4 * (Direct.writeTag (tw (ch k t)) (chainSlot k + 16) ++ [Instr.ECALL]).length by
+    rw [vPc, show (12 : ℕ) = 4 * (writeTag (tw (ch k t)) (chainSlot k + 16) ++ [Instr.ECALL]).length by
       rw [List.length_append, tagLen]; rfl]
-    have h : Riscv.CodeAt s s.pc ((Direct.writeTag (tw (ch k t)) (chainSlot k + 16) ++ [Instr.ECALL]) ++ tail) := by
+    have h : Riscv.CodeAt s s.pc ((writeTag (tw (ch k t)) (chainSlot k + 16) ++ [Instr.ECALL]) ++ tail) := by
       simpa only [List.append_assoc] using located
     exact h.append_right.code_eq vCode
   have answer : Holds v k ((y.cast (graph_len_fin (ch k t)).symm : BitVec (graph.len (ch k t).fin))) := by
     unfold Holds
-    apply (Direct.memBits_cast _ _ _ _).mpr
+    apply (memBits_cast _ _ _ _).mpr
     have h := writeHash_memBits w y (by rw [wSlot']; exact slotAddr_aligned k hk)
     rw [wSlot'] at h
     exact h
@@ -656,7 +638,7 @@ theorem step_refines (k : Fin 63) (hk : k.val < 36) (t : Fin 14) (ht : pos index
   have cvHeld : Holds v k (tripleUpdate x k t y (cv k t).fin) := by
     rw [tripleUpdate_cv]
     unfold Holds
-    apply (Direct.memBits_cast _ _ _ _).mpr
+    apply (memBits_cast _ _ _ _).mpr
     have h := chHeld.trunc
     rwa [tripleUpdate_ch] at h
   have vAligned : v.pc.toNat % 4 = 0 := by
@@ -729,7 +711,7 @@ theorem steps_refines (k : Fin 63) (hk : k.val < 36) (tail : Code)
 
 /-- Machine facts holding between chain blocks: chains before `k` are complete. -/
 structure ChainsInv (s : MachineState) (x : graph.Assignment) (k : ℕ) : Prop where
-  context : Direct.ExecutionContext s index payload pk
+  context : ExecutionContext s index payload pk
   regs : ChainRegs s
   cursorReg : s.getReg .x9 = Riscv.signatureBase + 16
   pcAligned : s.pc.toNat % 4 = 0

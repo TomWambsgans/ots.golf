@@ -55,18 +55,11 @@ theorem height_child {m n : Name} (h : child n = some m) : height m + 1 = height
   all_goals try (subst h; simp [height]; try omega)
   split_ifs at h with ht <;> (simp only [Option.some.injEq] at h; subst h; simp [height]; omega)
 
-theorem Above.height_lt {m n : Name} (h : Above m n) : height m < height n := by
-  induction h with
-  | child h => have := height_child h; omega
-  | step h _ ih => have := height_child h; omega
-
 theorem Above.trans {a b c : Name} (h₁ : Above a b) (h₂ : Above b c) : Above a c := by
   revert h₁
   induction h₂ with
   | child h => intro h₁; exact Above.step h h₁
   | step h _ ih => intro h₁; exact Above.step h (ih h₁)
-
-theorem Above.irrefl (n : Name) : ¬ Above n n := fun h => lt_irrefl _ h.height_lt
 
 theorem above_of_child {m n p : Name} (h : child n = some p) : Above m n ↔ m = p ∨ Above m p := by
   constructor
@@ -227,34 +220,11 @@ theorem above_iff_mem_ancSet (m n : Name) : Above m n ↔ m ∈ ancSet n := by
     · rw [above_of_child hc, ancSet_child hc, Finset.mem_insert,
         ih (height p) (by rw [← hn, ← height_child hc]; omega) p rfl]
 
-/-- Names of a set of indices. -/
-def names (A : Finset (Fin N)) : Finset Name := A.map nameEquiv.symm.toEmbedding
-
 /-- Indices of a set of names. -/
 def fins (A : Finset Name) : Finset (Fin N) := A.map nameEquiv.toEmbedding
 
 @[simp] theorem mem_fins (A : Finset Name) (n : Name) : n.fin ∈ fins A ↔ n ∈ A :=
   Finset.mem_map' _
-
-@[simp] theorem names_fins (A : Finset Name) : names (fins A) = A := by
-  ext n
-  simp only [names, fins, Finset.mem_map, Equiv.coe_toEmbedding]
-  constructor
-  · rintro ⟨v, ⟨m, hm, rfl⟩, rfl⟩
-    simpa using hm
-  · intro h
-    exact ⟨_, ⟨n, h, rfl⟩, nameEquiv.symm_apply_apply n⟩
-
-@[simp] theorem fins_names (A : Finset (Fin N)) : fins (names A) = A := by
-  ext v
-  simp only [names, fins, Finset.mem_map, Equiv.coe_toEmbedding]
-  constructor
-  · rintro ⟨n, ⟨w, hw, rfl⟩, rfl⟩
-    simpa using hw
-  · intro h
-    exact ⟨_, ⟨v, h, rfl⟩, nameEquiv.apply_symm_apply v⟩
-
-theorem card_fins (A : Finset Name) : (fins A).card = A.card := Finset.card_map _
 
 /-- Membership in the parents of a node, in the graph, in terms of `child`. -/
 theorem mem_graph_parents_iff (m n : Name) :
@@ -397,20 +367,6 @@ theorem IsCut.rh_not_mem {A : Finset Name} (h : IsCut A) : rh ∉ A := by
 theorem IsCut.not_evaluated_hashOf {A : Finset Name} (hA : IsCut A) {a h : Name} (ha : a ∈ A)
     (hh : hashOf a = some h) : ¬ Evaluated A h :=
   fun he => he.2 a (Above.child (child_hashOf hh)) ha
-
-/-- Strict ancestors of cut nodes are evaluated. -/
-theorem IsCut.evaluated_of_above {A : Finset Name} (hA : IsCut A) {a m : Name} (ha : a ∈ A)
-    (hm : Above m a) : Evaluated A m :=
-  ⟨hA.antichain a ha m hm, fun m' hm' => hA.antichain a ha m' (hm'.trans hm)⟩
-
-/-- A node is evaluated, in the cut, or strictly below the cut. -/
-theorem IsCut.trichotomy {A : Finset Name} (hA : IsCut A) (n : Name) :
-    Evaluated A n ∨ n ∈ A ∨ ∃ a ∈ A, Above a n := by
-  by_cases h1 : n ∈ A
-  · exact Or.inr (Or.inl h1)
-  by_cases h2 : ∃ a ∈ A, Above a n
-  · exact Or.inr (Or.inr h2)
-  · exact Or.inl ⟨h1, fun m hm hmA => h2 ⟨m, hmA, hm⟩⟩
 
 section
 

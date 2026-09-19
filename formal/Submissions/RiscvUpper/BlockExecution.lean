@@ -10,14 +10,6 @@ open RiscvZkvm.Rv64 OracleComp
 def observe (fuel : ℕ) (s : MachineState) : OracleComp (Spec paperParams) (Option Bool) :=
   Option.map Prod.fst <$> execute fuel s
 
-@[simp] theorem observe_zero (s : MachineState) : observe 0 s = pure none := by
-  simp [observe, execute]
-
-theorem decision_addCycles (n : ℕ) :
-    Option.map Prod.fst ∘ addCycles n = Option.map Prod.fst := by
-  funext x
-  cases x <;> rfl
-
 theorem observe_regular (fuel : ℕ) (s next : MachineState) (i : Instr)
     (fetch : s.code s.pc = some i) (admitted : admittedInstruction i = true)
     (ordinary : i ≠ .ECALL) (transition : step s = some next) :
@@ -67,14 +59,6 @@ theorem PureSteps.observe {n s final} (steps : PureSteps n s final) (fuel : ℕ)
   | cons fetch admitted ordinary transition rest ih =>
     rw [Nat.add_right_comm,
       observe_regular _ _ _ _ fetch admitted ordinary transition, ih]
-
-theorem PureSteps.trans {n m s middle final} (first : PureSteps n s middle)
-    (second : PureSteps m middle final) : PureSteps (n + m) s final := by
-  induction first with
-  | refl => simpa using second
-  | cons fetch admitted ordinary transition rest ih =>
-    simpa only [Nat.add_right_comm] using
-      PureSteps.cons fetch admitted ordinary transition (ih second)
 
 /-- A finite instruction list at a given address; the surrounding code is unrestricted. -/
 def CodeAt (s : MachineState) (pc : Word) (code : List Instr) : Prop :=
@@ -166,11 +150,6 @@ theorem linear_steps (s : MachineState) (code : List Instr)
     exact PureSteps.cons located.head (linear_admitted i linear).1
       (linear_admitted i linear).2 (linear_step s i linear memory located.head)
       (ih _ tail remaining)
-
-theorem observe_linear (fuel : ℕ) (s : MachineState) (code : List Instr)
-    (located : CodeAt s s.pc code) (ready : LinearReady s code) :
-    observe (code.length + fuel) s = observe fuel (code.foldl execInstrBr s) :=
-  (linear_steps s code located ready).observe fuel
 
 theorem LinearReady.append {s : MachineState} {first last : List Instr}
     (hfirst : LinearReady s first)

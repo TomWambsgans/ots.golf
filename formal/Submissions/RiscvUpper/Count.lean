@@ -3,18 +3,11 @@ import Mathlib
 /-!
 # Counting chain positions
 
-`comp n s` is the number of tuples `(c_1, …, c_n) ∈ {0, …, 14}^n` with sum `s`.  The three
-shapes of disclosure sets used by the concrete scheme have
+`comp n s` is the number of tuples `(c_1, …, c_n) ∈ {0, …, 14}^n` with sum `s` (`card_comp`).
 
-```
-21 · 455 · comp 36 86 + 7 · 31824 · comp 33 86 + 21 · 1365 · comp 33 87 ≥ 2 ^ 115
-```
-
-(`C(7,2) = 21`, `C(15,3) = 455`, `C(7,1) = 7`, `C(18,7) = 31824`, `C(15,4) = 1365`).
-
-The exact values are certified without `native_decide`: `comp` is evaluated through a
-polynomial-size table of partial sums (`compTable`), which agrees with `comp` by induction and is
-computed by kernel reduction.
+Concrete values are certified without `native_decide`: `comp` is evaluated through a
+polynomial-size table of partial sums (`compTable`), which agrees with `comp` by induction
+(`compTable_getD`) and is computed by kernel reduction.
 -/
 
 namespace OptimalOTS
@@ -87,23 +80,6 @@ theorem compTable_getD (S n s : ℕ) (hs : s ≤ S) : (compTable S n).getD s 0 =
     split_ifs with h
     · exact ih (s - v) (by omega)
     · rfl
-
-theorem comp_36_86 : comp 36 86 = 2775281970561648566171176949562 := by
-  rw [← compTable_getD 86 36 86 le_rfl]
-  decide +kernel
-
-theorem comp_33_86 : comp 33 86 = 59401693306392006050563151322 := by
-  rw [← compTable_getD 86 33 86 le_rfl]
-  decide +kernel
-
-theorem comp_33_87 : comp 33 87 = 80231837540948301105645263934 := by
-  rw [← compTable_getD 87 33 87 le_rfl]
-  decide +kernel
-
-theorem shapes_ge :
-    2 ^ 115 ≤ 21 * 455 * comp 36 86 + 7 * 31824 * comp 33 86 + 21 * 1365 * comp 33 87 := by
-  rw [comp_36_86, comp_33_86, comp_33_87]
-  norm_num
 
 end Forest
 

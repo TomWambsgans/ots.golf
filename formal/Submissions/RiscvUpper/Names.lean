@@ -260,10 +260,6 @@ def Name.sumEquiv : Name ≃ NameSum where
 
 instance : Fintype Name := Fintype.ofEquiv NameSum Name.sumEquiv.symm
 
-theorem Name.card : Fintype.card Name = N := by
-  rw [Fintype.card_congr Name.sumEquiv]
-  simp only [Fintype.card_sum, Fintype.card_prod, Fintype.card_fin, Fintype.card_unit, N]
-
 /-- Sums over names split by constructor. -/
 theorem Name.sum_eq {M : Type} [AddCommMonoid M] (f : Name → M) :
     ∑ n, f n = (∑ k, f (src k)) + (∑ k, ∑ t, f (ci k t)) + (∑ k, ∑ t, f (ch k t)) +
@@ -310,20 +306,6 @@ theorem append_inj {n : ℕ} {a a' : BitVec 16} {u u' : BitVec n} (e : a ++ u = 
 theorem tw_append_inj {n : ℕ} {h h' : Name} {u u' : BitVec n} (e : tw h ++ u = tw h' ++ u') :
     h = h' ∧ u = u' :=
   ⟨tw_injective (append_inj e).1, (append_inj e).2⟩
-
-theorem tw_append_eq_iff {n : ℕ} {h h' : Name} {u u' : BitVec n} :
-    tw h ++ u = tw h' ++ u' ↔ h = h' ∧ u = u' :=
-  ⟨tw_append_inj, fun ⟨e₁, e₂⟩ => by rw [e₁, e₂]⟩
-
-/-- Equal hash queries, of whatever lengths, belong to the same hash node. -/
-theorem tw_query_inj {n n' : ℕ} {h h' : Name} {u : BitVec n} {u' : BitVec n'}
-    (e : (⟨16 + n, tw h ++ u⟩ : Query) = ⟨16 + n', tw h' ++ u'⟩) : h = h' := by
-  have hn : n = n' := by
-    have := congrArg Sigma.fst e
-    simp only at this
-    omega
-  subst hn
-  exact (tw_append_inj (eq_of_heq (Sigma.mk.inj e).2)).1
 
 /-- The number written in the 16 high bits of a query. -/
 def tagNat (q : Query) : ℕ := q.2.toNat / 2 ^ (q.1 - 16)
@@ -567,18 +549,12 @@ theorem graph_kind_eq (v : Fin N) (n : Name) (h : ofFin v = n) : graph.kind v = 
 theorem graph_kind_fin (n : Name) : graph.kind n.fin = kindOf n.fin n (ofFin_fin n) :=
   graph_kind_eq _ _ _
 
-theorem graph_size : graph.size = N := rfl
-
 theorem graph_len_fin (n : Name) : graph.len n.fin = n.len := lenF_fin n
 
 /-- The parents of a node, in the graph. -/
 theorem graph_parents_fin (n : Name) :
     (graph.kind n.fin).parents = (Name.parents n).map nameEquiv.toEmbedding := by
   rw [graph_kind_fin]; exact kindOf_parents _ _ _
-
-theorem graph_isHash_fin (n : Name) :
-    (graph.kind n.fin).IsHash ↔ n.cost ≠ 0 := by
-  rw [graph_kind_fin]; exact kindOf_isHash _ _ _
 
 theorem graph_isSource_fin (n : Name) :
     (graph.kind n.fin).IsSource ↔ ∃ k, n = .src k := by

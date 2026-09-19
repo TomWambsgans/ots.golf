@@ -1,14 +1,13 @@
-import Submissions.RiscvUpper.CompactTree
-import Submissions.RiscvUpper.CompactCost
+import Submissions.RiscvUpper.CompactRoot
 import Submissions.RiscvUpper.IndexRefines
-import Submissions.RiscvUpper.DecoderExecution
+import Submissions.RiscvUpper.DecodedInput
 
 /-!
 # Exact refinement of the compact machine image
 
 The compact image observes exactly the certified raw-signature verifier, preserving every oracle
-query, and every accepting run costs at most `cycleBound` cycles: one cycle per executed
-instruction, with the 912-bit root hash charged two. The index phase (query, nibble checks and
+query, and every run, accepting or rejecting, costs at most `cycleBound` cycles: one cycle per
+executed instruction, with the 912-bit root hash charged two. The index phase (query, nibble checks and
 position stores) costs 267 cycles and the chain phase 973 cycles on every accepted index.
 -/
 
@@ -17,8 +16,6 @@ namespace OptimalOTS.RiscvUpperProgram.Compact
 open RiscvZkvm.Rv64 Forest Forest.Name RiscvUpperForest.ForestVerifier OracleComp
 open scoped Classical
 
-set_option maxRecDepth 100000
-set_option maxHeartbeats 4000000
 theorem index_take (bits : List Bool) : ofBits 128 (bits.take 128) = ofBits 128 bits := by
   simpa only [List.drop_zero] using
     ofBits_drop_take bits (cap := 128) (start := 0) (len := 128) le_rfl
@@ -105,7 +102,7 @@ theorem decodedInput_aligned (image : Riscv.Image) (pk : PublicKey paperParams)
   rw [decodedInput_pc, indexAndChecks_length]
   decide
 
-/-- The certified accepting-path cycle count. -/
+/-- The certified cycle bound on every execution. -/
 def cycleBound : ℕ := 1628
 
 /-- The index phase and the chain phase are charged their exact executed costs, 267 and 973
@@ -136,7 +133,7 @@ theorem acceptedTail_eq (pk : PublicKey paperParams) (bits : List Bool) (answer 
   try rfl
 
 /-- The compact image computes exactly the specified verifier within its fuel, and every
-accepting run costs at most `cycleBound` cycles. -/
+run costs at most `cycleBound` cycles. -/
 theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
     Riscv.Refines 2647 (Riscv.initialState image pk m bits) (some <$> directVerify pk m bits)
       cycleBound := by

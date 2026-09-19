@@ -77,12 +77,6 @@ theorem V_sub_valid (d : Cache P) : ∀ i ∈ V P d, i ∈ validSet P := by
 theorem card_V_le_numValid (d : Cache P) : (V P d).card ≤ numValid P :=
   Finset.card_le_card (V_sub_valid P d)
 
-theorem rowAcc_subset_cached (d : Cache P) (m : Message P) : rowAcc P d m ⊆ rowCached P d m := by
-  intro η hη
-  simp only [rowAcc, rowCached, Finset.mem_filter, Finset.mem_univ, true_and] at hη ⊢
-  obtain ⟨w, hw, -⟩ := hη
-  simp [hw]
-
 theorem rowHit_subset (d : Cache P) (m : Message P) (i : ℕ) :
     rowHit P d m i ⊆ rowAcc P d m \ rowBad P d m := by
   intro η hη
