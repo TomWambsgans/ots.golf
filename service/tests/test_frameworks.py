@@ -162,14 +162,18 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'generic-upper')
         self.assertEqual(uppers[0].get('data-status'), 'certified')
-        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 105')
-        self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 2)
+        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 106')
+        self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 15)
         self.assertNotIn('admission pending', html.lower())
         self.assertNotIn('candidate', html.lower())
         self.assertFalse('data-track="disclosure-upper"' in html)
         points = [p for p in self.chart(html) if p['kind'] == 'upper']
         self.assertEqual([(p['claim'], p['login']) for p in points],
-                         [(106, 'vitalik-buterin'), (105, 'satoshi-nakamoto')])
+                         [(512, 'leslie-lamport'), (431, 'hal-finney'), (372, 'ralph-merkle'),
+                          (318, 'vitalik-buterin'), (274, 'satoshi-nakamoto'), (236, 'leslie-lamport'),
+                          (204, 'hal-finney'), (180, 'ralph-merkle'), (160, 'vitalik-buterin'),
+                          (144, 'satoshi-nakamoto'), (131, 'hal-finney'), (121, 'leslie-lamport'),
+                          (114, 'ralph-merkle'), (109, 'vitalik-buterin'), (106, 'satoshi-nakamoto')])
         for point in points:
             sub = self.session.get(Submission, point['id'])
             self.assertEqual(sub.track, 'generic-upper')
@@ -195,7 +199,7 @@ class FrameworkTests(unittest.TestCase):
         cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'generic-upper']
         with patch.object(contract, 'load', return_value=cfg):
             self.assertIsNone(contract.generic_upper_track())
-            self.assertEqual(seed_demo.refresh(self.session), 23)
+            self.assertEqual(seed_demo.refresh(self.session), 38)
             self.assertEqual(seed_demo.refresh(self.session), 0)
             html = self.client.get('/').text
             self.assertIn('Admission pending', html)
@@ -212,13 +216,13 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 23)
-        self.assertEqual(seed_demo.refresh(self.session), 3)
+        self.assertEqual(len(before), 38)
+        self.assertEqual(seed_demo.refresh(self.session), 16)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         for identifier, old in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 26)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 54)
 
     def test_refresh_restores_one_missing_fixture_in_an_existing_track(self):
         seed_demo.refresh(self.session)
@@ -286,7 +290,7 @@ class FrameworkTests(unittest.TestCase):
         demo = next(s for s in self.session.scalars(select(Submission)) if s.detail_dict.get("demo"))
         demo.claim = 999
         self.session.commit()
-        self.assertEqual(seed_demo.refresh(self.session), 16)
+        self.assertEqual(seed_demo.refresh(self.session), 37)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), sum(bool(contract.track(r[0])) for r in seed_demo.ROWS) + 1)
