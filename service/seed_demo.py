@@ -36,6 +36,7 @@ PEOPLE = [(p["login"], p["name"], p["colour"], p["initials"]) for p in FIXTURES[
 # Only finished rows: the worker must never attempt to verify fictional submissions.
 ROWS = [(r["track"], r["login"], r["improvement"], r["hours_ago"], "verified",
          r["is_record"], r["assisted_by"], r["co_authors"]) for r in FIXTURES["submissions"]]
+FIXTURE_NOTES = {r["id"]: r["notes"] for r in FIXTURES["submissions"] if r.get("notes")}
 FIXTURE_IDS = {(r[0], r[1], r[3]): fixture["id"]
                for r, fixture in zip(ROWS, FIXTURES["submissions"])}
 if len(set(FIXTURE_IDS.values())) != len(ROWS) or len(FIXTURE_IDS) != len(ROWS):
@@ -136,7 +137,9 @@ def add_rows(session, rows) -> int:
                          finished_at=t if status == "verified" else None,
                          duration_s=150.0 if status == "verified" else None,
                          detail=json.dumps({**DEMO, "improvement": improvement,
-                                            "fixture_id": FIXTURE_IDS[(track, login, hours_ago)]}))
+                                            "fixture_id": FIXTURE_IDS[(track, login, hours_ago)],
+                                            **({"notes": FIXTURE_NOTES[FIXTURE_IDS[(track, login, hours_ago)]]}
+                                               if FIXTURE_IDS[(track, login, hours_ago)] in FIXTURE_NOTES else {})}))
         session.add(sub)
     return len(rows)
 
