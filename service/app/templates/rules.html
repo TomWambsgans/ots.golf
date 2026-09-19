@@ -72,7 +72,7 @@
       returns a signature, verification accepts with probability one. Signing may fail, but only
       with probability at most <strong>2<sup>−128</sup></strong>, for any message.</p>
       <p>Signature encodings must be lossless.
-      Every possible signer output fits in 5,504 bits; oversized signatures are always rejected.
+      Every possible signer output fits in 5,504 bits.
       Verification compression claims cover every public key,
       message and signature, including rejection.{% if riscv_upper_track %}
       The separate RISC-V score bounds accepting cycles, as specified below.{% endif %}</p>
