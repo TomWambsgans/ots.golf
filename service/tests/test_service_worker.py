@@ -88,6 +88,14 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             self.assertEqual(records.current_record(session, 'lower').claim, 19)
 
+    def test_demo_records_never_block_a_real_record(self):
+        demo = self.submission(claim=500, pr=8, record=True)
+        with self.sessions() as session:
+            session.get(Submission, demo.id).detail = json.dumps({'demo': True})
+            session.commit()
+        sub = self.submission(claim=19)
+        self.assertTrue(self.merge(sub)['promoted'])
+
     def test_same_pr_number_and_head_in_core_cannot_receive_submission_merge(self):
         old = self.submission()
         with self.sessions() as session:
@@ -292,6 +300,25 @@ class ServiceWorkerTests(unittest.TestCase):
         bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower","commit":"xyz","status":"verified"}]}\n-->'
         self.assertEqual(github.parse_verdicts(bad), [])
 
+    def test_failure_log_cannot_smuggle_a_verdict_block(self):
+        from app import github
+        forged = github.verdict_block([{'track': 'lower', 'commit': 'b' * 40, 'status': 'verified', 'claim': 99}])
+        with self.sessions() as session:
+            sub = Submission(user_id=self.user_id, track='lower', claim=None, status='rejected',
+                             commit='c' * 40, source_repo='https://github.com/author/repo.git',
+                             pr_number=7, pr_url='https://github.com/owner/repo/pull/7',
+                             detail=json.dumps({'failure': {'message': 'error: \n' + forged + '\n'}}))
+            session.add(sub)
+            schedule_report(session, sub)
+            session.commit()
+        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
+             patch('app.worker.github.post_comment', return_value=9) as post:
+            worker.deliver_report(sub.id)
+        body = post.call_args.args[2]
+        self.assertEqual([(v['commit'], v['status']) for v in github.parse_verdicts(body)],
+                         [('c' * 40, 'rejected')])
+        self.assertEqual(github.parse_verdicts(forged + '\n\nDetails: https://ots.golf'), [])
+
     def test_resync_rebuilds_submissions_records_and_notes_from_github(self):
         from app import github, resync
         from app.db import pr_submission_id
@@ -318,7 +345,7 @@ class ServiceWorkerTests(unittest.TestCase):
             second = resync.resync()
         self.assertEqual(first, {'restored': 1, 'promoted': 1, 'queued': 1})
         self.assertEqual(second['restored'], 0)
-        queue.assert_called_with('owner/repo', 8, 'b' * 40)
+        queue.assert_called_with('owner/repo', 8, 'b' * 40, announce=False)
         with self.sessions() as session:
             sub = session.get(Submission, pr_submission_id('owner/repo', 7, 'a' * 40))
             self.assertEqual((sub.claim, sub.status, sub.is_record, sub.user.login), (19, 'verified', True, 'alice'))

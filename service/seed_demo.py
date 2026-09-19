@@ -1,9 +1,9 @@
 """Phony leaderboard data for local development.
 
 Loads versioned demo/submissions.json into a local database. The fictional submissions
-exercise record presentation; their rendered verification status remains unverified.
+exercise record presentation; they carry a demo label and never show verification badges or commit links.
 Everything it adds is marked with `detail = {"demo": true}` and `--remove` deletes it again. The
-repository baselines and their `ots-golf` user are removed from the board (re-queue them with
+repository baselines and their `ots.golf` user are removed from the board (re-queue them with
 `python -m app.queue <track> --baseline` when needed).
 
     .venv/bin/python seed_demo.py           # add (idempotent: removes its previous rows first)
@@ -146,11 +146,11 @@ def add_rows(session, rows) -> int:
 
 
 def add(session) -> int:
-    # the board is the invented solvers only: no baseline rows, no ots-golf user
+    # the board is the invented solvers only: no baseline rows, no ots.golf user
     for b in session.scalars(select(Submission).where(Submission.baseline.is_(True))):
         session.delete(b)
     session.flush()
-    bot = session.scalar(select(User).where(User.login == "ots-golf"))
+    bot = session.scalar(select(User).where(User.login == "ots.golf"))
     if bot is not None and not bot.submissions:
         session.delete(bot)
 

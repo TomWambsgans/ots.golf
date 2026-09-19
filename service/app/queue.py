@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 
-from . import contract
+from . import contract, github
 from .auth import get_or_create_user
 from .config import settings
 from .db import SessionLocal, Submission, init_db, stable_id
@@ -30,6 +30,9 @@ def main() -> int:
         print(f"unknown track {a.track}")
         return 1
     sha = a.commit
+    if a.repo.startswith("http") and not github.SHA_RE.fullmatch(sha):
+        print("--commit must be a full commit id for a remote repository")
+        return 1
     if not a.repo.startswith("http"):
         sha = subprocess.run(["git", "-C", a.repo, "rev-parse", a.commit], check=True, capture_output=True,
                              text=True).stdout.strip()

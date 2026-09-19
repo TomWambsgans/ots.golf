@@ -51,7 +51,8 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     work = settings.work_dir / sub.id
     shutil.rmtree(work, ignore_errors=True)
     cmd = [sys.executable, str(settings.repo_root / "verifier" / "verify.py"), sub.track,
-           "--source", sub.source_repo, "--commit", sub.commit, "--json", "--keep", "--work", str(work)]
+           "--source", sub.source_repo, "--commit", sub.commit, "--json", "--keep", "--work", str(work),
+           "--hide", str(settings.data_dir)]
     timed_out = False
     proc = subprocess.Popen(cmd, cwd=settings.repo_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, start_new_session=True)
@@ -88,15 +89,22 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     return result, str(log_dst)
 
 
+def best_record(session, sub: Submission) -> Submission | None:
+    """The track's best record other than `sub`. Invented demo rows never count."""
+    t = contract.track(sub.track)
+    order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
+    records = session.scalars(select(Submission).where(
+        Submission.track == sub.track, Submission.status == "verified", Submission.is_record.is_(True),
+        Submission.id != sub.id, Submission.claim.is_not(None)).order_by(order))
+    return next((r for r in records if not r.detail_dict.get("demo")), None)
+
+
 def beats_record(session, sub: Submission) -> bool:
     """Whether this verified claim strictly improves the track's current record and its baseline."""
     t = contract.track(sub.track)
     if t is None or sub.claim is None:
         return False
-    order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
-    best = session.scalars(select(Submission).where(
-        Submission.track == sub.track, Submission.status == "verified", Submission.is_record.is_(True),
-        Submission.id != sub.id, Submission.claim.is_not(None)).order_by(order).limit(1)).first()
+    best = best_record(session, sub)
     return (contract.improves(t["direction"], sub.claim, best.claim if best else None)
             and contract.improves(t["direction"], sub.claim, t["baseline"]))
 
@@ -152,10 +160,7 @@ def promote(session, sub: Submission, at=None) -> None:
     ):
         return
     t = contract.track(sub.track)
-    order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
-    best = session.scalars(select(Submission).where(
-        Submission.track == sub.track, Submission.status == "verified", Submission.is_record.is_(True),
-        Submission.id != sub.id, Submission.claim.is_not(None)).order_by(order).limit(1)).first()
+    best = best_record(session, sub)
     if (contract.improves(t["direction"], sub.claim, best.claim if best else None)
             and (contract.improves(t["direction"], sub.claim, t["baseline"])
                  or (sub.baseline and sub.claim == t["baseline"]))):
@@ -191,7 +196,7 @@ def report(sub: Submission, history: list[dict] | None = None) -> int | None:
         failure = (sub.detail_dict.get("failure") or {}).get("message", "")
         what = f"{sub.status}: {failure}"[:140] if failure else sub.status
         state = "error" if sub.status == "failed" else "failure"
-        quoted = failure[:600].replace("```", "'''")
+        quoted = failure[:600].replace("```", "'''").replace("<!--", "<!​--")
         body = f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
     finished = [e for e in (history or [verdict_entry(sub)]) if e["status"] not in {"pending", "verifying"}]
     if finished:

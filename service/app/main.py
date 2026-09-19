@@ -268,10 +268,11 @@ async def webhook(request: Request):
     return await run_in_threadpool(handle_pull_request, owner_repo, number, head_sha)   # GitHub calls block
 
 
-def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
+def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: bool = True) -> dict:
     """The event only says where to look. Author, head and changed files are read from GitHub's API,
     and the head must still be the event's commit before and after the files are listed, so the
-    commit that gets the verdict is the commit whose files were checked."""
+    commit that gets the verdict is the commit whose files were checked. A startup rebuild passes
+    announce=False: refusals were already explained when the push happened."""
     if not settings.submissions_repo or owner_repo.lower() != settings.submissions_repo.lower():
         return {"queued": False, "reason": "not the submissions repository"}
     try:
@@ -284,9 +285,10 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
             or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha):
         return {"queued": False, "reason": "the pull request moved on; its newer event is the one that counts"}
     if slug is None or outside:
-        github.post_comment(owner_repo, number,
-                            "**ots.golf verifier:** not queued. A submission must change exactly one "
-                            "submission root and no files outside it. Check this pull request's Files changed tab.")
+        if announce:
+            github.post_comment(owner_repo, number,
+                                "**ots.golf verifier:** not queued. A submission must change exactly one "
+                                "submission root and no files outside it. Check this pull request's Files changed tab.")
         return {"queued": False}
     head_repo = pr["head"].get("repo")
     login = (pr.get("user") or {}).get("login") or ""
@@ -301,7 +303,8 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
                                    fields["description"], fields["co_authors"], fields["assisted_by"],
                                    number, f"https://github.com/{owner_repo}/pull/{number}")
         except HTTPException as exc:
-            github.post_comment(owner_repo, number, f"**ots.golf verifier:** not queued: {exc.detail}")
+            if announce:
+                github.post_comment(owner_repo, number, f"**ots.golf verifier:** not queued: {exc.detail}")
             return {"queued": False, "reason": exc.detail}
     # The web process delivers the durable status/comment outbox, including retries after outages.
     return {"queued": True, "id": sub.id}
@@ -317,14 +320,11 @@ def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> d
         raise HTTPException(502, f"GitHub API: {exc}") from exc
     if not pr.get("merged") or pr.get("state") != "closed" or pr["head"]["sha"] != head_sha:
         return {"promoted": False, "reason": "this head was not merged"}
-    head_repo = pr["head"].get("repo")
     from .worker import promote
     with local_lock("results"), SessionLocal() as session:
         pr_url = f"https://github.com/{owner_repo}/pull/{number}"
         query = select(Submission).where(Submission.pr_number == number, Submission.commit == head_sha,
                                          func.lower(Submission.pr_url) == pr_url.lower())
-        if head_repo is not None:
-            query = query.where(Submission.source_repo == head_repo["clone_url"])
         submissions = list(session.scalars(query))
         for sub in submissions:
             detail = sub.detail_dict

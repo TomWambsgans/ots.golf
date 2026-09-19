@@ -48,7 +48,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
         return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
     chart_id = escape(chart_id)
-    description = ("Certified bounds on accepting executions. Smaller is better. " if unit == "cycles" else
+    description = ("Certified bounds on every execution. Smaller is better. " if unit == "cycles" else
                    "Lower bounds rise and upper bounds fall. Each lower framework has its own series. ")
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" data-unit="{escape(unit)}" '
            f'aria-labelledby="{chart_id}-title {chart_id}-desc">',

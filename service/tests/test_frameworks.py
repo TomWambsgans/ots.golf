@@ -194,18 +194,16 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(generic.findall('.//circle'), [])
         self.assertIsNone(records.current_record(self.session, 'generic-upper'))
 
-    def test_missing_generic_upper_metadata_stays_pending_and_does_not_seed_or_admit(self):
+    def test_missing_generic_upper_metadata_does_not_seed_or_admit(self):
         cfg = copy.deepcopy(contract.load())
         cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'generic-upper']
         with patch.object(contract, 'load', return_value=cfg):
             self.assertIsNone(contract.generic_upper_track())
-            self.assertEqual(seed_demo.refresh(self.session), 38)
+            self.assertEqual(seed_demo.refresh(self.session), 31)
             self.assertEqual(seed_demo.refresh(self.session), 0)
             html = self.client.get('/').text
-            self.assertIn('Admission pending', html)
             self.assertNotIn('data-track="generic-upper"', html)
             self.assertFalse(any(p['kind'] == 'upper' for p in self.chart(html)))
-            self.assertIn('<strong>Pending:</strong> the upper-bound track', self.client.get('/rules').text)
             with self.assertRaises(HTTPException) as caught:
                 queue_submission(self.session, User(login='tester'), 'generic-upper', 'local', 'a' * 40,
                                  None, [], None, None, None)
@@ -216,13 +214,13 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 38)
+        self.assertEqual(len(before), 31)
         self.assertEqual(seed_demo.refresh(self.session), 16)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         for identifier, old in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim, s.track), old)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 54)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 47)
 
     def test_refresh_restores_one_missing_fixture_in_an_existing_track(self):
         seed_demo.refresh(self.session)
@@ -290,7 +288,7 @@ class FrameworkTests(unittest.TestCase):
         demo = next(s for s in self.session.scalars(select(Submission)) if s.detail_dict.get("demo"))
         demo.claim = 999
         self.session.commit()
-        self.assertEqual(seed_demo.refresh(self.session), 37)
+        self.assertEqual(seed_demo.refresh(self.session), 30)
         self.assertEqual(seed_demo.refresh(self.session), 0)
         now = list(self.session.scalars(select(Submission)))
         self.assertEqual(len(now), sum(bool(contract.track(r[0])) for r in seed_demo.ROWS) + 1)
@@ -325,16 +323,6 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('href="/?framework=disclosure#lower">Lower bound · Generality 1/3</a>', html)
         self.assertNotIn('Any oracle algorithm', html)
         self.assertIn('Upper bound · compressions</a>', html)
-
-    def test_historical_partial_upper_is_not_relabelled_whole_words(self):
-        seed_demo.add_rows(self.session, [next(r for r in seed_demo.ROWS if r[0] == 'disclosure-upper')])
-        self.session.commit()
-        sub = self.session.scalar(select(Submission))
-        html = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('<h1>Historical partial disclosures <span', html)
-        self.assertNotIn('Historical reference in', html)
-        self.assertNotIn('Whole words reference certificate', html)
-        self.assertNotIn('href="/?framework=disclosure#upper"', html)
 
     def test_whole_word_demo_migration_keeps_identifiers_dates_and_other_tracks(self):
         old_config = copy.deepcopy(contract.load())
@@ -377,7 +365,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(all('T' in stamp for stamp in timestamps))
 
     def test_public_submission_queue_does_not_admit_legacy_upper_tracks(self):
-        for track in ('upper', 'disclosure-upper'):
+        for track in ('upper',):
             with self.assertRaises(HTTPException) as caught:
                 queue_submission(self.session, User(login='tester'), track, 'local', 'a' * 40,
                                  None, [], None, None, None)

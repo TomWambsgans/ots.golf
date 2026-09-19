@@ -160,7 +160,7 @@ def merge_pr(owner_repo: str, number: int, sha: str, title: str) -> tuple[bool, 
 
 
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
-VERDICT_RE = re.compile(r"<!-- ots-result\n(.*?)\n-->", re.S)
+VERDICT_RE = re.compile(r"<!-- ots-result\n(.*)\n-->\s*", re.S)
 VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")
 
 
@@ -175,7 +175,10 @@ def verdict_block(entries: list[dict]) -> str:
 
 def parse_verdicts(body: str) -> list[dict]:
     """The verdicts recorded in a bot comment, validated field by field; anything malformed is dropped."""
-    match = VERDICT_RE.search(body or "")
+    # Only a block ending the comment counts: earlier quoted text (a failure log) is submitter-controlled.
+    body = body or ""
+    start = body.rfind(VERDICT_OPEN)
+    match = VERDICT_RE.fullmatch(body, start) if start >= 0 else None
     if not match:
         return []
     try:

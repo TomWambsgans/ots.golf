@@ -20,7 +20,7 @@
       <h3 id="generic-upper-title"><a href="/rules#generic-upper">By compressions</a></h3>
       {% if generic_upper and generic_upper.state.record_submission_id %}
       <p>By <a href="/submissions/{{ generic_upper.state.record_submission_id }}">{{ generic_upper.state.record_setter }}</a></p>
-      {% else %}<p>{% if generic_upper %}<a href="/rules#play">Submit a construction ↗</a>{% else %}Admission pending{% endif %}</p>{% endif %}
+      {% else %}<p><a href="/rules#play">Submit a construction ↗</a></p>{% endif %}
     </div>
     {% if generic_upper %}<div class="upper-score"><span class="muted">Verification cost</span><strong>{{ generic_upper.state.record_claim }}</strong><span>compressions</span></div>{% endif %}
   </article>
@@ -52,7 +52,7 @@
       {% endif %}
       <dl class="framework-bounds">
         <div><dt>Verification cost</dt>
-        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% else %}<span class="pending-value">Pending</span>{% endif %}</dd></div>
+        <dd>{% if model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards and model.boards.lower.state.record_submission_id %}
       <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a></p>
@@ -149,7 +149,7 @@
           <div><h3 id="{{ model.slug }}-{{ kind }}-title" class="visually-hidden">{{ model.title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
-          {% else %}<span class="status">Admission pending</span>{% endif %}
+          {% endif %}
         </div>
         {% if b %}
         <div class="board-scroll" data-rows="10" role="region" tabindex="0" aria-labelledby="{{ model.slug }}-{{ kind }}-title">
@@ -164,9 +164,6 @@
             <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
         </div>
-        {% else %}
-        <p class="foundation-note">This framework has no admitted submission track yet.
-        <a href="/rules#model">Framework rules ↗</a></p>
         {% endif %}
       </section>
       {% endfor %}
@@ -187,7 +184,7 @@
           <div><h3 id="{{ upper_id }}" class="visually-hidden">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
-          {% else %}<span class="status">Admission pending</span>{% endif %}
+          {% endif %}
         </div>
         {% if b %}
         <div class="board-scroll" data-rows="10" role="region" tabindex="0" aria-labelledby="{{ upper_id }}">
@@ -202,8 +199,7 @@
             <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
         </div>
-        {% else %}<p class="foundation-note">The upper-bound challenge is not yet admitted.
-        <a href="/rules#generic-upper">Upper-bound requirements ↗</a></p>{% endif %}
+        {% endif %}
       </section>
       {% endfor %}
     </div>

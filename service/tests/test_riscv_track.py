@@ -94,7 +94,7 @@ class RiscvTrackTests(unittest.TestCase):
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['generic-upper']
         self.assertIsNone(contract.riscv_upper_track())
-        self.assertEqual(seed_demo.refresh(self.session), 54)
+        self.assertEqual(seed_demo.refresh(self.session), 47)
         self.assertNotIn('riscv-upper', self.client.get('/').text)
         self.assertNotIn('id="riscv-upper"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
@@ -107,11 +107,11 @@ class RiscvTrackTests(unittest.TestCase):
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 54)
+        self.assertEqual(len(before), 47)
         self.config['upper_tracks'].append('riscv-upper')
         self.assertEqual(seed_demo.refresh(self.session), 18)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 72)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 65)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)
@@ -122,10 +122,10 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(machine.detail_dict['improvement'], 0)
         self.assertTrue(machine.is_record)
 
-    def test_rules_state_accepting_bound_and_total_spec_refinement_without_scores(self):
+    def test_rules_state_every_execution_bound_and_total_spec_refinement_without_scores(self):
         html = self.client.get('/rules').text
         section = re.search(r'<details id="riscv-upper">.*?</details>', html, re.S).group(0)
-        for phrase in ('every accepting execution', 'Every execution must terminate',
+        for phrase in ('every execution, accepting or rejecting', 'Every execution must terminate',
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)

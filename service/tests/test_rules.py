@@ -60,7 +60,7 @@ class RulesTests(unittest.TestCase):
         self.assertNotIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
         self.assertIn('formal/OptimalOTS/Statement.lean', html)
-        self.assertIn('formal/OptimalOTS/AlgorithmWeak.lean', html)
+        self.assertIn('formal/OptimalOTS/Algorithm.lean', html)
         self.assertIn('formal/OptimalOTS/WholeWords.lean', html)
 
     def test_whole_word_rules_keep_word_sizes_and_two_hash_halves(self):

@@ -46,7 +46,7 @@
         compressions.</li>
         {% if riscv_upper_track %}<li><a href="#riscv-upper"><strong>By RISC-V cycles.</strong></a> Implement the
         verifier in RISC-V, prove it computes exactly the Lean verifier, and bound the cycles of every
-        accepting execution.</li>{% endif %}
+        execution, accepting or rejecting.</li>{% endif %}
       </ul>
       <h3 id="model">Lower bounds</h3>
       <p>Prove that <em>every</em> admissible OTS in a class needs at least the claimed worst-case
@@ -74,8 +74,7 @@
       <p>Signature encodings must be lossless.
       Every possible signer output fits in 5,376 bits.
       A compression claim bounds the verifier's cost on every input, whether it accepts or
-      rejects.{% if riscv_upper_track %} The RISC-V score counts cycles on accepting runs only, as
-      specified below.{% endif %}</p>
+      rejects.</p>
     </div>
   </details>
 
@@ -87,7 +86,7 @@
       verifier. Prove that its execution implements the Lean specification: the same oracle
       computation and decision for every public key, message and raw signature bit string.
       Every execution must terminate, including malformed and rejected inputs.</p>
-      <p>The claim bounds <strong>cycles on every accepting execution</strong>, for every
+      <p>The claim bounds <strong>cycles on every execution, accepting or rejecting</strong>, for every
       input and oracle answer. Each ordinary instruction and the halt cost one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
       an <code>n</code>-bit input, with no additional instruction charge. It uses the same random
       oracle as the OTS security experiment. Smaller certified bounds are better.</p>
@@ -138,24 +137,22 @@
   <details id="play">
     <summary><h2 id="rules">How do I submit a proof?</h2></summary>
     <div class="more prose">
-      <p>{% if generic_upper_track %}Submit an upper-bound construction, or a lower-bound proof for
-      one of the three classes.{% else %}Submit a lower-bound proof for one of the three classes.
-      <strong>Pending:</strong> the upper-bound track, until its challenge is pinned.{% endif %}</p>
+      <p>Submit an upper-bound construction, or a lower-bound proof for one of the three classes.</p>
       <ol>
         <li>Read <a href="/notes.md">the notes</a> of earlier submissions: their ideas, results and
         dead ends.</li>
         <li>Fork <a href="{{ settings.submissions_url }}">the submissions repository</a> and follow its
         setup instructions. Change only
-        <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/Lower/</code>,
-        <code>formal/Submissions/DisclosureLower/</code>{% if generic_upper_track %} or
-        <code>formal/Submissions/GenericUpper/</code>{% endif %}{% if riscv_upper_track %}, or
-        <code>formal/Submissions/RiscvUpper/</code>{% endif %}.</li>
+        <code>formal/Submissions/DisclosureLower/</code>, <code>formal/Submissions/Lower/</code>,
+        <code>formal/Submissions/GenericLower/</code>, <code>formal/Submissions/GenericUpper/</code>
+        or <code>formal/Submissions/RiscvUpper/</code>.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
         from <code>Solution.lean</code>. Add a <code>NOTES.md</code> beside them: the idea, the
         result, what did not work and what you would try next.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower --source .</code>
-        (or <code>generic-lower</code>, <code>disclosure-lower</code>{% if generic_upper_track %}, <code>generic-upper</code>{% endif %}{% if riscv_upper_track %}, <code>riscv-upper</code>{% endif %}), then open a pull request to the submissions repository.
+        (or <code>disclosure-lower</code>, <code>generic-lower</code>, <code>generic-upper</code> or
+        <code>riscv-upper</code>), then open a pull request to the submissions repository.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified strict improvement is merged automatically and becomes the record.</li>
@@ -170,7 +167,7 @@
     <summary><h2>What does the verifier check?</h2></summary>
     <div class="more prose">
       <p>Use a flat root: identifier-named <code>.lean</code> files, <code>claim.txt</code>, optional
-      <code>README.md</code>, and required <code>Solution.lean</code>. The claim is an integer from
+      <code>README.md</code> and <code>NOTES.md</code>, and required <code>Solution.lean</code>. The claim is an integer from
       zero to {{ cfg.limits.max_claim|int }}, without leading zeros and with at most one trailing
       newline. Import only Mathlib, VCVio, permitted contract modules and siblings. Use the pinned
       toolchain and dependencies; submissions cannot alter protected definitions.</p>
@@ -182,8 +179,7 @@
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
       {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
       <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
-      <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface</a>,
-      <a href="{{ source }}formal/OptimalOTS/AlgorithmWeak.lean">generic lower statement</a>,
+      <a href="{{ source }}formal/OptimalOTS/Algorithm.lean">generic interface and statements</a>,
       <a href="{{ source }}formal/OptimalOTS/Statement.lean">DAG contract</a>,
       <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a>,
       <a href="{{ source }}challenges.json">verifier configuration</a> and

@@ -84,12 +84,18 @@ def resync(queue_open_heads: bool = True) -> dict:
         if merge:
             merged.append((merge["merged_at"], pr_url, head))
         if queue_open_heads and pr.get("state") == "open" and head not in {v["commit"] for v in verdicts}:
-            queued.append((repo, number, head))
+            with SessionLocal() as session:
+                known = session.get(Submission, pr_submission_id(repo, number, head)) is not None
+            if not known:
+                queued.append((repo, number, head))
     promoted = _promote_merged(merged)
     if queued:
         from .main import handle_pull_request
         for repo_, number, head in queued:
-            handle_pull_request(repo_, number, head)
+            try:
+                handle_pull_request(repo_, number, head, announce=False)
+            except Exception as exc:  # one unreachable pull request must not stop the rebuild
+                print(f"resync: #{number} not queued: {type(exc).__name__}", flush=True)
     return {"restored": restored, "promoted": promoted, "queued": len(queued)}
 
 
