@@ -5,12 +5,12 @@ by its input bit string), with arbitrary deterministic node functions of their d
 The lower track quantifies over every secure scheme:
 
 ```lean
-def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
+def LowerBoundGenerality2 (c : ℕ) : Prop :=
+  ∀ S : Scheme, S.Secure → ∃ i : Fin numCuts, c ≤ S.verifyCost i
 ```
 
 The reference proof, a `LowerGenerality2` submission root in the submissions repository, proves
-`VerificationLowerBound paperParams paperDagFormat 18` in `LowerGenerality2/Solution.lean`.
+`LowerBoundGenerality2 18` in `LowerGenerality2/Solution.lean`.
 The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
 and `Quot.sound`. The final official verifier run accepted claim 18 in 117.5 seconds. The earlier bound of 2
 was officially verified before the replacement was developed.

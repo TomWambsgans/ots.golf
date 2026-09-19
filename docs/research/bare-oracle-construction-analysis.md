@@ -35,7 +35,7 @@ J = E_j \ E_i = {g}.
 
 Every hash costs one compression, so key generation costs 3, and the two
 verification costs are 2 and 3. The revealed lengths are 256 and 1. These meet
-all corresponding `paperParams` constraints. A family indexed by `Fin (2^115)`
+all corresponding contract constraints. A family indexed by `Fin (2^115)`
 is obtained by assigning `{g}` to index zero and `{z}` to every other index.
 The scheme is not secure, which is immaterial: the proposed construction lemma
 is asserted for all schemes before security is used to derive a contradiction.

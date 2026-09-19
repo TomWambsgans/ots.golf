@@ -1,7 +1,7 @@
 # A proposed attack on one-compression generic verification
 
 **Status: paper argument, not a Lean certificate.** The contract now requires deterministic
-verification (`AlgorithmScheme.Admissible.verifyDeterministic`), so the randomized-verifier
+verification (`OracleAlgorithm.Scheme.Admissible.verifyDeterministic`), so the randomized-verifier
 normal form below is moot. This note develops a route to a
 generic verification lower bound of **2**, including randomized verifiers. The
 normal-form and transcript lemmas below have not been formalized, so this is not
@@ -14,12 +14,12 @@ least one half, and the paper resource limits.
 
 ## Assumptions and constants
 
-Let `S : AlgorithmScheme paperParams` satisfy:
+Let `S : OracleAlgorithm.Scheme` satisfy:
 
 - `S.Correct` and `S.SigningFailureAtMost (1 / 2)`;
 - key-generation cost at most `K = 1024`;
 - signing cost at most `s = 2^20` on every secret key and message;
-- every honest signature has an injective encoding of length at most 5504;
+- every honest signature is a bit string of length at most 5504;
 - verification cost at most **one** on every input and every execution path;
 - the existing 127-bit `S.Secure` requirement, including honest-party costs.
 
@@ -319,18 +319,18 @@ a new analysis of those dependencies.
 
 ## Statement audit for higher generic lower claims (2026-09-18)
 
-The exported statement is `AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) c`:
-for every `AlgorithmScheme paperParams` that is `Admissible (1 / 2 ^ 128)` and
+The exported statement is `LowerBoundGenerality3 c`:
+for every `OracleAlgorithm.Scheme` that is `Admissible` (signing failure at most `1 / 2 ^ 128`) and
 `WeaklySecure`, every pathwise verification budget `v` satisfies `c ≤ v`. The following facts
 were checked against the protected definitions and the library semantics, so that a proof of
 `2` (or more) targets a meaningful statement rather than a modeling artifact.
 
-- **Not vacuous.** `Admissible (1 / 2 ^ 128)` and `WeaklySecure` are jointly
-  satisfiable: the kernel-checked forest (`GenericUpperForest.admissible`, `GenericUpperForest.secure`
+- **Not vacuous.** `Admissible` and `WeaklySecure` are jointly
+  satisfiable: the kernel-checked forest (`GenericUpperForest.Wire.admissible`, `GenericUpperForest.Wire.secure`
   with `Secure.weaklySecure`) meets both with `VerifyCostAtMost 106`. Hence every claim `c ≤ 106`
   says something about real schemes, and `c ≥ 107` is false. A proof of `2` cannot come from
   unsatisfiable hypotheses.
-- **Cost one means one short query.** `blockCost P k = max 1 ⌈k / 512⌉ ≥ 1`, so `CostAtMost 1`
+- **Cost one means one short query.** `blockCost k = max 1 ⌈k / 512⌉ ≥ 1`, so `CostAtMost 1`
   allows at most one hash query per path, of at most 512 input bits; uniform sampling costs zero
   and is never cached. The finite query universe `Q` in Section 1 is therefore exact.
 - **One shared lazy table.** `oracleImpl` answers every hash query through `randomOracle`: a cached
@@ -347,8 +347,8 @@ were checked against the protected definitions and the library semantics, so tha
 - **Weak security is the right target.** Every attack forges on a message other than the signed
   one, as `weakExperiment` requires; strong security implies weak security, so a proved bound also
   covers strongly secure schemes.
-- **Finite candidate sets.** `encodeSignature` is injective and `RejectsOversized 5504` rejects
-  longer encodings on every path, so the candidate set `C` of Section 1 is finite and all maxima
+- **Finite candidate sets.** Signatures are bit strings and `RejectsOversized 5504` rejects
+  longer ones on every path, so the candidate set `C` of Section 1 is finite and all maxima
   exist. Selections may be classical: only hash queries are charged.
 - **One harmless quirk.** A scheme admitting an adversary whose whole experiment is query-free
   would need success below `0 / 2 ^ 127`, which is impossible, so such a scheme is insecure by

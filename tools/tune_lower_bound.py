@@ -36,7 +36,7 @@ from fractions import Fraction
 import math
 
 M, N, L = 2 ** 115, 2 ** 128, 2 ** 21
-PAYLOAD_BITS = 5376  # signatureBits 5504 minus the 128-bit nonce
+PAYLOAD_BITS = 5376  # maxSignatureBits 5504 minus the 128-bit nonce
 WORD_ORIGINS = PAYLOAD_BITS // 128
 EPS = 1 / 512
 
@@ -177,7 +177,7 @@ def main() -> int:
         ap.error("require idx >= 1, s-star > 0, and c-idx-2 >= 2 for every proposed claim")
     if args.method == "patterns":
         if args.idx != 1:
-            ap.error("the pattern certificate uses paperParams with --idx 1")
+            ap.error("the pattern certificate uses the contract constants with --idx 1")
         print("EXACT PATTERN-ATTACK ARITHMETIC; run the official verifier for a certificate.")
         T = 2 ** 122
         for c in claims:

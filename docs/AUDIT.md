@@ -55,7 +55,7 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Public key is low 128 bits of the root | `publicKey`, `Scheme.verify` | |
 | Strong forgery differs from the received pair | `experiment`, `Scheme.Secure` | any accepted pair wins when signing fails |
 | Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure` | includes keygen, signing and final verification |
-| Unconditional lower certificate | `VerificationLowerBound paperParams paperDagFormat 18` | repeated reconstruction patterns and a forgery on a different message |
+| Unconditional lower certificate | `LowerBoundGenerality2 18` | repeated reconstruction patterns and a forgery on a different message |
 
 The weak experiment (forgery on a different message) is not part of the contract. Each DAG lower
 root defines it in `WeakSecurity.lean` and proves that strong security implies weak security. The
@@ -64,7 +64,7 @@ malleability of a signature on the signed message.
 
 ## Generic and whole-word contracts
 
-`OracleAlgorithm.lean` supplies arbitrary terminating oracle programs, injective signature serialization,
+`OracleAlgorithm.lean` supplies arbitrary terminating oracle programs, signatures as bit strings,
 perfect correctness, deterministic verification (`Admissible.verifyDeterministic`), signing
 availability, pathwise resource limits, oversized-signature rejection and the generic lower
 statement. The fresh-message experiment used by the generic lower proof lives in its submission

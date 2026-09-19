@@ -10,19 +10,17 @@ The three lower tracks are Generality 3/3 (any algorithm), 2/3 (DAGs) and 1/3 (w
 
 ## What the challenge requires
 
-A submission chooses an `AlgorithmScheme paperParams`: a secret-key type, a signature type
-with injective bit-string encoding, and three terminating oracle programs for key generation,
-signing, and verification. Computation is free. Key generation and signing may use private
+A submission chooses an `OracleAlgorithm.Scheme`: a secret-key type and three terminating
+oracle programs for key generation, signing, and verification. Signatures are bit strings. Computation is free. Key generation and signing may use private
 randomness; verification is deterministic. All programs share the same bare random oracle and
 compression-cost model.
 
 `OptimalOTS.Challenge.UpperCompressions` exports exactly:
 
 ```lean
-noncomputable def scheme : AlgorithmScheme paperParams
+noncomputable def scheme : OracleAlgorithm.Scheme
 
-theorem admissible :
-    scheme.Admissible (1 / 2 ^ 128)
+theorem admissible : scheme.Admissible
 
 theorem secure : scheme.Secure
 
@@ -36,7 +34,7 @@ The challenge substitutes a submission's claim for 106. `Admissible` requires:
 - Deterministic verification: the verifier uses no private randomness on any input.
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
-- Signatures of at most 5,504 encoded bits, and rejection of oversized signatures.
+- Signatures of at most 5,504 bits, and rejection of longer bit strings.
 - At most 1,024 key-generation compressions and `2²⁰` signing compressions on every path.
 
 Public keys are 128 bits and messages are 256 bits. The separate security theorem gives
@@ -84,10 +82,15 @@ proof certifies this bound. A separate exact-integer check confirms
 
 ## Security and resource preservation
 
-`Adapter.lean` wraps the original DAG programs unchanged. The encoded signature is the
-128-bit nonce followed by at most 5,248 disclosed bits. Serialization is injective. Translations
-of adversaries in both directions establish equality of the generic and DAG oracle experiments
+`Adapter.lean` wraps the original DAG programs unchanged as a `TypedScheme` (`TypedScheme.lean`,
+an internal interface of this root with a typed signature and an injective encoding). Translations
+of adversaries in both directions establish equality of the typed and DAG oracle experiments
 before oracle interpretation. All queries, costs and success probabilities agree exactly.
+
+`WireAdapter.lean` transfers every requirement from the typed scheme to the contract's scheme on
+bit strings: signing outputs the encoding, and verification parses its input. `Wire.lean`
+instantiates it for the forest. The transmitted signature is the 128-bit nonce followed by at most
+5,248 disclosed bits; every accepted bit string is the canonical encoding of its parse.
 
 The forest has 63 chains, grouped through a fixed hash tree. Its explicit 16-bit tweaks are
 charged in the actual input lengths. The copied security proof establishes all internal
@@ -97,8 +100,8 @@ at most `2²⁰` signing compressions, and at most 106 verification compressions
 `Resources.lean` establishes the size, rejection, and pathwise cost bounds.
 `KeygenSupport.lean` and `Correctness.lean` establish correctness. `Deterministic.lean` proves that
 every DAG adapter's verifier makes only hash queries. `Availability.lean` establishes signing
-availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
-the challenge declarations. The core's internal Generality 2/3 witness (`formal/Witnesses/Generality2/`)
+availability. `ForestAlgorithm.lean` combines these results for the typed scheme, `Wire.lean`
+moves them to bit strings, and `Solution.lean` exports the challenge declarations. The core's internal Generality 2/3 witness (`formal/Witnesses/Generality2/`)
 proves the same forest as a DAG scheme, independently of these files.
 
 ## Verification
