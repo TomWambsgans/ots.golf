@@ -516,3 +516,39 @@ contents. Rebuilding a server needs only `secrets.env`; old verifier transcripts
 lost. 85 service tests cover the verdict block, forged comments from other accounts, the rebuild,
 record replay, stable IDs and board preparation. Nothing was pushed or deployed.
 
+
+## 128-bit nonce (2026-09-19)
+
+The contract moves from a 256-bit to a 128-bit signing nonce: `paperParams.nonceBits := 128`,
+`paperLimits.signatureBits := 5376` (the 5,248-bit payload budget `maxRevealBits` is unchanged,
+so only the nonce bits leave the signature), and the RISC-V loader reads at most 5376 signature
+bits with the length register capped at 5377. The index query `H(message ‖ nonce)` now has 384
+bits and still costs one compression.
+
+The old signing charge `trialLimit · pairs / (2^nonceBits − trialLimit)` needed about 148 nonce
+bits. It is replaced by a disjoint signing lemma (`SignRho.signRho_bound`) and a row potential
+`θ Ψ` whose expected growth per encoding query is at most `(11/6) θ ε ≤ 2ε`
+(`RowPotential.psi_charge`, from `RowIneq.charge_le`), with the full proof in
+`docs/nonce-128-analysis.md`. The security bound `(B − 912)/2^127` holds for every budget, as
+before. The proof is ported to `GenericUpper`, `RiscvUpper`, `Upper` and `DisclosureUpper`; the
+lower roots build unchanged.
+
+Claims: `generic-upper` 106, `upper` 106, `disclosure-upper` 106, `lower` 18,
+`disclosure-lower` 93 and `generic-lower` 1 are unchanged. `riscv-upper` drops from 1632 to
+**1628 cycles**: the index prefix copies one nonce block instead of two (2647 instructions, index
+phase 267 cycles), and the baseline and demo fixture follow.
+
+All seven roots are kernel-checked with only `propext`, `Classical.choice` and `Quot.sound`. The
+protected pin was regenerated (contract id
+`de0431ce8bbe4fac4b9d788b0ab5c308bdf45df8c85abb299179ec3754811d69`). 88 service tests, 62 verifier
+tests and the policy check of all seven roots pass. The official verifier accepted, on macOS:
+
+| Track | Claim | Wall time |
+|---|---:|---:|
+| lower | 18 | 39.8 s |
+| disclosure-lower | 93 | 45.7 s |
+| generic-lower | 1 | 20.0 s |
+| generic-upper | 106 | 97.8 s |
+| riscv-upper | 1628 | 218.2 s |
+
+Nothing was pushed or deployed.
