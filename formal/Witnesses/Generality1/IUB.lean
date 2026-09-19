@@ -24,6 +24,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 /-- Expected value of `g` over a probabilistic computation. -/
 abbrev E {α : Type} (p : ProbComp α) (g : α → ℝ≥0∞) : ℝ≥0∞ := expectedValue p g
 
@@ -54,12 +57,14 @@ theorem E_uniform (n : ℕ) (g : BitVec n → ℝ≥0∞) :
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [probOutput_uniformSample]
 
+attribute [local irreducible] hashBits blockBits pkBits msgBits securityBits maxSignatureBits keygenBudget signBudget nonceBits idxBits numCuts trials
+
 /-- **Identical until bad.** -/
-theorem iub (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (f : Cache P)
-    (φ : α × Cache P → ℝ≥0∞) (hφ : ∀ p, φ p ≤ 1) :
-    ∀ c : Cache P, Cache.Disjoint c f →
-      E (run P oa (Cache.extend c f)) φ ≤
-        E (run P oa c) fun p => if Cache.Hits p.2 f then 1 else φ (p.1, Cache.extend p.2 f) := by
+theorem iub {α : Type} (oa : OracleComp Spec α) (f : Cache)
+    (φ : α × Cache → ℝ≥0∞) (hφ : ∀ p, φ p ≤ 1) :
+    ∀ c : Cache, Cache.Disjoint c f →
+      E (run oa (Cache.extend c f)) φ ≤
+        E (run oa c) fun p => if Cache.Hits p.2 f then 1 else φ (p.1, Cache.extend p.2 f) := by
   induction oa using OracleComp.inductionOn with
   | pure x =>
     intro c hc
@@ -77,7 +82,7 @@ theorem iub (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (f : Cache P)
       · rcases hfq : f q with _ | w
         · -- fresh on both sides
           have hcq' : Cache.extend c f q = none := by simp [Cache.extend, hcq, hfq]
-          rw [oracleImpl_run_inr_none P hcq, oracleImpl_run_inr_none P hcq', E_bind, E_bind]
+          rw [oracleImpl_run_inr_none hcq, oracleImpl_run_inr_none hcq', E_bind, E_bind]
           refine E_mono _ fun u => ?_
           rw [E_pure, E_pure]
           dsimp only
@@ -85,24 +90,24 @@ theorem iub (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (f : Cache P)
           exact ih u _ (Cache.disjoint_cacheQuery hc hfq u)
         · -- the point is in `f`: the real run answers from `f`, the other side pays `1`
           have hcq' : Cache.extend c f q = some w := by simp [Cache.extend, hcq, hfq]
-          rw [oracleImpl_run_inr_some P hcq', oracleImpl_run_inr_none P hcq, E_pure, E_bind]
+          rw [oracleImpl_run_inr_some hcq', oracleImpl_run_inr_none hcq, E_pure, E_bind]
           have hw : (f q).isSome := by simp [hfq]
-          calc E (run P (k w) (Cache.extend c f)) φ ≤ 1 := E_le_one _ hφ
-            _ ≤ E ($ᵗ BitVec P.hashBits) fun u => E (pure (u, c.cacheQuery q u)) fun p =>
-                  E (run P (k p.1) p.2) fun p =>
+          calc E (run (k w) (Cache.extend c f)) φ ≤ 1 := E_le_one _ hφ
+            _ ≤ E ($ᵗ BitVec hashBits) fun u => E (pure (u, c.cacheQuery q u)) fun p =>
+                  E (run (k p.1) p.2) fun p =>
                     if Cache.Hits p.2 f then 1 else φ (p.1, Cache.extend p.2 f) := by
                 rw [E_uniform]
-                have h1 : ∀ u : BitVec P.hashBits, E (pure (u, c.cacheQuery q u)) (fun p =>
-                    E (run P (k p.1) p.2) fun p =>
+                have h1 : ∀ u : BitVec hashBits, E (pure (u, c.cacheQuery q u)) (fun p =>
+                    E (run (k p.1) p.2) fun p =>
                       if Cache.Hits p.2 f then 1 else φ (p.1, Cache.extend p.2 f)) = 1 := by
                   intro u
                   rw [E_pure]
-                  have hsub : ∀ p ∈ support (run P (k u) (c.cacheQuery q u)),
+                  have hsub : ∀ p ∈ support (run (k u) (c.cacheQuery q u)),
                       Cache.Hits p.2 f := fun p hp =>
-                    ⟨q, hw, (sub_of_mem_support_run P _ _ p hp).isSome (by simp)⟩
-                  have : E (run P (k u) (c.cacheQuery q u)) (fun p =>
+                    ⟨q, hw, (sub_of_mem_support_run _ _ p hp).isSome (by simp)⟩
+                  have : E (run (k u) (c.cacheQuery q u)) (fun p =>
                       if Cache.Hits p.2 f then 1 else φ (p.1, Cache.extend p.2 f)) =
-                      E (run P (k u) (c.cacheQuery q u)) (fun _ => 1) := by
+                      E (run (k u) (c.cacheQuery q u)) (fun _ => 1) := by
                     refine expectedValue_congr_of_support fun p hp => ?_
                     rw [if_pos (hsub p hp)]
                   rw [this, E, expectedValue_const (by simp)]
@@ -110,7 +115,7 @@ theorem iub (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (f : Cache P)
                 rw [ENNReal.mul_inv_cancel (by simp) (by simp)]
       · -- cached on both sides
         have hcq' : Cache.extend c f q = some v := by simp [Cache.extend, hcq]
-        rw [oracleImpl_run_inr_some P hcq, oracleImpl_run_inr_some P hcq', E_pure, E_pure]
+        rw [oracleImpl_run_inr_some hcq, oracleImpl_run_inr_some hcq', E_pure, E_pure]
         exact ih v c hc
 
 end OptimalOTS

@@ -20,12 +20,15 @@ set_option linter.constructorNameAsVariable false
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 open Name
 
 
-variable (A : Adversary paperParams paperDagFormat)
+variable (A : Adversary)
 
 /-! ## Auxiliary facts -/
 
@@ -54,26 +57,26 @@ theorem E_add {α : Type} (p : ProbComp α) (g h : α → ℝ≥0∞) :
 
 theorem sigOf_none (ξ : Rec) : sigOf ξ none = none := rfl
 
-theorem sigOf_some (ξ : Rec) (η : Nonce paperDagFormat) (i : Fin paperDagFormat.numSets) :
+theorem sigOf_some (ξ : Rec) (η : Nonce) (i : Fin numCuts) :
     sigOf ξ (some (η, i)) = some (η, revealed (setsName i) ξ) := rfl
 
 theorem cutOf?_none : cutOf? none = none := rfl
 
-theorem cutOf?_some (η : Nonce paperDagFormat) (i : Fin paperDagFormat.numSets) :
+theorem cutOf?_some (η : Nonce) (i : Fin numCuts) :
     cutOf? (some (η, i)) = some (setsName i) := rfl
 
 theorem idxOf?_none : idxOf? none = none := rfl
 
-theorem idxOf?_some (η : Nonce paperDagFormat) (i : Fin paperDagFormat.numSets) :
+theorem idxOf?_some (η : Nonce) (i : Fin numCuts) :
     idxOf? (some (η, i)) = some i.val := rfl
 
-theorem sub_extend_left (c f : Cache paperParams) : Cache.Sub c (Cache.extend c f) :=
+theorem sub_extend_left (c f : Cache) : Cache.Sub c (Cache.extend c f) :=
   fun _ _ h => Cache.extend_apply_of_some h
 
 /-- With no keygen point of `ξ` in `d`, none is in `d'` either: the new entries of `d'` are
 encoding entries. -/
-theorem signExt_kc_none {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)} (hd' : SignExt paperParams paperDagFormat m₁ d r d')
+theorem signExt_kc_none {m₁ : Message} {d d' : Cache}
+    {r : Option (Nonce × Fin numCuts)} (hd' : SignExt m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) {q : Query} (hq : (kc ξ q).isSome) : d' q = none := by
   rcases hq' : d' q with _ | v
   · rfl
@@ -84,8 +87,8 @@ theorem signExt_kc_none {m₁ : Message paperParams} {d d' : Cache paperParams}
       simp at hq
     · exact hξ ⟨q, hq, by rw [hdq]; rfl⟩
 
-theorem not_hits_fHid_of_signExt {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)} (hd' : SignExt paperParams paperDagFormat m₁ d r d')
+theorem not_hits_fHid_of_signExt {m₁ : Message} {d d' : Cache}
+    {r : Option (Nonce × Fin numCuts)} (hd' : SignExt m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) (A? : Option (Finset Name)) :
     ¬ Cache.Hits d' (fHid A? ξ) := by
   rintro ⟨q, hq, hq'⟩
@@ -95,8 +98,8 @@ theorem not_hits_fHid_of_signExt {m₁ : Message paperParams} {d d' : Cache pape
   rw [signExt_kc_none hd' hξ hkq] at hq'
   simp at hq'
 
-theorem not_hits_extend_fExp_fHid {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)} (hd' : SignExt paperParams paperDagFormat m₁ d r d')
+theorem not_hits_extend_fExp_fHid {m₁ : Message} {d d' : Cache}
+    {r : Option (Nonce × Fin numCuts)} (hd' : SignExt m₁ d r d')
     {ξ : Rec} (hξ : ¬ Cache.Hits d (kc ξ)) (A? : Option (Finset Name)) :
     ¬ Cache.Hits (Cache.extend d' (fExp A? ξ)) (fHid A? ξ) := by
   rw [Cache.hits_extend]
@@ -104,8 +107,8 @@ theorem not_hits_extend_fExp_fHid {m₁ : Message paperParams} {d d' : Cache pap
   · exact not_hits_fHid_of_signExt hd' hξ A? h
   · exact (disjoint_fExp_fHid A? ξ).not_hits h
 
-theorem spr_signExt_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)} (hd' : SignExt paperParams paperDagFormat m₁ d r d')
+theorem spr_signExt_iff {m₁ : Message} {d d' : Cache}
+    {r : Option (Nonce × Fin numCuts)} (hd' : SignExt m₁ d r d')
     (ξ : Rec) : Spr d' ξ ↔ Spr d ξ := by
   constructor
   · rintro ⟨h, p, hp, u, hu, htag, w, hw, htr⟩
@@ -118,8 +121,8 @@ theorem spr_signExt_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
       exact hw
   · exact Spr.mono hd'.1
 
-theorem spr_extend_fExp_iff {m₁ : Message paperParams} {d d' : Cache paperParams}
-    {r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)} (hd' : SignExt paperParams paperDagFormat m₁ d r d')
+theorem spr_extend_fExp_iff {m₁ : Message} {d d' : Cache}
+    {r : Option (Nonce × Fin numCuts)} (hd' : SignExt m₁ d r d')
     (ξ : Rec) (A? : Option (Finset Name)) :
     Spr (Cache.extend d' (fExp A? ξ)) ξ ↔ Spr d ξ := by
   constructor
@@ -130,29 +133,29 @@ theorem spr_extend_fExp_iff {m₁ : Message paperParams} {d d' : Cache paperPara
   · intro hs
     exact Spr.mono (sub_extend_left d' _) ((spr_signExt_iff hd' ξ).2 hs)
 
-theorem not_idxPost_extend_fExp (d' : Cache paperParams) (ξ : Rec) (A? : Option (Finset Name))
-    (i : ℕ) : ¬ IdxPost paperParams paperDagFormat d' (Cache.extend d' (fExp A? ξ)) i :=
-  not_idxPost_extend_of_enc_none paperParams paperDagFormat d' (fExp A? ξ) (fun u => fExp_enc A? ξ u) i
+theorem not_idxPost_extend_fExp (d' : Cache) (ξ : Rec) (A? : Option (Finset Name))
+    (i : ℕ) : ¬ IdxPost d' (Cache.extend d' (fExp A? ξ)) i :=
+  not_idxPost_extend_of_enc_none d' (fExp A? ξ) (fun u => fExp_enc A? ξ u) i
 
-theorem encCount_extend_of_enc_none (d f : Cache paperParams)
-    (hf : ∀ u : EncInput paperParams paperDagFormat, f (encQuery paperParams paperDagFormat u) = none) :
-    encCount paperParams paperDagFormat (Cache.extend d f) = encCount paperParams paperDagFormat d := by
+theorem encCount_extend_of_enc_none (d f : Cache)
+    (hf : ∀ u : EncInput, f (encQuery u) = none) :
+    encCount (Cache.extend d f) = encCount d := by
   unfold encCount
   refine congrArg Finset.card (Finset.filter_congr fun u _ => ?_)
   rw [Cache.extend_apply, hf u, Option.or_none]
 
-theorem Inv_extend_fExp (d' : Cache paperParams) (ξ : Rec) (A? : Option (Finset Name)) (b : ℕ) :
+theorem Inv_extend_fExp (d' : Cache) (ξ : Rec) (A? : Option (Finset Name)) (b : ℕ) :
     Inv (Cache.extend d' (fExp A? ξ)) b ↔ Inv d' b := by
   unfold Inv
   rw [encCount_extend_of_enc_none d' (fExp A? ξ) (fun u => fExp_enc A? ξ u)]
 
 /-! ## Stage B -/
 
-theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (st : A.State) (σ : Option (Signature paperDagFormat))
-    (c : Cache paperParams) : ∀ p ∈ support (run paperParams (stB A pk m₁ st σ) c), Cache.Sub c p.2 ∧
+theorem stB_support (pk : PublicKey) (m₁ : Message) (st : A.State) (σ : Option Signature)
+    (c : Cache) : ∀ p ∈ support (run (stB A pk m₁ st σ) c), Cache.Sub c p.2 ∧
       (p.1 = true → ∃ m₂ σ₂, σ.map (fun s => (m₁, s)) ≠ some (m₂, σ₂) ∧
-        ∃ w, p.2 (encQuery paperParams paperDagFormat (m₂ ++ σ₂.1)) = some w ∧
-          ∃ hi : idxOf paperParams paperDagFormat w < paperDagFormat.numSets,
+        ∃ w, p.2 (encQuery (m₂ ++ σ₂.1)) = some w ∧
+          ∃ hi : idxOf w < numCuts,
             σ₂.2.length = graph.revealBits (fins (setsName ⟨_, hi⟩)) ∧
             ∃ y : graph.Assignment,
               graph.ReconEqs p.2 (fins (setsName ⟨_, hi⟩))
@@ -162,7 +165,7 @@ theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (s
   rw [run_bind, support_bind] at hp
   simp only [Set.mem_iUnion] at hp
   obtain ⟨⟨⟨m₂, σ₂⟩, c₁⟩, h₁, hp⟩ := hp
-  have hsub₁ := sub_of_mem_support_run paperParams _ c _ h₁
+  have hsub₁ := sub_of_mem_support_run _ c _ h₁
   dsimp only at hp hsub₁
   rw [run_bind, support_bind] at hp
   simp only [Set.mem_iUnion] at hp
@@ -179,12 +182,12 @@ theorem stB_support (pk : PublicKey paperParams) (m₁ : Message paperParams) (s
   exact (trunc_cast_eq (graph_len_fin rh) (y rh.fin)).trans hpk
 
 /-- An accepted forgery is one of the charged events. -/
-theorem events_stB (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)) (m₁ : Message paperParams) (st : A.State)
-    (d d' c : Cache paperParams) (hd' : SignExt paperParams paperDagFormat m₁ d r d') (hc : Cache.Sub d' c)
-    (p : Bool × Cache paperParams) (hp : p ∈ support (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) c))
+theorem events_stB (ξ : Rec) (r : Option (Nonce × Fin numCuts)) (m₁ : Message) (st : A.State)
+    (d d' c : Cache) (hd' : SignExt m₁ d r d') (hc : Cache.Sub d' c)
+    (p : Bool × Cache) (hp : p ∈ support (run (stB A (pkOf ξ) m₁ st (sigOf ξ r)) c))
     (hok : p.1 = true) :
     Cache.Hits p.2 (fHid (cutOf? r) ξ) ∨ Spr p.2 ξ ∨
-      ∃ η i, r = some (η, i) ∧ (IdxPost paperParams paperDagFormat d' p.2 i.val ∨ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val) := by
+      ∃ η i, r = some (η, i) ∧ (IdxPost d' p.2 i.val ∨ IdxPre d (m₁ ++ η) i.val) := by
   obtain ⟨hcp, h⟩ := stB_support A (pkOf ξ) m₁ st (sigOf ξ r) c p hp
   obtain ⟨m₂, σ₂, hne, w, hw, hi, hlen, y, hy, hacc⟩ := h hok
   rcases r with _ | ⟨η, i⟩
@@ -194,9 +197,9 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagF
     · left
       rw [cutOf?_none, fHid_none]
       exact hh
-  · by_cases hji : (⟨idxOf paperParams paperDagFormat w, hi⟩ : Fin (2 ^ 115)) = i
+  · by_cases hji : (⟨idxOf w, hi⟩ : Fin (2 ^ 115)) = i
     · -- the forgery uses the signed disclosure set
-      have hA : setsName ⟨idxOf paperParams paperDagFormat w, hi⟩ = setsName i := congrArg setsName hji
+      have hA : setsName ⟨idxOf w, hi⟩ = setsName i := congrArg setsName hji
       rw [hA] at hy hlen
       by_cases hu : m₂ ++ σ₂.1 = m₁ ++ η
       · -- same encoding input: same message and nonce, different revealed values
@@ -211,17 +214,17 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagF
       · -- a different encoding input with the signed index
         right; right
         refine ⟨η, i, rfl, ?_⟩
-        rcases hd'q : d' (encQuery paperParams paperDagFormat (m₂ ++ σ₂.1)) with _ | w''
+        rcases hd'q : d' (encQuery (m₂ ++ σ₂.1)) with _ | w''
         · left
           exact ⟨m₂ ++ σ₂.1, hd'q, w, hw, congrArg Fin.val hji⟩
         · have hw'' : w'' = w := Option.some.inj (((hc.trans hcp) _ _ hd'q).symm.trans hw)
-          rcases hdq : d (encQuery paperParams paperDagFormat (m₂ ++ σ₂.1)) with _ | w₃
+          rcases hdq : d (encQuery (m₂ ++ σ₂.1)) with _ | w₃
           · exfalso
             obtain ⟨η', hqe, hr⟩ := hd'.2.1 _ _ hdq hd'q
             have hr' := hr (by rw [hw'']; exact hi)
             simp only [Option.some.injEq, Prod.mk.injEq] at hr'
             obtain ⟨rfl, -⟩ := hr'
-            exact hu (encQuery_inj paperParams paperDagFormat hqe)
+            exact hu (encQuery_inj hqe)
           · right
             refine ⟨m₂ ++ σ₂.1, hu, w₃, hdq, ?_⟩
             have h3 := hd'.1 _ _ hdq
@@ -237,13 +240,13 @@ theorem events_stB (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagF
         exact hh
 
 /-- The second stage, coupled to the run without the hidden points. -/
-theorem stageB_iub (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)) (m₁ : Message paperParams)
-    (st : A.State) (d d' : Cache paperParams) (hξ : ¬ Cache.Hits d (kc ξ)) (hd' : SignExt paperParams paperDagFormat m₁ d r d') :
-    E (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
-      E (run paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (fExp (cutOf? r) ξ)))
+theorem stageB_iub (ξ : Rec) (r : Option (Nonce × Fin numCuts)) (m₁ : Message)
+    (st : A.State) (d d' : Cache) (hξ : ¬ Cache.Hits d (kc ξ)) (hd' : SignExt m₁ d r d') :
+    E (run (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
+      E (run (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (Cache.extend d' (fExp (cutOf? r) ξ)))
         (fun p => ind (Cache.Hits p.2 (fHid (cutOf? r) ξ)) + ind (Spr p.2 ξ) +
-          ind (∃ i, idxOf? r = some i ∧ IdxPost paperParams paperDagFormat d' p.2 i) +
-          ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val)) := by
+          ind (∃ i, idxOf? r = some i ∧ IdxPost d' p.2 i) +
+          ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val)) := by
   have hkc : Cache.extend d' (kc ξ) =
       Cache.extend (Cache.extend d' (fExp (cutOf? r) ξ)) (fHid (cutOf? r) ξ) := by
     rw [Cache.extend_assoc, extend_fExp_fHid]
@@ -255,7 +258,7 @@ theorem stageB_iub (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagF
     rw [Cache.extend_apply, signExt_kc_none hd' hξ hkq, Option.none_or]
     exact disjoint_fExp_fHid _ ξ q hq
   rw [hkc]
-  refine (iub paperParams (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (fHid (cutOf? r) ξ) g g_le_one _
+  refine (iub (stB A (pkOf ξ) m₁ st (sigOf ξ r)) (fHid (cutOf? r) ξ) g g_le_one _
     hdisj).trans ?_
   refine expectedValue_mono_of_support fun p hp => ?_
   by_cases hh : Cache.Hits p.2 (fHid (cutOf? r) ξ)
@@ -271,10 +274,10 @@ theorem stageB_iub (ξ : Rec) (r : Option (Nonce paperDagFormat × Fin paperDagF
         h | h | ⟨η, i, hr, h | h⟩
       · exact absurd h hh
       · exact (ind_of h).symm.le.trans (le_add_right (le_add_right (le_add_left le_rfl)))
-      · have h' : ∃ j, idxOf? r = some j ∧ IdxPost paperParams paperDagFormat d' p.2 j :=
+      · have h' : ∃ j, idxOf? r = some j ∧ IdxPost d' p.2 j :=
           ⟨i.val, by rw [hr]; rfl, h⟩
         exact (ind_of h').symm.le.trans (le_add_right (le_add_left le_rfl))
-      · have h' : ∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val := ⟨η, i, hr, h⟩
+      · have h' : ∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val := ⟨η, i, hr, h⟩
         exact (ind_of h').symm.le.trans (le_add_left le_rfl)
     · have hg : g (p.1, Cache.extend p.2 (fHid (cutOf? r) ξ)) = 0 := by
         show (if p.1 = true then (1 : ℝ≥0∞) else 0) = 0
@@ -291,15 +294,15 @@ theorem pkOf_of_subset_fiberA {pk : BitVec 128} {T : Finset Rec} (hT : T ⊆ fib
   exact hT hξ
 
 /-- The second stage for the records `T` of a public key: signing succeeded. -/
-theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d : Cache paperParams)
+theorem stageB_some (pk : BitVec 128) (m₁ : Message) (st : A.State) (d : Cache)
     (T : Finset Rec) (hT : T ⊆ fiberA pk) (hTd : ∀ ξ ∈ T, ¬ Cache.Hits d (kc ξ))
-    (η : Nonce paperDagFormat) (i : Fin paperDagFormat.numSets) (d' : Cache paperParams) (hd' : SignExt paperParams paperDagFormat m₁ d (some (η, i)) d')
+    (η : Nonce) (i : Fin numCuts) (d' : Cache) (hd' : SignExt m₁ d (some (η, i)) d')
     (b'' : ℕ) (hI : Inv d' b'')
-    (hB : ∀ ξ ∈ T, CostAtMost paperParams (stB A pk m₁ st (sigOf ξ (some (η, i)))) b'') :
-    ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ (some (η, i))))
+    (hB : ∀ ξ ∈ T, CostAtMost (stB A pk m₁ st (sigOf ξ (some (η, i)))) b'') :
+    ∑ ξ ∈ T, w * E (run (stB A pk m₁ st (sigOf ξ (some (η, i))))
         (Cache.extend d' (fExp (some (setsName i)) ξ)))
         (fun p => ind (Cache.Hits p.2 (fHid (some (setsName i)) ξ)) + ind (Spr p.2 ξ) +
-          ind (IdxPost paperParams paperDagFormat d' p.2 i.val)) ≤
+          ind (IdxPost d' p.2 i.val)) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + κ * sumW (fiberA pk) * b'' := by
   have hTpk : ∀ ξ ∈ T, pkOf ξ = pk := pkOf_of_subset_fiberA hT
   -- regroup the records by their public data
@@ -311,10 +314,10 @@ theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
   rw [hregroup, hregroup (fun ξ => w * ind (Spr d ξ))]
   -- the bound on one fiber
   have hfiber : ∀ dt ∈ T.image (dataOf (setsName i)),
-      ∑ ξ ∈ T with dataOf (setsName i) ξ = dt, w * E (run paperParams (stB A pk m₁ st (sigOf ξ (some (η, i))))
+      ∑ ξ ∈ T with dataOf (setsName i) ξ = dt, w * E (run (stB A pk m₁ st (sigOf ξ (some (η, i))))
           (Cache.extend d' (fExp (some (setsName i)) ξ)))
           (fun p => ind (Cache.Hits p.2 (fHid (some (setsName i)) ξ)) + ind (Spr p.2 ξ) +
-            ind (IdxPost paperParams paperDagFormat d' p.2 i.val)) ≤
+            ind (IdxPost d' p.2 i.val)) ≤
         ∑ ξ ∈ T with dataOf (setsName i) ξ = dt, w * ind (Spr d ξ) +
           κ * sumW (fiberB (setsName i) dt) * b'' := by
     rintro ⟨pk', rev', fe'⟩ hdt
@@ -339,28 +342,28 @@ theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
       exact hξ.2
     -- every record of the fiber runs the same computation from the same cache
     have hrun : ∀ ξ ∈ T.filter (fun ξ => dataOf (setsName i) ξ = (pk', rev', fe')),
-        run paperParams (stB A pk m₁ st (sigOf ξ (some (η, i))))
+        run (stB A pk m₁ st (sigOf ξ (some (η, i))))
             (Cache.extend d' (fExp (some (setsName i)) ξ)) =
-          run paperParams (stB A pk m₁ st (some (η, rev'))) (Cache.extend d' fe') := by
+          run (stB A pk m₁ st (some (η, rev'))) (Cache.extend d' fe') := by
       intro ξ hξ
       obtain ⟨-, -, hrev, hfexp⟩ := hdata ξ hξ
       rw [sigOf_some, hrev, hfexp]
     have hsum : ∑ ξ ∈ T with dataOf (setsName i) ξ = (pk', rev', fe'),
-          w * E (run paperParams (stB A pk m₁ st (sigOf ξ (some (η, i))))
+          w * E (run (stB A pk m₁ st (sigOf ξ (some (η, i))))
             (Cache.extend d' (fExp (some (setsName i)) ξ)))
             (fun p => ind (Cache.Hits p.2 (fHid (some (setsName i)) ξ)) + ind (Spr p.2 ξ) +
-              ind (IdxPost paperParams paperDagFormat d' p.2 i.val)) =
-        E (run paperParams (stB A pk m₁ st (some (η, rev'))) (Cache.extend d' fe'))
+              ind (IdxPost d' p.2 i.val)) =
+        E (run (stB A pk m₁ st (some (η, rev'))) (Cache.extend d' fe'))
           (fun p => ∑ ξ ∈ T with dataOf (setsName i) ξ = (pk', rev', fe'),
             w * (ind (Cache.Hits p.2 (fHid (some (setsName i)) ξ)) + ind (Spr p.2 ξ) +
-              ind (IdxPost paperParams paperDagFormat d' p.2 i.val))) := by
+              ind (IdxPost d' p.2 i.val))) := by
       rw [E_finsetSum]
       refine Finset.sum_congr rfl fun ξ hξ => ?_
       rw [hrun ξ hξ, E_const_mul]
-    have hF : ∀ (x : Bool) (c : Cache paperParams),
+    have hF : ∀ (x : Bool) (c : Cache),
         ∑ ξ ∈ T with dataOf (setsName i) ξ = (pk', rev', fe'),
             w * (ind (Cache.Hits c (fHid (some (setsName i)) ξ)) + ind (Spr c ξ) +
-              ind (IdxPost paperParams paperDagFormat d' c i.val)) ≤
+              ind (IdxPost d' c i.val)) ≤
           ΦB (T.filter (fun ξ => dataOf (setsName i) ξ = (pk', rev', fe'))) (some (setsName i)) d'
             (some i.val) c := by
       intro x c
@@ -369,17 +372,17 @@ theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
       exact mul_le_mul_right (add_le_add_right (ind_mono fun h => ⟨i.val, rfl, h⟩) _) _
     have hI' : Inv (Cache.extend d' fe') b'' := by
       rw [← hdata₀.2.2, Inv_extend_fExp]; exact hI
-    have hB' : CostAtMost paperParams (stB A pk m₁ st (some (η, rev'))) b'' := by
+    have hB' : CostAtMost (stB A pk m₁ st (some (η, rev'))) b'' := by
       have := hB ξ₀ hξ₀T
       rwa [sigOf_some, hdata₀.2.1] at this
-    have hmaster := master_single paperParams (κ * sumW (fiberB (setsName i) (pk', rev', fe')))
+    have hmaster := master_single (κ * sumW (fiberB (setsName i) (pk', rev', fe')))
       (ΦB (T.filter (fun ξ => dataOf (setsName i) ξ = (pk', rev', fe'))) (some (setsName i)) d'
         (some i.val))
       Inv Inv_fresh Inv_cached (ΦB_charge_some (isCut_setsName i) (pk', rev', fe') hTsub d' i.val)
       (stB A pk m₁ st (some (η, rev')))
       (fun _ c => ∑ ξ ∈ T with dataOf (setsName i) ξ = (pk', rev', fe'),
         w * (ind (Cache.Hits c (fHid (some (setsName i)) ξ)) + ind (Spr c ξ) +
-          ind (IdxPost paperParams paperDagFormat d' c i.val)))
+          ind (IdxPost d' c i.val)))
       hF (Cache.extend d' fe') b'' hI' hB'
     have hΦ : ΦB (T.filter (fun ξ => dataOf (setsName i) ξ = (pk', rev', fe'))) (some (setsName i)) d'
         (some i.val) (Cache.extend d' fe') =
@@ -389,7 +392,7 @@ theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
       obtain ⟨hξT, -, -, hfexp⟩ := hdata ξ hξ
       rw [← hfexp]
       have h3 : ¬ ∃ j, some i.val = some j ∧
-          IdxPost paperParams paperDagFormat d' (Cache.extend d' (fExp (some (setsName i)) ξ)) j :=
+          IdxPost d' (Cache.extend d' (fExp (some (setsName i)) ξ)) j :=
         fun ⟨j, _, h⟩ => not_idxPost_extend_fExp d' ξ _ j h
       rw [ind_not (not_hits_extend_fExp_fHid hd' (hTd ξ hξT) (some (setsName i))),
         spr_extend_fExp_iff hd' ξ (some (setsName i)), ind_not h3, zero_add, add_zero]
@@ -430,33 +433,33 @@ theorem stageB_some (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
   exact mul_le_mul_left (mul_le_mul_right hsumW κ) _
 
 /-- The second stage for the records `T` of a public key: signing failed. -/
-theorem stageB_none (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d : Cache paperParams)
+theorem stageB_none (pk : BitVec 128) (m₁ : Message) (st : A.State) (d : Cache)
     (T : Finset Rec) (hT : T ⊆ fiberA pk) (hTd : ∀ ξ ∈ T, ¬ Cache.Hits d (kc ξ))
-    (d' : Cache paperParams) (hd' : SignExt paperParams paperDagFormat m₁ d none d') (b'' : ℕ) (hI : Inv d' b'')
-    (hB : CostAtMost paperParams (stB A pk m₁ st none) b'') :
-    ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st none) d')
+    (d' : Cache) (hd' : SignExt m₁ d none d') (b'' : ℕ) (hI : Inv d' b'')
+    (hB : CostAtMost (stB A pk m₁ st none) b'') :
+    ∑ ξ ∈ T, w * E (run (stB A pk m₁ st none) d')
         (fun p => ind (Cache.Hits p.2 (kc ξ)) + ind (Spr p.2 ξ)) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + κ * sumW (fiberA pk) * b'' := by
-  have hsum : ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st none) d')
+  have hsum : ∑ ξ ∈ T, w * E (run (stB A pk m₁ st none) d')
         (fun p => ind (Cache.Hits p.2 (kc ξ)) + ind (Spr p.2 ξ)) =
-      E (run paperParams (stB A pk m₁ st none) d')
+      E (run (stB A pk m₁ st none) d')
         (fun p => ∑ ξ ∈ T, w * (ind (Cache.Hits p.2 (kc ξ)) + ind (Spr p.2 ξ))) := by
     rw [E_finsetSum]
     exact Finset.sum_congr rfl fun ξ _ => E_const_mul _ _ _
-  have hF : ∀ (x : Bool) (c : Cache paperParams),
+  have hF : ∀ (x : Bool) (c : Cache),
       ∑ ξ ∈ T, w * (ind (Cache.Hits c (kc ξ)) + ind (Spr c ξ)) ≤ ΦB T none d' none c := by
     intro x c
     unfold ΦB
     refine Finset.sum_le_sum fun ξ _ => ?_
     rw [fHid_none]
     exact mul_le_mul_right le_self_add _
-  have hmaster := master_single paperParams (κ * sumW (fiberA pk)) (ΦB T none d' none) Inv
+  have hmaster := master_single (κ * sumW (fiberA pk)) (ΦB T none d' none) Inv
     Inv_fresh Inv_cached (ΦB_charge_none pk hT d') (stB A pk m₁ st none)
     (fun _ c => ∑ ξ ∈ T, w * (ind (Cache.Hits c (kc ξ)) + ind (Spr c ξ))) hF d' b'' hI hB
   have hΦ : ΦB T none d' none d' = ∑ ξ ∈ T, w * ind (Spr d ξ) := by
     unfold ΦB
     refine Finset.sum_congr rfl fun ξ hξ => ?_
-    have h3 : ¬ ∃ j, (none : Option ℕ) = some j ∧ IdxPost paperParams paperDagFormat d' d' j := by
+    have h3 : ¬ ∃ j, (none : Option ℕ) = some j ∧ IdxPost d' d' j := by
       rintro ⟨j, h, -⟩; cases h
     rw [ind_not (not_hits_fHid_of_signExt hd' (hTd ξ hξ) none), spr_signExt_iff hd',
       ind_not h3, zero_add, add_zero]
@@ -464,32 +467,32 @@ theorem stageB_none (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State
   exact hmaster.trans (by rw [hΦ])
 
 /-- The second stage: the continuation bound handed to the signing lemma. -/
-theorem stageB (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d : Cache paperParams) (T : Finset Rec)
+theorem stageB (pk : BitVec 128) (m₁ : Message) (st : A.State) (d : Cache) (T : Finset Rec)
     (hT : T ⊆ fiberA pk) (hTd : ∀ ξ ∈ T, ¬ Cache.Hits d (kc ξ))
-    (r : Option (Nonce paperDagFormat × Fin paperDagFormat.numSets)) (d' : Cache paperParams) (hd' : SignExt paperParams paperDagFormat m₁ d r d') (b'' : ℕ)
-    (hI : Inv d' b'') (hB : ∀ ξ ∈ T, CostAtMost paperParams (stB A pk m₁ st (sigOf ξ r)) b'') :
-    ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
+    (r : Option (Nonce × Fin numCuts)) (d' : Cache) (hd' : SignExt m₁ d r d') (b'' : ℕ)
+    (hI : Inv d' b'') (hB : ∀ ξ ∈ T, CostAtMost (stB A pk m₁ st (sigOf ξ r)) b'') :
+    ∑ ξ ∈ T, w * E (run (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) +
-        sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val) +
+        sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val) +
         κ * sumW (fiberA pk) * b'' := by
   have hTpk : ∀ ξ ∈ T, pkOf ξ = pk := pkOf_of_subset_fiberA hT
   -- couple every record's run with the run without the hidden points
   have hstep : ∀ ξ ∈ T,
-      w * E (run paperParams (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
-        w * E (run paperParams (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (fExp (cutOf? r) ξ)))
+      w * E (run (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g ≤
+        w * E (run (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (fExp (cutOf? r) ξ)))
           (fun p => ind (Cache.Hits p.2 (fHid (cutOf? r) ξ)) + ind (Spr p.2 ξ) +
-            ind (∃ i, idxOf? r = some i ∧ IdxPost paperParams paperDagFormat d' p.2 i)) +
-        w * ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val) := by
+            ind (∃ i, idxOf? r = some i ∧ IdxPost d' p.2 i)) +
+        w * ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val) := by
     intro ξ hξ
     rw [← mul_add, ← hTpk ξ hξ]
     refine mul_le_mul_right ((stageB_iub A ξ r m₁ st d d' (hTd ξ hξ) hd').trans ?_) _
     rw [E_add]
     exact add_le_add_right (E_const_le _ _) _
   -- the master lemma on the run without the hidden points
-  have hmain : ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ r))
+  have hmain : ∑ ξ ∈ T, w * E (run (stB A pk m₁ st (sigOf ξ r))
         (Cache.extend d' (fExp (cutOf? r) ξ)))
         (fun p => ind (Cache.Hits p.2 (fHid (cutOf? r) ξ)) + ind (Spr p.2 ξ) +
-          ind (∃ i, idxOf? r = some i ∧ IdxPost paperParams paperDagFormat d' p.2 i)) ≤
+          ind (∃ i, idxOf? r = some i ∧ IdxPost d' p.2 i)) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + κ * sumW (fiberA pk) * b'' := by
     rcases r with _ | ⟨η, i⟩
     · rcases T.eq_empty_or_nonempty with rfl | ⟨ξ₀, hξ₀⟩
@@ -498,7 +501,7 @@ theorem stageB (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d 
         refine Finset.sum_le_sum fun ξ _ => ?_
         rw [sigOf_none, cutOf?_none, idxOf?_none, fExp_none, Cache.extend_empty, fHid_none]
         refine mul_le_mul_right (E_mono _ fun p => ?_) _
-        have h3 : ¬ ∃ j, (none : Option ℕ) = some j ∧ IdxPost paperParams paperDagFormat d' p.2 j := by
+        have h3 : ¬ ∃ j, (none : Option ℕ) = some j ∧ IdxPost d' p.2 j := by
           rintro ⟨j, h, -⟩; cases h
         rw [ind_not h3, add_zero]
     · refine le_trans ?_ (stageB_some A pk m₁ st d T hT hTd η i d' hd' b'' hI hB)
@@ -509,21 +512,21 @@ theorem stageB (pk : BitVec 128) (m₁ : Message paperParams) (st : A.State) (d 
       rintro ⟨j, hj, h⟩
       rw [Option.some.inj hj]
       exact h
-  calc ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g
-      ≤ ∑ ξ ∈ T, (w * E (run paperParams (stB A pk m₁ st (sigOf ξ r))
+  calc ∑ ξ ∈ T, w * E (run (stB A pk m₁ st (sigOf ξ r)) (Cache.extend d' (kc ξ))) g
+      ≤ ∑ ξ ∈ T, (w * E (run (stB A pk m₁ st (sigOf ξ r))
             (Cache.extend d' (fExp (cutOf? r) ξ)))
             (fun p => ind (Cache.Hits p.2 (fHid (cutOf? r) ξ)) + ind (Spr p.2 ξ) +
-              ind (∃ i, idxOf? r = some i ∧ IdxPost paperParams paperDagFormat d' p.2 i)) +
-          w * ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val)) :=
+              ind (∃ i, idxOf? r = some i ∧ IdxPost d' p.2 i)) +
+          w * ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val)) :=
         Finset.sum_le_sum hstep
-    _ = ∑ ξ ∈ T, w * E (run paperParams (stB A pk m₁ st (sigOf ξ r))
+    _ = ∑ ξ ∈ T, w * E (run (stB A pk m₁ st (sigOf ξ r))
             (Cache.extend d' (fExp (cutOf? r) ξ)))
             (fun p => ind (Cache.Hits p.2 (fHid (cutOf? r) ξ)) + ind (Spr p.2 ξ) +
-              ind (∃ i, idxOf? r = some i ∧ IdxPost paperParams paperDagFormat d' p.2 i)) +
-          sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val) := by
+              ind (∃ i, idxOf? r = some i ∧ IdxPost d' p.2 i)) +
+          sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val) := by
         rw [Finset.sum_add_distrib, sumW, Finset.sum_mul]
     _ ≤ (∑ ξ ∈ T, w * ind (Spr d ξ) + κ * sumW (fiberA pk) * b'') +
-          sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre paperParams paperDagFormat d (m₁ ++ η) i.val) :=
+          sumW T * ind (∃ η i, r = some (η, i) ∧ IdxPre d (m₁ ++ η) i.val) :=
         add_le_add_left hmain _
     _ = _ := add_right_comm _ _ _
 

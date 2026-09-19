@@ -22,6 +22,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 open Name
@@ -440,7 +443,7 @@ theorem fExp_updSrc {A : Finset Name} (hA : IsCut A) (ξ : Rec) {k : Fin 63}
 def fiberA (pk : BitVec 128) : Finset Rec := Finset.univ.filter fun ξ => pkOf ξ = pk
 
 /-- The public data after signing at `A`. -/
-abbrev Data := BitVec 128 × List Bool × Cache paperParams
+abbrev Data := BitVec 128 × List Bool × Cache
 
 /-- The public data of a record after signing at `A`. -/
 def dataOf (A : Finset Name) (ξ : Rec) : Data := (pkOf ξ, revealed A ξ, fExp (some A) ξ)

@@ -19,6 +19,9 @@ open scoped Classical
 
 namespace OptimalOTS
 
+open OptimalOTS.Dag
+
+
 namespace Forest
 
 open Name
@@ -148,7 +151,7 @@ theorem map_parents_rc :
       | exact ⟨_, Or.inr ⟨_, rfl⟩, rfl⟩
 
 theorem graph_wholeWords : graph.WholeWords := by
-  refine ⟨rfl, fun v => ?_⟩
+  intro v
   obtain ⟨n, rfl⟩ : ∃ n : Name, n.fin = v := ⟨ofFin v, fin_ofFin v⟩
   rw [graph_kind_fin n]
   cases n with
