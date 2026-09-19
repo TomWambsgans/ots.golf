@@ -108,23 +108,12 @@ Run these with the public webhook disconnected and the production configuration 
    root without printing secret values and confirm that neither GitHub credential variable is set.
    Test the site on narrow and desktop screens, keyboard navigation and both light/dark schemes.
 
-3. Queue the five public certificates as ordinary attributed submissions, using the same
-   database and a restrictive umask:
-
-   ```sh
-   sudo -u ots -H bash -c 'umask 0007; set -a; . /etc/ots/public.env; set +a
-     export OTS_ENV=production OTS_ROLE=worker OTS_REPO_ROOT=/srv/ots/repo
-     cd /srv/ots/repo/service
-     .venv/bin/python -m app.queue generic-lower --baseline &&
-     .venv/bin/python -m app.queue lower --baseline &&
-     .venv/bin/python -m app.queue disclosure-lower --baseline &&
-     .venv/bin/python -m app.queue generic-upper --baseline &&
-     .venv/bin/python -m app.queue riscv-upper --baseline'
-   ```
-
-   Do not seed fictional localhost rows into production. The legacy upper roots are reference
-   certificates, not public upper leaderboards. The public upper tracks are `generic-upper` and
-   `riscv-upper`.
+3. Nothing needs to be seeded by hand. At every start the website prepares the board: with
+   `OTS_PHONY=1` (the current setting, chosen for the pre-launch site) it replaces the invented
+   rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it creates each public
+   track's reference baseline from `challenges.json` when missing. The step 1 verifier runs are
+   the evidence behind those baselines. The legacy upper roots are reference certificates, not
+   public upper leaderboards; the public upper tracks are `generic-upper` and `riscv-upper`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
@@ -153,7 +142,25 @@ The worker holds a process lock for the shared data directory. At startup it req
 terminate the verifier process group; the verifier also cleans up its comparator group and Linux
 service. Keep one trusted checkout per worker and update it only while that worker is stopped.
 
-Before an upgrade, stop both services and back up the database with SQLite's backup API and the logs:
+### Rebuilding the server from nothing
+
+The database is a cache. Everything durable lives on GitHub: pull requests (author, description,
+attribution, head commits, merges), each checked head's code and `NOTES.md` under
+`refs/pull/<N>/head` of the submissions repository, and every verdict in a hidden
+`<!-- ots-result ... -->` block of the verifier's own comment on the pull request. Keep only
+`/etc/ots/secrets.env` (token and webhook secret) outside the server; `public.env` is regenerated
+by the installer, and the webhook needs its secret to stay the same.
+
+To rebuild: run `setup-server.sh` on a fresh host, restore `secrets.env`, repeat the acceptance
+checks, and start both services. At startup the website prepares the board (phony rows or reference
+baselines, see step 3 above) and runs `app.resync`, which restores every checked head from GitHub,
+replays the merges in merge order so records keep their dates, and queues any open head without a
+verdict. Submission IDs are derived from the pull request and commit, so every page link survives.
+Only old verifier transcripts are lost; rerun the verifier on the checked head to regenerate one.
+`OTS_RESYNC_ON_START=0` skips the startup resync, and `.venv/bin/python -m app.resync` runs it by
+hand as the web user.
+
+A backup remains useful for a quick restore. Before an upgrade, stop both services and back up the database with SQLite's backup API and the logs:
 copying `ots.db` alone while WAL writes are active is not a consistent backup. For example, after
 creating a protected backup directory, run `sqlite3 /srv/ots/data/ots.db '.backup /backup/ots.db'` as
 root and copy `data/logs/`. Keep the backup private. Restore into a staging data directory and run

@@ -58,6 +58,11 @@ certificate's own cost with zero improvement. Hal Finney is the third fictional 
 Generality 2/3 demo record, a matching Generality 1/3 attempt, an Upper bound row at the checked
 cost, and one mid-history record on each legacy upper reference.
 
+The demo rows come from `service/demo/submissions.json` and are re-seeded at every start while
+`OTS_PHONY=1`. The database is a disposable cache: the website rebuilds it from GitHub at startup
+(`app.resync`), so an empty data directory comes back as before; see
+[deployment](deploy/README.md#rebuilding-the-server-from-nothing).
+
 Whenever a certificate or admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
 
@@ -95,6 +100,9 @@ directory; lock files enforce this across processes on the same host.
 | `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
+| `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows the reference baselines |
+| `OTS_RESYNC_ON_START` | `1` | rebuild missing submissions from GitHub when the website starts |
+| `OTS_BOT_LOGIN` | token's login | account whose PR comments carry verdicts |
 | `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
 | `OTS_QUEUE_CAP` | `20` | pending jobs overall |
 

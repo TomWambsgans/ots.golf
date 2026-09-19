@@ -496,3 +496,23 @@ regenerated (contract id `2461d3b5a189f6ad9d7e730bad5b38ea7c30e2b9d56bc943c9457e
 invented RISC-V demo history was scaled with the record: it now runs from 2070 down to 1860 cycles,
 one non-record at 1890, then Satoshi at 1632, the same 14 to 27 percent above the record as
 before. Nothing was pushed or deployed.
+
+## Stateless server: the database is a cache of GitHub (2026-09-19)
+
+The server no longer holds anything that cannot be recreated. Verdicts are written into a hidden,
+machine-readable block of the verifier's own pull-request comment (every checked head of that PR:
+track, commit, status, claim, duration, finish time, contract id, record flag), submission IDs are
+derived from the pull request and commit, and `app.resync` rebuilds the database from GitHub at
+startup: authors, descriptions and attribution from the pull requests, `NOTES.md` from each checked
+commit (GitHub keeps every head under `refs/pull/<N>/head`), verdicts only from the bot's comments,
+and records by replaying the merges in merge order. Open heads without a verdict are queued again.
+At every start the website also prepares the board: with `OTS_PHONY=1` (the default while the site
+is pre-launch) it re-seeds the invented rows from the fixture file, with `OTS_PHONY=0` it creates the
+reference baselines of the public tracks from `challenges.json`.
+
+The earlier branch archiving (`submissions/<id>` branches, which needed contents write) was reverted:
+the pull-request refs already keep each checked head, so the GitHub token stays read-only for
+contents. Rebuilding a server needs only `secrets.env`; old verifier transcripts are the one thing
+lost. 85 service tests cover the verdict block, forged comments from other accounts, the rebuild,
+record replay, stable IDs and board preparation. Nothing was pushed or deployed.
+
