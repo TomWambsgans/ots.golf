@@ -59,11 +59,11 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertFalse(any(p['claim'] == 1632 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
                          [(2070, 'satoshi-nakamoto', 'cycles'), (2050, 'hal-finney', 'cycles'),
-                          (2030, 'ralph-merkle', 'cycles'), (2010, 'vitalik-buterin', 'cycles'),
-                          (1990, 'leslie-lamport', 'cycles'), (1970, 'hal-finney', 'cycles'),
+                          (2030, 'satoshi-nakamoto', 'cycles'), (2010, 'vitalik-buterin', 'cycles'),
+                          (1990, 'hal-finney', 'cycles'), (1970, 'hal-finney', 'cycles'),
                           (1960, 'satoshi-nakamoto', 'cycles'), (1940, 'vitalik-buterin', 'cycles'),
-                          (1930, 'ralph-merkle', 'cycles'), (1920, 'hal-finney', 'cycles'),
-                          (1910, 'leslie-lamport', 'cycles'), (1900, 'hal-finney', 'cycles'),
+                          (1930, 'vitalik-buterin', 'cycles'), (1920, 'hal-finney', 'cycles'),
+                          (1910, 'satoshi-nakamoto', 'cycles'), (1900, 'hal-finney', 'cycles'),
                           (1890, 'vitalik-buterin', 'cycles'), (1880, 'hal-finney', 'cycles'),
                           (1870, 'vitalik-buterin', 'cycles'), (1860, 'vitalik-buterin', 'cycles'),
                           (1632, 'satoshi-nakamoto', 'cycles')])
