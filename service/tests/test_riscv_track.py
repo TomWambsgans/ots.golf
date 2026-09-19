@@ -88,7 +88,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
-        self.assertIn('RISC-V upper bound</a>', profile)
+        self.assertIn('Upper bound · RISC-V cycles</a>', profile)
         self.assertIn('cycles', profile)
 
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):

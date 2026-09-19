@@ -150,7 +150,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertNotIn('baseline', detail.lower())
         profile = self.client.get('/solvers/vitalik-buterin').text
         self.assertIn(f'href="/submissions/{sub.id}"', profile)
-        self.assertIn('href="/?framework=generic#lower">Generality 3/3</a>', profile)
+        self.assertIn('href="/?framework=generic#lower">Lower bound · Generality 3/3</a>', profile)
         self.assertNotIn('baseline', profile.lower())
 
     def test_single_generic_upper_uses_its_own_records_and_attribution(self):
@@ -182,8 +182,8 @@ class FrameworkTests(unittest.TestCase):
             self.assertNotIn('must prove', detail)
             self.assertIn('href="/#upper"', detail)
             self.assertNotIn('signing success at least 1/2', detail)
-            self.assertIn('href="/#upper">Upper bound</a>',
-                      self.client.get('/solvers/satoshi-nakamoto').text)
+            self.assertIn('href="/#upper">Upper bound · compressions</a>',
+              self.client.get('/solvers/satoshi-nakamoto').text)
 
     def test_legacy_upper_records_do_not_initialize_generic_upper(self):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)
@@ -320,10 +320,11 @@ class FrameworkTests(unittest.TestCase):
         seed_demo.add_rows(self.session, seed_demo.ROWS)
         self.session.commit()
         html = self.client.get('/solvers/satoshi-nakamoto').text
-        self.assertTrue('href="/?framework=dag#lower">Generality 2/3</a>' in html)
-        self.assertTrue('href="/rules#legacy-certificates"' in html)
-        self.assertIn('href="/?framework=disclosure#lower">Generality 1/3</a>', html)
-        self.assertTrue('Lower bound' in html and 'Legacy upper certificate' in html)
+        self.assertTrue('href="/?framework=dag#lower">Lower bound · Generality 2/3</a>' in html)
+        self.assertTrue('href="/rules#legacy-certificates">Historical DAG</a>' in html)
+        self.assertIn('href="/?framework=disclosure#lower">Lower bound · Generality 1/3</a>', html)
+        self.assertNotIn('Any oracle algorithm', html)
+        self.assertIn('Upper bound · compressions</a>', html)
 
     def test_historical_partial_upper_is_not_relabelled_whole_words(self):
         seed_demo.add_rows(self.session, [next(r for r in seed_demo.ROWS if r[0] == 'disclosure-upper')])
