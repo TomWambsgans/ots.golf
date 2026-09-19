@@ -12,13 +12,13 @@ precise specification: exact exports, submission-root rules, limits and the subm
 
 ## Tracks
 
-| Track | Slug | Submission root | Reference proof |
-|---|---|---|---:|
-| Upper bound | `upper-compressions` | `UpperCompressions` | 106 compressions |
-| RISC-V upper bound | `upper-riscv` | `UpperRiscv` | 1628 cycles |
-| Generality 1/3 lower bound | `lower-generality-1` | `LowerGenerality1` | 93 compressions |
-| Generality 2/3 lower bound | `lower-generality-2` | `LowerGenerality2` | 18 compressions |
-| Generality 3/3 lower bound | `lower-generality-3` | `LowerGenerality3` | 1 compression |
+| Track | Slug | Submission root |
+|---|---|---|
+| Upper bound · compressions | `upper-compressions` | `UpperCompressions` |
+| Upper bound · RISC-V cycles | `upper-riscv` | `UpperRiscv` |
+| Lower bound · Generality 1/3 | `lower-generality-1` | `LowerGenerality1` |
+| Lower bound · Generality 2/3 | `lower-generality-2` | `LowerGenerality2` |
+| Lower bound · Generality 3/3 | `lower-generality-3` | `LowerGenerality3` |
 
 Roots live at `formal/Submissions/<Root>/` in the submissions repository. Current records are
 on [ots.golf](https://ots.golf).
