@@ -33,6 +33,7 @@ async def lifespan(_app):
     if settings.environment == "production" and settings.role != "web":
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
+    await run_in_threadpool(prepare_board)
     task = resync_task = None
     if settings.github_token and settings.submissions_repo:
         if settings.resync_on_start:
@@ -61,6 +62,22 @@ async def lifespan(_app):
                 running.cancel()
                 with suppress(asyncio.CancelledError):
                     await running
+
+
+def prepare_board() -> None:
+    """Everything the board shows without GitHub, recreated at every start: the invented demo rows
+    (OTS_PHONY=1, for now) or the reference baselines of the public tracks."""
+    log = logging.getLogger(__name__)
+    try:
+        if settings.phony:
+            import seed_demo
+            with local_lock("results"), SessionLocal() as session:
+                log.info("phony board: removed %s, added %s demo submissions", *seed_demo.reseed(session))
+        else:
+            from .resync import ensure_baselines
+            log.info("reference baselines added: %s", ensure_baselines())
+    except Exception:
+        log.exception("preparing the board failed; the site starts anyway")
 
 
 app = FastAPI(title="ots.golf", version="0.1.0", docs_url=None, openapi_url=None, redoc_url=None,

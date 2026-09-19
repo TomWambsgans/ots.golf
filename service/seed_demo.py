@@ -159,6 +159,12 @@ def add(session) -> int:
     return count
 
 
+def reseed(session) -> tuple[int, int]:
+    """Replace the invented rows with the fixture file's, keeping real submissions."""
+    removed = remove(session)
+    return removed, add(session)
+
+
 def main() -> None:
     from app.config import SERVICE_DIR, settings
     if settings.environment != "development" or urlsplit(settings.base_url).hostname not in {

@@ -17,7 +17,7 @@ from sqlalchemy import select
 
 from . import auth, contract, github
 from .config import settings
-from .db import SessionLocal, Submission, init_db, local_lock, pr_submission_id
+from .db import SessionLocal, Submission, init_db, local_lock, pr_submission_id, stable_id, utcnow
 
 FINISHED = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
 
@@ -108,6 +108,38 @@ def _promote_merged(merged: list[tuple]) -> int:
             count += sub.is_record
         session.commit()
     return count
+
+
+def public_tracks() -> list[dict]:
+    cfg = contract.load()
+    public = {f["lower_track"] for f in cfg["frameworks"] if "lower_track" in f} | set(cfg["upper_tracks"])
+    return [t for t in contract.tracks() if t["slug"] in public]
+
+
+def ensure_baselines() -> int:
+    """Each public track starts from its reference certificate, pinned in the contract repository at
+    the claim in challenges.json. Recreate the missing baseline rows; they need no GitHub state."""
+    from .worker import promote
+    added = 0
+    commit = contract.trusted_commit()
+    with local_lock("results"), SessionLocal() as session:
+        for t in public_tracks():
+            if session.scalars(select(Submission).where(Submission.track == t["slug"],
+                                                        Submission.baseline.is_(True))).first():
+                continue
+            user = auth.get_or_create_user(session, "ots.golf", name="ots.golf (baseline)")
+            sub = Submission(
+                id=stable_id("baseline", t["slug"], commit), track=t["slug"], user_id=user.id,
+                source_repo=f"https://github.com/{settings.contract_repo}.git", commit=commit,
+                claim=t["baseline"], status="verified", baseline=True, finished_at=utcnow(),
+                description=f"Reference certificate of the {t['title'].lower()} track, shipped in the contract repository.",
+                detail=json.dumps({"reference": True, "contract": contract.contract_id()}))
+            session.add(sub)
+            session.flush()
+            promote(session, sub)
+            added += 1
+        session.commit()
+    return added
 
 
 def main() -> int:

@@ -160,7 +160,7 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(session.get(Submission, sub.id).notes, result['notes'])
             main.app.dependency_overrides[main.get_session] = lambda: session
             try:
-                with TestClient(main.app) as client:
+                with patch('app.main.prepare_board'), TestClient(main.app) as client:
                     page = client.get(f'/submissions/{sub.id}').text
             finally:
                 main.app.dependency_overrides.clear()
@@ -326,6 +326,31 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(sub.notes, '## Idea\n\nAverage over classes.')
             self.assertEqual(sub.detail_dict['github_comment_id'], 55)
             self.assertIsNone(session.scalars(select(Submission).where(Submission.commit == 'd' * 40)).first())
+
+    def test_reference_baselines_are_recreated_once_per_public_track(self):
+        from app import contract, resync
+        with patch('app.resync.SessionLocal', self.sessions):
+            added = resync.ensure_baselines()
+            self.assertEqual(resync.ensure_baselines(), 0)
+        tracks = resync.public_tracks()
+        self.assertEqual(added, len(tracks))
+        with self.sessions() as session:
+            for t in tracks:
+                rows = list(session.scalars(select(Submission).where(Submission.track == t['slug'],
+                                                                     Submission.baseline.is_(True))))
+                self.assertEqual(len(rows), 1)
+                self.assertEqual((rows[0].claim, rows[0].status, rows[0].is_record), (t['baseline'], 'verified', True))
+                self.assertEqual(rows[0].user.login, 'ots.golf')
+        self.assertTrue(contract.trusted_commit())
+
+    def test_startup_reseeds_the_phony_board_or_the_baselines(self):
+        with patch.object(settings, 'phony', True), patch('app.main.SessionLocal', self.sessions), \
+             patch('seed_demo.reseed', return_value=(0, 3)) as reseed:
+            main.prepare_board()
+        reseed.assert_called_once()
+        with patch.object(settings, 'phony', False), patch('app.resync.ensure_baselines', return_value=5) as ensure:
+            main.prepare_board()
+        ensure.assert_called_once()
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()
