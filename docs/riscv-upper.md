@@ -15,7 +15,8 @@ a fixed assembly image, and an input-dependent fuel bound witnessing termination
   signing of at most `2^20` compressions.
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
-  queries and randomness. Faults and fuel exhaustion are excluded on every input.
+  queries. Faults and fuel exhaustion are excluded on every input; the machine is deterministic
+  given the oracle's answers.
 - At most `C` cycles on each accepting execution. The bound need not be attained.
 
 `implemented_secure` and `implemented_admissible` transport security and admissibility to the
@@ -29,13 +30,12 @@ the new score also counts the verifier's ordinary instructions. No sampled bench
 Each ordinary instruction costs one cycle. Pseudo-instructions must be expanded.
 The model fixes instruction costs rather than modeling a hardware pipeline.
 
-`ECALL` selects one of three operations using `t0` (`x5`):
+`ECALL` selects one of two operations using `t0` (`x5`):
 
 | `t0` | Operation | Arguments and result | Cycles |
 |---:|---|---|---:|
 | 0 | HALT | `a0` is 0 for rejection or 1 for acceptance | 1 |
 | 1 | HASH | `a0`: input pointer; `a1`: bit length; `a2`: aligned 32-byte output pointer | `max(1, ceil(bits/512))` |
-| 2 | RANDOM | A fresh uniform 64-bit word in `a0` | 1 |
 
 HASH uses the same bare oracle as key generation, signing and the attacker. Bits are read least
 significant first within each byte. It reads the full input before writing the 256-bit answer;

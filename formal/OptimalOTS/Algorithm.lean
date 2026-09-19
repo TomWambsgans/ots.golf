@@ -5,7 +5,8 @@ import OptimalOTS.Statement
 
 The interface for generic lower and upper submissions. All parties
 share the bare random oracle and its compression cost. Deterministic computation and private
-randomness are free.
+randomness are free; verification is deterministic, so only key generation and signing may use
+private randomness.
 
 Public keys and messages have the lengths in `P`. Signatures have an injective bit-string encoding.
 `Admissible` fixes correctness, signing availability, signature size, and honest-party cost limits;
@@ -17,6 +18,10 @@ noncomputable section
 open scoped Classical
 
 namespace OptimalOTS
+
+/-- `oa` uses no private randomness: on every path, every query goes to the hash oracle. -/
+def Deterministic (P : Params) {α : Type} (oa : OracleComp (Spec P) α) : Prop :=
+  oa.IsQueryBound () (fun t _ => t.isRight = true) (fun _ u => u)
 
 /-- Three terminating oracle programs, with an injective signature encoding. -/
 structure AlgorithmScheme (P : Params) where
@@ -58,6 +63,10 @@ def Secure (S : AlgorithmScheme P) : Prop :=
 /-- Verification costs at most `c` on every input and every oracle-answer path, including rejects. -/
 def VerifyCostAtMost (S : AlgorithmScheme P) (c : ℕ) : Prop :=
   ∀ pk m σ, CostAtMost P (S.verify pk m σ) c
+
+/-- Verification is deterministic: it uses no private randomness on any input. -/
+def VerifyDeterministic (S : AlgorithmScheme P) : Prop :=
+  ∀ pk m σ, Deterministic P (S.verify pk m σ)
 
 /-- Key generation costs at most `b` on every oracle-answer path. -/
 def KeygenCostAtMost (S : AlgorithmScheme P) (b : ℕ) : Prop := CostAtMost P S.keygen b
@@ -119,11 +128,12 @@ def paperLimits : Limits where
   keygenCost := 1024
   signCost := 2 ^ 20
 
-/-- Correctness, availability, size, and cost requirements, separate from security.
-The allowance `ε < 1` excludes schemes that always fail to sign. -/
+/-- Correctness, availability, deterministic verification, size, and cost requirements, separate
+from security. The allowance `ε < 1` excludes schemes that always fail to sign. -/
 structure Admissible (S : AlgorithmScheme P) (L : Limits) (ε : ℝ≥0∞) : Prop where
   failure_lt_one : ε < 1
   correct : S.Correct
+  verifyDeterministic : S.VerifyDeterministic
   signingFailure : S.SigningFailureAtMost ε
   signatureSize : S.SignatureSizeAtMost L.signatureBits
   rejectsOversized : S.RejectsOversized L.signatureBits

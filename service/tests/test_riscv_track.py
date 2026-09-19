@@ -58,9 +58,15 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 5513 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(30053, 'hal-finney', 'cycles'), (28513, 'vitalik-buterin', 'cycles'),
-                          (27253, 'hal-finney', 'cycles'), (26113, 'vitalik-buterin', 'cycles'),
-                          (25053, 'vitalik-buterin', 'cycles'), (5513, 'satoshi-nakamoto', 'cycles')])
+                         [(7000, 'satoshi-nakamoto', 'cycles'), (6920, 'hal-finney', 'cycles'),
+                          (6850, 'ralph-merkle', 'cycles'), (6780, 'vitalik-buterin', 'cycles'),
+                          (6720, 'leslie-lamport', 'cycles'), (6660, 'hal-finney', 'cycles'),
+                          (6610, 'satoshi-nakamoto', 'cycles'), (6560, 'vitalik-buterin', 'cycles'),
+                          (6520, 'ralph-merkle', 'cycles'), (6480, 'hal-finney', 'cycles'),
+                          (6440, 'leslie-lamport', 'cycles'), (6410, 'hal-finney', 'cycles'),
+                          (6380, 'vitalik-buterin', 'cycles'), (6350, 'hal-finney', 'cycles'),
+                          (6330, 'vitalik-buterin', 'cycles'), (6310, 'vitalik-buterin', 'cycles'),
+                          (5513, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
@@ -78,17 +84,17 @@ class RiscvTrackTests(unittest.TestCase):
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('5513 cycles', detail)
-        self.assertIn('every accepting execution', detail)
-        self.assertIn('href="/rules#riscv-upper"', detail)
+        self.assertIn('Upper bound · RISC-V cycles', detail)
+        self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
-        self.assertIn('RISC-V upper bound</a>', profile)
+        self.assertIn('Upper bound · RISC-V cycles</a>', profile)
         self.assertIn('cycles', profile)
 
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['generic-upper']
         self.assertIsNone(contract.riscv_upper_track())
-        self.assertEqual(seed_demo.refresh(self.session), 26)
+        self.assertEqual(seed_demo.refresh(self.session), 54)
         self.assertNotIn('riscv-upper', self.client.get('/').text)
         self.assertNotIn('id="riscv-upper"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
@@ -101,16 +107,16 @@ class RiscvTrackTests(unittest.TestCase):
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 26)
+        self.assertEqual(len(before), 54)
         self.config['upper_tracks'].append('riscv-upper')
-        self.assertEqual(seed_demo.refresh(self.session), 7)
+        self.assertEqual(seed_demo.refresh(self.session), 18)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 33)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 72)
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)
         rows = list(self.session.scalars(select(Submission).where(Submission.track == 'riscv-upper')))
-        self.assertEqual(len(rows), 7)
+        self.assertEqual(len(rows), 18)
         machine = min(rows, key=lambda r: r.claim)
         self.assertEqual(machine.claim, contract.riscv_upper_track()['baseline'])
         self.assertEqual(machine.detail_dict['improvement'], 0)
@@ -121,7 +127,7 @@ class RiscvTrackTests(unittest.TestCase):
         section = re.search(r'<details id="riscv-upper">.*?</details>', html, re.S).group(0)
         for phrase in ('every accepting execution', 'Every execution must terminate',
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
-                       'no additional instruction charge', 'RV64IM', '256 output bits'):
+                       'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)
         self.assertNotIn('5513', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')

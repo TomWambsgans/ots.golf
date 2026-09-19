@@ -2,13 +2,13 @@
 {% for s in subs %}
 <tr>
   <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }}{% if show_track %} <span class="lb-unit">{{ track_labels[s.track]|cost_unit(s.claim) }}</span>{% endif %}{% else %}–{% endif %}</a></td>
-  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generic' %}<a href="/rules#legacy-certificates">{{ t.framework_title }} reference</a><br><span class="muted">Legacy upper certificate</span>{% else %}<a href="/{% if t.kind == 'lower' %}?framework={{ t.framework }}{% endif %}#{{ t.kind }}">{{ t.title if t.kind == 'upper' else t.framework_title }}</a><br><span class="muted">{{ 'Any oracle algorithm' if t.kind == 'upper' else t.title }}</span>{% endif %}</td>{% endif %}
+  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generic' %}<a href="/rules#legacy-certificates">{{ t.framework_title }}</a>{% elif t.kind == 'upper' %}<a href="/#upper">Upper bound · {{ 'RISC-V cycles' if t.slug == 'riscv-upper' else 'compressions' }}</a>{% else %}<a href="/?framework={{ t.framework }}#lower">Lower bound · {{ t.framework_title }}</a>{% endif %}</td>{% endif %}
   <td>
     <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
   </td>
   <td class="muted">{{ s.assisted_by or '' }}</td>
   <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
-  <td class="muted nowrap">{{ (s.finished_at or s.created_at)|date }}</td>
+  <td class="muted nowrap" title="{{ (s.finished_at or s.created_at)|dt }}">{{ (s.finished_at or s.created_at)|date }}</td>
 </tr>
 {% else %}
 <tr><td colspan="{{ 6 if show_track else 5 }}" class="muted">Nothing yet.</td></tr>
@@ -29,7 +29,7 @@
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
     {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
   </td>
-  <td class="r lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
+  <td class="r lb-date muted" title="{{ (s.record_at or s.finished_at or s.created_at)|dt }}">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
 </tr>
 {%- endmacro %}
 

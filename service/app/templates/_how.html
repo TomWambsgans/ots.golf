@@ -1,28 +1,25 @@
 {# Competition-specific oracle, cost and security rules. #}
 <details id="hash">
-  <summary><h2>What are the hash and cost rules?</h2></summary>
+  <summary><h2>How do we count hash compressions?</h2></summary>
   <div class="more prose">
-    <p>All parties share one random oracle on bit strings. Each distinct input gets an independent
-    uniform 256-bit answer, shared across all uses. Hashing is the only cryptographic primitive.</p>
-    <p id="cost">A hash query costs one <strong>compression</strong> per started 512-bit input block,
-    with a minimum of one. Every call is charged, including repeated queries. Input lengths include
-    explicit parameters and tweaks. Deterministic computation and randomness are free in the
-    compression model. Compression bounds cover every execution path.{% if riscv_upper_track %}
-    The RISC-V implementation track also charges instructions, with its cycle bound covering
-    accepting executions.{% endif %}</p>
-    <p>As Justin Drake observed, a block-based implementation can pad a per-key public parameter
-    to a full block, absorb it once, and reuse the resulting hash state. This makes the parameter
-    a shared setup cost. The model therefore charges each query for its explicit input bits.</p>
+    <p>All parties share one random oracle: every distinct bit string gets an independent uniform
+    256-bit answer. Hashing is the only cryptographic primitive.</p>
+    <p id="cost">A hash call costs one <strong>compression</strong> per started 512-bit block of its
+    input.</p>
+    <p><em>A per-key public parameter, useful for multi-user security, costs nothing: a block-based
+    hash can pad the parameter to a full block, absorb it once and cache the internal state, so every
+    later call starts from that state for free (thanks Justin Drake for this idea).</em></p>
   </div>
 </details>
 <details id="security">
   <summary><h2>What does 127-bit security mean here?</h2></summary>
   <div class="more prose">
-    <p>The attacker sees the public key, may query the oracle, requests one chosen-message
-    signature, then attempts a forgery. For every budget <code>B</code> covering the whole
-    experiment on every run, success must be strictly below <code>B / 2<sup>127</sup></code>.
-    Include key generation, signing, the attacker's queries and final verification.</p>
-    <p>Every track uses <strong>strong unforgeability</strong>: any accepted pair different from
-    the signed pair counts, and if signing fails, any accepted pair counts.</p>
+    <p>The attacker sees the public key, queries the oracle at will, receives one signature on a
+    message of its choice, and then outputs a forgery. If the whole experiment (key generation,
+    signing, the attacker's queries and the final verification) makes <code>B</code> queries, the
+    attacker must win with probability below <code>B / 2<sup>127</sup></code>.</p>
+    <p>Winning means <strong>strong unforgeability</strong>: the forgery is any accepted
+    message-signature pair other than the one the signer produced. If signing failed, any accepted
+    pair wins.</p>
   </div>
 </details>

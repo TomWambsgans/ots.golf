@@ -114,7 +114,7 @@
           <td class="lb-track"><a href="{{ item.href }}">{{ item.label }}</a></td>
           <td class="r lb-score"><a href="/submissions/{{ s.id }}">{{ s.claim }} <span class="lb-unit">{{ item.cfg|cost_unit(s.claim) }}</span></a></td>
           <td class="r lb-gain">{% if item.gain is not none %}<span class="good">{{ '+' if item.gain > 0 else '' }}{{ item.gain }}</span>{% else %}<span class="muted">first record</span>{% endif %}</td>
-          <td class="r lb-date muted">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
+          <td class="r lb-date muted" title="{{ (s.record_at or s.finished_at or s.created_at)|dt }}">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
         </tr>
         {% else %}
         <tr><td colspan="5" class="muted lb-empty">No records yet.</td></tr>
