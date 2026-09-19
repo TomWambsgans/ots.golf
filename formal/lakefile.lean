@@ -21,3 +21,7 @@ require «riscv-zkvm» from git
 /-- A submission may add or edit only the root assigned to its track in `challenges.json`. -/
 lean_lib Submissions where
   globs := #[.submodules `Submissions]
+
+/-- Internal checks that the Generality 1/3 and 2/3 lower-bound classes are not empty. -/
+lean_lib Witnesses where
+  globs := #[.submodules `Witnesses]

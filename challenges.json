@@ -14,18 +14,14 @@
   "protected": [
     "challenges.json",
     "verifier/comparator-lower-generality-2.json",
-    "verifier/comparator-reference-generality-2.json",
     "formal/lean-toolchain",
     "formal/lakefile.lean",
     "formal/lake-manifest.json",
     "formal/OptimalOTS.lean",
     "formal/OptimalOTS/Dag.lean",
     "formal/OptimalOTS/Challenge/LowerGenerality2.lean.in",
-    "formal/OptimalOTS/Challenge/ReferenceGenerality2.lean.in",
     "verifier/comparator-lower-generality-1.json",
     "formal/OptimalOTS/Challenge/LowerGenerality1.lean.in",
-    "formal/OptimalOTS/Challenge/ReferenceGenerality1.lean.in",
-    "verifier/comparator-reference-generality-1.json",
     "formal/OptimalOTS/OracleAlgorithm.lean",
     "formal/OptimalOTS/Challenge/LowerGenerality3.lean.in",
     "verifier/comparator-lower-generality-3.json",
@@ -64,45 +60,6 @@
       ],
       "framework": "generality-2",
       "kind": "lower"
-    },
-    {
-      "slug": "reference-generality-2",
-      "title": "Generality 2/3 witness",
-      "direction": "-",
-      "submission_root": "formal/Submissions/ReferenceGenerality2",
-      "module_prefix": "Submissions.ReferenceGenerality2",
-      "solution_module": "Submissions.ReferenceGenerality2.Solution",
-      "challenge_template": "formal/OptimalOTS/Challenge/ReferenceGenerality2.lean.in",
-      "challenge_file": "formal/OptimalOTS/Challenge/ReferenceGenerality2.lean",
-      "challenge_module": "OptimalOTS.Challenge.ReferenceGenerality2",
-      "comparator_config": "verifier/comparator-reference-generality-2.json",
-      "allowed_import_prefixes": [
-        "Mathlib",
-        "VCVio",
-        "OptimalOTS.Dag"
-      ],
-      "framework": "generality-2",
-      "kind": "upper"
-    },
-    {
-      "slug": "reference-generality-1",
-      "title": "Generality 1/3 witness",
-      "direction": "-",
-      "submission_root": "formal/Submissions/ReferenceGenerality1",
-      "module_prefix": "Submissions.ReferenceGenerality1",
-      "solution_module": "Submissions.ReferenceGenerality1.Solution",
-      "challenge_template": "formal/OptimalOTS/Challenge/ReferenceGenerality1.lean.in",
-      "challenge_file": "formal/OptimalOTS/Challenge/ReferenceGenerality1.lean",
-      "challenge_module": "OptimalOTS.Challenge.ReferenceGenerality1",
-      "comparator_config": "verifier/comparator-reference-generality-1.json",
-      "allowed_import_prefixes": [
-        "Mathlib",
-        "VCVio",
-        "OptimalOTS.Dag",
-        "OptimalOTS.WholeWords"
-      ],
-      "framework": "generality-1",
-      "kind": "upper"
     },
     {
       "slug": "lower-generality-1",

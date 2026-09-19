@@ -494,7 +494,7 @@ class ServiceWorkerTests(unittest.TestCase):
         sub = self.submission()
         valid = {'status': 'verified', 'track': 'lower-generality-2', 'claim': 19, 'commit': sub.commit}
         self.assertEqual(self.pipeline(sub, valid)['status'], 'verified')
-        for changes in ({'track': 'reference-generality-2'}, {'claim': True}, {'claim': -1}, {'claim': 1000001},
+        for changes in ({'track': 'no-such-track'}, {'claim': True}, {'claim': -1}, {'claim': 1000001},
                         {'commit': 'b' * 40}, {'claim': None}):
             self.assertEqual(self.pipeline(sub, valid | changes)['status'], 'failed')
         self.assertEqual(self.pipeline(sub, valid, returncode=1)['status'], 'failed')

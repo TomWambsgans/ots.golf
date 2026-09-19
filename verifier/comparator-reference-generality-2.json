@@ -1,8 +1,0 @@
-{
-  "challenge_module": "OptimalOTS.Challenge.ReferenceGenerality2",
-  "solution_module": "Submissions.ReferenceGenerality2.Solution",
-  "theorem_names": ["OptimalOTS.Challenge.ReferenceGenerality2.secure", "OptimalOTS.Challenge.ReferenceGenerality2.cost"],
-  "definition_names": ["OptimalOTS.Challenge.ReferenceGenerality2.scheme"],
-  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
-  "enable_nanoda": false
-}

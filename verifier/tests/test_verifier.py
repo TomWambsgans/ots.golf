@@ -91,11 +91,11 @@ class VerifierTests(unittest.TestCase):
                        "meta import Mathlib", "public meta import Mathlib", "module import Mathlib",
                        "prelude\timport Mathlib", "import Mathlib OptimalOTS.WholeWords"):
             with self.subTest(prefix=prefix):
-                (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.ReferenceGenerality2.Solution\n")
+                (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.UpperCompressions.Solution\n")
                 self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_bom_does_not_hide_imports(self):
-        (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.ReferenceGenerality2.Solution\n")
+        (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.UpperCompressions.Solution\n")
         self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_notes_are_admitted_exported_and_read(self):
@@ -108,7 +108,7 @@ class VerifierTests(unittest.TestCase):
         self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
     def test_disallowed_and_missing_sibling_imports(self):
-        for module in ("OptimalOTS", "OptimalOTS.Dag.Extra", "Submissions.ReferenceGenerality2.Solution",
+        for module in ("OptimalOTS", "OptimalOTS.Dag.Extra", "Submissions.UpperCompressions.Solution",
                        "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Absent"):
             with self.subTest(module=module):
                 (self.sub / "Solution.lean").write_text(f"import {module}\n")
@@ -127,7 +127,7 @@ class VerifierTests(unittest.TestCase):
         solution = sub / "Solution.lean"
         solution.write_text("import Submissions.UpperCompressions.Helper\n")
         self.assertTrue(check(self.root, "upper-compressions")["ok"])
-        for module in ("Submissions.ReferenceGenerality2.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
+        for module in ("Submissions.UpperCompressions.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
                        "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Proof"):
             with self.subTest(module=module):
                 solution.write_text(f"import {module}\n")

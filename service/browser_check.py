@@ -165,8 +165,7 @@ def demo_best(config: dict, slug: str) -> int:
 
 
 def assert_rules_have_no_scores(text: str, config: dict) -> None:
-    claims = {demo_best(config, track['slug']) for track in config['tracks']
-              if track['slug'] != 'reference-generality-1'}
+    claims = {demo_best(config, track['slug']) for track in config['tracks']}
     # Every current claim is checked in score-bearing prose. Small numbers also occur
     # legitimately in fractions, section numbers and fixed contract parameters.
     for claim in claims:

@@ -355,15 +355,6 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(timestamps)
         self.assertTrue(all('T' in stamp for stamp in timestamps))
 
-    def test_public_submission_queue_does_not_admit_witnesses(self):
-        for track in ('reference-generality-2',):
-            with self.assertRaises(HTTPException) as caught:
-                queue_submission(self.session, User(login='tester'), track, 'local', 'a' * 40,
-                                 None, [], None, None, None)
-            self.assertEqual(caught.exception.status_code, 400)
-            self.assertTrue('generic algorithm framework' in caught.exception.detail)
-        self.assertEqual(list(self.session.scalars(select(Submission))), [])
-
     def test_public_submission_queue_admits_both_generic_tracks_and_preserves_scope(self):
         user = User(login="generic-solver")
         self.session.add(user)
@@ -393,7 +384,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(github.pr_track("local/repo", 1), ("lower-generality-3", []))
             response.json.return_value = [{"filename": "formal/Submissions/UpperCompressions/Solution.lean"}]
             self.assertEqual(github.pr_track("local/repo", 1), ("upper-compressions", []))
-            response.json.return_value += [{"filename": "formal/Submissions/ReferenceGenerality2/Solution.lean"}]
+            response.json.return_value += [{"filename": "formal/Submissions/LowerGenerality1/Solution.lean"}]
             self.assertEqual(github.pr_track("local/repo", 1), (None, []))
 
 

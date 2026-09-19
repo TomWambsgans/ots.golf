@@ -2,7 +2,6 @@ formal/.lake/
 .build/
 # rendered challenge stubs (generated from the .lean.in templates at verification time)
 formal/OptimalOTS/Challenge/LowerGenerality2.lean
-formal/OptimalOTS/Challenge/ReferenceGenerality2.lean
 formal/OptimalOTS/Challenge/LowerGenerality3.lean
 formal/OptimalOTS/Challenge/UpperCompressions.lean
 formal/OptimalOTS/Challenge/LowerGenerality1.lean
@@ -13,4 +12,3 @@ verifier/.tools/
 # Local Python bytecode and isolated research environments
 __pycache__/
 .venv-tools/
-formal/OptimalOTS/Challenge/ReferenceGenerality1.lean
