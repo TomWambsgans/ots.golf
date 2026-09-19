@@ -461,7 +461,7 @@ def paperParams : Params where
   blockBits := 512
   pkBits := 128
   msgBits := 256
-  nonceBits := 256
+  nonceBits := 128
   idxBits := 128
   maxRevealBits := 5248
   keygenBudget := 1024

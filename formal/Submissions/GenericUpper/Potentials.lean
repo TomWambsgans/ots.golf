@@ -2,6 +2,7 @@ import Submissions.GenericUpper.Scheme
 import Submissions.GenericUpper.Resample
 import Submissions.GenericUpper.Events
 import Submissions.GenericUpper.EncCharges
+import Submissions.GenericUpper.RowPotential
 import Submissions.GenericUpper.Keygen
 import Submissions.GenericUpper.Reconstruct
 
@@ -116,10 +117,10 @@ def ind (p : Prop) : ℝ≥0∞ := if p then 1 else 0
 /-- The invariant: encoding entries plus remaining budget never exceed `2 ^ 127`. -/
 def Inv (c : Cache paperParams) (b : ℕ) : Prop := encCount paperParams c + b ≤ 2 ^ 127
 
-/-- The encoding part of the first-stage potential. -/
+/-- The encoding part of the first-stage potential: `θ psi`, the row potential of
+`RowPotential`. -/
 def encTerm (c : Cache paperParams) : ℝ≥0∞ :=
-  (cntV paperParams c : ℝ≥0∞) / paperParams.numSets +
-    (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams c / ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)
+  ENNReal.ofReal (Row.θ paperParams * psi paperParams c)
 
 /-- The first-stage potential for the public key `pk`. -/
 def ΦA (pk : BitVec 128) (c : Cache paperParams) : ℝ≥0∞ :=
@@ -160,13 +161,23 @@ theorem encCount_le_of_inv {c : Cache paperParams} {b : ℕ} (h : Inv c b) :
     encCount paperParams c ≤ 2 ^ 127 :=
   le_trans (Nat.le_add_right _ _) h
 
-theorem cntV_empty_pot : cntV paperParams ∅ = 0 := by simp [cntV]
+/-- The paper parameters satisfy the hypotheses of the row potential. -/
+theorem paperRowHyp : RowHyp paperParams where
+  nonce_eq := rfl
+  idx_le := by decide
+  two_le := by show 2 ≤ 2 ^ 115; norm_num
+  numSets_le := by show 2 * 2 ^ 115 ≤ 2 ^ 128; norm_num
+  trial_le := by show 24 * 2 ^ 20 ≤ 2 ^ 128; norm_num
 
-theorem pairs_empty_pot : pairs paperParams ∅ = 0 := by simp [pairs]
+theorem two_encCount_le {c : Cache paperParams} {b : ℕ} (h : Inv c b) :
+    2 * encCount paperParams c ≤ 2 ^ paperParams.idxBits := by
+  have := encCount_le_of_inv h
+  show 2 * encCount paperParams c ≤ 2 ^ 128
+  omega
 
 theorem ΦA_empty (pk : BitVec 128) : ΦA pk ∅ = 0 := by
   unfold ΦA encTerm
-  simp [cntV_empty_pot, pairs_empty_pot, ind, Cache.not_hits_empty, not_spr_empty]
+  simp [psi_empty, ind, Cache.not_hits_empty, not_spr_empty]
 
 /-! ### Indicators and averages -/
 
@@ -315,60 +326,15 @@ theorem encTerm_cacheQuery_of_ne_enc (c : Cache paperParams) {q : Query}
     (hq : ∀ u : EncInput paperParams, q ≠ encQuery paperParams u) (u : BitVec paperParams.hashBits) :
     encTerm (c.cacheQuery q u) = encTerm c := by
   unfold encTerm
-  rw [cntV_cacheQuery_of_ne_enc _ _ hq, pairs_cacheQuery_of_ne_enc _ _ hq]
-
-theorem trialLimit_bound (e : ℕ) (he : e ≤ 2 ^ 127) :
-    paperParams.trialLimit * (2 * e) ≤ 2 ^ paperParams.nonceBits - paperParams.trialLimit := by
-  show 2 ^ 20 * (2 * e) ≤ 2 ^ 256 - 2 ^ 20
-  calc 2 ^ 20 * (2 * e) ≤ 2 ^ 20 * (2 * 2 ^ 127) := by gcongr
-    _ ≤ 2 ^ 256 - 2 ^ 20 := by norm_num
+  rw [psi_of_ne paperParams hq]
 
 /-- A fresh encoding answer raises the encoding term by at most `κ = 2 ε` on average. -/
-theorem encTerm_avg_le (c : Cache paperParams) (hc : encCount paperParams c ≤ 2 ^ 127)
+theorem encTerm_avg_le (c : Cache paperParams) {b : ℕ} (hc : Inv c b)
     (u₀ : EncInput paperParams) (hq : c (encQuery paperParams u₀) = none) :
     ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
         encTerm (c.cacheQuery (encQuery paperParams u₀) u) ≤ encTerm c + κ := by
-  have h1 := cntV_charge paperParams (by decide)
-    (by show 2 ^ 115 ≤ 2 ^ 128; exact Nat.pow_le_pow_right (by norm_num) (by norm_num)) c u₀ hq
-  have h2 := pairs_charge paperParams (by decide) c u₀ hq
-  have hsplit : ∀ d : Cache paperParams,
-      encTerm d = (cntV paperParams d : ℝ≥0∞) * (paperParams.numSets : ℝ≥0∞)⁻¹ +
-        (paperParams.trialLimit : ℝ≥0∞) * pairs paperParams d *
-          ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞)⁻¹ := fun d => by
-    unfold encTerm; simp only [div_eq_mul_inv]
-  set M : ℝ≥0∞ := (paperParams.numSets : ℝ≥0∞) with hM
-  set L : ℝ≥0∞ := (paperParams.trialLimit : ℝ≥0∞) with hL
-  set D : ℝ≥0∞ := ((2 ^ paperParams.nonceBits - paperParams.trialLimit : ℕ) : ℝ≥0∞) with hD
-  set P2 : ℝ≥0∞ := 2 ^ paperParams.idxBits with hP2
-  have hε : ε = P2⁻¹ := rfl
-  simp only [div_eq_mul_inv] at h1 h2
-  have hkey : L * (2 * encCount paperParams c) * D⁻¹ ≤ 1 := by
-    rw [← div_eq_mul_inv]
-    refine ENNReal.div_le_of_le_mul ?_
-    rw [one_mul, hL, hD]
-    exact_mod_cast trialLimit_bound _ hc
-  calc ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-        encTerm (c.cacheQuery (encQuery paperParams u₀) u)
-      = (∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-            (cntV paperParams (c.cacheQuery (encQuery paperParams u₀) u) : ℝ≥0∞)) * M⁻¹ +
-          L * (∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
-            (pairs paperParams (c.cacheQuery (encQuery paperParams u₀) u) : ℝ≥0∞)) * D⁻¹ := by
-        rw [Finset.sum_mul, Finset.mul_sum, Finset.sum_mul, ← Finset.sum_add_distrib]
-        refine Finset.sum_congr rfl fun u _ => ?_
-        rw [hsplit]; ring
-    _ ≤ ((cntV paperParams c : ℝ≥0∞) + M * P2⁻¹) * M⁻¹ +
-          L * ((pairs paperParams c : ℝ≥0∞) + 2 * (encCount paperParams c : ℝ≥0∞) * P2⁻¹) * D⁻¹ := by
-        gcongr
-    _ = encTerm c + (M * P2⁻¹ * M⁻¹ + L * (2 * (encCount paperParams c : ℝ≥0∞)) * D⁻¹ * P2⁻¹) := by
-        rw [hsplit]; ring
-    _ ≤ encTerm c + κ := by
-        gcongr
-        rw [κ_eq_add]
-        gcongr
-        · rw [mul_right_comm, ENNReal.mul_inv_cancel numSets_ne_zero_pot (ENNReal.natCast_ne_top _),
-            one_mul, hε]
-        · rw [hε]
-          exact (mul_le_mul_left hkey _).trans (le_of_eq (one_mul _))
+  obtain ⟨m₀, η₀, rfl⟩ := exists_append paperParams u₀
+  exact psi_charge paperRowHyp (two_encCount_le hc) hq
 
 /-! ### The charge bounds -/
 
@@ -396,7 +362,7 @@ theorem ΦA_charge (pk : BitVec 128) : ∀ (c : Cache paperParams) (b : ℕ) (q 
   by_cases hk : q.1 = paperParams.msgBits + paperParams.nonceBits
   · obtain ⟨u₀, rfl⟩ := exists_eq_encQuery_of_length_eq paperParams hk
     rw [hits_avg_eq _ _ _ _ (fun ξ => kc_enc ξ u₀), spr_avg_eq]
-    have hE := encTerm_avg_le c (encCount_le_of_inv hI) u₀ hq
+    have hE := encTerm_avg_le c hI u₀ hq
     have hsum : ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *
         (sumW (fiberA pk) * encTerm (c.cacheQuery (encQuery paperParams u₀) u)) =
         sumW (fiberA pk) * ∑ u, (Fintype.card (BitVec paperParams.hashBits) : ℝ≥0∞)⁻¹ *

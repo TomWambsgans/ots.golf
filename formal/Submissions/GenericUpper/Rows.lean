@@ -38,6 +38,17 @@ theorem append_pair_inj {m m' : Message P} {η η' : Nonce P} (h : m ++ η = m' 
     simp only [hi, if_true] at this
     exact this
 
+theorem exists_append (u : EncInput P) : ∃ (m : Message P) (η : Nonce P), u = m ++ η := by
+  refine ⟨u.extractLsb' P.nonceBits P.msgBits, u.setWidth P.nonceBits, ?_⟩
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  rw [BitVec.getLsbD_append]
+  split_ifs with h
+  · simp [BitVec.getLsbD_setWidth, h]
+  · rw [BitVec.getLsbD_extractLsb']
+    have : i - P.nonceBits < P.msgBits := by omega
+    simp [this, show P.nonceBits + (i - P.nonceBits) = i by omega]
+
 /-- Cached nonces of row `m`. -/
 def rowCached (d : Cache P) (m : Message P) : Finset (Nonce P) :=
   Finset.univ.filter fun η => (d (encQuery P (m ++ η))).isSome

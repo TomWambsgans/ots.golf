@@ -124,7 +124,7 @@ structure Limits where
 
 /-- The paper's total signature size and honest-party budgets; no nonce format is prescribed. -/
 def paperLimits : Limits where
-  signatureBits := 5504
+  signatureBits := 5376
   keygenCost := 1024
   signCost := 2 ^ 20
 

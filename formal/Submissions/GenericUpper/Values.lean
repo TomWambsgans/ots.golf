@@ -250,7 +250,7 @@ theorem len_hashParent {h p : Name} (hp : hashParent h = some p) : 128 ≤ p.len
 /-- The input of a hash node never has the length of an index query. -/
 theorem len_hashParent_ne_enc {h p : Name} (hp : hashParent h = some p) :
     p.len ≠ paperParams.msgBits + paperParams.nonceBits := by
-  have e : paperParams.msgBits + paperParams.nonceBits = 512 := rfl
+  have e : paperParams.msgBits + paperParams.nonceBits = 384 := rfl
   rw [e]
   rcases len_hashParent_cases hp with e | e | e <;> omega
 
