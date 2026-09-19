@@ -1,17 +1,21 @@
 # Deploying the verifier and website
 
-The target is one x86_64 Linux host running Ubuntu 24.04, with at least 8 cores and 32 GB RAM.
-Reserve space for the trusted warm Lean build and a separate bounded volume for job copies.
-Use the locked Python dependencies. The worker and all web processes must share one data directory;
-this deployment does not support workers on separate hosts.
+The operational guide for a production host: installation, the Linux acceptance checks, the gates
+before public launch, and day-to-day operations. For local development see the
+[service README](../README.md).
 
-Untrusted work needs a **dedicated filesystem of at most 64 GiB**, separate from the operating system,
-trusted checkout, warm Lean cache, account homes and persistent website data. Memory and time limits
-do not prevent a submission from filling a disk. The verifier refuses unbounded or shared job storage.
+## Requirements
 
-**A macOS proof check is not a production sandbox test.** Complete the Linux acceptance checks below
-on the actual host before connecting the public webhook. The installer deliberately leaves the
-services stopped.
+- **Host.** One x86_64 Linux host running Ubuntu 24.04, with at least 8 cores and 32 GB RAM, and
+  space for the trusted warm Lean build. The worker and all web processes share one data
+  directory; workers on separate hosts are not supported. Use the locked Python dependencies.
+- **Bounded job storage.** Untrusted work needs a **dedicated filesystem of at most 64 GiB**,
+  separate from the operating system, trusted checkout, warm Lean cache, account homes and
+  persistent website data. Memory and time limits do not prevent a submission from filling a disk;
+  the verifier refuses unbounded or shared job storage.
+- **Linux acceptance.** **A macOS proof check is not a production sandbox test.** Complete the
+  [acceptance checks](#linux-acceptance-checks) on the actual host before connecting the public
+  webhook. The installer deliberately leaves the services stopped.
 
 ## Install and configure
 
@@ -77,18 +81,17 @@ services stopped.
 
 Run these with the public webhook disconnected and the production configuration in place:
 
-1. As the verifier user, run the isolation probe, the two witnesses kept in the core, then every
-   track's reference proof: `/srv/ots/submissions-check` is a separate checkout of a submissions
-   repository holding each track's reference root (before launch, the maintainer's fork), never
-   the trusted checkout.
+1. As the verifier user, run the isolation probe, build the internal lower-bound witnesses of the
+   trusted core (`lake build Witnesses`, core code only), then verify every track's reference
+   proof: `/srv/ots/submissions-check` is a separate checkout of a submissions repository holding
+   each track's reference root (before launch, the maintainer's fork), never the trusted checkout.
 
    ```sh
    sudo -u ots -H bash -c 'set -a; . /etc/ots/public.env; set +a
      export PATH="$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin"
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
-     python3 verifier/verify.py reference-generality-1 --source . &&
-     python3 verifier/verify.py reference-generality-2 --source . &&
+     (cd formal && lake build Witnesses) &&
      for t in lower-generality-1 lower-generality-2 lower-generality-3 upper-compressions upper-riscv; do
        python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
      done'
@@ -120,8 +123,6 @@ Run these with the public webhook disconnected and the production configuration 
    `OTS_PHONY=1` (the current setting, chosen for the pre-launch site) it replaces the invented
    rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it adds nothing, and every
    board starts empty until the first verified, merged submission of its track becomes the record.
-   The legacy upper tracks are local references, not public upper leaderboards; the public upper
-   tracks are `upper-compressions` and `upper-riscv`.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
@@ -154,12 +155,16 @@ This is a single-host deployment; the process locks are not a distributed queue 
 
 ## Operations, upgrades and recovery
 
+### Monitoring
+
 `/healthz` checks the web process and database connection; it is not a certificate or worker-health
 signal. Monitor `journalctl -u ots-web -u ots-worker`, queue age, free disk space, verification failures
 and the `github_reports` outbox. Failed reports remain in that table and retry with backoff, up to an
 hour; subsequent updates edit the stored result comment. A crash after GitHub accepts a new comment
 but before its ID is committed can produce one duplicate comment on retry. Proof verification is not
 repeated for a reporting failure.
+
+### Worker
 
 The worker holds a process lock for the shared data directory. At startup it requeues interrupted
 `verifying` jobs, then processes one job at a time. Outer pipeline timeouts retain their logs and
@@ -184,12 +189,16 @@ Only old verifier transcripts are lost; rerun the verifier on the checked head t
 `OTS_RESYNC_ON_START=0` skips the startup resync, and `.venv/bin/python -m app.resync` runs it by
 hand as the web user.
 
+### Backups
+
 A backup remains useful for a quick restore. Before an upgrade, stop both services and back up the database with SQLite's backup API and the logs:
 copying `ots.db` alone while WAL writes are active is not a consistent backup. For example, after
 creating a protected backup directory, run `sqlite3 /srv/ots/data/ots.db '.backup /backup/ots.db'` as
 root and copy `data/logs/`. Keep the backup private. Restore into a staging data directory and run
 `PRAGMA integrity_check` before relying on it. The additive `github_reports` table is created at
 startup; existing submission IDs, dates and results are preserved.
+
+### Upgrading from the single-user setup
 
 When upgrading from the earlier single-user setup, stop both services, create `ots-web` and
 `ots-state`, update both units, and make existing database, WAL/SHM, log and lock files group-writable
@@ -199,6 +208,8 @@ existing environment files are not overwritten by the installer. Never grant the
 `is_record` against their merged PRs: earlier code promoted at verification time. No automatic rewrite
 is safe for those historical rows. Demo rows and explicit local certificate initialization retain
 their intentional status.
+
+### Webhook delivery
 
 Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
 merge event. A merge marker received before verification is stored and applied after a successful

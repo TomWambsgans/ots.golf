@@ -1,14 +1,25 @@
-# Whole-word upper track: the forest scheme with tweak words, 106 compressions
+# Generality 1/3 witness: the forest with tweak words
 
-A witness that the whole-word class (Generality 1/3, `Graph.WholeWords` in
-`OptimalOTS/WholeWords.lean`) contains a secure scheme with the paper parameters. The scheme is
-the forest of Section 7 of the paper (63 hash chains of length 14, 21 group digests, 7 subtree
-digests, one root), written in whole 128-bit words.
+An internal maintainer check, not a track and not a submission. The Generality 1/3 lower bound
+quantifies over secure whole-word DAG schemes (`Graph.WholeWords` in
+`OptimalOTS/WholeWords.lean`); this proof shows that class is non-empty.
+[`../Generality1.lean`](../Generality1.lean) states
 
-The contract has one random oracle and no domain separation, so the scheme separates its hash
-nodes itself: every hash input starts, in its high word, with a 128-bit tweak word naming its hash
-node (`tw h`, the index of `h`). A tweak word is a public constant node (a deterministic node
-without parents); there is one per hash node, and its only child is that hash node's input.
+```lean
+theorem OptimalOTS.Witnesses.generality1 :
+    ∃ S : Scheme paperParams, S.graph.WholeWords ∧ S.Secure ∧ ∀ i, S.verifyCost i ≤ 106
+```
+
+Check it from `formal/` with `lake build Witnesses` (also run by `tools/check_repo.py --formal`).
+
+## Construction
+
+The [Generality 2/3 witness](../Generality2/README.md) (the forest of Section 7 of the paper: 63
+hash chains of length 14, 21 group digests, 7 subtree digests, one root), written in whole 128-bit
+words. Its 16-bit tweaks become 128-bit **tweak words**: every hash input starts, in its high
+word, with a public constant node (a deterministic node without parents) naming its hash node
+(`tw h`, the index of `h`). There is one tweak word per hash node, and its only child is that hash
+node's input.
 
 | node | value | bits | whole-word kind |
 |---|---|---|---|
@@ -24,23 +35,20 @@ without parents); there is one per hash node, and its only child is that hash no
 | `rc` | `tw rh ‖ e_0 ‖ ⋯ ‖ e_6` | 1024 | concatenation |
 | `rh` | the root `H(rc)` | 256 | hash |
 
-There are 3706 nodes: the 911 tweak words first (indices 0 to 910), then the 2795 nodes of the
-forest in the order of the `reference-generality-2` track. A chain step and a grouping hash cost one compression
-each (256 and 512 bits), the root two (1024 bits): key generation costs 882 + 21 + 7 + 2 = 912
-compressions. No hash input has the 384 bits of an index query. A signature reveals one 128-bit
-value on every source-to-root path; the `2 ^ 115` disclosure sets, the nonce and index layout and
-the costs are those of the `reference-generality-2` track: cuts of reconstruction cost 105 with at most 41
-revealed values (at most 5248 bits), so every signature verifies in `1 + 105 = 106` compressions.
-The proof gives `Pr[forge] ≤ (B - 912) / 2 ^ 127` for every budget `B ≤ 2 ^ 127`, which meets
-the 127-bit strong-unforgeability requirement.
+- 3706 nodes: the 911 tweak words first (indices 0 to 910), then the 2795 forest nodes in the
+  order of the Generality 2/3 witness.
+- A chain step and a grouping hash cost one compression each (256 and 512 bits), the root two
+  (1024 bits): key generation costs 882 + 21 + 7 + 2 = 912 compressions. No hash input has the
+  384 bits of an index query.
+- Disclosure sets, nonce and index layout and costs are those of the Generality 2/3 witness: cuts
+  of reconstruction cost 105 with at most 41 revealed values, so every signature verifies in
+  `1 + 105 = 106` compressions.
+- Security: `Pr[forge] ≤ (B - 912) / 2 ^ 127` for every budget `B ≤ 2 ^ 127`.
 
-Exports (`Solution.lean`): `OptimalOTS.Challenge.Witnesses/Generality1.scheme`, `wholeWords`, `secure`,
-`cost`.
+## Changes from the Generality 2/3 witness
 
-## Changes from the `reference-generality-2` track
-
-The proof is the one of `formal/Submissions/Witnesses/Generality2` (see `docs/upper-bound-proof.md`), copied and
-adapted:
+The proof is copied from [`../Generality2/`](../Generality2/README.md) (see
+[upper-bound-proof.md](../../../docs/upper-bound-proof.md)) and adapted:
 
 * `Names.lean`: 128-bit tweak words as constant nodes; hash inputs of 256, 512 and 1024 bits;
   `tagNat` reads the high 128-bit word; a hash input carries its tweak once its tweak word has its
@@ -68,11 +76,3 @@ adapted:
 | `Values.lean`, `Resample.lean`, `Events.lean` | node values; hidden and exposed keygen points; uniformity of hidden inputs; an accepted forgery is one of the charged events |
 | `SignRho.lean`, `Rows.lean`, `RowIneq.lean`, `RowPotential.lean` | the disjoint signing lemma, per-message rows of the cache, the row potential and its charge |
 | `Potentials.lean`, `StageB.lean`, `Assembly.lean`, `Main.lean` | the potentials, the two attacker stages, the bound, `forestScheme_secure` |
-| `Solution.lean` | the exports |
-
-Run from the repository root:
-
-```sh
-python3 verifier/check_submission.py reference-generality-1
-python3 verifier/verify.py reference-generality-1 --source .
-```

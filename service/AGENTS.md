@@ -42,7 +42,8 @@ execution must terminate and refine the Lean oracle specification. Render the se
 leaderboard and rules section only while the track is admitted in the metadata. Its chart
 has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
-filter. Reject public submissions to the witness roots; they have no demo rows or leaderboard.
+filter. The lower-bound witnesses (`formal/Witnesses/`, checked with `lake build Witnesses`) are an
+internal maintainer check, not tracks: they have no slug, submission root, demo rows or leaderboard.
 The lower demo rows remain visible by default.
 Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,
 submission page and solver profile refer to the same record row. Demo rows are clearly marked and

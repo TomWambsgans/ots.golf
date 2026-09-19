@@ -1,12 +1,12 @@
 # Audit of the bare-oracle contract
 
 Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
-semantics, the two witness roots kept in this core, and the reference proofs (submission roots kept in the
-submissions repository). The
-lower bounds are generic **1**, unrestricted DAG
-**18**, and whole-word DAG **93**. Generic upper has a complete **106** certificate, including
-perfect correctness, deterministic verification and signing failure at most `2^-128`; RISC-V upper
-has a **1628**-cycle certificate. The two historical upper references remain **106**. This
+semantics, the internal lower-bound witnesses kept in this core (`formal/Witnesses/`), and the
+reference proofs (submission roots kept in the submissions repository). The lower bounds are
+generic **1**, unrestricted DAG **18**, and whole-word DAG **93**. Generic upper has a complete
+**106** certificate, including perfect correctness, deterministic verification and signing failure
+at most `2^-128`; RISC-V upper has a **1628**-cycle certificate. Both witnesses are secure schemes
+at **106**. This
 document covers mathematical scope; operational launch gates are in
 [the deployment guide](../service/deploy/README.md). The archived
 [Lean statement review](archive/lean-statement-review.md) covers an earlier state of every
@@ -79,18 +79,19 @@ proved for every DAG adapter via cache consistency and reconstruction. Availabil
 the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
 function of the public key. Its proofs form an independent `UpperCompressions` submission
-root; the legacy `ReferenceGenerality2` root is separate. See [the proof map](upper-compressions.md).
+root; the internal Generality 2/3 witness proves the same forest separately. See [the proof map](upper-compressions.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
 words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
 Cuts disclose complete values. The 5,248-bit payload budget implies the 41-origin property.
 The resulting certificate proves 93, using the same weak-security experiment.
-The `reference-generality-1` reference certificate is a checked whole-word upper construction at 106.
+The internal Generality 1/3 witness (`formal/Witnesses/Generality1/`) is a checked secure whole-word
+construction at 106, so the class is non-empty.
 
 `formal/scripts/check-axioms.lean` imports every protected model module, rejects declared axioms
-throughout those modules, and audits the declarations (`contractDecls`) fixing the meaning of all
-seven certificates. It supplements each submission's axiom guard and the official comparator; it
+throughout those modules, and audits the declarations (`contractDecls`) fixing the meaning of every
+track statement. It supplements each submission's axiom guard and the official comparator; it
 does not replace either.
 
 ## RISC-V contract

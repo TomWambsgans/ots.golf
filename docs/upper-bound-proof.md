@@ -1,6 +1,7 @@
 # The upper-bound proof: architecture
 
-The legacy upper reference proof (the `ReferenceGenerality2` submission root, in the submissions repository) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
+The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`, also
+wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
 21 group digests, 7 subtree digests, one root) with
 
 ```
@@ -8,7 +9,7 @@ theorem forestScheme_secure : forestScheme.Secure
 theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
-(exported as `OptimalOTS.Challenge.ReferenceGenerality2.scheme`, `secure`, `cost` in `Solution.lean`).
+(combined into `OptimalOTS.Witnesses.generality2` in `formal/Witnesses/Generality2.lean`).
 
 The contract offers a single random oracle on bit strings: no labels, no tweaks. The scheme therefore
 prepends a 16-bit tweak `tw h` (the index of the hash node `h`) to every hash input, through one extra
@@ -88,4 +89,5 @@ assume `N ≤ 2^127`.
 
 ## Files
 
-See the table in the root's `ReferenceGenerality2/README.md`; the module names are `Submissions.ReferenceGenerality2.<File>`.
+See the table in [the witness README](../formal/Witnesses/Generality2/README.md); the module names are
+`Witnesses.Generality2.<File>`.

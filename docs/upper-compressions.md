@@ -7,7 +7,6 @@ oracle-answer path. All proofs form the reference proof's `UpperCompressions` su
 submissions repository; file names below are relative to it.
 
 The three lower tracks are Generality 3/3 (any algorithm), 2/3 (DAGs) and 1/3 (whole-word DAGs).
-The legacy `ReferenceGenerality2` track remains a historical reference.
 
 ## What the challenge requires
 
@@ -99,7 +98,8 @@ at most `2²⁰` signing compressions, and at most 106 verification compressions
 `KeygenSupport.lean` and `Correctness.lean` establish correctness. `Deterministic.lean` proves that
 every DAG adapter's verifier makes only hash queries. `Availability.lean` establishes signing
 availability. `ForestAlgorithm.lean` combines these results, and `Solution.lean` exports
-the challenge declarations. The legacy `ReferenceGenerality2` root is independent of these files.
+the challenge declarations. The core's internal Generality 2/3 witness (`formal/Witnesses/Generality2/`)
+proves the same forest as a DAG scheme, independently of these files.
 
 ## Verification
 

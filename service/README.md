@@ -1,10 +1,12 @@
 # Website and hosted verifier
 
-The FastAPI website accepts pull requests and reports their results. A separate worker checks
-proofs against the trusted `leanEthereum/ots.golf-dev` checkout. Proof PRs and merged records live
-in `leanEthereum/ots.golf-submissions`; the core defines the contract and supplies the website.
+A FastAPI website that receives proof pull requests from
+[ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) and reports their
+results, plus a separate worker that checks each proof against the trusted core checkout. The
+competition rules are on [ots.golf/rules](https://ots.golf/rules) and, precisely, in
+[AGENTS.md](../AGENTS.md); maintainer instructions for the site are in [AGENTS.md](AGENTS.md).
 
-## Local development
+## Run locally
 
 ```sh
 cd service
@@ -13,64 +15,56 @@ uv sync --frozen
 ```
 
 Open `http://localhost:8000`. Startup refreshes the fictional [demo fixtures](demo/README.md),
-preserving their IDs and dates; each row carries a demo label. A fresh clone recreates the board
-without a database dump. Real submissions are left alone. Set `OTS_PHONY=0` to skip this refresh
-and show real submissions only: a track without a merged record shows "No record yet".
+preserving their IDs and dates; each row carries a demo label, and real submissions are left alone.
+Set `OTS_PHONY=0` to show real submissions only: a track without a merged record shows
+"No record yet".
 
-After every local commit, refresh localhost and check the rendered page. This checkout's
-`post-commit` hook runs `service/refresh-local.sh`, which re-seeds the demo rows and reloads the
-web process, including its cached commit. Install the hook in another checkout with:
+**Refreshing.** This checkout's `post-commit` hook runs `refresh-local.sh`, which re-seeds the
+demo rows and reloads the web process, including its cached commit. After every local commit,
+check the rendered page. To install the hook in another checkout, from the repository root:
 
 ```sh
 install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"
 ```
 
-Run that command from the repository root. For a manual refresh, use
-`bash service/refresh-local.sh`. Restart `run-local.sh` after changing worker code: the worker does
-not hot-reload. The startup script removes GitHub credentials from the worker's environment.
+Refresh by hand with `bash service/refresh-local.sh`. The worker does not hot-reload: restart
+`run-local.sh` after changing worker code. The startup script removes GitHub credentials from the
+worker's environment.
 
-`seed_demo.py --remove` removes fictional rows. Plain `seed_demo.py` replaces them; use `--refresh`
-for routine updates. The script refuses
-production mode and non-loopback site URLs, even with `--force`, and normally accepts only the
-default local database. Do not use fictional data in production.
+**Demo rows.** `seed_demo.py --refresh` updates them, plain `seed_demo.py` replaces them and
+`--remove` deletes them. The script refuses production mode and non-loopback site URLs, even with
+`--force`, and normally accepts only the default local database. Never use fictional data in
+production.
 
-## Presentation
+**Local proof jobs.** After `verifier/setup_tools.sh` and a warm `formal/` build, queue a commit of
+a submissions checkout the way the webhook would:
 
-The homepage has three lower frameworks, each with its own leaderboard, and two upper tracks.
-`/?framework=generality-1|generality-2|generality-3` filters the lower tables only; `#lower` and `#upper` select
-the direction. Scores appear as attributed submissions; rules define the contract's requirements
-without scores. The RISC-V upper track has its own card, leaderboard and chart with an
-independent cycle axis, never combined with compression bounds. The two witnesses have no demo rows and no leaderboard.
+```sh
+.venv/bin/python -m app.queue lower-generality-2 --repo ../../ots.golf-submissions
+```
 
-The database is a disposable cache: the website rebuilds it from GitHub at startup
-(`app.resync`), so an empty data directory comes back as before; see
-[deployment](deploy/README.md#rebuilding-the-server-from-nothing).
+Any track slug works. Local jobs never become records. Only one worker may use a data directory;
+lock files enforce this across processes on the same host.
+
+## How it works
+
+- **Pages.** The homepage has an upper section (Upper bound; RISC-V upper bound, with its own
+  cycle axis) and a lower section with one leaderboard per Generality framework.
+  `/?framework=generality-1|generality-2|generality-3` filters the lower tables; `#lower` and
+  `#upper` select the direction.
+- **Admission.** A pull request must change exactly one submission root. The authenticated webhook
+  checks the repository, files and head; the worker verifies that exact commit on the trusted tree.
+- **Records.** A verified strict improvement is merged automatically, pinned to the verified head,
+  and becomes the record; `OTS_AUTO_MERGE=0` leaves merges to maintainers. A track's first
+  verified, merged submission becomes its record. Merges received before verification are
+  remembered. Record decisions ignore demo rows, and merges never change the trusted checkout.
+- **Reporting.** Commit statuses and result comments go through a durable outbox, so a reporting
+  outage retries delivery without repeating the proof. Result reports keep their PR's repository.
+- **Database.** A disposable cache: the website rebuilds it from GitHub at startup (`app.resync`);
+  see [rebuilding the server](deploy/README.md#rebuilding-the-server-from-nothing).
 
 Whenever the contract or an admission status changes, update the metadata, charts, leaderboards,
 rules and documentation together, then refresh and inspect localhost.
-
-## Admission and records
-
-A public pull request to the submissions repository must change exactly one admitted submission root. The authenticated webhook
-checks the repository, files and current head; the worker verifies that exact commit on the trusted
-tree. A verified strict improvement is merged automatically by the web process, pinned to the
-verified head (GitHub refuses if the head moved), and becomes the record; `OTS_AUTO_MERGE=0` turns
-this off, leaving merges to maintainers. A track has no record until its first verified, merged
-submission, which becomes the record whatever its claim. Merges received before verification are
-remembered. Record decisions ignore demo rows.
-The trusted core checkout remains independent of submission merges. Historical result reports
-retain the PR's repository and are never redirected to the same PR number in another repository.
-
-The web process sends commit statuses and result comments from a durable outbox. A reporting outage
-retries delivery without repeating the proof. Attribution comes from the PR author, optional
-`Assisted by:` and `Co-authors:` lines, and the remaining description.
-
-For local proof jobs, first prepare `verifier/setup_tools.sh` and the warm `formal/` build. Then
-use `.venv/bin/python -m app.queue lower --repo ../../ots.golf-submissions`, substituting
-`lower-generality-3`, `lower-generality-1`, `upper-compressions` or `upper-riscv` as needed; `--repo` is a
-submissions checkout. Local jobs never become records. The two legacy upper slugs also work for
-local reference checks. Only one worker may use a data
-directory; lock files enforce this across processes on the same host.
 
 ## Configuration
 
@@ -94,11 +88,11 @@ directory; lock files enforce this across processes on the same host.
 | `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
 | `OTS_QUEUE_CAP` | `20` | pending jobs overall |
 
-Production web startup requires HTTPS, two distinct repositories, a token and a webhook secret of at least
-32 characters. Production workers refuse GitHub credentials. Deploy the web and worker under
-different Unix identities, sharing only the state group. See [deployment](deploy/README.md) for
-storage, isolation, backups and mandatory launch checks. Local macOS verification is unsandboxed.
-See [repository setup](../docs/repositories.md) for preparing the separate submissions workspace.
+Production web startup requires HTTPS, two distinct repositories, a token and a webhook secret of
+at least 32 characters. Production workers refuse GitHub credentials. Run the web process and the
+worker under different Unix identities, sharing only the state group. See
+[deployment](deploy/README.md) for storage, isolation, backups and launch checks, and
+[repository setup](../docs/repositories.md) for the submissions workspace.
 
 ## Checks
 
@@ -109,9 +103,9 @@ python3 service/browser_check.py --output-dir /tmp/ots-ui
 python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
 ```
 
-Service tests use isolated databases. The optional browser check uses Firefox against the seeded
-localhost preview and exercises desktop/mobile layouts, both color schemes, keyboard controls,
-filters, tooltips, reduced motion and error pages. See [numerical tool setup](../tools/README.md)
-for NumPy and the repository runner; add `--official --submissions PATH` to verify every submission
-root in a submissions checkout.
-[Deployment](deploy/README.md) lists the remaining launch gates.
+Service tests use isolated databases. The optional browser check drives Firefox against the seeded
+local preview: desktop and mobile layouts, both color schemes, keyboard controls, filters,
+tooltips, reduced motion and error pages. See [tools](../tools/README.md) for the NumPy setup and
+the repository runner; `--official --submissions PATH` verifies every submission root in a
+submissions checkout. Local macOS verification is unsandboxed; the remaining launch gates are in
+[deployment](deploy/README.md).
