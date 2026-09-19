@@ -43,7 +43,7 @@ theorem signed_stage_ge (hcount : (Finset.univ.image S.hashPattern).card ≤ Nat
     obtain ⟨D', hD', hcard'⟩ := exists_support_run (signIdx paperParams m)
       (cost_signIdx S (by decide) m) hD p hp
     have hcard'' : D'.card ≤ 2 ^ 22 := by
-      change D'.card ≤ D.card + 2 ^ 21 at hcard'
+      change D'.card ≤ D.card + 2 ^ 20 at hcard'
       omega
     cases hr : p.1 with
     | none => simp only [AveragedSigning.reward, zero_mul, zero_le]

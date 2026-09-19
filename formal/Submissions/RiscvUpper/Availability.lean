@@ -145,13 +145,13 @@ private theorem miss_block : miss ^ 8192 ≤ 1 / 2 := by
     norm_num [ENNReal.ofReal_div_of_pos]
   rwa [hb, hh] at h'
 
-/-- The full signing budget contains 256 blocks, each with failure at most one half. -/
-theorem miss_trials_le : miss ^ paperParams.trialLimit ≤ 1 / 2 ^ 256 := by
-  change miss ^ (8192 * 256) ≤ 1 / 2 ^ 256
+/-- The full signing budget contains 128 blocks, each with failure at most one half. -/
+theorem miss_trials_le : miss ^ paperParams.trialLimit ≤ 1 / 2 ^ 128 := by
+  change miss ^ (8192 * 128) ≤ 1 / 2 ^ 128
   rw [pow_mul]
   calc
-    (miss ^ 8192) ^ 256 ≤ (1 / 2 : ℝ≥0∞) ^ 256 := pow_le_pow_left' miss_block _
-    _ = 1 / 2 ^ 256 := by simp only [one_div, ENNReal.inv_pow]
+    (miss ^ 8192) ^ 128 ≤ (1 / 2 : ℝ≥0∞) ^ 128 := pow_le_pow_left' miss_block _
+    _ = 1 / 2 ^ 128 := by simp only [one_div, ENNReal.inv_pow]
 
 /-- Signing has the same failure probability for every message and every fresh index cache. -/
 theorem sign_failure (x : forestScheme.graph.Assignment) (m : Message paperParams)
@@ -164,7 +164,7 @@ theorem sign_failure (x : forestScheme.graph.Assignment) (m : Message paperParam
 
 /-- Failure remains bounded even when the message is chosen after seeing the public key. -/
 theorem signingFailure_strong :
-    forestScheme.toAlgorithm.SigningFailureAtMost (1 / 2 ^ 256 : ℝ≥0∞) := by
+    forestScheme.toAlgorithm.SigningFailureAtMost (1 / 2 ^ 128 : ℝ≥0∞) := by
   intro message
   change probTrue paperParams (do
     let kg ← forestScheme.keygen

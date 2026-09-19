@@ -35,7 +35,7 @@ The challenge substitutes a submission's claim for 106. `Admissible` requires:
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
 - Signatures of at most 5,504 encoded bits, and rejection of oversized signatures.
-- At most 1,024 key-generation compressions and `2²¹` signing compressions on every path.
+- At most 1,024 key-generation compressions and `2²⁰` signing compressions on every path.
 
 Public keys are 128 bits and messages are 256 bits. The separate security theorem gives
 strict strong-unforgeability probability below `B / 2¹²⁷` for every pathwise budget `B` of the
@@ -69,15 +69,15 @@ message-and-nonce query is therefore fresh after key generation.
 Signing samples distinct 256-bit nonces. Each resulting 512-bit index query is fresh, including
 when the message depends on the public key. Its low 128 answer bits are uniform; `2¹¹⁵` of the
 `2¹²⁸` possible indices are accepted. Every trial therefore fails with probability `8191/8192`.
-After `2²¹` trials, the failure probability is exactly
+After `2²⁰` trials, the failure probability is exactly
 
 ```text
-(8191 / 8192)^(2^21).
+(8191 / 8192)^(2^20).
 ```
 
 The reciprocal Bernoulli inequality gives `(8191/8192)^8192 ≤ 1/2`. Since
-`2²¹ = 8192 × 256`, total failure is at most `2⁻²⁵⁶`, hence at most the challenge allowance
-`2⁻¹²⁸`. The Lean proof certifies this bound. A separate exact-integer check confirms
+`2²⁰ = 8192 × 128`, total failure is at most `2⁻¹²⁸`, exactly the challenge allowance. The Lean
+proof certifies this bound. A separate exact-integer check confirms
 `2 × 8191^8192 ≤ 8192^8192`.
 
 ## Security and resource preservation
@@ -90,7 +90,7 @@ before oracle interpretation. All queries, costs and success probabilities agree
 The forest has 63 chains, grouped through a fixed hash tree. Its explicit 16-bit tweaks are
 charged in the actual input lengths. The copied security proof establishes all internal
 construction properties before proving strong security. The construction uses 912 key-generation compressions,
-at most `2²¹` signing compressions, and at most 106 verification compressions.
+at most `2²⁰` signing compressions, and at most 106 verification compressions.
 
 `Resources.lean` establishes the size, rejection, and pathwise cost bounds.
 `CorrectKeygen.lean` and `Correctness.lean` establish correctness. `Availability.lean` establishes

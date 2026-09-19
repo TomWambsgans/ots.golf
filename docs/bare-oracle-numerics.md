@@ -56,7 +56,7 @@ The construction threshold is approximately
 uses the same q and needs no numerical change. The cost is
 
 ```
-B = 1024 + 2^21 + T + (q+2)*22 + 2,
+B = 1024 + 2^20 + T + (q+2)*22 + 2,
 B / 2^127 < 27/500,
 B / 2^127 approximately 0.053588867.
 ```
@@ -135,7 +135,7 @@ at least eight equal patterns; signing selects such an index with probability at
 one half from a fresh message domain; each of the two uniform-message choices retains
 at least nine tenths of the mass; and `2^122` nonce trials hit eight targets with probability
 at least `1/9`. Hence success is at least `9/200`. With reconstruction cost at most 16,
-`B=1024+2^21+2^122+34` has `B/2^127 < 1/25`. The tool checks these comparisons exactly.
+`B=1024+2^20+2^122+34` has `B/2^127 < 1/25`. The tool checks these comparisons exactly.
 Its tighter rational success estimate is about 0.089686955, but the certificate only needs
 the conservative 0.045 bound.
 

@@ -36,7 +36,7 @@ on freshness, the signing law is exact, giving a good signed index with probabil
 `1/9`. The converted signature wins on a new message, so it wins `weakExperiment`.
 
 Success is at least `9/200`; the total pathwise budget is
-`B = 1024 + 2^21 + 2^122 + 34`, with `B/2^127 < 1/25 < 9/200`. This contradicts weak security.
+`B = 1024 + 2^20 + 2^122 + 34`, with `B/2^127 < 1/25 < 9/200`. This contradicts weak security.
 All numerical comparisons in Lean use exact arithmetic. The pattern-count argument stops at
 18: allowing sixteen nonroot hash nodes produces more patterns than there are indices.
 

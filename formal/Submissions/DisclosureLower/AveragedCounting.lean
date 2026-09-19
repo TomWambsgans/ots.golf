@@ -73,7 +73,7 @@ theorem paper_weighted_rate_ge (S : Scheme paperParams)
     (div_nonneg (sq_nonneg M) hden.le)
     (FreshSign.rate_nonneg (P := paperParams) (by norm_num [paperParams]) _)
   have hnum : (1 / 28 : ℝ) ≤
-      (256 : ℝ) / (257 * 2 ^ 115) * (M ^ 2 / (64 * K + M)) := by
+      (128 : ℝ) / (129 * 2 ^ 115) * (M ^ 2 / (64 * K + M)) := by
     norm_num [M, K, Nat.choose_eq_descFactorial_div_factorial,
       Nat.descFactorial, Nat.factorial]
   have h := ENNReal.ofReal_le_ofReal (hnum.trans hmul)

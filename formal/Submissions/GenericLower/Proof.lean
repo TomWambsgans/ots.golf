@@ -172,7 +172,7 @@ theorem no_zero_verifier (hc : S.Correct) (ha : S.SigningFailureAtMost (1 / 2))
 
 /-- The paper budgets are far below the cost at which a half-success forgery is allowed. -/
 theorem paper_attack_gap :
-    (((1024 + 2 ^ 21 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.securityBits) < 1 / 2 := by
+    (((1024 + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ paperParams.securityBits) < 1 / 2 := by
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_div, paperParams]
 

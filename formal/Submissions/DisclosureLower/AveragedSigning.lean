@@ -57,18 +57,18 @@ theorem sign_reward_eq (f : Fin paperParams.numSets → ℝ≥0∞)
   rw [Finset.mul_sum]
 
 theorem paper_rate_ge :
-    (256 : ℝ) / (257 * (2 : ℝ) ^ 115) ≤
+    (128 : ℝ) / (129 * (2 : ℝ) ^ 115) ≤
       FreshSign.rate paperParams paperParams.trialLimit := by
   have hfail := FreshSign.one_sub_pow_le_reciprocal (p := (1 : ℝ) / 8192)
-    (by norm_num) (by norm_num) (2 ^ 21)
+    (by norm_num) (by norm_num) (2 ^ 20)
   norm_num only [Nat.cast_pow, Nat.cast_ofNat] at hfail
   unfold FreshSign.rate
-  change _ ≤ (1 - (1 - ((2 ^ 115 : ℕ) : ℝ) / 2 ^ 128) ^ (2 ^ 21)) /
+  change _ ≤ (1 - (1 - ((2 ^ 115 : ℕ) : ℝ) / 2 ^ 128) ^ (2 ^ 20)) /
     ((2 ^ 115 : ℕ) : ℝ)
   norm_num only [Nat.cast_pow, Nat.cast_ofNat]
   rw [le_div_iff₀ (by norm_num)]
   norm_num only
-  calc (256 : ℝ) / 257 = 1 - 1 / 257 := by norm_num
+  calc (128 : ℝ) / 129 = 1 - 1 / 129 := by norm_num
     _ ≤ _ := sub_le_sub_left hfail 1
 
 end OptimalOTS.AveragedSigning

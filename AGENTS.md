@@ -135,7 +135,7 @@ theorem OptimalOTS.Challenge.GenericUpper.cost : scheme.VerifyCostAtMost <claim>
 
 Admissibility includes perfect correctness, signing failure at most `2^-128`, an injective signature
 encoding of at most 5504 bits, rejection of oversized signatures, and pathwise limits of 1024
-key-generation compressions and `2^21` signing compressions. Availability is averaged over honest
+key-generation compressions and `2^20` signing compressions. Availability is averaged over honest
 key generation and signing from a fresh oracle, for every message chosen as a function of the
 public key. Verification cost covers every input
 and oracle-answer path, including rejection. A record needs claim ≤ record − 1.

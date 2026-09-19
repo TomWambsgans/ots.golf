@@ -117,7 +117,7 @@ structure Limits where
 def paperLimits : Limits where
   signatureBits := 5504
   keygenCost := 1024
-  signCost := 2 ^ 21
+  signCost := 2 ^ 20
 
 /-- Correctness, availability, size, and cost requirements, separate from security.
 The allowance `ε < 1` excludes schemes that always fail to sign. -/

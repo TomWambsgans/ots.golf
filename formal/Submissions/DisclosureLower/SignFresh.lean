@@ -217,16 +217,16 @@ theorem paper_reward_ge_half (G : Finset ℕ)
   rw [signIdx, loop_reward G hG (by decide) (by norm_num [paperParams])
     (by norm_num [paperParams]) m _ ∅ c (by norm_num [paperParams]) (by simpa using hfresh)]
   have hfail := one_sub_pow_le_reciprocal (p := (1 : ℝ) / 8192)
-    (by norm_num) (by norm_num) (2 ^ 21)
+    (by norm_num) (by norm_num) (2 ^ 20)
   norm_num only [Nat.cast_pow, Nat.cast_ofNat] at hfail
-  have hrate : (256 : ℝ) / (257 * (2 : ℝ) ^ 115) ≤ rate paperParams paperParams.trialLimit := by
+  have hrate : (128 : ℝ) / (129 * (2 : ℝ) ^ 115) ≤ rate paperParams paperParams.trialLimit := by
     unfold rate
-    change _ ≤ (1 - (1 - ((2 ^ 115 : ℕ) : ℝ) / 2 ^ 128) ^ (2 ^ 21)) /
+    change _ ≤ (1 - (1 - ((2 ^ 115 : ℕ) : ℝ) / 2 ^ 128) ^ (2 ^ 20)) /
       ((2 ^ 115 : ℕ) : ℝ)
     norm_num only [Nat.cast_pow, Nat.cast_ofNat]
     rw [le_div_iff₀ (by norm_num)]
     norm_num only
-    calc (256 : ℝ) / 257 = 1 - 1 / 257 := by norm_num
+    calc (128 : ℝ) / 129 = 1 - 1 / 129 := by norm_num
       _ ≤ _ := sub_le_sub_left hfail 1
   have hcard : (3 : ℝ) * 2 ^ 115 ≤ 4 * (G.card : ℝ) := by
     exact_mod_cast hGcard
@@ -235,7 +235,7 @@ theorem paper_reward_ge_half (G : Finset ℕ)
     have hn : (0 : ℝ) < 2 ^ 115 := by positivity
     have hgc : (3 * (2 : ℝ) ^ 115) / 4 ≤ G.card := by linarith
     have hnum := mul_le_mul_of_nonneg_right hgc
-      (show (0 : ℝ) ≤ 256 / (257 * (2 : ℝ) ^ 115) by positivity)
+      (show (0 : ℝ) ≤ 128 / (129 * (2 : ℝ) ^ 115) by positivity)
     norm_num only at hnum
     nlinarith
   have he := ENNReal.ofReal_le_ofReal hlower

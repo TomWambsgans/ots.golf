@@ -30,7 +30,7 @@ executions are unscored.
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
 an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
 costs one compression per started 512-bit input block, at least one.
-Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^21.
+Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^20.
 Deterministic computation and randomness are free. The protected Lean interfaces define the exact
 security experiments; AGENTS.md lists submission requirements.
 

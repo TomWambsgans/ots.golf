@@ -110,7 +110,7 @@ with probability at least
 The final strict inequality follows from `exp(1/8) > 1 + 1/8 = 9/8`.
 Allowing signing failure at most `2^-256`, total success is greater than
 `(1-2^-256)/12` before the node/index collision correction. Its total query budget is
-at most `2^122 + 2^21 + 1024 + 2*17`, comfortably below `2^123`, whose security threshold
+at most `2^122 + 2^20 + 1024 + 2*17`, comfortably below `2^123`, whose security threshold
 is `1/16`. Drawing the two distinct messages uniformly gives a negligible correction
 for node/index collisions, since this attack makes only about 1056 node-role queries.
 The adaptive independence needed for that last sentence still needs its own explicit
@@ -136,11 +136,11 @@ exactly `(G.card/M)*(1-(1-M/2^128)^L)`. Here `G.card/M >= 3/4`. The elementary i
 at least `1/2`. This law does not require independence from the hidden graph once the initial
 cache is fixed and the message's nonce domain is fresh.
 
-Condition next on any such signed outcome. Its cache has at most `1024+2^21` entries.
+Condition next on any such signed outcome. Its cache has at most `1024+2^20` entries.
 Reconstructing the honest disclosure only repeats cached key-generation queries. Sample a
 second uniform message now, independently of this whole outcome. Its full nonce domain is
 fresh and it differs from the first message with probability at least
-`1-(1024+2^21+1)/2^256 > 9/10`. Search the first `T=2^122` distinct nonces of this message.
+`1-(1024+2^20+1)/2^256 > 9/10`. Search the first `T=2^122` distinct nonces of this message.
 For a class of size at least eight, the chance of finding a class index is at least
 `1-(1-8/2^128)^T >= (T*8/2^128)/(1+T*8/2^128) = 1/9`.
 
@@ -148,7 +148,7 @@ Convert the signed disclosure to that target by the deterministic candidate proc
 The verifier repeats already cached queries and accepts. The messages differ, so this wins
 `weakExperiment`. Multiplication of the conditional lower bounds gives success at least
 `(9/10)*(1/2)*(9/10)*(1/9) = 9/200`.
-The whole pathwise budget is `B=1024+2^21+2^122+34` (two index queries beyond the search,
+The whole pathwise budget is `B=1024+2^20+2^122+34` (two index queries beyond the search,
 and two reconstructions of cost at most 16). Exact arithmetic gives `B/2^127 < 1/25 < 9/200`.
 
 This settles the probability argument without the adaptive coupling gap mentioned in the initial

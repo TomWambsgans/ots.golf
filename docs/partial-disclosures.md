@@ -33,7 +33,7 @@ excluding it spends one boundary element. Pascal's recurrence gives the same bou
 For M=2^115 indices partitioned into K classes of sizes k_j, T=2^122 nonce trials give average
 success at least sum_j k_j^2/(64+k_j)/M >= M/(64K+M), by Cauchy–Schwarz. Multiplying by the
 fresh-message factors (9/10)^2 and signing success 256/257 gives success > 33/1000 when
-K <= binomial(123,46). The full attack costs at most 1024+2^21+2^122+2*78+2, whose ratio to
+K <= binomial(123,46). The full attack costs at most 1024+2^20+2^122+2*78+2, whose ratio to
 2^127 is < 4/125. This contradicts security and establishes the bound 80.
 
 ## Implementation status

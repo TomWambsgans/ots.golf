@@ -82,7 +82,7 @@ The paper's main theorem and §§3–6 now prove 18 by an attack using equal rec
 - **§6, attack assembly.** Conversion at the found index yields an accepted signature on a new
   message. The conditional bounds multiply to success at least `9/200`.
   The complete pathwise cost, including key generation, signing and final verification, is at
-  most `B = 1024 + 2^21 + 2^122 + 34`.
+  most `B = 1024 + 2^20 + 2^122 + 34`.
   Exact arithmetic proves `B/2^127 < 1/25 < 9/200`, contradicting weak security.
   Lean: `CostCore.lean`, `PatternAttack.lean`, `PatternAssembly.lean`, `Solution.lean`.
 

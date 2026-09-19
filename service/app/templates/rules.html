@@ -31,32 +31,33 @@
           <tr><th scope="row">Message</th><td>256 bits</td></tr>
           <tr><th scope="row">Signature</th><td>At most 5,504 bits</td></tr>
           <tr><th scope="row">Key generation</th><td>At most 1,024 compressions</td></tr>
-          <tr><th scope="row">Signing</th><td>At most 2<sup>21</sup> compressions</td></tr>
+          <tr><th scope="row">Signing</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Security</th><td>127 bits</td></tr>
           <tr><th scope="row">Verification</th><td><strong>Minimize the worst-case cost</strong>{% if riscv_upper_track %}, in compressions or RISC-V cycles{% endif %}</td></tr>
         </tbody>
       </table>
-      <p id="tracks">{% if riscv_upper_track %}Each track requires{% else %}There are two tracks, both requiring{% endif %} a Lean-kernel-checked proof:</p>
+      <p id="tracks">Every track requires a Lean-kernel-checked proof.</p>
+      <h3>Upper bounds</h3>
+      <p>Construct a provably secure hash-based OTS and prove an upper bound on its worst-case
+      verification cost. Any oracle algorithm is allowed; it must also meet the correctness, signing
+      availability and resource requirements below. Smaller claims are better.</p>
       <ul>
-        <li id="generic-upper"><strong>Upper bound.</strong> Construct a provably secure OTS using
-        as few verification compressions as possible, and prove its worst-case cost is at most the claim.
-        Any oracle algorithm is allowed; it must
-        also meet the correctness, signing availability and resource requirements below.
-        Smaller claims are better.</li>
-        {% if riscv_upper_track %}<li><a href="#riscv-upper"><strong>RISC-V upper bound.</strong></a>
-        Implement an OTS verifier in RISC-V, prove it implements the scheme, and minimize a proved
-        cycle bound for accepting executions.</li>{% endif %}
-        <li><strong>Lower bound.</strong> Prove that <em>every</em> admissible OTS in a chosen class
-        needs at least the claimed worst-case verification cost. Larger claims are better.</li>
+        <li id="generic-upper"><strong>By compressions.</strong> The cost is the number of hash
+        compressions on the most expensive input.</li>
+        {% if riscv_upper_track %}<li><a href="#riscv-upper"><strong>By RISC-V cycles.</strong></a> Implement the
+        verifier in RISC-V, prove it computes exactly the Lean verifier, and bound the cycles of every
+        accepting execution.</li>{% endif %}
       </ul>
-      <p id="model">A lower bound for all possible algorithms is difficult to prove. The lower
-      track therefore offers three levels of generality, each with its own record:</p>
+      <h3 id="model">Lower bounds</h3>
+      <p>Prove that <em>every</em> admissible OTS in a class needs at least the claimed worst-case
+      verification cost, in compressions. Larger claims are better. A bound for all possible
+      algorithms is hard to prove, so there are three classes of increasing generality, each with
+      its own record.</p>
       <ul>
-        <li><a href="#generic-algorithms"><strong>Generality 3/3.</strong></a> Any oracle algorithm.</li>
-        <li><a href="#graph"><strong>Generality 2/3.</strong></a> A fixed DAG with arbitrary
-        deterministic functions.</li>
         <li><a href="#whole-words"><strong>Generality 1/3.</strong></a> DAGs built from whole 128-bit
         words, hashes, hash halves and concatenation.</li>
+        <li><a href="#graph"><strong>Generality 2/3.</strong></a> A DAG with arbitrary functions.</li>
+        <li><a href="#generic-algorithms"><strong>Generality 3/3.</strong></a> Any oracle algorithm.</li>
       </ul>
     </div>
   </details>
@@ -121,7 +122,7 @@
       <ol id="cut">
         <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts,
         possibly repeated. Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
-        it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>21</sup></code> uniformly
+        it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>20</sup></code> uniformly
         sampled 256-bit nonces without replacement, stopping at the first valid index or failing.</li>
         <li><strong>Reveal.</strong> Send the nonce and the cut's node values in node order,
         with at most 5,248 payload bits.</li>

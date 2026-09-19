@@ -397,7 +397,7 @@ def paperParams : Params where
   maxRevealBits := 5248
   keygenBudget := 1024
   numSets := 2 ^ 115
-  trialLimit := 2 ^ 21
+  trialLimit := 2 ^ 20
   securityBits := 127
 
 end OptimalOTS

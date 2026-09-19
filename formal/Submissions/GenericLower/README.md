@@ -9,7 +9,7 @@ A zero-cost verifier makes no oracle queries. For every public key on which hone
 fixed message can succeed, correctness gives a signature accepted with probability one by this
 oracle-independent verifier. A free classical selection chooses such a signature from public
 data. The attacker signs message 0 and forges message 1; its success is at least one half and
-its complete experiment costs at most 1024 + 2^21, contradicting security.
+its complete experiment costs at most 1024 + 2^20, contradicting security.
 
 `Costs.lean` proves structural cost rules, `ZeroQuery.lean` proves oracle independence, and
 `Proof.lean` constructs the attack. All proof code is in this submission root; the protected

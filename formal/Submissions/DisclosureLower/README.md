@@ -18,7 +18,7 @@ its width. Summing over the disclosed payload derives `DisclosureBound 41` from 
 The `Averaged*` modules prove the signing law, the repetition-class search bound and its
 Cauchy–Schwarz average. With two freshness factors of 99/100, the fresh-message forgery succeeds
 with probability at least 9801/280000. Its complete experiment costs at most
-1024 + 2^21 + 2^122 + 2*91 + 2, contradicting 127-bit weak security. Equal oracle inputs share
+1024 + 2^20 + 2^122 + 2*91 + 2, contradicting 127-bit weak security. Equal oracle inputs share
 answers throughout; deterministic concatenations and either output half introduce no labels.
 
 Build: `cd formal && lake build Submissions.DisclosureLower.Solution`.

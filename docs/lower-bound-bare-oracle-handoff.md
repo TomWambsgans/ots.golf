@@ -35,7 +35,7 @@ queryCost … | .inr q => blockCost P q.1              -- ⌈k / 512⌉, at leas
 ```
 
 Everything else (graphs of sources / arbitrary deterministic nodes / hash nodes, `2^115` disclosure
-sets that are cuts, signing with up to `2^21` fresh uniform nonces, `experiment` / `Scheme.Secure`
+sets that are cuts, signing with up to `2^20` fresh uniform nonces, `experiment` / `Scheme.Secure`
 (strong unforgeability), `weakExperiment` / `Scheme.WeaklySecure` (forgery on a new message only),
 `VerificationLowerBound P c := ∀ S, S.WeaklySecure → ∃ i, c ≤ S.verifyCost i`, `paperParams`) is
 unchanged. `verifyCost i = idxCost P + reconstructCost (sets i)` with `idxCost paperParams = 1`.
@@ -192,7 +192,7 @@ session traced this):
 
 Pitfalls of this code base (empirical, cost a lot of time before they were understood):
 never let the elaborator unfold `Finset.univ` over huge types (records, `Fin 63 → Fin 15`, node
-types), `experiment`, `weakExperiment`, a `2^21`-iteration loop, `Graph.encode`: "maximum recursion
+types), `experiment`, `weakExperiment`, a `2^20`-iteration loop, `Graph.encode`: "maximum recursion
 depth". Keep such definitions behind `irreducible_def` / `@[irreducible]` /
 `attribute [local irreducible] …`; use `set_option linter.constructorNameAsVariable false` where
 needed; prefer `rw` / `simp only [Finset.mem_filter, Finset.mem_univ, true_and]` / `unfold` over

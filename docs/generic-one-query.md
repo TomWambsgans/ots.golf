@@ -16,7 +16,7 @@ Let `S : AlgorithmScheme paperParams` satisfy:
 
 - `S.Correct` and `S.SigningFailureAtMost (1 / 2)`;
 - key-generation cost at most `K = 1024`;
-- signing cost at most `s = 2^21` on every secret key and message;
+- signing cost at most `s = 2^20` on every secret key and message;
 - every honest signature has an injective encoding of length at most 5504;
 - verification cost at most **one** on every input and every execution path;
 - the existing 127-bit `S.Secure` requirement, including honest-party costs.

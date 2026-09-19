@@ -319,9 +319,9 @@ theorem encTerm_cacheQuery_of_ne_enc (c : Cache paperParams) {q : Query}
 
 theorem trialLimit_bound (e : ℕ) (he : e ≤ 2 ^ 127) :
     paperParams.trialLimit * (2 * e) ≤ 2 ^ paperParams.nonceBits - paperParams.trialLimit := by
-  show 2 ^ 21 * (2 * e) ≤ 2 ^ 256 - 2 ^ 21
-  calc 2 ^ 21 * (2 * e) ≤ 2 ^ 21 * (2 * 2 ^ 127) := by gcongr
-    _ ≤ 2 ^ 256 - 2 ^ 21 := by norm_num
+  show 2 ^ 20 * (2 * e) ≤ 2 ^ 256 - 2 ^ 20
+  calc 2 ^ 20 * (2 * e) ≤ 2 ^ 20 * (2 * 2 ^ 127) := by gcongr
+    _ ≤ 2 ^ 256 - 2 ^ 20 := by norm_num
 
 /-- A fresh encoding answer raises the encoding term by at most `κ = 2 ε` on average. -/
 theorem encTerm_avg_le (c : Cache paperParams) (hc : encCount paperParams c ≤ 2 ^ 127)

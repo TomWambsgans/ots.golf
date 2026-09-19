@@ -373,3 +373,16 @@ Vitalik Buterin trade records from 30053 down to 25053 cycles with one non-recor
 Satoshi's zero-improvement record stays the current one, so the demo now seeds 33 rows with every
 track admitted. The Firefox audit passes with the switch exercised
 (`/private/tmp/ots-ui-cycles/`).
+
+## Signing budget tightened to 2^20 (2026-09-18)
+
+`paperParams.trialLimit` and `paperLimits.signCost` drop from 2^21 to 2^20 compressions. The
+forest signer accepts a nonce with probability 2^-13, so the previous cap proved signing failure
+2^-256 against a requirement of 2^-128; 128 blocks of 8192 trials give exactly 2^-128, which is what
+the two forest availability proofs now state. The lower-bound roots that bounded the fresh-signing
+rate by 256/257 now use 128/129, the attack budgets shrink accordingly, and every certificate
+rebuilds unchanged otherwise. The protected pin was regenerated (contract id
+`b78f6d7d47d3d241df20140f9e5e1a90aa0b5f1f60e58dfc7e15e4b0336e8400`); the rules page, agent
+instructions, `llms.txt` and the proof notes say 2^20. The rules page also presents the tracks as
+two groups, upper bounds by compressions or RISC-V cycles and lower bounds by generality, and the
+one-time-signature figure is a compact monochrome four-chain diagram with a fixed-target encoding.

@@ -270,7 +270,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse('framework-comparison' in body)
         self.assertTrue('whole 128-bit words' in body)
         self.assertTrue('id="generic-algorithms"' in body)
-        self.assertTrue('<strong>Upper bound.</strong>' in body)
+        self.assertTrue('<h3>Upper bounds</h3>' in body)
 
     def test_refresh_preserves_existing_rows_and_adds_missing_tracks_once(self):
         seed_demo.add_rows(self.session, seed_demo.BASE_ROWS)

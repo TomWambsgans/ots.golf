@@ -48,7 +48,7 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Reconstruction stops at disclosed values | `Graph.Visited`, `evaluated`, `reconstruct` | root is always evaluated |
 | Verification cost is index plus reconstruction | `Scheme.verifyCost`, `idxCost` | the 512-bit index input costs one compression |
 | Index is low 128 bits of `H(m ‖ η)` | `index`, `setWidth idxBits` | the same oracle handles node inputs |
-| Signing samples distinct nonces, at most `2^21` trials | `Scheme.sign`, `signLoop` | fresh nonces need not be fresh oracle strings |
+| Signing samples distinct nonces, at most `2^20` trials | `Scheme.sign`, `signLoop` | fresh nonces need not be fresh oracle strings |
 | Public key is low 128 bits of the root | `publicKey`, `Scheme.verify` | |
 | Strong forgery differs from the received pair | `experiment`, `Scheme.Secure` | any accepted pair wins when signing fails |
 | Weak forgery uses a different message | `weakExperiment`, `Scheme.WeaklySecure` | hypothesis used by the lower track |
@@ -73,7 +73,7 @@ of admissibility, strong security, and pathwise verification cost. Its forest ce
 same programs and exact security experiment as the historical DAG construction. Correctness is
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
 the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 512-bit signing
-inputs are fresh. Failure is `(8191/8192)^(2^21) ≤ 2^-256 ≤ 2^-128`, for every message chosen as a
+inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
 function of the public key. All new proofs reside in the independent `GenericUpper` submission root; the original
 `Upper` root is unchanged. See [the proof map](generic-upper.md).
 
@@ -100,7 +100,7 @@ candidate construction converts a valid signature to any index in its class.
 The attack samples messages uniformly to avoid previously queried message-prefix
 domains, then tests `2^122` distinct nonces for its new message. Its proven success
 is at least `9/200`; its total cost is at most
-`1024 + 2^21 + 2^122 + 34`, whose ratio to `2^127` is smaller than `9/200`.
+`1024 + 2^20 + 2^122 + 34`, whose ratio to `2^127` is smaller than `9/200`.
 This contradicts weak security. No assumption about distinct hash inputs or
 independent node outputs is used. The elementary index-plus-root bound 2 remains
 available as a separate lemma.

@@ -44,8 +44,8 @@ class RulesTests(unittest.TestCase):
                        'generic-admissibility', 'dag-model', 'whole-word-model', 'submission-format'):
             self.assertIn(f'id="{anchor}"', html)
         self.assertIn('What are we optimizing?', html)
-        self.assertIn('<strong>Upper bound.</strong>', html)
-        self.assertIn('<strong>Lower bound.</strong>', html)
+        self.assertIn('<h3>Upper bounds</h3>', html)
+        self.assertIn('<h3 id="model">Lower bounds</h3>', html)
         self.assertIn('whole 128-bit words', html)
         self.assertIn('41 words', html)
         self.assertIn('Each deterministic node performs one of two operations:', html)

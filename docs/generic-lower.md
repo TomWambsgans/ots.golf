@@ -20,10 +20,10 @@ this probability is at least one half. This also ensures that the signature type
 The attacker requests a signature on message 0, ignores it, and outputs its selected signature on
 message 1. These are distinct 256-bit messages. For every good public key the forgery is accepted
 with probability one, regardless of the oracle queries made during the intervening signing.
-The attack uses no hash queries. The whole experiment costs at most 1024 + 2^21 compressions,
+The attack uses no hash queries. The whole experiment costs at most 1024 + 2^20 compressions,
 including key generation and the requested signature; verification costs zero by assumption.
 Its success is at least 1/2, whereas 127-bit security requires success below
-(1024 + 2^21) / 2^127 < 1/2. Contradiction.
+(1024 + 2^20) / 2^127 < 1/2. Contradiction.
 
 The proof lemma covers every failure allowance at most 1/2. The public challenge specializes it
 to `2^-128`, matching the upper track. This quantitative availability bound gives the attack

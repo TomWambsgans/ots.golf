@@ -40,7 +40,7 @@ where `comp n s` = number of `(c_1..c_n) ∈ [0,14]^n` with sum `s`.
 
 ## The proof (paper Section 7.3, reorganized for formalization)
 
-Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^21`, `N = B - 912` (budget after key generation).
+Notation: `ε = 2^-128`, `M = 2^115`, `L = 2^20`, `N = B - 912` (budget after key generation).
 `ξ : G.Rec` ranges uniformly over records (sources + hash outputs); `c₀ ξ` is the cache after
 key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for every hash node).
 
