@@ -101,41 +101,79 @@ and by induction over the trials, `E[1_bad] ≤ ρ · P(stop) ≤ ρ`. This repl
 The induction step is exactly the one of `signIdxLoop_bound`, with the continuation value
 `F + λ ρ · [no signature]` in place of `F`. This part is ready to formalize.
 
-### 2. The stage-A potential (the open part)
+### 2. The stage-A potential: a complete proof
 
-The attacker chooses `m1` after stage A, so the potential must dominate `max_m G_m` with
-`G_m = r + (b_m − r a_m)^+ / (a_m + q (N_m − L))`, and grow by at most `κ = 2^-127` per encoding
-query (encoding queries charge nothing else; `384 ∉ {144, 400, 912}`).
+**Notation.** `I = 2^128` (indices, and nonces per message), `M = numValid`, `q = M/I`, `ε = 1/I`,
+`κ = 2ε`, `L = 2^20`. For a cache `c`: `V` the distinct accepted indices of cached encoding
+entries, `v = |V|`, `r = v/M`. An accepted entry is in `W` when another cached entry has the same
+index. For a message `m`: `u_m` cached entries of row `m`, `a_m` accepted ones, `b_m` of those in
+`W`, `d_m = a_m − b_m`, `N_m = I − u_m`, `D_m = a_m + q N_m`, `x_m = b_m − r a_m`,
+`P_m = x_m^+ / D_m`. The invariant `encCount + budget ≤ 2^127` gives `Σ_m u_m ≤ I/2`, hence
+`N_m ≥ I/2` and `D_m ≥ M/2`.
 
-* **One message (proved on paper, checked numerically).** With `D = a + qN`, one fresh encoding
-  query at `m` changes `G_m` by at most `ε (a + q(N−1) − (N−1)|V|/I) / D ≤ ε`, `ε = 2^-128`:
-  invalid answers move `G` by `q (G − r) / (D − q)`, fresh accepted indices raise `r`, hits on `V`
-  raise `b`. `tools/nonce128_own_charge.py` evaluates the exact expectation on 40,000 random states
-  in the regime `N ≥ I/2` (guaranteed by `encCount ≤ 2^127`): worst charge `0.987 ε`. So an attacker
-  who concentrates on one message is charged half of `κ`, and the target holds with room to spare.
-* **Several messages (numerically, no proof yet).** A query at `m0` can also raise `G_h` for the
-  message `h` whose entry it collides with, by `1/D_h`. Summing these jumps over messages
-  (a `Σ_m` potential) charges up to `ε(1 + 2r)` and fails above `B ≈ 2^128/3`; the maximum only pays
-  a jump when `G_h + 1/D_h` exceeds the current maximum. `tools/nonce128_max_charge.py` computes
-  the exact expected increase of `max_m G_m` on 3,000 adversarial states (many single-entry
-  messages, colliding pairs, mixed, large messages; every choice of queried message): worst
-  `0.999 ε`, below `κ = 2 ε` with a factor-2 margin.
-* **What a proof needs.** Bound `E[max_m G'_m] − max_m G_m ≤ 2 ε` by the three outcome classes
-  (invalid answer: only `G_{m0}` moves, by `q (G_{m0} − r)^+ / (D_0 − q)`; fresh accepted index:
-  every `G_m` moves by at most `1/M`, total `ε (1 − r)`; hit on `V`: `G_{m0}` moves by at most
-  `(δ − G_{m0}) / D_0`, `δ ∈ {1, 2}`, and the holder's `G_h` by `1/D_h`, which raises the maximum
-  only by `(G_h + 1/D_h − Φ)^+ ≤ min(1, (b_h − r a_h + 1)^+) / D_h`) and the constraints `D_m ≥ M/2`,
-  `Σ_m (a_m − b_m) ≤ |V|`. The per-class bounds above sum to about `(1 − r) + 2(G_{m0} − r)^+ +
-  (|V|(1 − G_{m0}) + a_0 − b_0)/D_0 + Σ_m (a_m − b_m) min(1, (b_m − r a_m + 1)^+)/D_m` (in units of
-  `ε`), which is `≤ 2` on every state tried, but a clean inequality over all states is not proved.
+**Potential.** `Ψ(c) = r + Σ_m P_m`, and the encoding term of `ΦA` is `θ Ψ` with
+`θ = I/(I − 2L)`. `Ψ(∅) = 0`, non-encoding queries do not change `Ψ`.
 
-### 3. Status and cost of finishing
+**It dominates the signing loss.** For the signed message (drop the index `m1`), and every
+`c ∈ [N − L, N]`: `b + c·v/I = r (a + q c) + x ≤ r (a + q c) + x^+`, and
+`a + q c ≥ (c/N) D ≥ ((N − L)/N) D ≥ D/θ` (as `N ≥ I/2`), so
+`b + c·v/I ≤ (a + q c) (r + θ x^+/D) ≤ (a + q c) · θΨ`. This is the hypothesis `ρ = θΨ` of the
+signing lemma of section 1.
 
-Nothing in the contract or the roots changed: `paperParams.nonceBits` is still 256. Finishing
-option 2 needs (1) a rigorous proof of the multi-message bound in section 2, (2) a new signing
-lemma in the Lean roots (section 1), (3) replacing the global `encTerm` (`cntV / numSets + L ·
-pairs / (2^n − L)`) in `Potentials.ΦA` by `max_m G_m`, a maximum over all `2^256` messages of
-ratios, with the charge lemma of (1), and (4) doing this in the four upper roots (`GenericUpper`,
-`RiscvUpper`, and the historical `Upper`, `DisclosureUpper`), fixing the 512-bit index-query length
-in `Values.lean`, and then the parameter switch itself (lower roots already build at 128 bits).
-Step (1) is new mathematics; steps (2)–(4) are a multi-week Lean effort.
+**Charge of one encoding query.** Query the fresh point `(m0, η0)`; its answer's index is uniform.
+Write `D0, x0, …` for the row `m0`.
+
+1. Rejected index (`I − M` indices): only `N0` drops by one, so `Ψ` grows by
+   `x0^+ q / (D0 (D0 − q))`.
+2. Accepted index outside `V` (`M − v` indices): `r` grows by `1/M`; every `x_m` decreases
+   (`x0' = b0 − (r + 1/M)(a0 + 1)`) and `D0' = D0 + 1 − q ≥ D0`, so every `P_m` decreases. `Ψ`
+   grows by at most `1/M`.
+3. Index in `V` (`v` indices): `r` is unchanged. The new entry joins `W`, and so does the holder
+   when it held the index alone and was not in `W`: `x0' = x0 + δ − r` with `δ = 2` when that
+   holder is in row `m0`, else `δ = 1`, and `D0' ≥ D0`, so `P0` grows by at most `(δ − r)/D0`; a
+   holder in another row `h` raises `P_h` by at most `1/D_h`. Every non-`W` accepted entry holds
+   its own index, so over the `v` indices these add up to
+   `(v(1 − r) + d0)/D0 + Σ_{h ≠ m0} d_h / D_h`.
+
+Averaging, `I (E[Ψ'] − Ψ) ≤ T` with
+`T = (1 − q) M x0^+ / (D0 (D0 − q)) + (1 − r) + (v(1 − r) + d0)/D0 + Σ_{h ≠ m0} d_h/D_h`.
+
+*Other rows.* `D_h = a_h + M − q u_h ≥ d_h + M − t_h` with `t_h = q u_h ≤ M`, and
+`d/(d + M − t) ≤ (d + t)/M` (equivalent to `0 ≤ d² + t(M − t)`). Non-`W` entries have distinct
+indices, so `Σ_{h≠m0} d_h ≤ v − d0`, and `Σ_{h≠m0} t_h ≤ M/2 − s0` with `s0 = q u0`. Hence
+`Σ_{h≠m0} d_h/D_h ≤ r − d0/M + 1/2 − s0/M` and
+
+    T ≤ 3/2 + R,   R = r(1 − r) M / D0 + (1 − q) M x0^+/(D0(D0 − q)) − s0/M − d0/M + d0/D0.
+
+*The row `m0`.* Let `w = M − s0 ∈ [M/2, M]`, so `D0 = a0 + w`. Since `d0 ≤ a0`,
+`d0/D0 − d0/M − s0/M ≤ −(s0/M)(1 − d0/D0) ≤ −(s0/M)(w/D0) = −(M − w) w/(M D0)`. Since `D0 ≥ 1`,
+`(1 − q)/(D0 − q) ≤ 1/D0`, and `x0^+ ≤ (1 − r) a0`. So
+`R ≤ (1 − r) M (r D0 + a0)/D0² − (M − w) w/(M D0)`, and by `4XY ≤ (X + Y)²` with
+`X = (1 − r) D0`, `Y = r D0 + a0`, `(1 − r)(r D0 + a0) ≤ (2 D0 − w)²/(4 D0)`. With
+`y = w/D0 ∈ (0, 1]` and `ω = w/M ∈ [1/2, 1]`:
+
+    R ≤ y ((1 − y/2)²/ω − (1 − ω)) ≤ y · max((1 − y/2)², 2(1 − y/2)² − 1/2) ≤ 1/3,
+
+the middle step because the bracket is convex in `ω` (so maximal at `ω ∈ {1/2, 1}`), the last by
+calculus (`y(1 − y/2)² ≤ 8/27` and `y(3/2 − 2y + y²/2) ≤ 0.316`).
+
+So `T ≤ 11/6`, and one encoding query raises `θΨ` by at most `θ · (11/6) · ε ≤ 2ε = κ`, since
+`θ ≤ 12/11`. Together with section 1 this proves the signing part of the security bound for a
+128-bit nonce and every budget up to `2^127`: the potential argument is otherwise unchanged
+(non-encoding queries still pay `κ` for hidden keygen points and second preimages, and the
+post-signing index event `IdxPost` still costs `ε` per query).
+
+Numerical checks (`tools/nonce128_own_charge.py`, `tools/nonce128_max_charge.py`, and the exact
+expected increase of `Ψ` on random multi-row states) all stay near `ε`, well below `11/6 ε`.
+
+### 3. Plan of the formalization
+
+1. `SignIdx`: a signing lemma taking any `ρ` with `b + c·v/I ≤ ρ (a + q c)` for
+   `c ∈ [N − L, N]`, proved by the induction of `signIdxLoop_bound` on
+   `F + λ ρ · [no signature]`.
+2. `EncCharges`/`Potentials`: row counts, `Ψ`, its transitions under one encoding answer, the
+   three class bounds, the row-budget sum, the inequality `T ≤ 11/6`, and `encTerm = θ Ψ` with its
+   charge lemma replacing `cntV`/`pairs`.
+3. `Assembly`: apply the new signing lemma with `ρ = encTerm d`.
+4. Port to `RiscvUpper` (accepted set `validSet`), `Upper`, `DisclosureUpper`; fix the 512-bit
+   index-query length in `Values.lean`; set `nonceBits := 128`.
