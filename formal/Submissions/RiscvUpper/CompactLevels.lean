@@ -1,6 +1,12 @@
 import Submissions.RiscvUpper.CompactChains
 
-/-! Composing the chain phase: the source reads, then fourteen levels of hashes and reads. -/
+/-!
+# The chain phase
+
+The 36 active chains run as consecutive blocks in the specification's chain-major node order;
+inactive chains have no code. The setup fixes the base registers and the payload pointer; the
+epilogue advances the disclosure cursor past the 36 chain words for the tree phase.
+-/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
 
@@ -12,95 +18,36 @@ set_option allowUnsafeReducibility true
 attribute [local reducible] Forest.graph
 attribute [local irreducible] Forest.fixedPositions Forest.fixedDigits
 
-def srcs : List Name := (List.finRange 63).map src
-def cis (t : Fin 14) : List Name := (List.finRange 63).map fun k => ci k t
-def chs (t : Fin 14) : List Name := (List.finRange 63).map fun k => ch k t
-def cvs (t : Fin 14) : List Name := (List.finRange 63).map fun k => cv k t
-def levelNodes (t : Fin 14) : List Name := cis t ++ chs t ++ cvs t
-
 /-- The tree nodes following every chain node. -/
 def treeNodes : List Name :=
   (List.finRange 21).map gc ++ (List.finRange 21).map gh ++ (List.finRange 21).map gv ++
   (List.finRange 7).map ec ++ (List.finRange 7).map eh ++ (List.finRange 7).map ev ++ [rc, rh]
 
-/-- Levels `n` and later, in specification order. -/
-def levelsFrom (n : ℕ) : List Name :=
-  if h : n < 14 then levelNodes ⟨n, h⟩ ++ levelsFrom (n + 1) else []
-termination_by 14 - n
+/-- Chains `k` and later, in specification order. -/
+def chainsFrom (k : ℕ) : List Name :=
+  if h : k < 63 then chainNodes ⟨k, h⟩ ++ chainsFrom (k + 1) else []
+termination_by 63 - k
 
-def levelsCodeFrom (n : ℕ) : Code :=
-  if h : n < 14 then level n ++ levelsCodeFrom (n + 1) else []
-termination_by 14 - n
+/-- The blocks of active chains `k` and later. -/
+def blocksFrom (k : ℕ) : Code :=
+  if k < 36 then chainBlock k ++ blocksFrom (k + 1) else []
+termination_by 36 - k
 
-theorem order_split : order = srcs ++ (levelsFrom 0 ++ treeNodes) := by
+theorem chainsFrom_zero : (List.finRange 63).flatMap chainNodes = chainsFrom 0 := by
   decide +kernel
 
-theorem chains_split :
-    (List.finRange 14).flatMap (fun t => level t.val) = levelsCodeFrom 0 := by
+theorem order_split : order = chainsFrom 0 ++ treeNodes := by
+  rw [← chainsFrom_zero]
+  simp only [order, treeNodes, List.append_assoc]
+
+theorem blocks_eq : (List.range 36).flatMap chainBlock = blocksFrom 0 := by
   decide +kernel
 
-theorem srcs_nodup : srcs.Nodup :=
-  (List.nodup_finRange 63).map fun _ _ h => Name.src.inj h
-theorem cis_nodup (t : Fin 14) : (cis t).Nodup :=
-  (List.nodup_finRange 63).map fun _ _ h => (Name.ci.inj h).1
-theorem chs_nodup (t : Fin 14) : (chs t).Nodup :=
-  (List.nodup_finRange 63).map fun _ _ h => (Name.ch.inj h).1
-theorem cvs_nodup (t : Fin 14) : (cvs t).Nodup :=
-  (List.nodup_finRange 63).map fun _ _ h => (Name.cv.inj h).1
+theorem blocksFrom_nil (k : ℕ) (hk : ¬ k < 36) : blocksFrom k = [] := by
+  rw [blocksFrom, if_neg hk]
 
-variable (index : Idx paperParams) (payload : List Bool) (pk : PublicKey paperParams)
-
-theorem srcs_code (after : List Name) :
-    srcs.flatMap (srcSeg index payload pk after).code = readSweep 0 := by
-  simp only [srcs, srcSeg, List.flatMap_map, readSweep]
-  rfl
-
-theorem cis_code (t : Fin 14) (after : List Name) :
-    (cis t).flatMap (ciSeg index payload pk t after).code = [] := by
-  simp [cis, ciSeg, List.flatMap_eq_nil_iff]
-
-theorem chs_code (t : Fin 14) (after : List Name) :
-    (chs t).flatMap (chSeg index payload pk t after).code = hashSweep t.val := by
-  simp only [chs, chSeg, List.flatMap_map, hashSweep]
-  rfl
-
-theorem cvs_code (t : Fin 14) (after : List Name) :
-    (cvs t).flatMap (cvSeg index payload pk t after).code = readSweep (t.val + 1) := by
-  simp only [cvs, cvSeg, List.flatMap_map, readSweep]
-  rfl
-
-/-- The cycles charged by the chain segments: read sweeps cost 9 per disclosed chain and 4 per
-skipped chain; hash sweeps cost at most 9 per hashed chain and 3 per skipped chain. -/
-def srcsCost : ℕ := (srcs.map (srcCost index)).sum
-def chsCost (t : Fin 14) : ℕ := ((chs t).map (chCost index t)).sum
-def cvsCost (t : Fin 14) : ℕ := ((cvs t).map (cvCost index t)).sum
-def levelCost (t : Fin 14) : ℕ := chsCost index t + cvsCost index t
-
-/-- The cycles of levels `n` and later. -/
-def levelsCost (n : ℕ) : ℕ := ∑ t : Fin 14, if n ≤ t.val then levelCost index t else 0
-
-theorem levelsCost_lt (n : ℕ) (h : n < 14) :
-    levelsCost index n = levelCost index ⟨n, h⟩ + levelsCost index (n + 1) := by
-  unfold levelsCost
-  have split : ∀ t : Fin 14, (if n ≤ t.val then levelCost index t else 0) =
-      (if t = ⟨n, h⟩ then levelCost index t else 0) + (if n + 1 ≤ t.val then levelCost index t else 0) := by
-    intro t
-    by_cases ht : t = ⟨n, h⟩
-    · subst ht
-      simp
-    · have hne : t.val ≠ n := fun e => ht (Fin.ext e)
-      rw [if_neg ht, Nat.zero_add]
-      by_cases hle : n ≤ t.val
-      · rw [if_pos hle, if_pos (by omega)]
-      · rw [if_neg hle, if_neg (by omega)]
-  rw [Finset.sum_congr rfl (fun t _ => split t), Finset.sum_add_distrib, Finset.sum_ite_eq']
-  simp
-
-theorem levelsCost_ge (n : ℕ) (h : ¬ n < 14) : levelsCost index n = 0 := by
-  unfold levelsCost
-  apply Finset.sum_eq_zero
-  intro t _
-  rw [if_neg (by have := t.isLt; omega)]
+theorem blocksFrom_cons (k : ℕ) (hk : k < 36) : blocksFrom k = chainBlock k ++ blocksFrom (k + 1) := by
+  rw [blocksFrom, if_pos hk]
 
 /-- A segment charging exactly its code length costs the code's length in total. -/
 theorem cost_eq_length (seg : Segment) (nodes : List Name)
@@ -110,246 +57,76 @@ theorem cost_eq_length (seg : Segment) (nodes : List Name)
   congr 1
   exact List.map_congr_left h
 
-theorem srcs_cost (after : List Name) :
-    (srcs.map (srcSeg index payload pk after).cost).sum = srcsCost index := rfl
+variable (index : Idx paperParams) (payload : List Bool) (pk : PublicKey paperParams)
 
-theorem cis_cost (t : Fin 14) (after : List Name) :
-    ((cis t).map (ciSeg index payload pk t after).cost).sum = 0 := by
-  apply List.sum_eq_zero
-  intro v hv
-  obtain ⟨_, _, rfl⟩ := List.mem_map.mp hv
-  rfl
+/-- The cycles of chains `k` and later: `13 + 3 (14 - p)` for each active chain. -/
+def costFrom (k : ℕ) : ℕ :=
+  if h : k < 63 then
+    (if k < 36 then 13 + 3 * (14 - pos index ⟨k, h⟩) else 0) + costFrom (k + 1)
+  else 0
+termination_by 63 - k
 
-theorem chs_cost (t : Fin 14) (after : List Name) :
-    ((chs t).map (chSeg index payload pk t after).cost).sum = chsCost index t := rfl
-
-theorem cvs_cost (t : Fin 14) (after : List Name) :
-    ((cvs t).map (cvSeg index payload pk t after).cost).sum = cvsCost index t := rfl
-
-/-! ## Transitions between segments -/
-
-theorem ci_to_ch (t : Fin 14) (after : List Name) (s : MachineState) (x : graph.Assignment)
-    (cursor : ℕ) (h : CiInv index payload pk t (chs t ++ cvs t ++ after) s x cursor []) :
-    ChInv index payload pk t (cvs t ++ after) s x cursor (chs t) := by
-  obtain ⟨ctx, rep, tagged⟩ := h
-  refine ⟨by simpa only [List.nil_append, List.append_assoc] using ctx, ?_⟩
-  intro k hk hp
-  refine ⟨fun _ => ⟨rep k hk hp, tagged k hk hp (by simp)⟩, fun hn => ?_⟩
-  exact absurd (List.mem_map.mpr ⟨k, List.mem_finRange k, rfl⟩) hn
-
-theorem ch_to_cv (t : Fin 14) (after : List Name) (s : MachineState) (x : graph.Assignment)
-    (cursor : ℕ) (h : ChInv index payload pk t (cvs t ++ after) s x cursor []) :
-    CvInv index payload pk t after s x cursor (cvs t) := by
-  obtain ⟨ctx, facts⟩ := h
-  refine ⟨by simpa only [List.nil_append] using ctx, ?_⟩
-  intro k hk
-  have mem : cv k t ∈ cvs t := List.mem_map.mpr ⟨k, List.mem_finRange k, rfl⟩
-  exact ⟨fun hp => (facts k hk hp).2 (by simp), fun _ hn => absurd mem hn, fun _ hn => absurd mem hn⟩
-
-theorem src_to_ci (after : List Name) (s : MachineState) (x : graph.Assignment) (cursor : ℕ)
-    (h : SrcInv index payload pk (levelNodes 0 ++ after) s x cursor []) :
-    CiInv index payload pk 0 (chs 0 ++ cvs 0 ++ after) s x cursor (cis 0) := by
-  obtain ⟨ctx, holds⟩ := h
-  refine ⟨by simpa only [List.nil_append, levelNodes, List.append_assoc] using ctx, ?_, ?_⟩
-  · intro k hk hp
-    have hp0 : pos index k = 0 := by
-      change (fixedPositions index k).val ≤ 0 at hp
-      show (fixedPositions index k).val = 0
-      omega
-    have prevEq : prev k 0 = src k := by unfold prev; simp
-    rw [prevEq]
-    exact holds k hk hp0 (by simp)
-  · intro k _ _ hn
-    exact absurd (List.mem_map.mpr ⟨k, List.mem_finRange k, rfl⟩) hn
-
-theorem prev_succ (k : Fin 63) (t : Fin 14) (ht : t.val + 1 < 14) :
-    prev k ⟨t.val + 1, ht⟩ = cv k t := by
-  unfold prev
-  rw [dif_neg (by simp)]
-  all_goals (try (congr 1; try (ext; simp)))
-
-/-- The chain values of level `t` are the inputs of level `t + 1`. -/
-theorem cv_to_ci (t : Fin 14) (ht : t.val + 1 < 14) (after : List Name) (s : MachineState)
-    (x : graph.Assignment) (cursor : ℕ)
-    (h : CvInv index payload pk t (levelNodes ⟨t.val + 1, ht⟩ ++ after) s x cursor []) :
-    CiInv index payload pk ⟨t.val + 1, ht⟩ (chs ⟨t.val + 1, ht⟩ ++ cvs ⟨t.val + 1, ht⟩ ++ after)
-      s x cursor (cis ⟨t.val + 1, ht⟩) := by
-  obtain ⟨ctx, facts⟩ := h
-  refine ⟨by simpa only [List.nil_append, levelNodes, List.append_assoc] using ctx, ?_, ?_⟩
-  · intro k hk hp
-    rw [prev_succ k t ht]
-    obtain ⟨h1, h2, h3⟩ := facts k hk
-    change (fixedPositions index k).val ≤ t.val + 1 at hp
-    rcases Nat.lt_or_ge (fixedPositions index k).val (t.val + 1) with lt | ge
-    · have hp' : pos index k ≤ t.val := by show (fixedPositions index k).val ≤ t.val; omega
-      rw [h2 hp' (by simp)]
-      unfold Holds
-      apply (Direct.memBits_cast _ _ _ _).mpr
-      exact (h1 hp').trunc
-    · exact h3 (by show (fixedPositions index k).val = t.val + 1; omega) (by simp)
-  · intro k _ _ hn
-    exact absurd (List.mem_map.mpr ⟨k, List.mem_finRange k, rfl⟩) hn
-
-/-- After the last level every active chain holds its final value. -/
-def ChainsDone (s : MachineState) (x : graph.Assignment) (cursor : ℕ) : Prop :=
-  ChainCtx index payload pk s cursor treeNodes ∧
-  ∀ k : Fin 63, k.val < 36 → Holds s k (x (cv k 13).fin)
-
-theorem cv_last (s : MachineState) (x : graph.Assignment) (cursor : ℕ)
-    (h : CvInv index payload pk 13 treeNodes s x cursor []) :
-    ChainsDone index payload pk s x cursor := by
-  obtain ⟨ctx, facts⟩ := h
-  refine ⟨by simpa only [List.nil_append] using ctx, ?_⟩
-  intro k hk
-  obtain ⟨h1, h2, h3⟩ := facts k hk
-  have bound := (fixedPositions index k).isLt
-  rcases Nat.lt_or_ge (fixedPositions index k).val 14 with lt | ge
-  · have hp' : pos index k ≤ 13 := by show (fixedPositions index k).val ≤ 13; omega
-    rw [h2 hp' (by simp)]
-    unfold Holds
-    apply (Direct.memBits_cast _ _ _ _).mpr
-    exact (h1 hp').trunc
-  · exact h3 (by show (fixedPositions index k).val = 13 + 1; omega) (by simp)
-
-/-! ## One level -/
-
-theorem level_refines (t : Fin 14) (after : List Name) (tail : Code)
-    (K : graph.Assignment × ℕ → OracleComp (Spec paperParams) (Option Bool)) (c rest' : ℕ)
-    (continuation : ∀ (u : MachineState) (y : graph.Assignment) (cursor' : ℕ),
-      CvInv index payload pk t after u y cursor' [] → Riscv.CodeAt u u.pc tail →
-      ∀ left, rest' ≤ left → Riscv.Refines left u (K (y, cursor')) c) :
-    ∀ (s : MachineState) (x : graph.Assignment) (cursor fuel : ℕ),
-      CiInv index payload pk t (chs t ++ cvs t ++ after) s x cursor (cis t) →
-      Riscv.CodeAt s s.pc (level t.val ++ tail) → (level t.val).length + rest' ≤ fuel →
-      Riscv.Refines fuel s (runNodes' index payload (levelNodes t) x cursor >>= K)
-        (levelCost index t + c) := by
-  intro s x cursor fuel inv located bound
-  have hashLen : (level t.val).length = (hashSweep t.val).length + (readSweep (t.val + 1)).length := by
-    simp [level]
-  simp only [levelNodes, runNodes'_append, bind_assoc]
-  have step1 := sweep_refines index payload (ciSeg index payload pk t (chs t ++ cvs t ++ after)) (cis t)
-    (cis_nodup t) (fun n hn => by
-      obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-      exact ci_refines index payload pk t (chs t ++ cvs t ++ after) k) (level t.val ++ tail)
-    (fun r => runNodes' index payload (chs t) r.1 r.2 >>= fun r' =>
-      runNodes' index payload (cvs t) r'.1 r'.2 >>= K)
-    (levelCost index t + c) ((level t.val).length + rest') ?_ s x cursor fuel inv
-    (by rw [cis_code]; exact located) (by rw [cis_code]; simpa using bound)
-  · rw [cis_cost, Nat.zero_add] at step1
-    exact step1
-  intro u y cursor' inv1 located1 left hleft
-  dsimp only
-  have step2 := sweep_refines index payload (chSeg index payload pk t (cvs t ++ after)) (chs t)
-    (chs_nodup t) (fun n hn => by
-      obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-      exact ch_refines index payload pk t (cvs t ++ after) k) (readSweep (t.val + 1) ++ tail)
-    (fun r' => runNodes' index payload (cvs t) r'.1 r'.2 >>= K)
-    (cvsCost index t + c) ((readSweep (t.val + 1)).length + rest') ?_ u y cursor' left
-    (ci_to_ch index payload pk t after u y cursor' inv1)
-    (by rw [chs_code]; simpa only [level, List.append_assoc] using located1)
-    (by rw [chs_code]; omega)
-  · rw [chs_cost] at step2
-    rw [levelCost, Nat.add_assoc]
-    exact step2
-  intro v z cursor'' inv2 located2 left' hleft'
-  dsimp only
-  have step3 := sweep_refines index payload (cvSeg index payload pk t after) (cvs t) (cvs_nodup t)
-    (fun n hn => by
-      obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-      exact cv_refines index payload pk t after k) tail K c rest' continuation v z cursor'' left'
-    (ch_to_cv index payload pk t after v z cursor'' inv2)
-    (by rw [cvs_code]; exact located2) (by rw [cvs_code]; exact hleft')
-  rw [cvs_cost] at step3
-  exact step3
-
-
-/-! ## All levels -/
-
-theorem levelsFrom_lt (n : ℕ) (h : n < 14) :
-    levelsFrom n = levelNodes ⟨n, h⟩ ++ levelsFrom (n + 1) := by
-  rw [levelsFrom, dif_pos h]
-
-theorem levelsFrom_ge (n : ℕ) (h : ¬ n < 14) : levelsFrom n = [] := by
-  rw [levelsFrom, dif_neg h]
-
-theorem levelsCodeFrom_lt (n : ℕ) (h : n < 14) :
-    levelsCodeFrom n = level n ++ levelsCodeFrom (n + 1) := by
-  rw [levelsCodeFrom, dif_pos h]
-
-theorem levelsCodeFrom_ge (n : ℕ) (h : ¬ n < 14) : levelsCodeFrom n = [] := by
-  rw [levelsCodeFrom, dif_neg h]
-
-/-- The machine state at the start of level `n`, or after the last level. -/
-def LevelStart (n : ℕ) (s : MachineState) (x : graph.Assignment) (cursor : ℕ) : Prop :=
-  if h : n < 14 then
-    CiInv index payload pk ⟨n, h⟩ (chs ⟨n, h⟩ ++ cvs ⟨n, h⟩ ++ (levelsFrom (n + 1) ++ treeNodes))
-      s x cursor (cis ⟨n, h⟩)
-  else ChainsDone index payload pk s x cursor
-
-theorem levels_refines (tail : Code)
-    (K : graph.Assignment × ℕ → OracleComp (Spec paperParams) (Option Bool)) (c rest' : ℕ)
-    (continuation : ∀ (u : MachineState) (y : graph.Assignment) (cursor' : ℕ),
-      ChainsDone index payload pk u y cursor' → Riscv.CodeAt u u.pc tail →
-      ∀ left, rest' ≤ left → Riscv.Refines left u (K (y, cursor')) c) :
-    ∀ (m n : ℕ), 14 - n = m → ∀ (s : MachineState) (x : graph.Assignment) (cursor fuel : ℕ),
-      LevelStart index payload pk n s x cursor →
-      Riscv.CodeAt s s.pc (levelsCodeFrom n ++ tail) → (levelsCodeFrom n).length + rest' ≤ fuel →
-      Riscv.Refines fuel s (runNodes' index payload (levelsFrom n) x cursor >>= K)
-        (levelsCost index n + c) := by
-  intro m
-  induction m with
+theorem costFrom_eq : ∀ (n k : ℕ), 63 - k = n → costFrom index k =
+    ∑ k' : Fin 63, if k ≤ k'.val ∧ k'.val < 36 then 13 + 3 * (14 - pos index k') else 0 := by
+  intro n
+  induction n with
   | zero =>
-    intro n hn s x cursor fuel start located bound
-    have h : ¬ n < 14 := by omega
-    rw [levelsFrom_ge n h, levelsCost_ge index n h]
-    rw [levelsCodeFrom_ge n h] at located bound
-    unfold LevelStart at start
-    rw [dif_neg h] at start
-    simp only [runNodes', pure_bind, List.length_nil, Nat.zero_add]
-    simp only [List.nil_append, List.length_nil, Nat.zero_add] at located bound
-    exact continuation s x cursor start located fuel bound
-  | succ m ih =>
-    intro n hn s x cursor fuel start located bound
-    have h : n < 14 := by omega
-    rw [levelsFrom_lt n h, levelsCost_lt index n h]
-    rw [levelsCodeFrom_lt n h] at located bound
-    unfold LevelStart at start
-    rw [dif_pos h] at start
-    rw [runNodes'_append, bind_assoc, Nat.add_assoc]
-    rw [List.append_assoc] at located
-    rw [List.length_append] at bound
-    apply level_refines index payload pk ⟨n, h⟩ (levelsFrom (n + 1) ++ treeNodes)
-      (levelsCodeFrom (n + 1) ++ tail)
-      (fun r => runNodes' index payload (levelsFrom (n + 1)) r.1 r.2 >>= K)
-      (levelsCost index (n + 1) + c) ((levelsCodeFrom (n + 1)).length + rest') ?_
-      s x cursor fuel start located
-      (by show (level n).length + ((levelsCodeFrom (n + 1)).length + rest') ≤ fuel; omega)
-    intro u y cursor' inv located' left hleft
-    dsimp only
-    apply ih (n + 1) (by omega) u y cursor' left ?_ located' hleft
-    unfold LevelStart
-    split_ifs with h'
-    · rw [levelsFrom_lt (n + 1) h', List.append_assoc] at inv
-      exact cv_to_ci index payload pk ⟨n, h⟩ h' (levelsFrom (n + 1 + 1) ++ treeNodes) u y cursor' inv
-    · have h13 : n = 13 := by omega
-      subst h13
-      rw [levelsFrom_ge 14 (by decide), List.nil_append,
-        show (⟨13, h⟩ : Fin 14) = 13 from rfl] at inv
-      exact cv_last index payload pk u y cursor' inv
+    intro k hk
+    rw [costFrom, dif_neg (by omega)]
+    symm
+    apply Finset.sum_eq_zero
+    intro k' _
+    rw [if_neg]
+    have := k'.isLt
+    omega
+  | succ n ih =>
+    intro k hk
+    have hk63 : k < 63 := by omega
+    rw [costFrom, dif_pos hk63, ih (k + 1) (by omega)]
+    have single : (if k < 36 then 13 + 3 * (14 - pos index ⟨k, hk63⟩) else 0) =
+        ∑ k' : Fin 63, if k' = ⟨k, hk63⟩ then
+          (if k ≤ k'.val ∧ k'.val < 36 then 13 + 3 * (14 - pos index k') else 0) else 0 := by
+      rw [Finset.sum_ite_eq' Finset.univ (⟨k, hk63⟩ : Fin 63)
+        (fun k' : Fin 63 => if k ≤ k'.val ∧ k'.val < 36 then 13 + 3 * (14 - pos index k') else 0),
+        if_pos (Finset.mem_univ _)]
+      simp only [Fin.val_mk, le_refl, true_and]
+    rw [single, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro k' _
+    by_cases he : k' = ⟨k, hk63⟩
+    · subst he
+      simp only [↓reduceIte, Fin.val_mk, le_refl, true_and]
+      split_ifs <;> omega
+    · rw [if_neg he, Nat.zero_add]
+      have hne : k'.val ≠ k := fun h => he (Fin.ext h)
+      split_ifs <;> omega
+
+/-- Tree-node disclosure does not depend on the index. -/
+def treeBits (n : Name) : ℕ := if disclosed (fun _ => 0) n then n.len else 0
+
+/-- The tree phase reads exactly five words: three group values and two subtree values. -/
+theorem tree_consumed : (treeNodes.map (consumedBits index)).sum = 640 := by
+  have pointwise : ∀ n ∈ treeNodes, consumedBits index n = treeBits n := by
+    intro n hn
+    simp only [treeNodes, List.mem_append, List.mem_map, List.mem_finRange, true_and,
+      List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, or_assoc] at hn
+    rcases hn with ⟨j, rfl⟩ | ⟨j, rfl⟩ | ⟨j, rfl⟩ | ⟨l, rfl⟩ | ⟨l, rfl⟩ | ⟨l, rfl⟩ | rfl | rfl <;> rfl
+  rw [List.map_congr_left pointwise]
+  decide +kernel
 
 /-! ## The whole chain phase -/
 
 theorem chainSetup_effect (s : MachineState) :
     (chainSetup.foldl execInstrBr s).getReg .x18 = BitVec.ofNat 64 chainsBase ∧
-    (chainSetup.foldl execInstrBr s).getReg .x9 = Riscv.signatureBase + 32 + BitVec.ofNat 64 (0 / 8) ∧
+    (chainSetup.foldl execInstrBr s).getReg .x9 = Riscv.signatureBase + 32 ∧
     (chainSetup.foldl execInstrBr s).getReg .x5 = Riscv.hashCall ∧
     (chainSetup.foldl execInstrBr s).getReg .x11 = 144 ∧
     (∀ r, r ≠ .x18 → r ≠ .x9 → r ≠ .x5 → r ≠ .x11 →
       (chainSetup.foldl execInstrBr s).getReg r = s.getReg r) ∧
     (chainSetup.foldl execInstrBr s).mem = s.mem := by
   have baseLit : literalValue chainsBase = BitVec.ofNat 64 chainsBase := by decide +kernel
-  have cursorLit : literalValue (Riscv.signatureBase.toNat + 32) =
-      Riscv.signatureBase + 32 + BitVec.ofNat 64 (0 / 8) := by decide +kernel
+  have cursorLit : literalValue (Riscv.signatureBase.toNat + 32) = Riscv.signatureBase + 32 := by
+    decide +kernel
   simp only [chainSetup, List.foldl_append, List.foldl_cons, List.foldl_nil, execInstrBr]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x11 .x18 _ (by decide),
@@ -377,22 +154,88 @@ theorem chainSetup_ready (s : MachineState) : Riscv.LinearReady s chainSetup := 
 
 theorem chainSetup_length : chainSetup.length = 6 := by decide +kernel
 
-/-- Entering the chain phase from the decoded input establishes the source invariant. -/
-theorem chainSetup_srcInv (s : MachineState) (context : Direct.ExecutionContext s index payload pk)
-    (x : graph.Assignment) :
-    SrcInv index payload pk (levelsFrom 0 ++ treeNodes) (chainSetup.foldl execInstrBr s) x 0 srcs := by
-  obtain ⟨h18, h9, h5, h11, regs, mem⟩ := chainSetup_effect s
-  refine ⟨⟨context.frameInputs (fun addr _ => by simp only [MachineState.getMem, mem])
-    (regs .x8 (by decide) (by decide) (by decide) (by decide)), ⟨h18, h5, h11⟩, h9, rfl, ?_⟩, ?_⟩
-  · rw [← order_split, total_consumed]
-  · intro k _ _ hn
-    exact absurd (List.mem_map.mpr ⟨k, List.mem_finRange k, rfl⟩) hn
+theorem chainsEnd_effect (s : MachineState) :
+    (chainsEnd.foldl execInstrBr s).getReg .x9 = s.getReg .x9 + BitVec.ofNat 64 576 ∧
+    (∀ r, r ≠ .x9 → (chainsEnd.foldl execInstrBr s).getReg r = s.getReg r) ∧
+    (chainsEnd.foldl execInstrBr s).mem = s.mem := by
+  have h576 : signExtend12 576 = BitVec.ofNat 64 576 := by decide
+  simp only [chainsEnd, List.foldl_cons, List.foldl_nil, execInstrBr, h576]
+  refine ⟨?_, ?_, rfl⟩
+  · simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_eq (by decide : Reg.x9 ≠ .x0)]
+  · intro r h9
+    simp only [MachineState.getReg_setPC, MachineState.getReg_setReg_ne _ .x9 r _ h9.symm]
 
-theorem srcs_length_code : (readSweep 0).length = ((List.finRange 63).flatMap
-    fun k => if k.val < 36 then readChain 0 k.val else []).length := rfl
+theorem chainsEnd_ready (s : MachineState) : Riscv.LinearReady s chainsEnd := ⟨rfl, trivial, trivial⟩
+
+theorem chainsEnd_length : chainsEnd.length = 1 := rfl
+
+/-- After the last chain every active chain holds its final value and the cursor names the first
+tree word. -/
+def ChainsDone (s : MachineState) (x : graph.Assignment) (cursor : ℕ) : Prop :=
+  ChainCtx index payload pk s cursor treeNodes ∧
+  ∀ k : Fin 63, k.val < 36 → Holds s k (x (cv k 13).fin)
+
+/-- Chains `k` and later refine the reader over their nodes. -/
+theorem chainsFrom_refines (tail : Code)
+    (K : graph.Assignment × ℕ → OracleComp (Spec paperParams) (Option Bool)) (c rest' : ℕ)
+    (continuation : ∀ (u : MachineState) (y : graph.Assignment),
+      ChainsInv index payload pk u y 63 → Riscv.CodeAt u u.pc tail →
+      ∀ left, rest' ≤ left → Riscv.Refines left u (K (y, 4608)) c) :
+    ∀ (n k : ℕ), 63 - k = n →
+    ∀ (s : MachineState) (x : graph.Assignment) (fuel cursor : ℕ), cursor = 128 * min k 36 →
+      ChainsInv index payload pk s x k →
+      Riscv.CodeAt s s.pc (blocksFrom k ++ tail) →
+      (blocksFrom k).length + rest' ≤ fuel →
+      Riscv.Refines fuel s (runNodes' index payload (chainsFrom k) x cursor >>= K)
+        (costFrom index k + c) := by
+  intro n
+  induction n with
+  | zero =>
+    intro k hk s x fuel cursor hcursor inv located bound
+    have hk63 : ¬ k < 63 := by omega
+    rw [chainsFrom, dif_neg hk63, costFrom, dif_neg hk63, Nat.zero_add, runNodes', pure_bind,
+      hcursor, show min k 36 = 36 by omega]
+    rw [blocksFrom_nil k (by omega), List.nil_append] at located
+    rw [blocksFrom_nil k (by omega), List.length_nil, Nat.zero_add] at bound
+    exact continuation s x ⟨inv.context, inv.regs, inv.cursorReg, inv.pcAligned,
+      fun k' hk' _ => inv.done k' hk' (by omega)⟩ located fuel bound
+  | succ n ih =>
+    intro k hk s x fuel cursor hcursor inv located bound
+    have hk63 : k < 63 := by omega
+    rw [chainsFrom, dif_pos hk63, costFrom, dif_pos hk63, runNodes'_append, bind_assoc]
+    by_cases h36 : k < 36
+    · rw [if_pos h36, hcursor, show min k 36 = k by omega]
+      rw [blocksFrom_cons k h36, List.append_assoc] at located
+      rw [blocksFrom_cons k h36, List.length_append, chainBlock_length k h36] at bound
+      have hpos : pos index ⟨k, hk63⟩ ≤ 14 := by
+        show (fixedPositions index ⟨k, hk63⟩).val ≤ 14
+        have := (fixedPositions index ⟨k, hk63⟩).isLt
+        omega
+      rw [Nat.add_assoc]
+      apply chain_refines index payload pk ⟨k, hk63⟩ h36 (blocksFrom (k + 1) ++ tail)
+        (fun r => runNodes' index payload (chainsFrom (k + 1)) r.1 r.2 >>= K)
+        (costFrom index (k + 1) + c) ((blocksFrom (k + 1)).length + rest') ?_ s x fuel inv located
+        (by omega)
+      intro u y inv' located' left hleft
+      dsimp only
+      exact ih (k + 1) (by omega) u y left (128 * k + 128) (by omega) inv' located' hleft
+    · rw [if_neg h36, Nat.zero_add]
+      have hb0 : blocksFrom k = [] := blocksFrom_nil k h36
+      have hb1 : blocksFrom (k + 1) = [] := blocksFrom_nil (k + 1) (by omega)
+      rw [hb0] at located bound
+      apply inactive_refines index payload ⟨k, hk63⟩ h36 _ x cursor s fuel _
+      intro y frame
+      dsimp only
+      apply ih (k + 1) (by omega) s y fuel cursor (by omega) ?_ ?_ ?_
+      · refine ⟨inv.context, inv.regs, inv.cursorReg, inv.pcAligned, ?_⟩
+        intro k' hk' _
+        rw [frame k' hk']
+        exact inv.done k' hk' (by omega)
+      · rw [hb1]; exact located
+      · rw [hb1]; exact bound
 
 /-- The cycles of the whole chain phase for a given index. -/
-def chainsCost : ℕ := chainSetup.length + (srcsCost index + levelsCost index 0)
+def chainsCost : ℕ := chainSetup.length + costFrom index 0 + chainsEnd.length
 
 /-- The whole chain phase refines the reader over the chain nodes of `order`. -/
 theorem chains_refines (tail : Code)
@@ -401,43 +244,63 @@ theorem chains_refines (tail : Code)
       ChainsDone index payload pk u y cursor' → Riscv.CodeAt u u.pc tail →
       ∀ left, rest' ≤ left → Riscv.Refines left u (K (y, cursor')) c)
     (s : MachineState) (context : Direct.ExecutionContext s index payload pk)
-    (x : graph.Assignment) (fuel : ℕ)
+    (aligned : s.pc.toNat % 4 = 0) (x : graph.Assignment) (fuel : ℕ)
     (located : Riscv.CodeAt s s.pc (chains ++ tail)) (bound : chains.length + rest' ≤ fuel) :
-    Riscv.Refines fuel s (runNodes' index payload (srcs ++ levelsFrom 0) x 0 >>= K)
+    Riscv.Refines fuel s (runNodes' index payload (chainsFrom 0) x 0 >>= K)
       (chainsCost index + c) := by
-  have parts : chains = chainSetup ++ (readSweep 0 ++ (levelsCodeFrom 0 ++ [])) := by
-    simp only [chains, chains_split, List.append_nil, List.append_assoc]
+  have parts : chains = chainSetup ++ (blocksFrom 0 ++ chainsEnd) := by
+    rw [chains, blocks_eq, List.append_assoc]
   rw [parts] at located bound
-  simp only [List.append_assoc, List.length_append, List.length_nil, Nat.add_zero] at located bound
-  set u := chainSetup.foldl execInstrBr s with hu
+  simp only [List.append_assoc, List.length_append] at located bound
+  -- the setup
+  obtain ⟨h18, h9, h5, h11, regs, mem⟩ := chainSetup_effect s
   have ready := chainSetup_ready s
-  have uCode : Riscv.CodeAt u u.pc (readSweep 0 ++ (levelsCodeFrom 0 ++ tail)) := by
-    rw [hu, Riscv.linear_fold_pc s _ ready]
-    exact located.append_right.code_eq (Riscv.fold_code s _)
-  have inv := chainSetup_srcInv index payload pk s context x
-  rw [runNodes'_append, bind_assoc]
-  rw [show fuel = chainSetup.length + (fuel - chainSetup.length) by rw [chainSetup_length] at bound ⊢; omega,
-    show chainsCost index + c = chainSetup.length + (srcsCost index + (levelsCost index 0 + c)) by
+  have uPc := Riscv.linear_fold_pc s chainSetup ready
+  have uCodeEq := Riscv.fold_code s chainSetup
+  set u := chainSetup.foldl execInstrBr s with hu
+  have uCode : Riscv.CodeAt u u.pc (blocksFrom 0 ++ (chainsEnd ++ tail)) := by
+    rw [uPc]
+    exact located.append_right.code_eq uCodeEq
+  have uInv : ChainsInv index payload pk u x 0 := by
+    refine ⟨context.frameInputs (fun addr _ => by simp only [MachineState.getMem, mem])
+      (regs .x8 (by decide) (by decide) (by decide) (by decide)), ⟨h18, h5, h11⟩, h9, ?_, ?_⟩
+    · rw [uPc, chainSetup_length, BitVec.toNat_add, BitVec.toNat_ofNat,
+        Nat.mod_mod_of_dvd _ (by norm_num : 4 ∣ 2 ^ 64)]
+      omega
+    · intro k' _ h
+      exact absurd h (Nat.not_lt_zero _)
+  rw [show fuel = chainSetup.length + (fuel - chainSetup.length) by
+      rw [chainSetup_length] at bound ⊢; omega,
+    show chainsCost index + c = chainSetup.length + (costFrom index 0 + (chainsEnd.length + c)) by
       unfold chainsCost; omega]
   apply Riscv.Refines.linear _ located.append_left ready
   rw [← hu]
-  have step := sweep_refines index payload (srcSeg index payload pk (levelsFrom 0 ++ treeNodes)) srcs
-    srcs_nodup (fun n hn => by
-      obtain ⟨k, _, rfl⟩ := List.mem_map.mp hn
-      exact src_refines index payload pk (levelsFrom 0 ++ treeNodes) k) (levelsCodeFrom 0 ++ tail)
-    (fun r => runNodes' index payload (levelsFrom 0) r.1 r.2 >>= K)
-    (levelsCost index 0 + c) ((levelsCodeFrom 0).length + rest') ?_ u x 0
-    (fuel - chainSetup.length) inv (by rw [srcs_code]; exact uCode)
-    (by rw [srcs_code, chainSetup_length] at *; omega)
-  · rw [srcs_cost] at step
-    exact step
-  intro v y cursor' inv' located' left hleft
-  dsimp only
-  apply levels_refines index payload pk tail K c rest' continuation 14 0 rfl v y cursor' left ?_
-    located' hleft
-  unfold LevelStart
-  rw [dif_pos (by decide)]
-  exact src_to_ci index payload pk (levelsFrom 1 ++ treeNodes) v y cursor'
-    (by rwa [levelsFrom_lt 0 (by decide), List.append_assoc] at inv')
+  apply chainsFrom_refines index payload pk (chainsEnd ++ tail) K (chainsEnd.length + c)
+    (chainsEnd.length + rest') ?_ 63 0 rfl u x (fuel - chainSetup.length) 0 (by decide) uInv uCode
+    (by rw [chainSetup_length] at bound ⊢; omega)
+  intro v y invV locatedV left hleft
+  -- the epilogue
+  obtain ⟨v9, vRegs, vMem⟩ := chainsEnd_effect v
+  have readyE := chainsEnd_ready v
+  have wPc := Riscv.linear_fold_pc v chainsEnd readyE
+  have wCodeEq := Riscv.fold_code v chainsEnd
+  set w := chainsEnd.foldl execInstrBr v with hw
+  rw [show left = chainsEnd.length + (left - chainsEnd.length) by
+    rw [chainsEnd_length] at hleft ⊢; omega]
+  apply Riscv.Refines.linear _ locatedV.append_left readyE
+  rw [← hw]
+  apply continuation w y 4608 ?_ ?_ (left - chainsEnd.length) (by omega)
+  · refine ⟨⟨invV.context.frameInputs (fun addr _ => by simp only [MachineState.getMem, vMem])
+      (vRegs .x8 (by decide)), ⟨?_, ?_, ?_⟩, ?_, by decide, ?_⟩, ?_⟩
+    · rw [vRegs .x18 (by decide)]; exact invV.regs.base
+    · rw [vRegs .x5 (by decide)]; exact invV.regs.call
+    · rw [vRegs .x11 (by decide)]; exact invV.regs.length
+    · show w.getReg .x9 = Riscv.signatureBase + 32 + BitVec.ofNat 64 (4608 / 8)
+      rw [v9, invV.cursorReg]
+    · rw [tree_consumed]
+    · intro k hk
+      exact memBits_of_mem_eq vMem (invV.done k hk (by omega))
+  · rw [wPc]
+    exact locatedV.append_right.code_eq wCodeEq
 
 end OptimalOTS.RiscvUpperProgram.Compact

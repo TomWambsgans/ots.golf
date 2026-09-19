@@ -9,7 +9,7 @@ import Submissions.RiscvUpper.DecoderExecution
 The compact image observes exactly the certified raw-signature verifier, preserving every oracle
 query, and every accepting run costs at most `cycleBound` cycles: one cycle per executed
 instruction, with the 912-bit root hash charged two. The index phase (query, nibble checks and
-position stores) costs 271 cycles and the chain phase 4854 cycles on every accepted index.
+position stores) costs 271 cycles and the chain phase 973 cycles on every accepted index.
 -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
@@ -68,7 +68,7 @@ theorem initial_pc (pk : PublicKey paperParams) (m : Message paperParams) (bits 
 set_option allowUnsafeReducibility true
 attribute [local reducible] paperParams Forest.graph
 
-theorem verifier_length : verifier.length = 9674 := by decide +kernel
+theorem verifier_length : verifier.length = 2651 := by decide +kernel
 
 theorem image_valid : image.Valid := by
   refine ⟨?_, ?_, ?_⟩
@@ -93,22 +93,29 @@ theorem CodeAt.at_offset {s t : MachineState} {pc : Word} {first last : List Ins
   exact located.append_right.code_eq same
 
 /-- The reader's node order, split as the machine processes it. -/
-theorem order_eq : order = (srcs ++ levelsFrom 0) ++
+theorem order_eq : order = chainsFrom 0 ++
     ((gcs ++ (ghs ++ gvs)) ++ ((ecs ++ (ehs ++ evs)) ++ [rc, rh])) := by
   rw [order_split, treeNodes_split]
   simp only [List.append_assoc]
 
-/-- The certified accepting-path cycle count. -/
-def cycleBound : ℕ := 5513
+/-- The chain phase starts at a word-aligned address, so its jump tables land on instructions. -/
+theorem decodedInput_aligned (image : Riscv.Image) (pk : PublicKey paperParams)
+    (m : Message paperParams) (bits : List Bool) (answer : BitVec 256) :
+    (decodedInput image pk m bits answer).pc.toNat % 4 = 0 := by
+  rw [decodedInput_pc, indexAndChecks_length]
+  decide
 
-/-- The index phase and the chain phase are charged their exact executed costs, 271 and 4854
+/-- The certified accepting-path cycle count. -/
+def cycleBound : ℕ := 1632
+
+/-- The index phase and the chain phase are charged their exact executed costs, 271 and 973
 cycles for every accepted index. -/
-theorem cost_arith : 4854 + (groups.length +
+theorem cost_arith : 973 + (groups.length +
     (subtrees.length + (root.length + 1 + decision.length))) + 271 = cycleBound := by
   decide +kernel
 
 theorem lengths : indexAndChecks.length + (chains.length +
-    (groups.length + (subtrees.length + (root.length + decision.length)))) = 9674 := by
+    (groups.length + (subtrees.length + (root.length + decision.length)))) = 2651 := by
   have h := verifier_length
   simp only [verifier, List.length_append] at h
   omega
@@ -131,7 +138,7 @@ theorem acceptedTail_eq (pk : PublicKey paperParams) (bits : List Bool) (answer 
 /-- The compact image computes exactly the specified verifier within its fuel, and every
 accepting run costs at most `cycleBound` cycles. -/
 theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bits : List Bool) :
-    Riscv.Refines 9674 (Riscv.initialState image pk m bits) (some <$> directVerify pk m bits)
+    Riscv.Refines 2651 (Riscv.initialState image pk m bits) (some <$> directVerify pk m bits)
       cycleBound := by
   have located := Riscv.CodeAt.initial image pk m bits image_valid
   rw [image_code, ← initial_pc pk m bits] at located
@@ -140,7 +147,7 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
   simp only [List.append_assoc] at located
   rw [directVerify_unfold, ← cost_arith]
   apply indexAndChecks_refines image pk m bits image_data_length
-    (chains.length + (groups.length + (subtrees.length + (root.length + decision.length)))) 9674
+    (chains.length + (groups.length + (subtrees.length + (root.length + decision.length)))) 2651
     (fun answer => acceptedTail pk bits answer)
     _ (by have h1 := lengths; have h2 := indexAndChecks_length; omega) located.append_left
     (by rw [lengths])
@@ -161,7 +168,8 @@ theorem image_refines (pk : PublicKey paperParams) (m : Message paperParams) (bi
     (groups ++ (subtrees ++ (root ++ decision))) _
     (groups.length + (subtrees.length + (root.length + 1 + decision.length)))
     (groups.length + (subtrees.length + (root.length + decision.length))) ?_ _
-    (decodedInput_context image pk m bits answer image_data_length hi) _ left located2 hleft
+    (decodedInput_context image pk m bits answer image_data_length hi)
+    (decodedInput_aligned image pk m bits answer) _ left located2 hleft
   intro u y cursor1 done1 located3 left2 hleft2
   dsimp only
   rw [runNodes'_append]

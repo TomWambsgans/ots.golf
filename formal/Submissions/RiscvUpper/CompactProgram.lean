@@ -4,9 +4,10 @@ import Submissions.RiscvUpper.NodeProgram
 # Compact RV64IM forest verifier
 
 The image keeps one 32-byte slot per active chain: its current 128-bit value, the tag of the next
-chain hash, and room for a complete hash answer, which HASH writes in place. Every level hashes the
-evaluated chains in chain order, then reads the level's disclosed values, exactly as the
-specification's sequential reader visits the nodes. Tree inputs are assembled in one scratch buffer.
+chain hash, and room for a complete hash answer, which HASH writes in place. Each chain is one
+block: read the disclosed word, then jump into a table of fourteen hash steps at the step of the
+disclosed position, exactly as the specification's sequential reader visits the chain's nodes.
+Tree inputs are assembled in one scratch buffer.
 -/
 
 namespace OptimalOTS.RiscvUpperProgram.Compact
@@ -17,33 +18,34 @@ def chainSlot (k : ℕ) : ℕ := 32 * k
 def groupSlot (j : ℕ) : ℕ := 32 * j
 def subtreeSlot (l : ℕ) : ℕ := 32 * l
 
-/-- Read the next disclosed word into chain `k` when its position equals `p`. -/
-def readChain (p k : ℕ) : Code :=
-  [.LD .x26 .x8 (BitVec.ofNat 12 (8 * k))] ++ constant .x27 p ++ [.XOR .x26 .x26 .x27] ++
-  whenZero .x26 (copy128 .x9 0 .x18 (chainSlot k) ++ [.ADDI .x9 .x9 16])
+/-- Hash step `t` of chain `k`: write the tag of `ch k t` after the slot's value and hash the
+144-bit input in place. -/
+def chainStep (k t : ℕ) : Code :=
+  Direct.writeTag (BitVec.ofNat 16 (43 * k + 2 + 3 * t)) (chainSlot k + 16) ++ [.ECALL]
 
-/-- Hash chain `k` at level `t` when its position is at most `t`. -/
-def hashChain (t k : ℕ) : Code :=
-  [.LD .x26 .x8 (BitVec.ofNat 12 (8 * k)), .SLTIU .x26 .x26 (BitVec.ofNat 12 (t + 1))] ++
-  whenNonzero .x26 (Direct.writeTag (BitVec.ofNat 16 (126 + 189 * t + k)) (chainSlot k + 16) ++
-    [.ADDI .x10 .x18 (BitVec.ofNat 12 (chainSlot k)),
-     .ADDI .x12 .x18 (BitVec.ofNat 12 (chainSlot k)), .ECALL])
+/-- The fourteen steps of chain `k`; the prologue jumps to the step of the disclosed position. -/
+def chainTable (k : ℕ) : Code := (List.range 14).flatMap (chainStep k)
 
-/-- The active chains, in the specification's chain order; inactive chains have no code. -/
-def hashSweep (t : ℕ) : Code :=
-  (List.finRange 63).flatMap fun k => if k.val < 36 then hashChain t k.val else []
+/-- Copy chain `k`'s disclosed word into its slot, point HASH at the slot, and jump over the
+first `position` steps: `x28` is this block's address, the table starts 52 bytes later and each
+step is 12 bytes. -/
+def chainPrologue (k : ℕ) : Code :=
+  [.AUIPC .x28 0] ++ copy128 .x9 (16 * k) .x18 (chainSlot k) ++
+  [.ADDI .x10 .x18 (BitVec.ofNat 12 (chainSlot k)), .ADDI .x12 .x18 (BitVec.ofNat 12 (chainSlot k)),
+   .LD .x26 .x8 (BitVec.ofNat 12 (8 * k)),
+   .SLLI .x27 .x26 3, .SLLI .x26 .x26 2, .ADD .x27 .x27 .x26,
+   .ADD .x27 .x27 .x28, .JALR .x0 .x27 52]
 
-def readSweep (p : ℕ) : Code :=
-  (List.finRange 63).flatMap fun k => if k.val < 36 then readChain p k.val else []
-
-def level (t : ℕ) : Code := hashSweep t ++ readSweep (t + 1)
+def chainBlock (k : ℕ) : Code := chainPrologue k ++ chainTable k
 
 def chainSetup : Code :=
   constant .x18 chainsBase ++ constant .x9 (Riscv.signatureBase.toNat + 32) ++
   [.ADDI .x5 .x0 1, .ADDI .x11 .x0 144]
 
-def chains : Code :=
-  chainSetup ++ readSweep 0 ++ (List.finRange 14).flatMap fun t => level t.val
+/-- The cursor passes the 36 disclosed chain words. -/
+def chainsEnd : Code := [.ADDI .x9 .x9 576]
+
+def chains : Code := chainSetup ++ (List.range 36).flatMap chainBlock ++ chainsEnd
 
 /-- Three 128-bit values and a tag, last child lowest, in the scratch buffer at `x18`. -/
 def tripleInput (src : Reg) (a b c tag : ℕ) : Code :=

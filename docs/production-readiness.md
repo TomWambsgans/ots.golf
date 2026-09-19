@@ -472,3 +472,27 @@ and `Quot.sound`, the official verifier accepted `riscv-upper` at 5513 in 282.0 
 `generic-upper` at 106 in 138.7 seconds on macOS, 61 verifier tests and 75 service tests pass, and
 the protected pin was regenerated (contract id
 `27f6f6075e03a41926be719725ed06703142cca150da380503c0364518661d03`). Nothing was pushed or deployed.
+
+## RISC-V certificate at 1632 cycles: one block per chain (2026-09-19)
+
+The chain phase no longer sweeps level by level with a guard per chain and level. The forest nodes
+are numbered chain-major (`src k` at `43k`, `ci k t`, `ch k t`, `cv k t` at `43k + 1 + 3t`,
+`43k + 2 + 3t`, `43k + 3 + 3t`; tree nodes unchanged from 2709), and `ForestVerifier.order` lists
+each chain completely before the next. The security proof and the explicit verifier needed no
+change beyond `Name.idx`, `Name.ofFin` and `order`, and the contract is untouched. Each of the 36
+active chains is now one 55-instruction block: a 13-instruction prologue copies the chain's
+disclosed word into its slot, loads its position `p` and jumps (`AUIPC`/`JALR`) to entry `p` of
+a 14-step hash table, at 3 instructions per step. `CompactChains` proves one block against the
+specification (`prefix_run`, `prologue_refines`, `step_refines`, `steps_refines`,
+`chain_refines`, `inactive_refines`), and `CompactLevels.chainsFrom_refines` composes the 63
+chains. The chain phase costs `7 + 36 · 13 + 3 · 166 = 973` cycles on every accepted index
+instead of 4854, so the claim drops from 5513 to **1632** (271 + 973 + 240 + 100 + 36 + 12) and
+the image from 9674 to 2651 instructions.
+
+The certificate uses only `propext`, `Classical.choice` and `Quot.sound`; the official verifier
+accepted `riscv-upper` at 1632 in 210.9 seconds on macOS; the policy check reports 73 files and
+975,211 bytes; 61 verifier tests and 75 service tests pass; the baseline and protected pin were
+regenerated (contract id `2461d3b5a189f6ad9d7e730bad5b38ea7c30e2b9d56bc943c9457ee7f6623fe4`). The
+invented RISC-V demo history was scaled with the record: it now runs from 2070 down to 1860 cycles,
+one non-record at 1890, then Satoshi at 1632, the same 14 to 27 percent above the record as
+before. Nothing was pushed or deployed.

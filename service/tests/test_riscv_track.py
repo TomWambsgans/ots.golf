@@ -24,7 +24,7 @@ class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'generic-upper'))
-        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=5513,
+        machine.update(slug='riscv-upper', title='RISC-V upper bound', baseline=1632,
                        cost_unit='cycles', submission_root='formal/Submissions/RiscvUpper')
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'riscv-upper'] + [machine]
         self.config['upper_tracks'] = ['generic-upper', 'riscv-upper']
@@ -56,17 +56,17 @@ class RiscvTrackTests(unittest.TestCase):
         compression = self.points(html, 'chart-points')
         machine = self.points(html, 'riscv-chart-points')
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
-        self.assertFalse(any(p['claim'] == 5513 for p in compression))
+        self.assertFalse(any(p['claim'] == 1632 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(7000, 'satoshi-nakamoto', 'cycles'), (6920, 'hal-finney', 'cycles'),
-                          (6850, 'ralph-merkle', 'cycles'), (6780, 'vitalik-buterin', 'cycles'),
-                          (6720, 'leslie-lamport', 'cycles'), (6660, 'hal-finney', 'cycles'),
-                          (6610, 'satoshi-nakamoto', 'cycles'), (6560, 'vitalik-buterin', 'cycles'),
-                          (6520, 'ralph-merkle', 'cycles'), (6480, 'hal-finney', 'cycles'),
-                          (6440, 'leslie-lamport', 'cycles'), (6410, 'hal-finney', 'cycles'),
-                          (6380, 'vitalik-buterin', 'cycles'), (6350, 'hal-finney', 'cycles'),
-                          (6330, 'vitalik-buterin', 'cycles'), (6310, 'vitalik-buterin', 'cycles'),
-                          (5513, 'satoshi-nakamoto', 'cycles')])
+                         [(2070, 'satoshi-nakamoto', 'cycles'), (2050, 'hal-finney', 'cycles'),
+                          (2030, 'ralph-merkle', 'cycles'), (2010, 'vitalik-buterin', 'cycles'),
+                          (1990, 'leslie-lamport', 'cycles'), (1970, 'hal-finney', 'cycles'),
+                          (1960, 'satoshi-nakamoto', 'cycles'), (1940, 'vitalik-buterin', 'cycles'),
+                          (1930, 'ralph-merkle', 'cycles'), (1920, 'hal-finney', 'cycles'),
+                          (1910, 'leslie-lamport', 'cycles'), (1900, 'hal-finney', 'cycles'),
+                          (1890, 'vitalik-buterin', 'cycles'), (1880, 'hal-finney', 'cycles'),
+                          (1870, 'vitalik-buterin', 'cycles'), (1860, 'vitalik-buterin', 'cycles'),
+                          (1632, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="riscv-upper"', html)
@@ -83,7 +83,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('5513 cycles', detail)
+        self.assertIn('1632 cycles', detail)
         self.assertIn('Upper bound · RISC-V cycles', detail)
         self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
@@ -129,7 +129,7 @@ class RiscvTrackTests(unittest.TestCase):
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)
-        self.assertNotIn('5513', html)
+        self.assertNotIn('1632', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
         self.assertIn('formal/Submissions/RiscvUpper/', html)
         self.assertIn('<code>riscv-upper</code>', html)
