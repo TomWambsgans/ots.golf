@@ -6,7 +6,7 @@ size and resource limits. -/
 
 namespace OptimalOTS.Challenge.GenericLower
 
-/-- Every pathwise verification budget of an admissible weakly secure oracle algorithm is at least
+/-- Every pathwise verification budget of an admissible secure oracle algorithm is at least
 `{{CLAIM}}` compressions. -/
 theorem candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) {{CLAIM}} := sorry

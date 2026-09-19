@@ -6,7 +6,7 @@ The bare-oracle DAG security experiment and all size and cost limits are unchang
 
 namespace OptimalOTS.Challenge.DisclosureLower
 
-/-- Every weakly secure whole-word DAG has an index whose verification costs at least
+/-- Every secure whole-word DAG has an index whose verification costs at least
 `{{CLAIM}}` compressions. -/
 theorem candidate : WholeWordVerificationLowerBound paperParams {{CLAIM}} := sorry
 

@@ -95,11 +95,11 @@ theorem Secure.weaklySecure {S : AlgorithmScheme P} (h : S.Secure) : S.WeaklySec
 
 end AlgorithmScheme
 
-/-- Every pathwise verification budget for an admissible, weakly secure algorithm is at least `c`.
+/-- Every pathwise verification budget for an admissible, secure algorithm is at least `c`.
 The budget must cover all public keys, messages, and signatures, including rejecting inputs. -/
 def AlgorithmVerificationLowerBound (P : Params) (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞)
     (c : ℕ) : Prop :=
-  ∀ S : AlgorithmScheme P, S.Admissible L ε → S.WeaklySecure →
+  ∀ S : AlgorithmScheme P, S.Admissible L ε → S.Secure →
     ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
 
 end OptimalOTS

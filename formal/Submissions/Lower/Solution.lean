@@ -12,7 +12,7 @@ cost divided by 2^127 is smaller. No separation or tagging hypothesis is imposed
 
 namespace OptimalOTS
 
-/-- Every weakly secure scheme in the bare model has a verification costing at least 18. -/
+/-- Every secure scheme in the bare model has a verification costing at least 18. -/
 theorem verificationLowerBound_paper : VerificationLowerBound paperParams 18 := by
   intro S hS
   by_contra hn
@@ -24,7 +24,7 @@ theorem verificationLowerBound_paper : VerificationLowerBound paperParams 18 := 
     change 1 + S.graph.reconstructCost (S.sets i) ≤ 17 at h
     omega
   have hb := PatternAttack.cost_experiment S (2 ^ 122) 16 (by decide) hrecon
-  have hsec := hS _ _ hb
+  have hsec := hS.weaklySecure _ _ hb
   have hsuccess := PatternAttack.success_ge S hcost
   exact (not_lt_of_ge hsuccess) (hsec.trans PatternAttack.budget_lt)
 

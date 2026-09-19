@@ -28,7 +28,7 @@ theorem wholeWordVerificationLowerBound_paper :
     change 1 + S.graph.reconstructCost (S.sets i) ≤ 92 at h
     omega
   have hb := PatternAttack.cost_experiment S (2 ^ 122) 91 (by decide) hrecon
-  have hsec := hS _ _ hb
+  have hsec := hS.weaklySecure _ _ hb
   have hsuccess := AveragedAssembly.success_ge_count S
     (S.card_hashPattern_image_le_disclosure hdis hcost)
   exact (not_lt_of_ge hsuccess) (hsec.trans AveragedAssembly.budget_lt)

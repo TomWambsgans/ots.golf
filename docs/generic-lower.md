@@ -46,9 +46,9 @@ OptimalOTS.GenericLower.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 /
 ```
 
 `AlgorithmVerificationLowerBound P L ε c` quantifies over every `AlgorithmScheme P`
-satisfying `Admissible L ε` and `WeaklySecure`. It proves that every pathwise verification
-budget is at least `c`. `AlgorithmScheme.Secure.weaklySecure` also checks in Lean, so the
-result covers all strongly secure schemes meeting those admissibility requirements.
+satisfying `Admissible L ε` and `Secure`. It proves that every pathwise verification
+budget is at least `c`. The attack forges on a fresh message, so `AlgorithmScheme.Secure.weaklySecure`
+bridges the strong hypothesis to the weak experiment the proof analyses.
 
 Files:
 

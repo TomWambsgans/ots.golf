@@ -12,7 +12,7 @@ A larger claim is a stronger result. Contract: `OptimalOTS/Statement.lean`.
 
 namespace OptimalOTS.Challenge.Lower
 
-/-- **Lower-track certificate.** Every weakly secure DAG scheme with the paper parameters has a
+/-- **Lower-track certificate.** Every secure DAG scheme with the paper parameters has a
 signature index whose verification costs at least `{{CLAIM}}` compressions. -/
 theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
 

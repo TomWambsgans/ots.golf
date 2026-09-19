@@ -33,8 +33,8 @@ def Graph.WholeWords {P : Params} (G : Graph P) : Prop :=
 /-- The whole-word lower framework, with the underlying DAG scheme unchanged. -/
 def Scheme.WholeWords {P : Params} (S : Scheme P) : Prop := S.graph.WholeWords
 
-/-- A lower bound for every weakly secure whole-word DAG scheme. -/
+/-- A lower bound for every secure whole-word DAG scheme. -/
 def WholeWordVerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.WholeWords → S.WeaklySecure → ∃ i, c ≤ S.verifyCost i
+  ∀ S : Scheme P, S.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
 
 end OptimalOTS

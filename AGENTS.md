@@ -39,7 +39,7 @@ of the lower frameworks. All five public tracks are open.
 - **Generality 3/3** (`generic-lower`): arbitrary oracle programs, with certified lower bound 1.
   `Algorithm.lean` and `AlgorithmWeak.lean` define the protected interface. The lower challenge fixes
   perfect correctness, signing failure at most `2^-128` for every public-key-dependent message
-  choice, the paper size and resource limits, and 127-bit weak unforgeability. Proofs live in
+  choice, the paper size and resource limits, and 127-bit strong unforgeability. Proofs live in
   `formal/Submissions/GenericLower/`; see `docs/generic-lower.md`.
 - **Generality 2/3** (`lower`): fixed DAGs with arbitrary deterministic functions and disclosure
   cuts, with certified lower bound 18.
@@ -73,7 +73,7 @@ receive the same answer across all uses. A scheme may put a tweak in its input a
 the upper baseline uses 16-bit tweaks. Hashing costs one compression per started 512-bit block, at
 least one. The 512-bit message-and-nonce index costs one compression.
 
-The verified unrestricted DAG lower bound is 18, proved for every weakly secure scheme by counting
+The verified unrestricted DAG lower bound is 18, proved for every secure scheme by counting
 reconstructed hash-node sets and converting signatures between equal sets. Bounds above 18 remain
 open; research notes are in `docs/bare-oracle-port.md`. Claims require Lean-kernel-checked certificates.
 
@@ -89,9 +89,9 @@ theorem OptimalOTS.Challenge.Lower.candidate :
     VerificationLowerBound paperParams <claim> := ...
 ```
 
-`VerificationLowerBound` quantifies over `WeaklySecure` schemes (forgeries on a new message only),
-a larger class than the strongly `Secure` DAG schemes, so a lower bound also covers malleable
-schemes. The attacker of a lower-bound proof must therefore forge on a message other than the signed one.
+`VerificationLowerBound` quantifies over strongly `Secure` schemes, the notion every track uses. The
+lower-bound attacks forge on a new message, so `Scheme.Secure.weaklySecure` bridges the hypothesis to
+the weak experiment they analyse, and the bounds hold for weakly secure schemes as well.
 
 **Legacy DAG upper reference** (`formal/Submissions/Upper/`, retained for local verification):
 
@@ -119,7 +119,7 @@ theorem OptimalOTS.Challenge.GenericLower.candidate :
     AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) <claim> := ...
 ```
 
-This theorem must cover every admissible, weakly secure algorithm and every pathwise verification
+This theorem must cover every admissible, secure algorithm and every pathwise verification
 budget. The challenge fixes signing failure at most `2^-128`, matching the upper track.
 The retained proof lemma covers every failure allowance at most one half.
 

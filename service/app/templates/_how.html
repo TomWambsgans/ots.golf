@@ -22,8 +22,7 @@
     signature, then attempts a forgery. For every budget <code>B</code> covering the whole
     experiment on every run, success must be strictly below <code>B / 2<sup>127</sup></code>.
     Include key generation, signing, the attacker's queries and final verification.</p>
-    <p>Upper bounds require <strong>strong unforgeability</strong>: any accepted pair different
-    from the signed pair counts. Lower bounds count only accepted forgeries on an unsigned message.
-    If signing fails, any accepted pair counts in either experiment.</p>
+    <p>Every track uses <strong>strong unforgeability</strong>: any accepted pair different from
+    the signed pair counts, and if signing fails, any accepted pair counts.</p>
   </div>
 </details>

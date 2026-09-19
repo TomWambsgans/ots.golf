@@ -386,3 +386,15 @@ rebuilds unchanged otherwise. The protected pin was regenerated (contract id
 instructions, `llms.txt` and the proof notes say 2^20. The rules page also presents the tracks as
 two groups, upper bounds by compressions or RISC-V cycles and lower bounds by generality, and the
 one-time-signature figure is a compact monochrome four-chain diagram with a fixed-target encoding.
+
+## Strong unforgeability on every track (2026-09-18)
+
+The three lower-bound statements (`VerificationLowerBound`, `WholeWordVerificationLowerBound`,
+`AlgorithmVerificationLowerBound`) now quantify over strongly `Secure` schemes, the notion the upper
+track already proves, so the rules describe one security experiment. The lower-bound attacks still
+forge on a new message: `Statement.lean` gains `Scheme.Secure.weaklySecure`, a bridge lemma showing
+that every strong DAG scheme is weakly secure (mirroring `AlgorithmScheme.Secure.weaklySecure`), and
+each lower root applies it once. The certified bounds 18, 93 and 1 are unchanged. The protected pin
+was regenerated (contract id `efa16b82ba5760cecc53174860b73e44e6cfd6461b4c56908d9b439713947049`),
+and the challenge stubs, rules page, README, agent instructions and proof notes say "secure" instead
+of "weakly secure".

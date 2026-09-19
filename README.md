@@ -44,8 +44,8 @@ low 128 bits with the public key. Whole-word DAGs add only their operation restr
 An algorithm scheme consists of three terminating oracle programs for key generation, signing
 and verification, with an injective signature encoding.
 
-The lower certificates cover weak unforgeability: a forgery must use a new message, or signing
-must have failed. Upper certificates require strong unforgeability. Both count the cost of the
+Every certificate uses strong unforgeability: any accepted pair other than the signed one counts,
+and any accepted pair counts after a signing failure. Both count the cost of the
 complete security experiment, including honest key generation, signing and final verification.
 
 ## Work locally

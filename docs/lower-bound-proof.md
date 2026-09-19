@@ -2,11 +2,11 @@
 
 The contract is `formal/OptimalOTS/Statement.lean`: one shared random oracle keyed by its input
 bit string, and arbitrary deterministic node functions of their declared parents.
-The lower track quantifies over every weakly secure scheme:
+The lower track quantifies over every secure scheme:
 
 ```lean
 def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.WeaklySecure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
+  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
 ```
 
 `Submissions/Lower/Solution.lean` now proves `VerificationLowerBound paperParams 18`.

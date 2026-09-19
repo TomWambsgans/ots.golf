@@ -19,7 +19,7 @@ Lower claims are universal within their class; larger is better. Upper claims co
 smaller is better. Each lower class has its own record. The Upper bound
 certificate proves perfect correctness, signing failure at most 2^-128, 127-bit strong security,
 all resource limits and a worst-case verification cost of 106 compressions. Generality 3/3 lower
-uses the same signing-failure limit of 2^-128 and weak unforgeability. Both availability requirements
+uses the same signing-failure limit of 2^-128 and strong unforgeability. Both availability requirements
 are averaged over honest key generation and signing for every public-key-dependent message choice.
 The RISC-V certificate additionally proves that the fixed machine image's complete oracle computation
 equals the Lean verifier on every public key, message and raw signature, that every execution

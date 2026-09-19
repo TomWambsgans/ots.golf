@@ -55,7 +55,7 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure`, `WeaklySecure` | includes keygen, signing and final verification |
 | Unconditional lower certificate | `VerificationLowerBound paperParams 18` | repeated reconstruction patterns and a forgery on a different message |
 
-`formal/OptimalOTS/Weak.lean` proves that strong security implies weak security.
+`Scheme.Secure.weaklySecure` in `formal/OptimalOTS/Statement.lean` proves that strong security implies weak security.
 The lower certificate therefore applies to every secure scheme and also to
 schemes permitting malleability of a signature on the signed message.
 
