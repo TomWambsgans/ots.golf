@@ -12,7 +12,8 @@ reading.
 
 ```
 formal/                      the Lean project (lake root)
-  OptimalOTS/Dag.lean        the contract: Scheme, Secure, verifyCost, paperParams
+  OptimalOTS/Model.lean      shared model: Params, paperParams, the random oracle and its costs
+  OptimalOTS/Dag.lean        DAG model: DagFormat, Scheme, Secure, verifyCost
   OptimalOTS/Challenge/      stubs (*.lean.in), rendered with your claim
   Submissions/<Root>/        a submission root; lives in the submissions repository, never here
 verifier/                    checks, contract pin, comparator configs, verify.py
@@ -68,7 +69,7 @@ needs claim ≥ record + 1):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality1.candidate :
-    WholeWordVerificationLowerBound paperParams <claim> := ...
+    WholeWordVerificationLowerBound paperParams paperDagFormat <claim> := ...
 ```
 
 **Generality 2/3 lower track** (`formal/Submissions/LowerGenerality2/`, same direction and record
@@ -76,7 +77,7 @@ rule):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality2.candidate :
-    VerificationLowerBound paperParams <claim> := ...
+    VerificationLowerBound paperParams paperDagFormat <claim> := ...
 ```
 
 `VerificationLowerBound` quantifies over strongly `Secure` schemes, the notion every track uses. The
@@ -89,7 +90,7 @@ rule):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality3.candidate :
-    AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) <claim> := ...
+    AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) <claim> := ...
 ```
 
 This theorem must cover every admissible, secure algorithm and every pathwise verification
@@ -100,7 +101,7 @@ budget. The challenge fixes signing failure at most `2^-128`, matching the upper
 ```lean
 noncomputable def OptimalOTS.Challenge.UpperCompressions.scheme : AlgorithmScheme paperParams := ...
 theorem OptimalOTS.Challenge.UpperCompressions.admissible :
-    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := ...
+    scheme.Admissible (1 / 2 ^ 128) := ...
 theorem OptimalOTS.Challenge.UpperCompressions.secure : scheme.Secure := ...
 theorem OptimalOTS.Challenge.UpperCompressions.cost : scheme.VerifyCostAtMost <claim> := ...
 ```
@@ -134,7 +135,7 @@ input and uses the competition's single oracle. The machine, loader and system c
 1. **Flat.** A single directory containing only identifier-named `.lean` files, `claim.txt`,
    and optional `NOTES.md` and `README.md`. `Solution.lean` is required: it is the module the
    verifier exports from.
-2. **Imports.** Every root may import `Mathlib` and `VCVio` modules, `OptimalOTS.Dag`, and
+2. **Imports.** Every root may import `Mathlib` and `VCVio` modules, `OptimalOTS.Model`, `OptimalOTS.Dag`, and
    sibling files of the same root as `Submissions.<Root>.<File>`; all construction and proof helpers
    must be such siblings. Contract modules are exact imports, never prefixes. Additionally:
 

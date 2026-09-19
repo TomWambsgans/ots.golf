@@ -6,6 +6,7 @@ may declare an axiom.
     lake env lean scripts/check-axioms.lean
 -/
 import Lean
+import OptimalOTS.Model
 import OptimalOTS.Dag
 import OptimalOTS.WholeWords
 import OptimalOTS.OracleAlgorithm
@@ -16,6 +17,7 @@ open Lean
 /-- The declarations whose meaning fixes what a certificate says. -/
 def contractDecls : List Name :=
   [``OptimalOTS.Params, ``OptimalOTS.paperParams,
+   ``OptimalOTS.DagFormat, ``OptimalOTS.paperDagFormat,
    ``OptimalOTS.Graph, ``OptimalOTS.Scheme,
    ``OptimalOTS.Scheme.verifyCost, ``OptimalOTS.Graph.reconstructCost,
    ``OptimalOTS.Scheme.Secure, ``OptimalOTS.experiment, ``OptimalOTS.probTrue,
@@ -26,7 +28,6 @@ def contractDecls : List Name :=
    ``OptimalOTS.Graph.WholeWords,
    ``OptimalOTS.WholeWordVerificationLowerBound,
    ``OptimalOTS.AlgorithmScheme, ``OptimalOTS.AlgorithmScheme.Adversary,
-   ``OptimalOTS.AlgorithmScheme.Limits, ``OptimalOTS.AlgorithmScheme.paperLimits,
    ``OptimalOTS.AlgorithmScheme.Admissible, ``OptimalOTS.AlgorithmScheme.Correct,
    ``OptimalOTS.AlgorithmScheme.SigningFailureAtMost,
    ``OptimalOTS.AlgorithmScheme.SignatureSizeAtMost,

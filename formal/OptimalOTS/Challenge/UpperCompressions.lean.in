@@ -8,9 +8,8 @@ namespace OptimalOTS.Challenge.UpperCompressions
 noncomputable def scheme : AlgorithmScheme paperParams := sorry
 
 /-- Correctness, deterministic verification, signing failure at most `2⁻¹²⁸`, and the
-competition's size and cost limits. -/
-theorem admissible :
-    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := sorry
+competition's size and cost budgets. -/
+theorem admissible : scheme.Admissible (1 / 2 ^ 128) := sorry
 
 /-- Strong unforgeability in the shared random-oracle experiment. -/
 theorem secure : scheme.Secure := sorry

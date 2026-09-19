@@ -1,10 +1,10 @@
-import OptimalOTS.Dag
+import OptimalOTS.Model
 
 /-!
 # One-time signatures as oracle algorithms
 
 The model of the Generality 3/3 lower bound and of both upper bounds (compressions and RISC-V
-cycles). A scheme is three oracle programs that share the random oracle of `Dag.lean` and
+cycles). A scheme is three oracle programs that share the random oracle of `Model.lean` and
 pay its compression costs; all other computation is free. Key generation and signing may use
 private randomness; verification may not. `Admissible` collects every requirement except
 security.
@@ -101,39 +101,24 @@ def SigningFailureAtMost (S : AlgorithmScheme P) (ε : ℝ≥0∞) : Prop :=
     let (pk, sk) ← S.keygen
     return (← S.sign sk (message pk)).isNone) ≤ ε
 
-/-- Signature size and honest-party cost limits. -/
-structure Limits where
-  /-- Maximum encoded signature length, in bits. -/
-  signatureBits : ℕ
-  /-- Maximum key-generation cost, in compressions. -/
-  keygenCost : ℕ
-  /-- Maximum signing cost, in compressions. -/
-  signCost : ℕ
-
-/-- The competition's limits. The signature size includes any nonce. -/
-def paperLimits : Limits where
-  signatureBits := 5376
-  keygenCost := 1024
-  signCost := 2 ^ 20
-
-/-- Every requirement except security. `ε < 1` rules out schemes that never sign. -/
-structure Admissible (S : AlgorithmScheme P) (L : Limits) (ε : ℝ≥0∞) : Prop where
+/-- Every requirement except security, with the budgets of `P`; the signature size includes any
+nonce. `ε < 1` rules out schemes that never sign. -/
+structure Admissible (S : AlgorithmScheme P) (ε : ℝ≥0∞) : Prop where
   failure_lt_one : ε < 1
   correct : S.Correct
   verifyDeterministic : S.VerifyDeterministic
   signingFailure : S.SigningFailureAtMost ε
-  signatureSize : S.SignatureSizeAtMost L.signatureBits
-  rejectsOversized : S.RejectsOversized L.signatureBits
-  keygenCost : S.KeygenCostAtMost L.keygenCost
-  signCost : S.SignCostAtMost L.signCost
+  signatureSize : S.SignatureSizeAtMost P.signatureBits
+  rejectsOversized : S.RejectsOversized P.signatureBits
+  keygenCost : S.KeygenCostAtMost P.keygenCost
+  signCost : S.SignCostAtMost P.signCost
 
 end AlgorithmScheme
 
 /-- Every admissible, secure scheme needs a verification budget of at least `c`: any `v` bounding
 the verification cost on every input (accepting or rejecting) satisfies `c ≤ v`. -/
-def AlgorithmVerificationLowerBound (P : Params) (L : AlgorithmScheme.Limits) (ε : ℝ≥0∞)
-    (c : ℕ) : Prop :=
-  ∀ S : AlgorithmScheme P, S.Admissible L ε → S.Secure →
+def AlgorithmVerificationLowerBound (P : Params) (ε : ℝ≥0∞) (c : ℕ) : Prop :=
+  ∀ S : AlgorithmScheme P, S.Admissible ε → S.Secure →
     ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
 
 end OptimalOTS

@@ -52,9 +52,9 @@ def Submission.CostAtMost (S : Submission) (c : ℕ) : Prop :=
   ∀ pk m signature b cycles, some (b, cycles) ∈ support (S.run pk m signature) → cycles ≤ c
 
 /-- The certificate for claim `c`: the OTS is admissible and secure with the competition's
-limits, the image implements its verifier, and every execution costs at most `c` cycles. -/
+budgets, the image implements its verifier, and every execution costs at most `c` cycles. -/
 structure Submission.Certificate (S : Submission) (c : ℕ) : Prop where
-  admissible : S.scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
+  admissible : S.scheme.Admissible (1 / 2 ^ 128)
   secure : S.scheme.Secure
   implements : S.Implements
   cost : S.CostAtMost c

@@ -36,17 +36,17 @@ depend on its answer, so a larger lower bound requires a different attack.
 
 ```lean
 OptimalOTS.LowerGenerality3.candidate :
-  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2) 1
+  AlgorithmVerificationLowerBound paperParams (1 / 2) 1
 
 OptimalOTS.Challenge.LowerGenerality3.candidate :
-  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) 1
+  AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) 1
 
 OptimalOTS.LowerGenerality3.paper_lowerBound_one {ε : ℝ≥0∞} (hε : ε ≤ 1 / 2) :
-  AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits ε 1
+  AlgorithmVerificationLowerBound paperParams ε 1
 ```
 
-`AlgorithmVerificationLowerBound P L ε c` quantifies over every `AlgorithmScheme P`
-satisfying `Admissible L ε` and `Secure`. It proves that every pathwise verification
+`AlgorithmVerificationLowerBound P ε c` quantifies over every `AlgorithmScheme P`
+satisfying `Admissible ε` and `Secure`. It proves that every pathwise verification
 budget is at least `c`. The attack forges on a fresh message; `AlgorithmScheme.Secure.weaklySecure`,
 proved in the submission root, bridges the strong hypothesis to the weak experiment the proof
 analyses.

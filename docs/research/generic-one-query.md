@@ -319,13 +319,13 @@ a new analysis of those dependencies.
 
 ## Statement audit for higher generic lower claims (2026-09-18)
 
-The exported statement is `AlgorithmVerificationLowerBound paperParams paperLimits (1 / 2 ^ 128) c`:
-for every `AlgorithmScheme paperParams` that is `Admissible paperLimits (1 / 2 ^ 128)` and
+The exported statement is `AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) c`:
+for every `AlgorithmScheme paperParams` that is `Admissible (1 / 2 ^ 128)` and
 `WeaklySecure`, every pathwise verification budget `v` satisfies `c ≤ v`. The following facts
 were checked against the protected definitions and the library semantics, so that a proof of
 `2` (or more) targets a meaningful statement rather than a modeling artifact.
 
-- **Not vacuous.** `Admissible paperLimits (1 / 2 ^ 128)` and `WeaklySecure` are jointly
+- **Not vacuous.** `Admissible (1 / 2 ^ 128)` and `WeaklySecure` are jointly
   satisfiable: the kernel-checked forest (`GenericUpperForest.admissible`, `GenericUpperForest.secure`
   with `Secure.weaklySecure`) meets both with `VerifyCostAtMost 106`. Hence every claim `c ≤ 106`
   says something about real schemes, and `c ≥ 107` is false. A proof of `2` cannot come from

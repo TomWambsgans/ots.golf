@@ -280,8 +280,8 @@ theorem len_hashParent_cases {h p : Name} (hp : hashParent h = some p) :
 
 /-- The input of a hash node never has the length of an index query. -/
 theorem len_hashParent_ne_enc {h p : Name} (hp : hashParent h = some p) :
-    p.len ≠ paperParams.msgBits + paperParams.nonceBits := by
-  have e : paperParams.msgBits + paperParams.nonceBits = 384 := rfl
+    p.len ≠ paperParams.msgBits + paperDagFormat.nonceBits := by
+  have e : paperParams.msgBits + paperDagFormat.nonceBits = 384 := rfl
   rw [e]
   rcases len_hashParent_cases hp with e | e | e <;> omega
 
@@ -316,13 +316,13 @@ theorem pointOf_inj_input {ξ ξ' : Rec} {h p : Name} (e : pointOf ξ h p = poin
 
 /-- A keygen point is not an index query: its length is 256, 512 or 1024, never 384. -/
 theorem pointOf_ne_encQuery {h p : Name} (hp : hashParent h = some p) (ξ : Rec)
-    (u : EncInput paperParams) : pointOf ξ h p ≠ encQuery paperParams u :=
-  ne_encQuery_of_length_ne paperParams (len_hashParent_ne_enc hp) u
+    (u : EncInput paperParams paperDagFormat) : pointOf ξ h p ≠ encQuery paperParams paperDagFormat u :=
+  ne_encQuery_of_length_ne paperParams paperDagFormat (len_hashParent_ne_enc hp) u
 
 /-- A query of the length of a hash input is not an index query. -/
 theorem mk_ne_encQuery {h p : Name} (hp : hashParent h = some p) (u' : BitVec p.len)
-    (u : EncInput paperParams) : (⟨p.len, u'⟩ : Query) ≠ encQuery paperParams u :=
-  ne_encQuery_of_length_ne paperParams (len_hashParent_ne_enc hp) u
+    (u : EncInput paperParams paperDagFormat) : (⟨p.len, u'⟩ : Query) ≠ encQuery paperParams paperDagFormat u :=
+  ne_encQuery_of_length_ne paperParams paperDagFormat (len_hashParent_ne_enc hp) u
 
 theorem sigma_mk_cast_eq {n m : ℕ} (h : n = m) (x : BitVec n) :
     (⟨n, x⟩ : Σ k, BitVec k) = ⟨m, x.cast h⟩ := by
@@ -451,8 +451,8 @@ theorem kc_isSome_iff (ξ : Rec) (q : Query) :
     exact ⟨_, (kc_apply_iff ξ q _).2 ⟨h, p, hp, hq, rfl⟩⟩
 
 /-- The keygen cache holds no index query. -/
-theorem kc_enc (ξ : Rec) (u : EncInput paperParams) : kc ξ (encQuery paperParams u) = none := by
-  rcases hk : kc ξ (encQuery paperParams u) with _ | w
+theorem kc_enc (ξ : Rec) (u : EncInput paperParams paperDagFormat) : kc ξ (encQuery paperParams paperDagFormat u) = none := by
+  rcases hk : kc ξ (encQuery paperParams paperDagFormat u) with _ | w
   · rfl
   · obtain ⟨h, p, hp, hq, -⟩ := (kc_apply_iff ξ _ w).1 hk
     exact absurd hq.symm (pointOf_ne_encQuery hp ξ u)
@@ -541,15 +541,15 @@ theorem fExp_none (ξ : Rec) : fExp none ξ = ∅ := by
   · rintro ⟨h, -, -, he, -⟩
     exact not_exposed_none h he
 
-theorem fExp_enc (A? : Option (Finset Name)) (ξ : Rec) (u : EncInput paperParams) :
-    fExp A? ξ (encQuery paperParams u) = none := by
+theorem fExp_enc (A? : Option (Finset Name)) (ξ : Rec) (u : EncInput paperParams paperDagFormat) :
+    fExp A? ξ (encQuery paperParams paperDagFormat u) = none := by
   simp only [fExp]
   rw [if_neg]
   rintro ⟨h, p, hp, -, hq⟩
   exact pointOf_ne_encQuery hp ξ u hq.symm
 
-theorem fHid_enc (A? : Option (Finset Name)) (ξ : Rec) (u : EncInput paperParams) :
-    fHid A? ξ (encQuery paperParams u) = none := by
+theorem fHid_enc (A? : Option (Finset Name)) (ξ : Rec) (u : EncInput paperParams paperDagFormat) :
+    fHid A? ξ (encQuery paperParams paperDagFormat u) = none := by
   simp only [fHid]
   rw [if_neg]
   rintro ⟨h, p, hp, -, hq⟩
@@ -577,10 +577,10 @@ theorem Spr.mono {c c' : Cache paperParams} (h : Cache.Sub c c') {ξ : Rec} (hs 
   exact ⟨hn, p, hp, u, hu, htag, w, h _ _ hw, ht⟩
 
 /-- Caching an index query does not change `Spr`: no hash input has its length. -/
-theorem spr_cacheQuery_enc (c : Cache paperParams) (ξ : Rec) (u : EncInput paperParams)
-    (w : BitVec 256) : Spr (c.cacheQuery (encQuery paperParams u) w) ξ ↔ Spr c ξ := by
+theorem spr_cacheQuery_enc (c : Cache paperParams) (ξ : Rec) (u : EncInput paperParams paperDagFormat)
+    (w : BitVec 256) : Spr (c.cacheQuery (encQuery paperParams paperDagFormat u) w) ξ ↔ Spr c ξ := by
   have key : ∀ (h p : Name), hashParent h = some p → ∀ u' : BitVec p.len,
-      c.cacheQuery (encQuery paperParams u) w ⟨p.len, u'⟩ = c ⟨p.len, u'⟩ :=
+      c.cacheQuery (encQuery paperParams paperDagFormat u) w ⟨p.len, u'⟩ = c ⟨p.len, u'⟩ :=
     fun h p hp u' => QueryCache.cacheQuery_of_ne _ _ (mk_ne_encQuery hp u' u)
   constructor
   · rintro ⟨h, p, hp, u', hu, htag, w', hw, ht⟩

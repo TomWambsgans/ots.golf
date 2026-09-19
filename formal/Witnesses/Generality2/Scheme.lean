@@ -1,7 +1,7 @@
 import Witnesses.Generality2.Cuts
 
 /-!
-# The concrete scheme as a `Scheme paperParams`
+# The concrete scheme as a `Scheme paperParams paperDagFormat`
 
 `forestScheme` is the scheme of Section 8 of the paper: the graph of `Forest.Names`, with the
 `2 ^ 115` disclosure sets chosen injectively from the family of `Forest.Cuts`.  Every signature
@@ -33,7 +33,7 @@ theorem setsName_injective : Function.Injective setsName := by
   exact Fin.castLE_injective _ (family.equivFin.symm.injective (Subtype.ext h))
 
 /-- The concrete scheme. -/
-def forestScheme : Scheme paperParams where
+def forestScheme : Scheme paperParams paperDagFormat where
   graph := graph
   sets := fun i => fins (setsName i)
   root_not_mem := by
@@ -62,9 +62,9 @@ theorem cost_setsName (i : Fin (2 ^ 115)) : ∑ n ∈ evaluatedSet (setsName i),
   cost_of_mem_family (setsName_mem i)
 
 /-- Every signature verifies in `106` compressions. -/
-theorem forestScheme_verifyCost (i : Fin paperParams.numSets) : forestScheme.verifyCost i = 106 := by
-  show idxCost paperParams + graph.reconstructCost (fins (setsName i)) = 106
-  have hidx : idxCost paperParams = 1 := by decide
+theorem forestScheme_verifyCost (i : Fin paperDagFormat.numSets) : forestScheme.verifyCost i = 106 := by
+  show idxCost paperParams paperDagFormat + graph.reconstructCost (fins (setsName i)) = 106
+  have hidx : idxCost paperParams paperDagFormat = 1 := by decide
   rw [reconstructCost_eq, hidx]
   have h := cost_setsName i
   omega

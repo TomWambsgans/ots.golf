@@ -34,7 +34,7 @@ def Graph.WholeWords {P : Params} (G : Graph P) : Prop :=
 
 /-- Every secure whole-word DAG scheme has a signature index whose verification costs at least
 `c` compressions. -/
-def WholeWordVerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.graph.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
+def WholeWordVerificationLowerBound (P : Params) (F : DagFormat) (c : ℕ) : Prop :=
+  ∀ S : Scheme P F, S.graph.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i
 
 end OptimalOTS

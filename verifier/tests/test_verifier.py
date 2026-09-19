@@ -142,7 +142,7 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(claim, 105)
         source = rendered.read_text()
         self.assertIn("scheme.VerifyCostAtMost 105", source)
-        self.assertIn("scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)", source)
+        self.assertIn("scheme.Admissible (1 / 2 ^ 128)", source)
         self.assertEqual(track["signing_failure_allowance"],
                          {"numerator": 1, "denominator": 2**128})
         comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
@@ -170,8 +170,8 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(comparator["theorem_names"], [prefix + "certificate"])
         self.assertEqual(comparator["definition_names"], [prefix + "submission"])
         self.assertEqual(set(track["allowed_import_prefixes"]),
-                         {"Mathlib", "VCVio", "OptimalOTS.Dag", "OptimalOTS.OracleAlgorithm",
-                          "OptimalOTS.RiscvMachine", "OptimalOTS.Riscv"})
+                         {"Mathlib", "VCVio", "OptimalOTS.Model", "OptimalOTS.Dag",
+                          "OptimalOTS.OracleAlgorithm", "OptimalOTS.RiscvMachine", "OptimalOTS.Riscv"})
         for rel in (track["challenge_template"], track["comparator_config"]):
             self.assertIn(rel, self.cfg["protected"])
 

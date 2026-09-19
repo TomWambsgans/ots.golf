@@ -1,4 +1,4 @@
-import OptimalOTS.Dag
+import OptimalOTS.Model
 import RiscvZkvm.Rv64
 
 /-!
@@ -61,8 +61,9 @@ def bytesOfVector {n : ℕ} (v : BitVec n) : List Byte :=
 
 /-- Raw input layout, with no parsing or scheme-specific preprocessing by the loader.
 `a0/a1/a2` point to pk/message/signature; `a3` holds the signature bit length, capped at
-5377 to distinguish every oversized input from an admissible one. Only the first 5376
-signature bits are loaded. All remaining memory and registers initially contain zero. -/
+`signatureBits + 1` to distinguish every oversized input from an admissible one. Only the first
+`signatureBits` signature bits are loaded. All remaining memory and registers initially contain
+zero. -/
 def initialState (image : Image) (pk : PublicKey paperParams) (m : Message paperParams)
     (signature : List Bool) : MachineState :=
   let blank : MachineState :=
@@ -70,9 +71,10 @@ def initialState (image : Image) (pk : PublicKey paperParams) (m : Message paper
       pc := codeBase }
   let s := (((blank.writeBytesAsWords dataBase image.data).writeBytesAsWords publicKeyBase
     (bytesOfVector pk)).writeBytesAsWords messageBase (bytesOfVector m)).writeBytesAsWords
-    signatureBase (bytesOfBits (signature.take 5376))
+    signatureBase (bytesOfBits (signature.take paperParams.signatureBits))
   ((((s.setReg .x2 stackTop).setReg .x10 publicKeyBase).setReg .x11 messageBase).setReg
-    .x12 signatureBase).setReg .x13 (BitVec.ofNat 64 (min signature.length 5377))
+    .x12 signatureBase).setReg .x13
+    (BitVec.ofNat 64 (min signature.length (paperParams.signatureBits + 1)))
 
 /-- HASH reads `a1` bits at byte pointer `a0`, least significant bit first in each byte. -/
 def hashInput (s : MachineState) : Query :=

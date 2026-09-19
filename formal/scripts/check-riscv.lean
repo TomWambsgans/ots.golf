@@ -133,8 +133,8 @@ theorem Submission.implemented_secure (S : Submission) (h : S.Implements)
 
 /-- Correctness, signing availability, and the size and resource limits also transfer. -/
 theorem Submission.implemented_admissible (S : Submission) (h : S.Implements)
-    (admissible : S.scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)) :
-    S.implementedScheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128) := by
+    (admissible : S.scheme.Admissible (1 / 2 ^ 128)) :
+    S.implementedScheme.Admissible (1 / 2 ^ 128) := by
   rwa [S.implementedScheme_eq h]
 
 end OptimalOTS.Riscv

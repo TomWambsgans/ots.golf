@@ -184,9 +184,9 @@ expected increase of `Ψ` on random multi-row states) all stay near `ε`, well b
 ## 4. Result: the contract at 128 bits (2026-09-19)
 
 The plan of section 3 is carried out in all four upper roots. The contract changes are
-`paperParams.nonceBits := 128` (`Dag.lean`), `paperLimits.signatureBits := 5376`
-(`OracleAlgorithm.lean`), and the machine loading at most 5376 signature bits with the length capped at
-5377 (`RiscvMachine.lean`). `maxRevealBits` stays 5248: the payload budget, the cuts and every
+`nonceBits := 128` (the DAG format), `signatureBits := 5376`
+(`paperParams`), and the machine loading at most 5376 signature bits with the length capped at
+5377 (`RiscvMachine.lean`). The reveal budget stays 5248: the payload budget, the cuts and every
 cost are unchanged, and the signature shrinks by the 128 nonce bits that are no longer sent.
 
 New modules, identical in `UpperCompressions`, the Generality 2/3 witness and `DisclosureUpper` and ported to the

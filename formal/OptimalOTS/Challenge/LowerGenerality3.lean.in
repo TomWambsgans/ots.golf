@@ -4,9 +4,8 @@ import OptimalOTS.OracleAlgorithm
 
 namespace OptimalOTS.Challenge.LowerGenerality3
 
-/-- Every admissible (signing failure at most `2⁻¹²⁸`, the competition's limits), secure scheme
+/-- Every admissible (signing failure at most `2⁻¹²⁸`, the competition's budgets), secure scheme
 needs a verification budget of at least `{{CLAIM}}` compressions. -/
-theorem candidate :
-    AlgorithmVerificationLowerBound paperParams AlgorithmScheme.paperLimits (1 / 2 ^ 128) {{CLAIM}} := sorry
+theorem candidate : AlgorithmVerificationLowerBound paperParams (1 / 2 ^ 128) {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.LowerGenerality3

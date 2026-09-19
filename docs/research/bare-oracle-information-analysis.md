@@ -153,6 +153,6 @@ and two reconstructions of cost at most 16). Exact arithmetic gives `B/2^127 < 1
 
 This settles the probability argument without the adaptive coupling gap mentioned in the initial
 exploration above. The full attack is now formalized in `Submissions/Lower/PatternAttack.lean`
-and `PatternAssembly.lean`; `Solution.lean` exports `VerificationLowerBound paperParams 18`.
+and `PatternAssembly.lean`; `Solution.lean` exports `VerificationLowerBound paperParams paperDagFormat 18`.
 The final official lower verifier accepted claim 18 in 117.5 seconds, with only the three
 allowed axioms. See [the final report](../archive/bare-oracle-lower-report.md) for the final checks.

@@ -1,21 +1,16 @@
-import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
-import VCVio.OracleComp.QueryTracking.QueryBound.Basic
-import VCVio.OracleComp.Constructions.SampleableType
-import VCVio.OracleComp.SimSemantics.Append
-import VCVio.OracleComp.ProbComp
-import VCVio.EvalDist.BitVec
+import OptimalOTS.Model
 
 /-!
 # The DAG signature contract
 
 A scheme is a public computation graph with secret sources, deterministic nodes and hash nodes.
-A signature discloses a cut of the graph; verification reconstructs the root and checks its
-public-key bits. All parties share one random oracle on bit strings, without implicit labels
-or domain separation. Uniform sampling and deterministic computation are free; every hash query
-is charged for its complete input, including repeated queries.
+A signature is a nonce and a cut of the graph; verification reconstructs the root and checks its
+public-key bits. The oracle, the costs and the budgets are those of `Model.lean`; deterministic
+computation is free.
 
 An upper bound `c` is a scheme `S` with `S.Secure` and `∀ i, S.verifyCost i ≤ c`; a lower bound
-`c` is `VerificationLowerBound P c`. `paperParams` fixes the competition's parameters.
+`c` is `VerificationLowerBound P F c`. `paperParams` and `paperDagFormat` fix the competition's
+values.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -26,82 +21,39 @@ open scoped Classical
 
 namespace OptimalOTS
 
-/-! ## 1. Parameters -/
+/-! ## 1. The signature format -/
 
-/-- Lengths (in bits), resource limits (in compressions) and the security level. -/
-structure Params where
-  /-- Output length of the random oracle. -/
-  hashBits : ℕ
-  /-- Input bits per compression block. For positive `blockBits`, hashing `k` bits costs
-  `max 1 ⌈k / blockBits⌉`. -/
-  blockBits : ℕ
-  /-- Public-key length; the public key is the low `pkBits` bits of the root value. -/
-  pkBits : ℕ
-  /-- Length of messages. -/
-  msgBits : ℕ
+/-- How a DAG scheme selects and transmits a disclosure: a signature is a nonce `η` and the
+values of the disclosure set `sets i`, where `i` is the low `idxBits` bits of `H(m ‖ η)`.
+
+With `paperParams` and `paperDagFormat`, the signer's worst case (`trialLimit` index queries of
+one compression each) costs exactly `paperParams.signCost`, and the revealed values may use the
+`signatureBits - nonceBits` bits left after the nonce. -/
+structure DagFormat where
   /-- Length of signing nonces. -/
   nonceBits : ℕ
   /-- Number of low bits of `H(m ‖ η)` read as the disclosure index. -/
   idxBits : ℕ
-  /-- Maximal number of revealed bits in a signature, excluding the nonce. -/
-  maxRevealBits : ℕ
-  /-- Maximal query cost of key generation. -/
-  keygenBudget : ℕ
   /-- Number of disclosure sets. -/
   numSets : ℕ
   /-- Maximal number of nonces tried by the signer. -/
   trialLimit : ℕ
-  /-- Security level; see `Scheme.Secure`. -/
-  securityBits : ℕ
 
-/-! ## 2. The random oracle and the cost of a query -/
+/-- The competition's signature format. -/
+def paperDagFormat : DagFormat where
+  nonceBits := 128
+  idxBits := 128
+  numSets := 2 ^ 115
+  trialLimit := 2 ^ 20
 
-/-- A bit string of any length, used as a random-oracle input. There are no implicit labels or
-tweaks: equal strings share an answer, including across graph and index queries. Explicit prefixes
-are part of the input and incur their full query cost. -/
-abbrev Query := Σ k : ℕ, BitVec k
-
-/-- The random oracle: an independent uniform `hashBits`-bit answer for every query. -/
-abbrev hashSpec (P : Params) : OracleSpec Query := Query →ₒ BitVec P.hashBits
-
-/-- The oracles of every party: free uniform sampling and the random oracle. -/
-abbrev Spec (P : Params) := unifSpec + hashSpec P
-
-/-- Cost of hashing `k` bits: the number of started blocks, and at least one. -/
-def blockCost (P : Params) (k : ℕ) : ℕ := max 1 ((k + P.blockBits - 1) / P.blockBits)
+abbrev Nonce (F : DagFormat) := BitVec F.nonceBits
+/-- A signature: a nonce and the revealed bits. -/
+abbrev Signature (F : DagFormat) := Nonce F × List Bool
 
 /-- Cost of the index query `H(m ‖ η)`. -/
-def idxCost (P : Params) : ℕ := blockCost P (P.msgBits + P.nonceBits)
+def idxCost (P : Params) (F : DagFormat) : ℕ := blockCost P (P.msgBits + F.nonceBits)
 
-/-- Cost of a query: uniform sampling is free, hashing `k` bits costs `blockCost P k`. -/
-def queryCost (P : Params) : (Spec P).Domain → ℕ
-  | .inl _ => 0
-  | .inr q => blockCost P q.1
-
-/-- `oa` costs at most `B` on every execution path, whatever the oracle answers. -/
-def CostAtMost (P : Params) {α : Type} (oa : OracleComp (Spec P) α) (B : ℕ) : Prop :=
-  oa.IsQueryBound B (fun t b => queryCost P t ≤ b) (fun t b => b - queryCost P t)
-
-/-- Query the random oracle on input `u`. -/
-def hash (P : Params) {k : ℕ} (u : BitVec k) : OracleComp (Spec P) (BitVec P.hashBits) :=
-  liftM ((Spec P).query (.inr ⟨k, u⟩))
-
-/-- Sample a uniform bit string (free). -/
-def sampleBits (P : Params) (n : ℕ) : OracleComp (Spec P) (BitVec n) :=
-  liftM ($ᵗ BitVec n : ProbComp (BitVec n))
-
-/-- Random-oracle semantics: uniform sampling is forwarded, and every hash query is answered by
-one lazily sampled table shared by the whole experiment. -/
-def oracleImpl (P : Params) : QueryImpl (Spec P) (StateT (hashSpec P).QueryCache ProbComp) :=
-  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)).liftTarget
-      (StateT (hashSpec P).QueryCache ProbComp) +
-    randomOracle (spec := hashSpec P)
-
-/-- Probability that a Boolean experiment outputs `true` in the random-oracle model. -/
-def probTrue (P : Params) (oa : OracleComp (Spec P) Bool) : ℝ≥0∞ :=
-  Pr[= true | (simulateQ (oracleImpl P) oa).run' ∅]
-
-/-! ## 3. Computation graphs -/
+/-! ## 2. Computation graphs -/
 
 /-- The kind of node `v` in a graph with `N` nodes and output lengths `len`. Parents precede their
 children, so the order of `Fin N` is a topological order. -/
@@ -147,16 +99,9 @@ structure Graph (P : Params) where
   len : Fin size → ℕ
   /-- The kind of each node. -/
   kind : (v : Fin size) → NodeKind P.hashBits size len v
-  /-- The root; its value is resized to `pkBits` to obtain the public key. -/
+  /-- The root; its value is resized to `pkBits` to obtain the public key (the low bits). -/
   root : Fin size
   root_isHash : (kind root).IsHash
-
-/-- The bits of `x`, least significant first. -/
-def toBits {n : ℕ} (x : BitVec n) : List Bool := List.ofFn fun i : Fin n => x.getLsbD i
-
-/-- Interpret the list least significant bit first, truncating or zero-extending to `n` bits. -/
-def ofBits (n : ℕ) (l : List Bool) : BitVec n :=
-  BitVec.ofNat n (l.foldr (fun b acc => b.toNat + 2 * acc) 0)
 
 namespace Graph
 
@@ -244,37 +189,32 @@ def decode (A : Finset (Fin G.size)) (l : List Bool) : G.Assignment :=
 
 end Graph
 
-/-! ## 4. Schemes -/
-
-abbrev Message (P : Params) := BitVec P.msgBits
-abbrev Nonce (P : Params) := BitVec P.nonceBits
-/-- A signature: a nonce and the revealed bits. -/
-abbrev Signature (P : Params) := Nonce P × List Bool
-abbrev PublicKey (P : Params) := BitVec P.pkBits
+/-! ## 3. Schemes -/
 
 /-- A graph-based one-time signature scheme. -/
-structure Scheme (P : Params) where
+structure Scheme (P : Params) (F : DagFormat) where
   /-- The public computation. -/
   graph : Graph P
   /-- The disclosure sets. -/
-  sets : Fin P.numSets → Finset (Fin graph.size)
+  sets : Fin F.numSets → Finset (Fin graph.size)
   /-- The verifier must recompute the root. -/
   root_not_mem : ∀ i, graph.root ∉ sets i
   /-- The revealed values suffice: `sets i` meets every path from a secret source to the root. -/
   no_hidden_source :
     ∀ i v, graph.Visited (sets i) v → v ∉ sets i → ¬ (graph.kind v).IsSource
-  /-- Signatures reveal at most `maxRevealBits` bits besides the nonce. -/
-  reveal_le : ∀ i, graph.revealBits (sets i) ≤ P.maxRevealBits
-  /-- Key generation costs at most `keygenBudget`. -/
-  keygen_le : graph.keygenCost ≤ P.keygenBudget
+  /-- A signature, nonce included, has at most `signatureBits` bits. -/
+  reveal_le : ∀ i, graph.revealBits (sets i) ≤ P.signatureBits - F.nonceBits
+  /-- Key generation costs at most `keygenCost`. -/
+  keygen_le : graph.keygenCost ≤ P.keygenCost
 
-/-- The disclosure index selected by message `m` and nonce `η`. -/
-def index (P : Params) (m : Message P) (η : Nonce P) : OracleComp (Spec P) ℕ :=
-  (fun y => (y.setWidth P.idxBits).toNat) <$> hash P (m ++ η)
+/-- The disclosure index selected by message `m` and nonce `η`. The index query shares the one
+oracle with the graph's hash nodes: equal inputs get equal answers. -/
+def index (P : Params) (F : DagFormat) (m : Message P) (η : Nonce F) : OracleComp (Spec P) ℕ :=
+  (fun y => (y.setWidth F.idxBits).toNat) <$> hash P (m ++ η)
 
 namespace Scheme
 
-variable {P : Params} (S : Scheme P)
+variable {P : Params} {F : DagFormat} (S : Scheme P F)
 
 /-- Resize the root value to `pkBits`: truncation keeps the low bits; extension pads with zeros. -/
 def publicKey (x : S.graph.Assignment) : PublicKey P := (x S.graph.root).setWidth P.pkBits
@@ -286,15 +226,15 @@ def keygen : OracleComp (Spec P) (PublicKey P × S.graph.Assignment) := do
 
 /-- Signing with at most `k` further trials, never retrying a nonce in `tried`. -/
 def signLoop (x : S.graph.Assignment) (m : Message P) :
-    ℕ → Finset (Nonce P) → OracleComp (Spec P) (Option (Signature P))
+    ℕ → Finset (Nonce F) → OracleComp (Spec P) (Option (Signature F))
   | 0, _ => pure none
   | k + 1, tried =>
     let fresh := Finset.univ \ tried
     if h : 0 < fresh.card then do
       let j ← (liftM ($[0..(fresh.card - 1)]) : OracleComp (Spec P) (Fin (fresh.card - 1 + 1)))
-      let η : Nonce P := (fresh.equivFin.symm (Fin.cast (by omega) j)).1
-      let i ← index P m η
-      if hi : i < P.numSets then
+      let η : Nonce F := (fresh.equivFin.symm (Fin.cast (by omega) j)).1
+      let i ← index P F m η
+      if hi : i < F.numSets then
         return some (η, S.graph.encode (S.sets ⟨i, hi⟩) x)
       else
         signLoop x m k (insert η tried)
@@ -302,14 +242,14 @@ def signLoop (x : S.graph.Assignment) (m : Message P) :
       pure none
 
 /-- Try at most `trialLimit` distinct uniform nonces; return `none` if none selects a valid index. -/
-def sign (x : S.graph.Assignment) (m : Message P) : OracleComp (Spec P) (Option (Signature P)) :=
-  S.signLoop x m P.trialLimit ∅
+def sign (x : S.graph.Assignment) (m : Message P) : OracleComp (Spec P) (Option (Signature F)) :=
+  S.signLoop x m F.trialLimit ∅
 
 /-- Reject invalid indices or payload lengths; otherwise reconstruct the root and compare its
 public-key bits with `pk`. -/
-def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (Spec P) Bool := do
-  let i ← index P m σ.1
-  if hi : i < P.numSets then
+def verify (pk : PublicKey P) (m : Message P) (σ : Signature F) : OracleComp (Spec P) Bool := do
+  let i ← index P F m σ.1
+  if hi : i < F.numSets then
     let A := S.sets ⟨i, hi⟩
     if σ.2.length = S.graph.revealBits A then
       let y ← S.graph.reconstruct A (S.graph.decode A σ.2)
@@ -321,24 +261,25 @@ def verify (pk : PublicKey P) (m : Message P) (σ : Signature P) : OracleComp (S
 
 /-- Verification cost at a valid index and payload length: the index query plus reconstruction.
 The cost depends on the disclosure set, not on the supplied values or the final verdict. -/
-def verifyCost (i : Fin P.numSets) : ℕ := idxCost P + S.graph.reconstructCost (S.sets i)
+def verifyCost (i : Fin F.numSets) : ℕ := idxCost P F + S.graph.reconstructCost (S.sets i)
 
 end Scheme
 
-/-! ## 5. Security -/
+/-! ## 4. Security -/
 
 /-- A one-signature attacker. It may use the random oracle and free randomness throughout. -/
-structure Adversary (P : Params) where
+structure Adversary (P : Params) (F : DagFormat) where
   /-- State passed between the two stages. -/
   State : Type
   /-- Given the public key, choose the message to be signed. -/
   choose : PublicKey P → OracleComp (Spec P) (Message P × State)
   /-- Given the signature (`none` if signing failed), output a forgery. -/
-  forge : State → Option (Signature P) → OracleComp (Spec P) (Message P × Signature P)
+  forge : State → Option (Signature F) → OracleComp (Spec P) (Message P × Signature F)
 
 /-- Strong-forgery experiment. The attacker wins when its pair is accepted and differs from the
 signed pair; after signing failure, any accepted pair wins. All parties share one oracle table. -/
-def experiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec P) Bool := do
+def experiment {P : Params} {F : DagFormat} (S : Scheme P F) (A : Adversary P F) :
+    OracleComp (Spec P) Bool := do
   let (pk, sk) ← S.keygen
   let (m₁, st) ← A.choose pk
   let σ₁ ← S.sign sk m₁
@@ -348,29 +289,15 @@ def experiment {P : Params} (S : Scheme P) (A : Adversary P) : OracleComp (Spec 
 
 /-- Strong unforgeability: for every attacker and pathwise budget `B` for the entire experiment,
 the probability of an accepted fresh pair is strictly below `B / 2 ^ securityBits`. -/
-def Scheme.Secure {P : Params} (S : Scheme P) : Prop :=
-  ∀ (A : Adversary P) (B : ℕ), CostAtMost P (experiment S A) B →
+def Scheme.Secure {P : Params} {F : DagFormat} (S : Scheme P F) : Prop :=
+  ∀ (A : Adversary P F) (B : ℕ), CostAtMost P (experiment S A) B →
     probTrue P (experiment S A) < (B : ℝ≥0∞) / 2 ^ P.securityBits
 
-/-! ## 6. The lower bound and paper parameters -/
+/-! ## 5. The lower bound -/
 
-/-- Every secure scheme with parameters `P` has a signature index whose verification costs at
-least `c` compressions. -/
-def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
-  ∀ S : Scheme P, S.Secure → ∃ i : Fin P.numSets, c ≤ S.verifyCost i
-
-/-- The competition's parameters. -/
-def paperParams : Params where
-  hashBits := 256
-  blockBits := 512
-  pkBits := 128
-  msgBits := 256
-  nonceBits := 128
-  idxBits := 128
-  maxRevealBits := 5248
-  keygenBudget := 1024
-  numSets := 2 ^ 115
-  trialLimit := 2 ^ 20
-  securityBits := 127
+/-- Every secure scheme with parameters `P` and format `F` has a signature index whose
+verification costs at least `c` compressions. -/
+def VerificationLowerBound (P : Params) (F : DagFormat) (c : ℕ) : Prop :=
+  ∀ S : Scheme P F, S.Secure → ∃ i : Fin F.numSets, c ≤ S.verifyCost i
 
 end OptimalOTS

@@ -1,7 +1,7 @@
 # Generality 2/3: the bare-oracle verification lower bound
 
-The contract is `formal/OptimalOTS/Dag.lean`: one shared random oracle keyed by its input
-bit string, and arbitrary deterministic node functions of their declared parents.
+The contract is `formal/OptimalOTS/Dag.lean`, on the shared random oracle of `Model.lean` (keyed
+by its input bit string), with arbitrary deterministic node functions of their declared parents.
 The lower track quantifies over every secure scheme:
 
 ```lean
@@ -10,7 +10,7 @@ def VerificationLowerBound (P : Params) (c : ℕ) : Prop :=
 ```
 
 The reference proof, a `LowerGenerality2` submission root in the submissions repository, proves
-`VerificationLowerBound paperParams 18` in `LowerGenerality2/Solution.lean`.
+`VerificationLowerBound paperParams paperDagFormat 18` in `LowerGenerality2/Solution.lean`.
 The complete theorem builds and its axiom closure contains only `propext`, `Classical.choice`,
 and `Quot.sound`. The final official verifier run accepted claim 18 in 117.5 seconds. The earlier bound of 2
 was officially verified before the replacement was developed.

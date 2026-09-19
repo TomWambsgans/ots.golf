@@ -38,7 +38,7 @@ open Name
 
 attribute [local irreducible] fiberA graph CostAtMost experiment rest rest₂ signIdx Scheme.keygen Scheme.sign
 
-variable (A : Adversary paperParams)
+variable (A : Adversary paperParams paperDagFormat)
 /-! ## Stage A -/
 
 /-- The quantity bounded after the first stage. -/
@@ -83,7 +83,7 @@ theorem sum_mul_E_asm {ι : Type} (s : Finset ι) (c : ι → ℝ≥0∞) {α : 
 /-- Signing followed by the second stage, through the signing loop. -/
 theorem rest₂_eq_signIdx (pk : BitVec 128) (ξ : Rec) (x : Message paperParams × A.State) :
     rest₂ A pk (graph.evalRec ξ) x =
-      signIdx paperParams x.1 >>= fun r => stB A pk x.1 x.2 (sigOf ξ r) := by
+      signIdx paperParams paperDagFormat x.1 >>= fun r => stB A pk x.1 x.2 (sigOf ξ r) := by
   unfold rest₂
   rw [sign_eq, bind_map_left]
 
@@ -91,9 +91,9 @@ theorem rest₂_eq_signIdx (pk : BitVec 128) (ξ : Rec) (x : Message paperParams
 theorem E_rest₂_extend_kc (pk : BitVec 128) (ξ : Rec) (x : Message paperParams × A.State)
     (d : Cache paperParams) :
     E (run paperParams (rest₂ A pk (graph.evalRec ξ) x) (Cache.extend d (kc ξ))) g =
-      E (run paperParams (signIdx paperParams x.1) d) (fun p =>
+      E (run paperParams (signIdx paperParams paperDagFormat x.1) d) (fun p =>
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) := by
-  rw [rest₂_eq_signIdx, run_bind, run_signIdx_extend paperParams x.1 d (kc ξ) (fun u => kc_enc ξ u),
+  rw [rest₂_eq_signIdx, run_bind, run_signIdx_extend paperParams paperDagFormat x.1 d (kc ξ) (fun u => kc_enc ξ u),
     bind_map_left, E_bind]
 
 /-- The continuation bound after the first stage. -/
@@ -110,7 +110,7 @@ theorem stageA_cont (pk : BitVec 128) (x : Message paperParams × A.State) (d : 
     exact hξ.2
   -- Step 1: split `FA` into the records hit by `d` and the others.
   have hsplit : FA A pk x d = ∑ ξ ∈ fiberA pk, w * ind (Cache.Hits d (kc ξ)) +
-      ∑ ξ ∈ T, w * E (run paperParams (signIdx paperParams x.1) d) (fun p =>
+      ∑ ξ ∈ T, w * E (run paperParams (signIdx paperParams paperDagFormat x.1) d) (fun p =>
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) := by
     unfold FA
     rw [hTdef, Finset.sum_filter, ← Finset.sum_add_distrib]
@@ -121,20 +121,20 @@ theorem stageA_cont (pk : BitVec 128) (x : Message paperParams × A.State) (d : 
     · rw [if_neg h, if_neg h, if_pos h, mul_zero, zero_add, E_rest₂_extend_kc]
   -- Step 2: the signing bound on the records of `T`.
   have hne : Nonempty {ξ // ξ ∈ fiberA pk} := (fiberA_nonempty pk).to_subtype
-  have hΦ : EncInvariant paperParams (fun c => ∑ ξ ∈ T, w * ind (Spr c ξ)) := by
+  have hΦ : EncInvariant paperParams paperDagFormat (fun c => ∑ ξ ∈ T, w * ind (Spr c ξ)) := by
     intro c u w'
     refine Finset.sum_congr rfl fun ξ _ => ?_
     rw [spr_cacheQuery_enc c ξ u w']
   have hB' : ∀ j : {ξ // ξ ∈ fiberA pk},
-      CostAtMost paperParams (signIdx paperParams x.1 >>= fun r => stB A pk x.1 x.2 (sigOf j.1 r)) b' := by
+      CostAtMost paperParams (signIdx paperParams paperDagFormat x.1 >>= fun r => stB A pk x.1 x.2 (sigOf j.1 r)) b' := by
     intro j
     have h : CostAtMost paperParams (rest₂ A pk (graph.evalRec j.1) x) b' := hB j.1 j.2
     rw [rest₂_eq_signIdx] at h
     exact h
-  have hsig : E (run paperParams (signIdx paperParams x.1) d) (fun p => ∑ ξ ∈ T, w *
+  have hsig : E (run paperParams (signIdx paperParams paperDagFormat x.1) d) (fun p => ∑ ξ ∈ T, w *
         E (run paperParams (stB A pk x.1 x.2 (sigOf ξ p.1)) (Cache.extend p.2 (kc ξ))) g) ≤
       ∑ ξ ∈ T, w * ind (Spr d ξ) + sumW T * encTerm d + κ * sumW (fiberA pk) * b' := by
-    refine signRho_bound paperParams (by decide) (by decide) x.1 d
+    refine signRho_bound paperParams paperDagFormat (by decide) (by decide) x.1 d
       (β := Bool) (J := {ξ // ξ ∈ fiberA pk}) (fun j r => stB A pk x.1 x.2 (sigOf j.1 r))
       (fun r d' => ∑ ξ ∈ T, w * E (run paperParams (stB A pk x.1 x.2 (sigOf ξ r))
         (Cache.extend d' (kc ξ))) g)
@@ -177,7 +177,7 @@ theorem stageA_master (pk : BitVec 128) (b : ℕ) (hb : b ≤ 2 ^ 127)
     refine stageA_cont A pk x d b' hI fun ξ hξ => ?_
     exact hB' ⟨ξ, hξ⟩
   have hI0 : Inv ∅ b := by
-    show encCount paperParams ∅ + b ≤ 2 ^ 127
+    show encCount paperParams paperDagFormat ∅ + b ≤ 2 ^ 127
     rw [encCount_empty, zero_add]; exact hb
   have hB0 : ∀ j : {ξ // ξ ∈ fiberA pk},
       CostAtMost paperParams (A.choose pk >>= rest₂ A pk (graph.evalRec j.1)) b :=

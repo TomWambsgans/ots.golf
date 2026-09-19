@@ -51,7 +51,7 @@ uv sync --frozen
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | submission specification |
 | [`challenges.json`](challenges.json) | track metadata, limits, protected files |
-| [`formal/OptimalOTS/`](formal/OptimalOTS/) | the contract: [`Dag.lean`](formal/OptimalOTS/Dag.lean), [`WholeWords.lean`](formal/OptimalOTS/WholeWords.lean), [`OracleAlgorithm.lean`](formal/OptimalOTS/OracleAlgorithm.lean), [`Riscv.lean`](formal/OptimalOTS/Riscv.lean), [`RiscvMachine.lean`](formal/OptimalOTS/RiscvMachine.lean), and the challenge stubs in `Challenge/` |
+| [`formal/OptimalOTS/`](formal/OptimalOTS/) | the contract: [`Model.lean`](formal/OptimalOTS/Model.lean), [`Dag.lean`](formal/OptimalOTS/Dag.lean), [`WholeWords.lean`](formal/OptimalOTS/WholeWords.lean), [`OracleAlgorithm.lean`](formal/OptimalOTS/OracleAlgorithm.lean), [`Riscv.lean`](formal/OptimalOTS/Riscv.lean), [`RiscvMachine.lean`](formal/OptimalOTS/RiscvMachine.lean), and the challenge stubs in `Challenge/` |
 | `formal/Witnesses/` | internal maintainer check that the Generality 1/3 and 2/3 classes are non-empty (`lake build Witnesses`); not a track |
 | [`verifier/`](verifier/) | [`verify.py`](verifier/verify.py), policy checks, contract pin, comparator configs |
 | [`service/`](service/README.md) | website and hosted verifier; [deployment](service/deploy/README.md) |

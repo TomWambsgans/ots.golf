@@ -179,6 +179,7 @@
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
       {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
       <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
+      <a href="{{ source }}formal/OptimalOTS/Model.lean">parameters, budgets and oracle</a>,
       <a href="{{ source }}formal/OptimalOTS/OracleAlgorithm.lean">generic interface and statements</a>,
       <a href="{{ source }}formal/OptimalOTS/Dag.lean">DAG contract</a>,
       <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a>,

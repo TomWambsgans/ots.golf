@@ -22,7 +22,7 @@ compression-cost model.
 noncomputable def scheme : AlgorithmScheme paperParams
 
 theorem admissible :
-    scheme.Admissible AlgorithmScheme.paperLimits (1 / 2 ^ 128)
+    scheme.Admissible (1 / 2 ^ 128)
 
 theorem secure : scheme.Secure
 

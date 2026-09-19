@@ -1,7 +1,7 @@
 # The upper-bound proof: architecture
 
 The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`, also
-wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Scheme paperParams` (Section 7 of the paper: 63 chains of length 14,
+wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Scheme paperParams paperDagFormat` (Section 7 of the paper: 63 chains of length 14,
 21 group digests, 7 subtree digests, one root) with
 
 ```

@@ -6,6 +6,6 @@ namespace OptimalOTS.Challenge.LowerGenerality2
 
 /-- Every secure DAG scheme has a signature index whose verification costs at least `{{CLAIM}}`
 compressions. -/
-theorem candidate : VerificationLowerBound paperParams {{CLAIM}} := sorry
+theorem candidate : VerificationLowerBound paperParams paperDagFormat {{CLAIM}} := sorry
 
 end OptimalOTS.Challenge.LowerGenerality2

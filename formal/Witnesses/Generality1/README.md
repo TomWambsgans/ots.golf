@@ -7,7 +7,7 @@ quantifies over secure whole-word DAG schemes (`Graph.WholeWords` in
 
 ```lean
 theorem OptimalOTS.Witnesses.generality1 :
-    ∃ S : Scheme paperParams, S.graph.WholeWords ∧ S.Secure ∧ ∀ i, S.verifyCost i ≤ 106
+    ∃ S : Scheme paperParams paperDagFormat, S.graph.WholeWords ∧ S.Secure ∧ ∀ i, S.verifyCost i ≤ 106
 ```
 
 Check it from `formal/` with `lake build Witnesses` (also run by `tools/check_repo.py --formal`).

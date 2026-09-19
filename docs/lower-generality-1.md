@@ -1,6 +1,6 @@
 # Generality 1/3: whole-word DAGs
 
-Generality 1/3 is `WholeWordVerificationLowerBound paperParams c`, defined in
+Generality 1/3 is `WholeWordVerificationLowerBound paperParams paperDagFormat c`, defined in
 `formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class. There are two upper
 tracks, both for generic algorithms: compressions and RISC-V cycles.
 
@@ -54,7 +54,7 @@ fails at 94. The optimal bound remains open.
 
 ```lean
 OptimalOTS.Challenge.LowerGenerality1.candidate :
-  WholeWordVerificationLowerBound paperParams 93
+  WholeWordVerificationLowerBound paperParams paperDagFormat 93
 ```
 
 The proof is the reference proof's `LowerGenerality1` submission root.

@@ -5,8 +5,14 @@ non-empty class. The 106-compression forest is a secure DAG scheme. -/
 
 namespace OptimalOTS.Witnesses
 
-theorem generality2 : ∃ S : Scheme paperParams, S.Secure ∧ ∀ i, S.verifyCost i ≤ 106 :=
+theorem generality2 :
+    ∃ S : Scheme paperParams paperDagFormat, S.Secure ∧ ∀ i, S.verifyCost i ≤ 106 :=
   ⟨Forest.forestScheme, Forest.forestScheme_secure, fun i => (Forest.forestScheme_verifyCost i).le⟩
+
+/-! The paper's DAG format fills the competition's budgets exactly: `trialLimit` index queries
+of one compression each cost `signCost`, and the nonce leaves `5248` bits of revealed values. -/
+example : paperDagFormat.trialLimit * idxCost paperParams paperDagFormat = paperParams.signCost ∧
+    paperParams.signatureBits - paperDagFormat.nonceBits = 5248 := by decide
 
 end OptimalOTS.Witnesses
 

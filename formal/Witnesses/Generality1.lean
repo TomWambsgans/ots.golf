@@ -7,7 +7,8 @@ non-empty class. The forest with 128-bit tweak words is a secure whole-word sche
 namespace OptimalOTS.Witnesses
 
 theorem generality1 :
-    ∃ S : Scheme paperParams, S.graph.WholeWords ∧ S.Secure ∧ ∀ i, S.verifyCost i ≤ 106 :=
+    ∃ S : Scheme paperParams paperDagFormat,
+      S.graph.WholeWords ∧ S.Secure ∧ ∀ i, S.verifyCost i ≤ 106 :=
   ⟨Forest.forestScheme, Forest.graph_wholeWords, Forest.forestScheme_secure,
     fun i => (Forest.forestScheme_verifyCost i).le⟩
 

@@ -73,6 +73,6 @@ isolation and launch checks in service/deploy/README.md.
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
 - Exact submission requirements and exports: AGENTS.md
 - Track metadata, limits and protected files: challenges.json
-- Interfaces: formal/OptimalOTS/{Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv}.lean
+- Interfaces: formal/OptimalOTS/{Model,Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv}.lean
 - Proof guides: docs/{lower-generality-1,lower-generality-2,lower-generality-3,upper-compressions,upper-riscv}.md
 - Official verifier: verifier/verify.py
